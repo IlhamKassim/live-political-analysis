@@ -2,6 +2,8 @@
 // Data-driven: boundaries render now; GE15 results + scores light up the
 // "Parti"/"Skor" modes and panel rows as soon as their JSON exists.
 
+import { encodeHash, decodeHash } from "./lib.js";
+
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
 const TOOLTIP = document.getElementById("tooltip");
@@ -510,16 +512,11 @@ document.getElementById("lang").addEventListener("click", (e) => {
 
 // ---- shareable URL state  (#tier/mode[/code]) ----
 function writeHash() {
-  const parts = [state.tier, state.mode];
-  if (state.selected) parts.push(state.selected);
-  const h = "#" + parts.map(encodeURIComponent).join("/");
+  const h = encodeHash(state);
   if (location.hash !== h) history.replaceState(null, "", h);
 }
 function parseHash() {
-  const raw = location.hash.replace(/^#/, "");
-  if (!raw) return null;
-  const [tier, mode, code] = raw.split("/").map((s) => decodeURIComponent(s || ""));
-  return { tier, mode, code };
+  return decodeHash(location.hash);
 }
 
 // ---- keyboard ----

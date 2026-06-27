@@ -16,7 +16,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
       `node --check public/app.js`. Any leftover → fix task at top.
 
 ## Phase 0 — Testable foundation (keystone)
-- [ ] (claude) [MV] Create `public/lib.js` (DOM-free ES module) + `public/lib.test.mjs` (Node `node --test`,
+- [x] (claude) [MV] Create `public/lib.js` (DOM-free ES module) + `public/lib.test.mjs` (Node `node --test`,
       zero-dep). Refactor `writeHash`/`parseHash` (app.js ~470-481) into pure `encodeHash`/`decodeHash`;
       `import` them into app.js. No behaviour change. Run `node --test public/lib.test.mjs` + `node --check public/app.js`.
 - [ ] (codex) [MV] VERIFY+STRESS Phase 0: run node --test + node --check; break encode/decode with junk/empty/extra-field
