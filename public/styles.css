@@ -173,6 +173,33 @@ a:hover { text-decoration: underline; }
 .muted { color: var(--ink-dim); }
 .src { font-size: 11px; margin-top: 22px; }
 
+/* ---- "Find your YB" front door (empty panel hero) ---- */
+.find { padding: 4px 0 2px; }
+.find-kicker { font-family: var(--mono); font-size: 11px; color: var(--accent);
+  letter-spacing: .12em; margin: 0 0 6px; }
+.find h2 { font-size: 22px; line-height: 1.2; margin: 0 0 8px; }
+.find-sub { font-size: 13px; line-height: 1.5; margin: 0 0 16px; }
+.find-loc {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; min-height: 44px; padding: 12px 16px; cursor: pointer;
+  font-family: var(--sans); font-size: 14px; font-weight: 600;
+  color: var(--bg); background: var(--accent); border: 0; border-radius: var(--radius);
+}
+.find-loc:hover { filter: brightness(1.06); }
+.find-or { font-size: 12px; text-align: center; margin: 12px 0 2px; }
+.find-eg { font-size: 12px; line-height: 1.5; margin: 0; color: var(--ink-faint); }
+
+/* legend + summary demoted into a collapsible "explore" disclosure */
+.empty-more { margin-top: 20px; border-top: 1px solid var(--line); padding-top: 14px; }
+.empty-more > summary {
+  cursor: pointer; font-size: 12px; color: var(--ink-dim);
+  list-style: none; user-select: none; padding: 2px 0;
+}
+.empty-more > summary::-webkit-details-marker { display: none; }
+.empty-more > summary::before { content: "▸ "; color: var(--ink-faint); }
+.empty-more[open] > summary::before { content: "▾ "; }
+.empty-more > summary:hover { color: var(--ink); }
+
 .legend { margin: 20px 0 10px; display: flex; flex-direction: column; gap: 5px; }
 .legend .row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-dim); }
 /* 1px ring keeps low-contrast swatches distinguishable from the panel and each

@@ -50,10 +50,19 @@
 
   <aside id="panel" class="empty">
     <div id="panel-empty">
-      <h2 data-i18n="empty_h">Pick a seat</h2>
-      <p class="muted" data-i18n="empty_p">Click any seat on the map, or search by name above.</p>
-      <div id="legend" class="legend"></div>
-      <dl id="summary" class="summary"></dl>
+      <div class="find">
+        <p class="find-kicker" data-i18n="find_kicker">FIND YOUR YB</p>
+        <h2 data-i18n="find_h">Who represents you?</h2>
+        <p class="find-sub muted" data-i18n="find_sub">Find your Parliament or State (DUN) seat in seconds.</p>
+        <button id="find-location" class="find-loc" type="button" data-i18n="find_loc">📍 Use my location</button>
+        <p class="find-or muted" data-i18n="find_or">or search by name above</p>
+        <p class="find-eg muted" data-i18n="find_eg">e.g. “Titiwangsa”, “Bangi”, or “Kota Kinabalu”.</p>
+      </div>
+      <details id="empty-more" class="empty-more">
+        <summary data-i18n="empty_more">Explore the whole map</summary>
+        <div id="legend" class="legend"></div>
+        <dl id="summary" class="summary"></dl>
+      </details>
       <p class="src muted"><span data-i18n="src_bound">Boundaries</span>: <a href="https://github.com/dosm-malaysia/data-open" target="_blank" rel="noopener">DOSM</a> ·
       <span data-i18n="src_proj">Projection</span>: <a href="https://maps.krackeddevs.com" target="_blank" rel="noopener">krackedmaps</a></p>
     </div>
