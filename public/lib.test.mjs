@@ -9,6 +9,7 @@ import {
   project, parsePathRings, pointInRings,
   findSeatForLocation, haversine, nearestSeat,
   formatParty, candidateCount, formatRunnerUp, formatResultCard, fitBox,
+  partyColor, COALITION_COLORS,
 } from "./lib.js";
 
 const parlimen = JSON.parse(
@@ -378,4 +379,39 @@ test("fitBox: degenerate / garbage input → null", () => {
   assert.equal(fitBox({ x: 0, y: 0, w: 10, h: 10 }, 0, 100), null);    // no target
   assert.equal(fitBox({ x: NaN, y: 0, w: 10, h: 10 }, 100, 100), null);// NaN coord
   assert.equal(fitBox({ x: 0, y: 0, w: 10, h: 10 }, 20, 20, 15), null);// pad eats the box
+});
+
+// ---- partyColor / COALITION_COLORS ----
+test("partyColor: every GE15 coalition maps to its swatch", () => {
+  assert.equal(partyColor("PH"), "#d7263d");
+  assert.equal(partyColor("PN"), "#15387c");
+  assert.equal(partyColor("BN"), "#1f9bd6");
+  assert.equal(partyColor("GPS"), "#b8332e");
+  assert.equal(partyColor("GRS"), "#e8772e");
+  assert.equal(partyColor("WARISAN"), "#16a085");
+});
+
+test("partyColor: case-insensitive", () => {
+  assert.equal(partyColor("ph"), "#d7263d");
+  assert.equal(partyColor("Warisan"), "#16a085");
+  assert.equal(partyColor("Bn"), "#1f9bd6");
+});
+
+test("partyColor: unknown / empty / nullish / non-string → #5d6b7d fallback", () => {
+  assert.equal(partyColor("XYZ"), "#5d6b7d");
+  assert.equal(partyColor(""), "#5d6b7d");
+  assert.equal(partyColor(null), "#5d6b7d");
+  assert.equal(partyColor(undefined), "#5d6b7d");
+  assert.equal(partyColor(), "#5d6b7d");
+  assert.equal(partyColor(42), "#5d6b7d");
+  assert.equal(partyColor({}), "#5d6b7d");
+  assert.equal(partyColor([]), "#5d6b7d");
+});
+
+test("COALITION_COLORS: exact byte-for-byte table (no swatch drift)", () => {
+  assert.deepEqual(COALITION_COLORS, {
+    PH: "#d7263d", PN: "#15387c", BN: "#1f9bd6", GPS: "#b8332e",
+    GRS: "#e8772e", WARISAN: "#16a085", KDM: "#8e44ad", PBM: "#6c7a89",
+    BEBAS: "#8a97a6",
+  });
 });

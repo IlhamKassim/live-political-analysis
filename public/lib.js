@@ -2,6 +2,23 @@
 // Everything here must run unchanged in the browser AND under `node --test`,
 // so: no `document`, no `window`, no `location` — inputs in, values out.
 
+// ---- coalition palette ----
+// The GE15 coalition → swatch colour table (legend bars, bloc pills, the seat
+// fill, the share card). Kept here so it ships WITH unit tests and the app, the
+// legend and the share-card all read ONE source of truth. Byte-identical to the
+// table that was inline in app.js.
+export const COALITION_COLORS = {
+  PH: "#d7263d", PN: "#15387c", BN: "#1f9bd6", GPS: "#b8332e",
+  GRS: "#e8772e", WARISAN: "#16a085", KDM: "#8e44ad", PBM: "#6c7a89",
+  BEBAS: "#8a97a6",
+};
+
+// Map a coalition code to its colour, case-insensitively. Unknown / empty /
+// non-string input falls back to the neutral grey #5d6b7d.
+export function partyColor(p) {
+  return COALITION_COLORS[(typeof p === "string" ? p : "").toUpperCase()] || "#5d6b7d";
+}
+
 // ---- shareable URL state  (#tier/mode[/code]) ----
 // encodeHash builds the location hash from app state; decodeHash parses one
 // back. Faithful extraction of app.js's old writeHash/parseHash internals —

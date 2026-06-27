@@ -63,7 +63,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
 - [ ] (codex) Write/refresh `NIGHT_REPORT.md`: every commit, what passed verification, the short **"needs Danial's eyes"** list.
 
 ## Phase 5 — Critique round 1 (replenished 2026-06-27 23:30 UTC; full regression GREEN — no bugs found, these are hardening/craft)
-- [ ] (claude) [MV] Move the pure colour mapping into lib.js: export `partyColor(coalition)` + the `COALITION_COLORS`
+- [x] (claude) [MV] Move the pure colour mapping into lib.js: export `partyColor(coalition)` + the `COALITION_COLORS`
       table from `public/lib.js` (currently inline in app.js ~40-46), have app.js `import` it (no behaviour change),
       and add unit tests in lib.test.mjs — every GE15 coalition (PH/PN/BN/GPS/GRS/WARISAN) maps to its colour,
       case-insensitive, unknown/empty/null/undefined → the `#5d6b7d` fallback. Strengthens the testable foundation

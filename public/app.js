@@ -3,7 +3,7 @@
 // "Parti"/"Skor" modes and panel rows as soon as their JSON exists.
 
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
-  formatParty, candidateCount, formatRunnerUp, fitBox } from "./lib.js";
+  formatParty, candidateCount, formatRunnerUp, fitBox, partyColor } from "./lib.js";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -36,14 +36,10 @@ const state = {
 const FULL = [0, 0, 799.85, 352.74];
 let viewBox = FULL.slice();
 
-// ---- coalition palette (used once results-ge15.json lands) ----
-const COALITION_COLORS = {
-  PH: "#d7263d", PN: "#15387c", BN: "#1f9bd6", GPS: "#b8332e",
-  GRS: "#e8772e", WARISAN: "#16a085", KDM: "#8e44ad", PBM: "#6c7a89",
-  BEBAS: "#8a97a6",
-};
+// ---- coalition palette ----
+// COALITION_COLORS + partyColor() now live in lib.js (one tested source of
+// truth for legend/pills/seat-fill/share-card). COALITION_ORDER stays here.
 const COALITION_ORDER = ["PH", "PN", "BN", "GPS", "GRS", "WARISAN", "KDM", "PBM", "BEBAS"];
-const partyColor = (p) => COALITION_COLORS[(p || "").toUpperCase()] || "#5d6b7d";
 
 // ---- i18n (English default, Bahasa Melayu toggle) ----
 const I18N = {
