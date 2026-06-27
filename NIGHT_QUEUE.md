@@ -236,6 +236,31 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
       well-formed; no duplicate tags; existing og/twitter/title/desc tags intact; `og:image` path still resolves under
       `public/`. `node --check`. Bug → top.
 
+## Phase 11 — Critique round 7 (replenished 2026-06-27 · full regression GREEN: 85 tests pass, node --check app.js+lib.js+i18n.js + py_compile OK. GE15 tally invariant test green. validate.sh's only failures remain the sandbox `/tmp` log-write denials — every underlying check passes run directly. Audit found NO active bugs; combobox a11y is complete (#q role=combobox + aria-controls→#results role=listbox), both og:image/icon assets resolve under public/assets/. These are latent-landmine hardening + dead-code cleanup + tested-foundation growth.)
+- [ ] (claude) [MV] HARDEN i18n-shadow (latent landmine): the SVG `mousemove` (app.js ~551) and `click` (~576) handlers each
+      open with `const t = e.target;`, which SHADOWS the module-level `t()` i18n translation fn (app.js ~56) inside those
+      blocks. Safe today — neither handler calls `t("...")` — but it is a trap: the moment anyone adds a translated string to
+      the tooltip or click path, `t("key")` throws `TypeError: t is not a function`. Rename BOTH locals from `t` to `tgt`
+      (and update their in-block uses: `t.classList`/`t.dataset.code` → `tgt.classList`/`tgt.dataset.code`) so the i18n fn is
+      always reachable. NO behaviour change. `node --check public/app.js`.
+- [ ] (codex) [MV] VERIFY i18n-shadow fix: confirm both handlers reference `tgt` (no remaining `const t = e.target`),
+      tooltip + seat-click still resolve seat by `dataset.code`, no other `t` reference broke; node --check. Bug → top.
+- [ ] (claude) [MV] Remove dead `row()` helper (app.js ~258-260): `function row(dt, dd, mono=false)` is defined but NEVER
+      called — `renderPanel` builds its `<dt>/<dd>` rows inline via template strings (and the empty-panel `#summary`/legend
+      build their own markup). Delete the unused function (and its one-line lead comment if any). Pure dead-code cleanup,
+      no behaviour change, shrinks the surface. `node --check public/app.js`.
+- [ ] (codex) [MV] VERIFY row() removal: confirm `grep -n "row(" public/app.js` shows no orphan call site, renderPanel
+      still emits the same rows (compare the rendered `<dl>` shape), node --check. Bug → top.
+- [ ] (claude) [MV] Tested-foundation: automate the markup-key parity check. Today the "every `data-i18n*` attribute names a
+      real I18N key" invariant is verified by HAND each round (AGENT_LOG: "all 29 data-i18n* markup keys resolve"). Add a
+      lib.test.mjs case that reads `public/index.html` via `node:fs` (same `readFileSync(new URL(...))` pattern the existing
+      data tests use), regex-extracts every `data-i18n`, `data-i18n-ph`, `data-i18n-title`, `data-i18n-aria`,
+      `data-i18n-content`, `data-i18n-after` attribute VALUE, and asserts each extracted key exists in BOTH `I18N.en` and
+      `I18N.ms` (import `I18N` from `./i18n.js`). Fails loudly if a future markup edit references a missing/untranslated key.
+      Grows the tested foundation; guards the silent-untranslated-markup regression class. `node --test` + `node --check`.
+- [ ] (codex) [MV] VERIFY markup-key parity test: confirm the new test passes on current HTML, and FAILS if you (a) add a
+      bogus `data-i18n="nope"` to index.html or (b) delete one of the referenced keys from i18n.js (en OR ms). node --test/--check. Bug → top.
+
 ## ♻️ PERPETUAL TAIL — do NOT tick; keeps the night productive
 - [ ] (claude) ♻️ CRITIQUE & REPLENISH (NEVER tick — leave in place): when the lists above are drained, FIRST run the
       full regression, THEN audit code + behaviour against the AGENTS.md vision, hunt bugs/regressions/edge-cases, and
