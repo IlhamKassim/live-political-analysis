@@ -665,7 +665,13 @@ Q.addEventListener("keydown", (e) => {
     const opts = resultOptions();
     const pick = activeResult >= 0 ? opts[activeResult] : opts[0];   // highlighted, else first
     if (pick) pick.click();
-  } else if (e.key === "Escape") { Q.value = ""; hideResults(); clearMatches(); }
+  } else if (e.key === "Escape") {
+    // Clear the search only — stopPropagation so the event doesn't bubble to the
+    // document handler that deselects the seat (one Escape, one action). A second
+    // Escape with focus outside #q still deselects via the global handler.
+    e.stopPropagation();
+    Q.value = ""; hideResults(); clearMatches();
+  }
 });
 document.addEventListener("click", (e) => {
   if (!e.target.closest(".search")) hideResults();

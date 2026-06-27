@@ -195,7 +195,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
       new GE15-invariant test fails if you mutate one seat's coalition; null/garbage results → `{}` no throw. node --test/--check. Bug → top.
 
 ## Phase 10 — Critique round 6 (replenished 2026-06-27 · full regression GREEN: 79 tests pass, node --check app.js+lib.js+i18n.js + py_compile OK. GE15 tally invariant test still green (PH82·PN74·BN30·GPS23·GRS6·WARISAN3 = 222). validate.sh's only failures remain the sandbox `/tmp` log-write denials — every underlying check passes run directly. Audit found ONE real Escape double-action bug + ONE latent guardrail-violation + tested-foundation/link-preview craft.)
-- [ ] (claude) [MV] FIX Escape double-action (bug): pressing Escape inside the search box `#q` to clear the query ALSO
+- [x] (claude) [MV] FIX Escape double-action (bug): pressing Escape inside the search box `#q` to clear the query ALSO
       deselects the current seat. The `#q` keydown Escape branch (app.js ~668 `{ Q.value=""; hideResults(); clearMatches(); }`)
       clears search but does NOT `stopPropagation`, so the event bubbles to the document-level keydown (~836
       `if (e.key==="Escape" && state.selected) deselect()`) which zooms out + collapses the panel — ONE Escape, TWO actions.
