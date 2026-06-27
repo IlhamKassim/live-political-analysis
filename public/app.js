@@ -2,7 +2,8 @@
 // Data-driven: boundaries render now; GE15 results + scores light up the
 // "Parti"/"Skor" modes and panel rows as soon as their JSON exists.
 
-import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat } from "./lib.js";
+import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
+  formatParty, candidateCount, formatRunnerUp } from "./lib.js";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -17,6 +18,7 @@ const Q = document.getElementById("q");
 const RESULTS = document.getElementById("results");
 const FIND_LOC = document.getElementById("find-location");
 const FIND_STATUS = document.getElementById("find-status");
+const TOAST = document.getElementById("toast");
 
 const state = {
   tier: "parlimen",
@@ -71,7 +73,9 @@ const I18N = {
     reset_btn: "↺ Show all", reset_title: "Show all (Esc)",
     rep: "Representative", rep_ph: "GE15 data not loaded",
     party_bloc: "Party / Bloc", majority: "GE15 majority", win_votes: "Winning votes",
-    turnout: "Turnout", runner: "Runner-up", score: "Performance score",
+    turnout: "Turnout", candidates: "Candidates", runner: "Runner-up", score: "Performance score",
+    share_btn: "🔗 Share link", share_ok: "Link copied to clipboard", share_fail: "Couldn't copy — copy the link from your address bar",
+    src_ge15: "Results: official GE15 (SPR · DOSM/Thevesh)",
     state_label: "State", kicker_parlimen: "PARLIAMENT SEAT",
     dun_note: "Results shown at the parent Parliament level ({p}). State-election (PRN) results coming soon.",
     score_building: "Performance-score layer is being built.",
@@ -109,7 +113,9 @@ const I18N = {
     reset_btn: "↺ Papar semua", reset_title: "Papar semua (Esc)",
     rep: "Wakil rakyat", rep_ph: "data PRU15 belum dimuat",
     party_bloc: "Parti / Blok", majority: "Majoriti PRU15", win_votes: "Undi menang",
-    turnout: "Penyertaan", runner: "Penyangga", score: "Skor prestasi",
+    turnout: "Penyertaan", candidates: "Calon", runner: "Penyangga", score: "Skor prestasi",
+    share_btn: "🔗 Kongsi pautan", share_ok: "Pautan disalin ke papan keratan", share_fail: "Tidak dapat menyalin — salin pautan dari bar alamat",
+    src_ge15: "Keputusan: rasmi PRU15 (SPR · DOSM/Thevesh)",
     state_label: "Negeri", kicker_parlimen: "KERUSI PARLIMEN",
     dun_note: "Keputusan dipaparkan pada peringkat Parlimen induk ({p}). Keputusan DUN (PRN) menyusul.",
     score_building: "Lapisan skor prestasi sedang dibina.",
@@ -351,7 +357,10 @@ function renderPanel(seat) {
   let rows = "";
   if (r) {
     const blocPill = `<span class="pill" style="background:${partyColor(r.coalition)};color:#fff">${esc(r.coalition)}</span>`;
-    const partyTxt = r.party && r.party !== r.coalition ? `${esc(r.party)} · ` : "";
+    // surface party_full ("Perikatan Nasional (PN)") via the pure helper; only show
+    // it when it adds something beyond the bloc pill (skip a redundant "PN · PN")
+    const pf = formatParty(r);
+    const partyTxt = pf && pf.label && pf.label !== r.coalition ? `${esc(pf.label)} · ` : "";
     rows += `<dt>${t("rep")}</dt><dd>${esc(r.name)}</dd>`;
     rows += `<dt>${t("party_bloc")}</dt><dd>${partyTxt}${blocPill}</dd>`;
     if (r.majority != null)
@@ -360,8 +369,18 @@ function renderPanel(seat) {
       rows += `<dt>${t("win_votes")}</dt><dd class="mono">${Number(r.votes).toLocaleString()} <span class="muted">(${r.vote_pct}%)</span></dd>`;
     if (r.turnout != null)
       rows += `<dt>${t("turnout")}</dt><dd class="mono">${r.turnout}%</dd>`;
-    if (r.runner_up)
-      rows += `<dt>${t("runner")}</dt><dd>${esc(r.runner_up.name)} <span class="pill" style="background:${partyColor(r.runner_up.party === r.party ? r.coalition : r.runner_up.party)};color:#fff;opacity:.85">${esc(r.runner_up.party)}</span></dd>`;
+    const nc = candidateCount(r);
+    if (nc != null)
+      rows += `<dt>${t("candidates")}</dt><dd class="mono">${nc}</dd>`;
+    const ru = formatRunnerUp(r);
+    if (ru) {
+      const ruPill = ru.party
+        ? ` <span class="pill" style="background:${partyColor(ru.party === r.party ? r.coalition : ru.party)};color:#fff;opacity:.85">${esc(ru.party)}</span>`
+        : "";
+      // now also surfaces runner_up.votes (panel previously showed only name + party)
+      const ruVotes = ru.votes != null ? ` <span class="muted">${Number(ru.votes).toLocaleString()}</span>` : "";
+      rows += `<dt>${t("runner")}</dt><dd>${esc(ru.name || "")}${ruPill}${ruVotes}</dd>`;
+    }
   } else {
     rows += `<dt>${t("rep")}</dt><dd class="placeholder">${t("rep_ph")}</dd>`;
   }
@@ -381,10 +400,43 @@ function renderPanel(seat) {
       <div class="where">${t("state_label")} <b>${esc(seat.state)}</b></div>
     </div>
     <dl class="rows">${rows}</dl>
+    ${r ? `<div class="src-line muted">${esc(t("src_ge15"))}</div>` : ""}
     ${dunNote}
     ${!r && isP ? `<div class="note">${t("score_building")}</div>` : ""}
+    <div class="seat-actions">
+      <button id="share-link" class="share-btn" type="button">${esc(t("share_btn"))}</button>
+    </div>
   `;
 }
+
+// ---- share / copy deep-link ----
+// Builds the canonical deep-link to the selected seat (encodeHash already encodes
+// #tier/mode/code) and copies it to the clipboard, with a transient toast. The
+// clipboard API is guarded — on any failure we tell the user to copy from the URL bar.
+let toastTimer = null;
+function showToast(key) {
+  if (!TOAST) return;
+  TOAST.textContent = t(key);
+  TOAST.hidden = false;
+  TOAST.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { TOAST.classList.remove("show"); TOAST.hidden = true; }, 2600);
+}
+async function shareLink() {
+  const url = location.origin + location.pathname + encodeHash(state);
+  let ok = false;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(url);
+      ok = true;
+    }
+  } catch (_) { ok = false; }
+  showToast(ok ? "share_ok" : "share_fail");
+}
+// PANEL_SEAT.innerHTML is rebuilt on every render, so delegate rather than re-bind.
+PANEL_SEAT.addEventListener("click", (e) => {
+  if (e.target.closest("#share-link")) shareLink();
+});
 
 // ---- summary + legend (empty panel) ----
 function renderSummary() {

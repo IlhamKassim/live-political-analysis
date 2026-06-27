@@ -234,6 +234,25 @@ a:hover { text-decoration: underline; }
   border-radius: 8px; font-size: 12px; color: var(--ink-dim); line-height: 1.5; }
 .note b { color: var(--ink); }
 
+/* per-card data provenance (transparency: every number shows its source) */
+.src-line { margin-top: 12px; font-size: 11px; line-height: 1.4; }
+
+/* share / copy-link */
+.seat-actions { margin-top: 18px; }
+.share-btn { width: 100%; min-height: 44px; padding: 11px 14px; font-size: 14px; font-weight: 600;
+  cursor: pointer; color: var(--ink); background: var(--bg); border: 1px solid var(--line);
+  border-radius: var(--radius); transition: border-color .15s, color .15s; }
+.share-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* transient confirmation toast */
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 12px);
+  max-width: min(92vw, 420px); padding: 11px 16px; font-size: 13px; text-align: center;
+  color: var(--bg); background: var(--accent); border-radius: 999px; z-index: 50;
+  box-shadow: 0 6px 24px rgba(0,0,0,.35); opacity: 0; pointer-events: none;
+  transition: opacity .2s, transform .2s; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+@media (prefers-reduced-motion: reduce) { .toast { transition: opacity .2s; } }
+
 @media (max-width: 820px) {
   #app { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto;
     grid-template-areas: "top" "stage" "panel"; }
