@@ -560,6 +560,7 @@ SVG.addEventListener("mousemove", (e) => {
   const t = e.target;
   if (t.classList && t.classList.contains("seat")) {
     const data = state.data[state.tier];
+    if (!data) return;   // boundary layer unavailable — no seat paths exist anyway; guard for symmetry
     const seat = data.byCode.get(t.dataset.code);
     if (!seat) return;
     const code = state.tier === "parlimen" ? seat.code : seat.dun_code;
@@ -628,6 +629,7 @@ Q.addEventListener("input", () => {
   clearMatches();
   if (!q) return;
   const data = state.data[state.tier];
+  if (!data) return;   // boundary layer unavailable (init bailed) — keep search inert, don't throw
   const hits = searchSeats(data.seats, q, state.tier);
   if (!hits.length) return;
   for (const p of state.paths.values()) p.classList.add("dim");

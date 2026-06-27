@@ -8,7 +8,7 @@ RULES: one task per round · `[MV]` = machine-verifiable (`node --test`/`node --
 build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]` fix task at the TOP.
 
 ## 🔝 Bug fixes (top priority — found in critique round 5, 2026-06-27)
-- [ ] (claude) [MV] FIX search-throw on boundary-load failure: the `#q` input handler (app.js ~630) does
+- [x] (claude) [MV] FIX search-throw on boundary-load failure: the `#q` input handler (app.js ~630) does
       `const data = state.data[state.tier]; ... searchSeats(data.seats, q, state.tier)`. On boot, if `render(tier)`
       throws (boundaries file missing/corrupt) `init()` shows the error overlay and `return`s early — but `#q` stays
       in the DOM and interactive, so the FIRST keystroke reads `state.data[state.tier]` (still `undefined`) and throws
