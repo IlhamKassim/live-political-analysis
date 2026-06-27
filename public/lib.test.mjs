@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
   encodeHash, decodeHash,
+  pickInitialLang,
   project, parsePathRings, pointInRings,
   findSeatForLocation, haversine, nearestSeat,
 } from "./lib.js";
@@ -173,4 +174,34 @@ test("nearestSeat: bad input → null", () => {
   assert.equal(nearestSeat(NaN, 100, SEATS), null);
   assert.equal(nearestSeat(5, 100, []), null);
   assert.equal(nearestSeat(5, 100, null), null);
+});
+
+// ---- pickInitialLang ----
+
+test("pickInitialLang: saved preference always wins", () => {
+  assert.equal(pickInitialLang("ms", ["en-US", "en"]), "ms");
+  assert.equal(pickInitialLang("en", ["ms-MY", "ms"]), "en");
+});
+
+test("pickInitialLang: browser language decides when no saved pref", () => {
+  assert.equal(pickInitialLang(null, ["en-GB", "en"]), "en");
+  assert.equal(pickInitialLang(null, ["ms-MY"]), "ms");
+  assert.equal(pickInitialLang(undefined, ["EN-US"]), "en"); // case-insensitive
+  // first recognised tag wins, unknowns are skipped
+  assert.equal(pickInitialLang(null, ["zh-CN", "en-US"]), "en");
+  assert.equal(pickInitialLang(null, ["fr", "ms-MY", "en"]), "ms");
+});
+
+test("pickInitialLang: BM-first default when nothing matches", () => {
+  assert.equal(pickInitialLang(null, []), "ms");
+  assert.equal(pickInitialLang(null, ["zh-CN", "ja"]), "ms");
+  assert.equal(pickInitialLang(null, null), "ms");
+  assert.equal(pickInitialLang(null, undefined), "ms");
+  assert.equal(pickInitialLang("bogus", ["en"]), "en"); // invalid saved → fall through
+  assert.equal(pickInitialLang("", null), "ms");
+});
+
+test("pickInitialLang: ignores non-string entries in nav list", () => {
+  assert.equal(pickInitialLang(null, [null, 42, {}, "en-US"]), "en");
+  assert.equal(pickInitialLang(null, [undefined, "ms"]), "ms");
 });

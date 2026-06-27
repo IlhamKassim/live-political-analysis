@@ -20,6 +20,25 @@ export function decodeHash(hash) {
   return { tier, mode, code };
 }
 
+// ---- initial language pick ----
+// BM-first with a browser override. Precedence:
+//   1. an explicit saved preference ("ms" | "en") always wins;
+//   2. otherwise the first recognised browser language tag decides
+//      (e.g. "en-GB" → en, "ms-MY" → ms);
+//   3. otherwise default to Bahasa Melayu ("ms").
+// Ships the MECHANISM only — the final default taste is Danial's call.
+export function pickInitialLang(saved, navLanguages) {
+  if (saved === "ms" || saved === "en") return saved;
+  const langs = Array.isArray(navLanguages) ? navLanguages : [];
+  for (const l of langs) {
+    if (typeof l !== "string") continue;
+    const tag = l.toLowerCase();
+    if (tag === "ms" || tag.startsWith("ms-") || tag.startsWith("ms_")) return "ms";
+    if (tag === "en" || tag.startsWith("en-") || tag.startsWith("en_")) return "en";
+  }
+  return "ms";
+}
+
 // ---- geolocation: lng/lat → seat ----
 // The seat `d` paths are baked in projected SVG-viewBox px (pipeline/01_boundaries.py).
 // So "which seat is this GPS point in?" = project the point with the SAME frozen

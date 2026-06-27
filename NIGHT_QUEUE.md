@@ -29,7 +29,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
       KLCC, Putrajaya, Penang, JB, **Kuching + KK** (shift branch). `node --test`.
 - [ ] (codex) [MV] VERIFY+STRESS geolocation: run fixtures; stress offshore/out-of-country coords, boundary points,
       NaN/garbage, both tiers; confirm PIP hits known seats. Bugs → top.
-- [ ] (claude) [MV] `pickInitialLang(saved, navLanguages)` pure fn + tests; wire boot default (BM-first w/ browser
+- [x] (claude) [MV] `pickInitialLang(saved, navLanguages)` pure fn + tests; wire boot default (BM-first w/ browser
       override — ship the MECHANISM; final taste is Danial's). `node --test`.
 - [ ] (codex) [MV] VERIFY+STRESS lang picker: saved-pref wins; ms/en/other/empty nav langs.
 - [ ] (claude) [MV] Pure card-format helpers in lib.js surfacing `party_full`, `n_candidates`, `runner_up.votes` + tests.

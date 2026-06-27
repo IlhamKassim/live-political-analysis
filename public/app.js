@@ -2,7 +2,7 @@
 // Data-driven: boundaries render now; GE15 results + scores light up the
 // "Parti"/"Skor" modes and panel rows as soon as their JSON exists.
 
-import { encodeHash, decodeHash } from "./lib.js";
+import { encodeHash, decodeHash, pickInitialLang } from "./lib.js";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -97,8 +97,12 @@ const I18N = {
     by_score: "Warna ikut skor (merah→hijau)",
   },
 };
-let lang = "en";
-try { const saved = localStorage.getItem("peta-yb-lang"); if (saved === "ms" || saved === "en") lang = saved; } catch (_) {}
+// BM-first with a browser override; an explicit saved preference always wins.
+let lang = "ms";
+try {
+  const saved = localStorage.getItem("peta-yb-lang");
+  lang = pickInitialLang(saved, navigator.languages);
+} catch (_) { lang = pickInitialLang(null, null); }
 
 function t(key, params) {
   let s = (I18N[lang] && I18N[lang][key]) ?? I18N.en[key] ?? key;
