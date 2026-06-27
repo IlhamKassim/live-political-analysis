@@ -261,6 +261,35 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
 - [ ] (codex) [MV] VERIFY markup-key parity test: confirm the new test passes on current HTML, and FAILS if you (a) add a
       bogus `data-i18n="nope"` to index.html or (b) delete one of the referenced keys from i18n.js (en OR ms). node --test/--check. Bug → top.
 
+## Phase 12 — Critique round 8 (replenished 2026-06-27 · full regression GREEN: 86 tests pass, node --check app.js+lib.js+i18n.js OK, py_compile OK, GE15 tally invariant test green, seats-parlimen count===222 verified. Audit found ONE real keyboard-deselect dead-end bug (queued top) + tested-foundation growth + defensive hardening.)
+- [ ] (claude) [MV] FIX Escape swallowed by empty search box (bug): the `#q` keydown Escape branch (app.js ~656-662) ALWAYS
+      calls `e.stopPropagation()` — even when the query is already empty AND the dropdown is hidden. So with a seat selected,
+      clicking into the (empty) `#q` and pressing Escape clears nothing but STILL blocks the document-level Escape→deselect
+      (~831), making Escape an inert no-op: the user can't deselect / zoom-out by keyboard while focus is in `#q`. Repro:
+      select a seat (zoomed) → click into the empty search box → press Escape → nothing happens (expected: zoom out /
+      deselect). Fix: make the first line of the Escape branch `if (Q.value === "" && RESULTS.hidden) return;` so a no-op
+      Escape bubbles to the global deselect; a non-empty query OR an open dropdown still clears search-only via the existing
+      `e.stopPropagation(); Q.value=""; hideResults(); clearMatches();` (preserves the Phase-10 one-Escape-one-action fix).
+      `node --check public/app.js`.
+- [ ] (codex) [MV] VERIFY+STRESS Escape-bubble fix: seat selected + empty `#q` focused → Escape deselects (zooms out);
+      seat selected + typed query in `#q` → Escape clears search only (seat stays selected); seat selected + open dropdown,
+      empty input edge → Escape clears dropdown only; arrow/Enter nav unchanged; no JS error. `node --check`. Bug → top.
+- [ ] (claude) [MV] Tested-foundation: extract the zoom-framing math from `zoomToSeat` (app.js ~212-223) into a pure
+      `seatViewBox(bbox, full)` in `public/lib.js` and have app.js `import` it + pass the result to `animateTo` (NO behaviour
+      change — same `pad = max(w,h)*0.9 + 10`, same FULL aspect-ratio preservation, same centre-on-bbox). It's the last
+      meaningful pure logic still inline in app.js; the regime requires every pure fn ship WITH tests. `seatViewBox` takes
+      `bbox={x,y,w,h}` + `full=[0,0,W,H]`, returns `[x,y,w,h]`. lib.test cases: a known bbox → expected viewBox; the returned
+      box's aspect ratio equals `full[2]/full[3]`; a zero-size (point) bbox → a finite padded box (no NaN/0-width); the box is
+      centred on the bbox centre; missing/garbage bbox → faithful behaviour (document it). `node --test` + `node --check public/app.js`.
+- [ ] (codex) [MV] VERIFY+STRESS seatViewBox port: framing byte-identical to the old inline math on real parlimen + DUN seat
+      bboxes (same [x,y,w,h] at several seats); aspect ratio preserved; point/zero bbox → finite box; node --test/--check. Bug → top.
+- [ ] (claude) [MV] HARDEN summary seat-count against a missing `count` field: `renderSummary` (app.js ~519) renders
+      `${data.count}` straight from the seats JSON; if a future/edited `seats-*.json` omits `count` the summary shows
+      "undefined". Fall back to the array length — `${data.count ?? data.seats.length}`. Defensive only (today both files have
+      `count` === `seats.length` === 222, verified) — keeps the empty-panel summary honest if data shape drifts. `node --check public/app.js`.
+- [ ] (codex) [MV] VERIFY summary-count hardening: with `count` present the summary shows the same number as before; a synthetic
+      `data` object without `count` falls back to `seats.length` (no "undefined"); states/layer rows unchanged. `node --check`. Bug → top.
+
 ## ♻️ PERPETUAL TAIL — do NOT tick; keeps the night productive
 - [ ] (claude) ♻️ CRITIQUE & REPLENISH (NEVER tick — leave in place): when the lists above are drained, FIRST run the
       full regression, THEN audit code + behaviour against the AGENTS.md vision, hunt bugs/regressions/edge-cases, and
