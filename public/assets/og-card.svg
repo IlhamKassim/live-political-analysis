@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="MyPolitik — Your representatives, on the map">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#11151d"/>
+      <stop offset="1" stop-color="#0b0e13"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect x="0" y="0" width="1200" height="8" fill="#4dd6c1"/>
+  <g transform="translate(90 250)">
+    <text font-family="'Space Grotesk', 'Segoe UI', system-ui, sans-serif" font-size="96" font-weight="700" fill="#e7edf4">
+      <tspan fill="#4dd6c1">◧ </tspan>My<tspan font-weight="700">Politik</tspan>
+    </text>
+    <text y="90" font-family="'Space Grotesk', 'Segoe UI', system-ui, sans-serif" font-size="40" font-weight="500" fill="#93a1b3">Your representatives, on the map.</text>
+    <text y="170" font-family="'JetBrains Mono', 'Courier New', monospace" font-size="28" fill="#5d6b7d">Find your YB — every Malaysian Parliament &amp; DUN seat.</text>
+  </g>
+</svg>

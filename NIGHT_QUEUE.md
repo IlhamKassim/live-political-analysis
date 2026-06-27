@@ -145,7 +145,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
 - [ ] (codex) [MV] VERIFY+STRESS searchSeats port: confirm the dropdown + map highlight are byte-identical to the old inline filter on
       real data (same seats, same order); empty/whitespace/garbage/non-string query → `[]` with no throw; DUN dun_code + parlimen matches
       resolve; node --test/--check. Bug → top.
-- [ ] (claude) [HVR] Link-preview growth: the `<head>` has `<title>` + `<meta name="description">` but NO Open Graph / Twitter Card tags,
+- [x] (claude) [HVR] Link-preview growth: the `<head>` has `<title>` + `<meta name="description">` but NO Open Graph / Twitter Card tags,
       so a shared deep-link (the growth engine) renders a bare URL in WhatsApp/Twitter/FB. Add static `og:title`, `og:description`,
       `og:type=website`, `og:site_name=MyPolitik`, `og:image` (point at an existing `public/` asset — reuse the favicon/icon if no social
       image exists; note it in the handoff for Danial to swap a 1200×630 card later), `twitter:card=summary_large_image`,
