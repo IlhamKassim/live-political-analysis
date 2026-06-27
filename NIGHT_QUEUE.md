@@ -226,7 +226,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
 - [ ] (codex) [MV] VERIFY+STRESS stateHues port: legend swatches + `negeri`-mode seat fills are byte-identical to the old
       inline hues on real parlimen + DUN data; empty/garbage seats → `{}` no throw; same colour for the same state across
       reloads. `node --test` + `node --check`. Bug → top.
-- [ ] (claude) [HVR] Link-preview completeness: the `<head>` has og:title/description/image/type/site_name + twitter card
+- [x] (claude) [HVR] Link-preview completeness: the `<head>` has og:title/description/image/type/site_name + twitter card
       tags but NO `og:url` (the canonical link many unfurlers require) and no image-alt. Add static `<meta property="og:url">`
       (the deployed site origin — note it for Danial to confirm the final domain), `og:image:alt` + `twitter:image:alt`
       describing the share card, and `<meta property="og:locale" content="en_MY">` matching the default copy. Keep zero-dep /
