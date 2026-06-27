@@ -191,3 +191,30 @@ a:hover { text-decoration: underline; }
   #panel { border-left: 0; border-top: 1px solid var(--line); max-height: 42vh; }
   .controls { width: 100%; }
 }
+
+/* ---- narrow / mobile (≤480px) ---- */
+@media (max-width: 480px) {
+  #topbar { gap: 12px; padding: 10px 12px; }
+  .brand .mark { font-size: 17px; }
+  .controls { gap: 8px; }
+  /* tier + mode toggles fill the row; search takes its own full-width line */
+  .seg { flex: 1 1 auto; }
+  .seg#lang { flex: 0 0 auto; }
+  .seg button { flex: 1 1 auto; padding: 8px 10px; }
+  .search { flex: 1 1 100%; order: 3; }
+  .search input { width: 100%; }
+  /* anchor the results dropdown to the full search width so it never overflows */
+  .results { left: 0; right: 0; width: auto; }
+  #panel { padding: 16px 14px; }
+  #reset { left: 12px; bottom: 12px; }
+}
+
+/* ---- very narrow (≤390px) ---- */
+@media (max-width: 390px) {
+  #topbar { padding: 9px 10px; }
+  .brand .tag { display: none; }
+  .seg button { font-size: 11px; padding: 8px 8px; letter-spacing: .02em; }
+  .search input { font-size: 12px; padding: 8px 10px; }
+  #panel { max-height: 46vh; }
+  .seat-head h2 { font-size: 19px; }
+}
