@@ -194,6 +194,48 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
 - [ ] (codex) [MV] VERIFY tallyCoalitions: legend bloc bar/key still render identical counts to the old inline tally; the
       new GE15-invariant test fails if you mutate one seat's coalition; null/garbage results → `{}` no throw. node --test/--check. Bug → top.
 
+## Phase 10 — Critique round 6 (replenished 2026-06-27 · full regression GREEN: 79 tests pass, node --check app.js+lib.js+i18n.js + py_compile OK. GE15 tally invariant test still green (PH82·PN74·BN30·GPS23·GRS6·WARISAN3 = 222). validate.sh's only failures remain the sandbox `/tmp` log-write denials — every underlying check passes run directly. Audit found ONE real Escape double-action bug + ONE latent guardrail-violation + tested-foundation/link-preview craft.)
+- [ ] (claude) [MV] FIX Escape double-action (bug): pressing Escape inside the search box `#q` to clear the query ALSO
+      deselects the current seat. The `#q` keydown Escape branch (app.js ~668 `{ Q.value=""; hideResults(); clearMatches(); }`)
+      clears search but does NOT `stopPropagation`, so the event bubbles to the document-level keydown (~836
+      `if (e.key==="Escape" && state.selected) deselect()`) which zooms out + collapses the panel — ONE Escape, TWO actions.
+      Repro: click a seat (selected, zoomed) → click into `#q` and type → press Escape → search clears AND the seat
+      deselects/zooms out unexpectedly. Fix: in the `#q` Escape branch call `e.stopPropagation()` (ONLY there — leave the
+      arrow/Enter branches untouched) so Escape in the search clears the dropdown/query first without nuking the selection;
+      a second Escape (focus outside `#q`) still deselects via the global handler. `node --check public/app.js`.
+- [ ] (codex) [MV] VERIFY+STRESS Escape fix: seat selected + typing in `#q` → Escape clears search only (seat stays
+      selected/zoomed); Escape with empty search + seat selected (focus outside `#q`) still deselects; arrow/Enter result
+      nav unchanged; no JS error on empty results. `node --check`. Bug → top.
+- [ ] (claude) [MV] HARDEN Skor gating (guardrail): AGENTS.md UNTOUCHABLE says **"Keep Skor GATED ('Soon') even if
+      scores.json appears"**, but `loadOptional()` (app.js ~124-127) calls `enableMode("skor")` the moment a
+      `data/scores.json` fetch succeeds — removing `disabled` + the title so the gated tab becomes clickable (and a
+      `#parlimen/skor` deep-link would then activate it). That directly contradicts the guardrail. scores.json does NOT
+      exist today so nothing breaks now — this is defensive. Fix: stop un-gating skor on data presence — still load
+      `state.scores` (the panel score row + `seatValueColor` skor branch keep working) but NEVER light the mode button:
+      either drop the `enableMode("skor")` call or make `enableMode` ignore `"skor"`. Leave `enableMode("parti")` unchanged.
+      Add a one-line comment citing the untouchable. `node --check public/app.js` (behavioural — note it in the handoff).
+- [ ] (codex) [MV] VERIFY Skor stays gated: drop a synthetic `data/scores.json` in → Skor tab STAYS `disabled` + keeps its
+      "Soon/Segera" pill; `#parlimen/skor` deep-link does NOT activate skor (normalises away per the honest-deep-link rule);
+      `parti` still enables when results load. `node --check`. Bug → top.
+- [ ] (claude) [MV] Extract `stateHues(seats)` (app.js ~93-105) into a pure DOM-free `stateHues(seats)` in `public/lib.js`,
+      `import` it into app.js (NO behaviour change — same golden-angle 137.508° hue spacing, same `i%3`/`i%2` sat/light
+      jitter, same sorted-unique state order). It's the LAST pure helper still inline in app.js. Add lib.test.mjs cases:
+      deterministic + stable (same seats array → byte-identical `{state: hsl(...)}` map); distinct states get distinct hues;
+      empty / non-array seats → `{}` (no throw); an entry with a missing `state` doesn't crash. Grows the tested foundation
+      per the regime (every pure fn ships WITH tests). `node --test` + `node --check public/app.js`.
+- [ ] (codex) [MV] VERIFY+STRESS stateHues port: legend swatches + `negeri`-mode seat fills are byte-identical to the old
+      inline hues on real parlimen + DUN data; empty/garbage seats → `{}` no throw; same colour for the same state across
+      reloads. `node --test` + `node --check`. Bug → top.
+- [ ] (claude) [HVR] Link-preview completeness: the `<head>` has og:title/description/image/type/site_name + twitter card
+      tags but NO `og:url` (the canonical link many unfurlers require) and no image-alt. Add static `<meta property="og:url">`
+      (the deployed site origin — note it for Danial to confirm the final domain), `og:image:alt` + `twitter:image:alt`
+      describing the share card, and `<meta property="og:locale" content="en_MY">` matching the default copy. Keep zero-dep /
+      no build step; markup-only → `node --check public/app.js` (sanity) + HVR note (Danial eyes the rendered unfurl). List
+      every tag added in the handoff.
+- [ ] (codex) [HVR] VERIFY link-preview additions: `og:url`/`og:image:alt`/`twitter:image:alt`/`og:locale` present +
+      well-formed; no duplicate tags; existing og/twitter/title/desc tags intact; `og:image` path still resolves under
+      `public/`. `node --check`. Bug → top.
+
 ## ♻️ PERPETUAL TAIL — do NOT tick; keeps the night productive
 - [ ] (claude) ♻️ CRITIQUE & REPLENISH (NEVER tick — leave in place): when the lists above are drained, FIRST run the
       full regression, THEN audit code + behaviour against the AGENTS.md vision, hunt bugs/regressions/edge-cases, and
