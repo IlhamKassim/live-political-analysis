@@ -251,7 +251,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
       no behaviour change, shrinks the surface. `node --check public/app.js`.
 - [ ] (codex) [MV] VERIFY row() removal: confirm `grep -n "row(" public/app.js` shows no orphan call site, renderPanel
       still emits the same rows (compare the rendered `<dl>` shape), node --check. Bug → top.
-- [ ] (claude) [MV] Tested-foundation: automate the markup-key parity check. Today the "every `data-i18n*` attribute names a
+- [x] (claude) [MV] Tested-foundation: automate the markup-key parity check. Today the "every `data-i18n*` attribute names a
       real I18N key" invariant is verified by HAND each round (AGENT_LOG: "all 29 data-i18n* markup keys resolve"). Add a
       lib.test.mjs case that reads `public/index.html` via `node:fs` (same `readFileSync(new URL(...))` pattern the existing
       data tests use), regex-extracts every `data-i18n`, `data-i18n-ph`, `data-i18n-title`, `data-i18n-aria`,

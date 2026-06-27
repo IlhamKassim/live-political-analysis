@@ -505,6 +505,23 @@ test("I18N: every value is a non-empty, non-whitespace-only string", () => {
   }
 });
 
+// ---- markup-key parity: every data-i18n* attribute in index.html names a real,
+// translated I18N key (guards the silent-untranslated-markup regression class). ----
+test("I18N: every data-i18n* key in index.html exists in BOTH en and ms", () => {
+  const html = readFileSync(fileURLToPath(new URL("./index.html", import.meta.url)), "utf8");
+  // The six attribute flavours app.js's applyStatic() consumes.
+  const attrs = ["data-i18n", "data-i18n-ph", "data-i18n-title", "data-i18n-aria", "data-i18n-content", "data-i18n-after"];
+  // \b after the attr name prevents data-i18n from also swallowing data-i18n-ph etc.
+  const re = new RegExp(`(?:${attrs.join("|")})\\b\\s*=\\s*"([^"]*)"`, "g");
+  const keys = new Set();
+  for (const m of html.matchAll(re)) keys.add(m[1]);
+  assert.ok(keys.size > 0, "expected to find data-i18n* attributes in index.html");
+  for (const key of keys) {
+    assert.ok(key in I18N.en, `data-i18n key "${key}" missing from I18N.en`);
+    assert.ok(key in I18N.ms, `data-i18n key "${key}" missing from I18N.ms`);
+  }
+});
+
 // ---- searchSeats (search dropdown filter) ----
 const SS_PARLIMEN = [
   { code: "P.092", name: "Sungai Buloh", state: "Selangor" },
