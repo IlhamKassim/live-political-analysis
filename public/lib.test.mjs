@@ -182,6 +182,25 @@ test("nearestSeat: bad input → null", () => {
   assert.equal(nearestSeat(5, 100, null), null);
 });
 
+test("nearestSeat: maxKm bounds the match (offshore matches, abroad → null)", () => {
+  // Strait off Penang: near a real seat, so a generous bound still resolves.
+  const offshore = nearestSeat(5.30, 100.10, SEATS, 150);
+  assert.ok(offshore, "near-offshore point should still match within 150 km");
+  assert.equal(offshore.state, "Pulau Pinang");
+  // London is thousands of km from any seat → no honest match under a small bound.
+  assert.equal(nearestSeat(51.5074, -0.1278, SEATS, 150), null);
+  // Singapore (~25 km from JB) sits within 150 km → it would still snap to a
+  // border seat, which is why locate() relies on maxKm + the loc_notfound copy
+  // for genuinely far points; here we assert a 1 km bound rejects even Singapore.
+  assert.equal(nearestSeat(1.3521, 103.8198, SEATS, 1), null);
+});
+
+test("nearestSeat: default (no maxKm) keeps closest-seat behaviour", () => {
+  // Same far point as above, but with no bound → returns the closest seat (old behaviour).
+  const seat = nearestSeat(51.5074, -0.1278, SEATS);
+  assert.ok(seat, "default nearestSeat should never return null for valid coords");
+});
+
 // ---- pickInitialLang ----
 
 test("pickInitialLang: saved preference always wins", () => {

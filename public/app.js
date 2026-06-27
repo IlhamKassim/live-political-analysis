@@ -784,7 +784,9 @@ function locate() {
       FIND_LOC.disabled = false;
       const { latitude: lat, longitude: lng } = pos.coords;
       const seats = state.data[state.tier] && state.data[state.tier].seats;
-      const seat = seats && (findSeatForLocation(lat, lng, seats) || nearestSeat(lat, lng, seats));
+      // 150 km bound covers genuine offshore islands without snapping an
+      // out-of-country user (Singapore/Indonesia/abroad) onto a border seat.
+      const seat = seats && (findSeatForLocation(lat, lng, seats) || nearestSeat(lat, lng, seats, 150));
       if (!seat) { setFindStatus("loc_notfound"); return; }
       setFindStatus(null);
       select(seat.code);

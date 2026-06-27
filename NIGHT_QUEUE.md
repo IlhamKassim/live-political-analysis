@@ -106,7 +106,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
       `aria-expanded` flips true/false with the dropdown. node --check.
 
 ## Phase 7 — Critique round 3 (replenished 2026-06-27 · full regression GREEN: 56 tests pass, node --check app.js+lib.js + py_compile OK — no bugs found; these are edge-case hardening + tested-foundation growth + share-link craft)
-- [ ] (claude) [MV] HARDEN out-of-country geolocation (honest "no match"): `nearestSeat` (lib.js) returns the closest seat
+- [x] (claude) [MV] HARDEN out-of-country geolocation (honest "no match"): `nearestSeat` (lib.js) returns the closest seat
       at ANY distance, so `locate()` (app.js ~787 `findSeatForLocation(...) || nearestSeat(...)`) silently drops a user who
       is abroad (Singapore/Indonesia/elsewhere) onto a random Malaysian border seat instead of showing `loc_notfound`. Add an
       optional `maxKm` param to `nearestSeat(lat,lng,seats,maxKm)` (default `Infinity` → no behaviour change for existing

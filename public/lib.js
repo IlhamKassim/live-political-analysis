@@ -163,7 +163,9 @@ export function haversine(lat1, lng1, lat2, lng2) {
 
 // Fallback when PIP finds nothing (offshore points, simplification gaps):
 // the seat whose representative point (seat.ll) is closest. null if no usable data.
-export function nearestSeat(lat, lng, seats) {
+// `maxKm` bounds the match so far-away/out-of-country points (e.g. abroad) return
+// null instead of snapping to a random border seat; default Infinity = no bound.
+export function nearestSeat(lat, lng, seats, maxKm = Infinity) {
   if (!Array.isArray(seats) || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   let best = null, bestD = Infinity;
   for (const seat of seats) {
@@ -172,7 +174,7 @@ export function nearestSeat(lat, lng, seats) {
     const dkm = haversine(lat, lng, ll.lat, ll.lng);
     if (dkm < bestD) { bestD = dkm; best = seat; }
   }
-  return best;
+  return bestD <= maxKm ? best : null;
 }
 
 // ---- seat-card formatting ----
