@@ -7,6 +7,20 @@ RULES: one task per round · `[MV]` = machine-verifiable (`node --test`/`node --
 = needs human visual review (note it in the handoff, don't claim visual correctness) · every
 build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]` fix task at the TOP.
 
+## 🔝 Bug fixes (top priority — found in critique round 5, 2026-06-27)
+- [ ] (claude) [MV] FIX search-throw on boundary-load failure: the `#q` input handler (app.js ~630) does
+      `const data = state.data[state.tier]; ... searchSeats(data.seats, q, state.tier)`. On boot, if `render(tier)`
+      throws (boundaries file missing/corrupt) `init()` shows the error overlay and `return`s early — but `#q` stays
+      in the DOM and interactive, so the FIRST keystroke reads `state.data[state.tier]` (still `undefined`) and throws
+      an uncaught `TypeError: Cannot read properties of undefined (reading 'seats')`. Guard the handler with
+      `if (!data) return;` immediately after the `const data = …` line (mirror `renderSummary`'s existing
+      `if (!data) return;` at ~527), so a failed-boundary page degrades to an inert search box instead of a console
+      error. The tooltip `mousemove` handler (~562) shares the shape but is safe (no `.seat` paths exist when render
+      failed) — leave it, or guard it too for symmetry; note which in the handoff. `node --check public/app.js`.
+- [ ] (codex) [MV] VERIFY+STRESS search-throw fix: simulate boundary failure (temporarily point `loadTier` at a missing
+      file or assert `state.data` empty) → typing in `#q` no longer throws; normal load path unchanged (search still
+      filters). node --check. Bug → top.
+
 ## Phase B — Brand rename → MyPolitik (do first; user request)
 - [x] (claude) [HVR] BRAND RENAME → **MyPolitik**: replace the "PETAYB" / "Peta YB" brand mark + tagline in the
       `index.html` header (`.brand`) and `#panel-empty`, the `<title>`, and any brand strings in `I18N` (both EN+BM)
@@ -156,6 +170,29 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
 - [ ] (codex) [HVR] VERIFY link-preview meta: every new og:/twitter: tag present and well-formed; `og:image` path resolves to a real file
       under `public/`; data-i18n-content tags carry a key that exists in BOTH en+ms; `theme-color` present; no duplicate `<title>`/desc;
       node --check. Bug → top.
+
+## Phase 9 — Critique round 5 (replenished 2026-06-27 · full regression GREEN: 69 tests pass, node --check app.js+lib.js+i18n.js + py_compile OK, JSON.parse OK, GE15 tally PH82·PN74·BN30·GPS23·GRS6·WARISAN3+others=222 verified. validate.sh's only failures are `/tmp` log-write permission denials in this sandbox — every underlying check passes when run directly. Audit found ONE defensive bug (queued at top) + these tested-foundation/DRY items.)
+- [ ] (claude) [MV] Extract the seat→key helpers into lib.js + tests: the `tier === "parlimen" ? seat.code : seat.parlimen`
+      RESULT join-key is duplicated 5× (app.js ~176, ~181, ~276, ~381, ~566) and the citizen-visible `tier === "parlimen"
+      ? seat.code : seat.dun_code` DISPLAY code 2× (~565, ~639). Add pure `resultKey(seat, tier)` (parlimen→`seat.code`,
+      dun→`seat.parlimen`) and `displayCode(seat, tier)` (parlimen→`seat.code`, dun→`seat.dun_code`) to `public/lib.js`,
+      `import` them into app.js and replace every inline ternary (NO behaviour change — same value at every call site).
+      Add lib.test cases: parlimen tier returns `code` for both; dun tier returns `parlimen`/`dun_code` respectively;
+      missing seat / missing field → faithful `undefined`/null (no throw); non-"parlimen" tier strings treated as dun
+      (matches the existing `=== "parlimen"` test). Grows the tested foundation + removes 7 copies of the join-key rule.
+      `node --test` + `node --check public/app.js`.
+- [ ] (codex) [MV] VERIFY+STRESS resultKey/displayCode port: confirm panel/seat-fill/tooltip/share-card/search all resolve
+      byte-identical keys to the old inline ternaries on real parlimen + DUN data; missing fields → no throw; node --test/--check. Bug → top.
+- [ ] (claude) [MV] Pin the GE15 coalition tally in a unit test: extract the legend bloc counter (app.js ~542
+      `for (const v of Object.values(state.results)) counts[v.coalition] = (counts[v.coalition]||0)+1`) into a pure
+      `tallyCoalitions(results)` in `public/lib.js` returning `{coalition: count}` (null/non-object/empty → `{}`, skips
+      rows with a missing/blank coalition), `import` it into `renderSummary` (no behaviour change). Add a lib.test that
+      loads `public/data/results-ge15.json` via `node:fs` and asserts the AGENTS.md UNTOUCHABLE invariant — PH 82, PN 74,
+      BN 30, GPS 23, GRS 6, WARISAN 3, and a 222 grand total — so any future data edit that breaks the tally fails CI here
+      (the validate.sh tally check can't write its `/tmp` log in this sandbox; this gives a node --test-native guard).
+      Plus a synthetic-input case (null/`{}`/missing-coalition rows → `{}` / skipped). `node --test` + `node --check`.
+- [ ] (codex) [MV] VERIFY tallyCoalitions: legend bloc bar/key still render identical counts to the old inline tally; the
+      new GE15-invariant test fails if you mutate one seat's coalition; null/garbage results → `{}` no throw. node --test/--check. Bug → top.
 
 ## ♻️ PERPETUAL TAIL — do NOT tick; keeps the night productive
 - [ ] (claude) ♻️ CRITIQUE & REPLENISH (NEVER tick — leave in place): when the lists above are drained, FIRST run the
