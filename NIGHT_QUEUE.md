@@ -134,6 +134,29 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
       stale `skor`; a valid `#dun/parti/<code>` deep-link still selects + keeps its hash; bad seat code still ignored cleanly;
       no duplicate history entry. `node --check`. Bug → top.
 
+## Phase 8 — Critique round 4 (replenished 2026-06-27 · full regression GREEN: 60 tests pass, node --check app.js+lib.js+i18n.js + py_compile OK — audit found NO bugs. Verified two suspected issues are non-bugs: GE15 `runner_up.party` is a COALITION code ("BN") so the runner-up pill colours correctly, and DUN `code` ("10_N.01") contains `dun_code` ("N.01") as a substring so search-by-DUN-code already matches. These are tested-foundation growth + link-preview growth craft.)
+- [ ] (claude) [MV] Extract the inline search filter (app.js ~631 `data.seats.filter(s => name||code||state includes q)`) into a pure
+      `searchSeats(seats, query, tier)` in `public/lib.js` and have app.js `import` + call it (NO behaviour change — same predicate,
+      same file order, app.js still slices `.slice(0,8)`/`.slice(0,60)` and does the DOM dim/match highlighting). Search is the one core
+      citizen interaction with NO unit tests today. Match case-insensitively on `name`, `code`, `state`; ALSO match DUN seats on their
+      visible `dun_code` and their `parlimen` code (so a citizen can find a DUN by its parliamentary constituency). Add lib.test cases:
+      empty/whitespace query → `[]`; case-insensitive name/code/state substring; DUN `dun_code`/`parlimen` match; non-array seats / null
+      query → `[]` (no throw). Grows the tested foundation. `node --test` + `node --check public/app.js`.
+- [ ] (codex) [MV] VERIFY+STRESS searchSeats port: confirm the dropdown + map highlight are byte-identical to the old inline filter on
+      real data (same seats, same order); empty/whitespace/garbage/non-string query → `[]` with no throw; DUN dun_code + parlimen matches
+      resolve; node --test/--check. Bug → top.
+- [ ] (claude) [HVR] Link-preview growth: the `<head>` has `<title>` + `<meta name="description">` but NO Open Graph / Twitter Card tags,
+      so a shared deep-link (the growth engine) renders a bare URL in WhatsApp/Twitter/FB. Add static `og:title`, `og:description`,
+      `og:type=website`, `og:site_name=MyPolitik`, `og:image` (point at an existing `public/` asset — reuse the favicon/icon if no social
+      image exists; note it in the handoff for Danial to swap a 1200×630 card later), `twitter:card=summary_large_image`,
+      `twitter:title`, `twitter:description`, plus a `<meta name="theme-color">` matching the dark app chrome for mobile polish. Wire
+      og:title/description to I18N via `data-i18n-content` where it mirrors an existing key (e.g. `title`/`meta_desc`) so the toggle keeps
+      them translated; KEEP zero-dep / no build step. Markup-only → `node --check public/app.js` (sanity) + note it's HVR (Danial's eye on
+      the rendered preview). List every tag added in the handoff.
+- [ ] (codex) [HVR] VERIFY link-preview meta: every new og:/twitter: tag present and well-formed; `og:image` path resolves to a real file
+      under `public/`; data-i18n-content tags carry a key that exists in BOTH en+ms; `theme-color` present; no duplicate `<title>`/desc;
+      node --check. Bug → top.
+
 ## ♻️ PERPETUAL TAIL — do NOT tick; keeps the night productive
 - [ ] (claude) ♻️ CRITIQUE & REPLENISH (NEVER tick — leave in place): when the lists above are drained, FIRST run the
       full regression, THEN audit code + behaviour against the AGENTS.md vision, hunt bugs/regressions/edge-cases, and
