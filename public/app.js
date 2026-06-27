@@ -255,9 +255,6 @@ function deselect() {
   writeHash();
 }
 
-function row(dt, dd, mono = false) {
-  return `<dt>${esc(dt)}</dt><dd class="${mono ? "mono" : ""}">${dd}</dd>`;
-}
 function renderPanel(seat) {
   PANEL.classList.remove("empty");
   PANEL_EMPTY.hidden = true;

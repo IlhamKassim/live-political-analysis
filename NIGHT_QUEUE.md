@@ -245,7 +245,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
       always reachable. NO behaviour change. `node --check public/app.js`.
 - [ ] (codex) [MV] VERIFY i18n-shadow fix: confirm both handlers reference `tgt` (no remaining `const t = e.target`),
       tooltip + seat-click still resolve seat by `dataset.code`, no other `t` reference broke; node --check. Bug → top.
-- [ ] (claude) [MV] Remove dead `row()` helper (app.js ~258-260): `function row(dt, dd, mono=false)` is defined but NEVER
+- [x] (claude) [MV] Remove dead `row()` helper (app.js ~258-260): `function row(dt, dd, mono=false)` is defined but NEVER
       called — `renderPanel` builds its `<dt>/<dd>` rows inline via template strings (and the empty-panel `#summary`/legend
       build their own markup). Delete the unused function (and its one-line lead comment if any). Pure dead-code cleanup,
       no behaviour change, shrinks the surface. `node --check public/app.js`.
