@@ -39,7 +39,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
 - [x] (claude) [HVR] "Find your YB": rewrite `#panel-empty` into an action card — hero question, promoted search w/
       plain examples, **📍 Use-my-location** (`#find-location`); demote legend/summary. New `I18N` keys (EN+BM).
 - [ ] (codex) [HVR] VERIFY front door: node --check; every new I18N key present in BOTH en+ms; no untranslated strings.
-- [ ] (claude) [HVR] Wire geolocation button → `navigator.geolocation` → `findSeatForLocation` → existing `select()`;
+- [x] (claude) [HVR] Wire geolocation button → `navigator.geolocation` → `findSeatForLocation` → existing `select()`;
       locating/denied/not-found states + always-present "pick manually" fallback.
 - [ ] (codex) [HVR] VERIFY+STRESS geo wiring: review denied/unsupported/timeout paths; fallback always reachable. node --check.
 - [ ] (claude) [HVR] Enrich `renderPanel` (279-326) with the new fields + a **Share / Copy-link** button (`encodeHash` +

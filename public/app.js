@@ -2,7 +2,7 @@
 // Data-driven: boundaries render now; GE15 results + scores light up the
 // "Parti"/"Skor" modes and panel rows as soon as their JSON exists.
 
-import { encodeHash, decodeHash, pickInitialLang } from "./lib.js";
+import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat } from "./lib.js";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -15,6 +15,8 @@ const RESET = document.getElementById("reset");
 const LOADING = document.getElementById("loading");
 const Q = document.getElementById("q");
 const RESULTS = document.getElementById("results");
+const FIND_LOC = document.getElementById("find-location");
+const FIND_STATUS = document.getElementById("find-status");
 
 const state = {
   tier: "parlimen",
@@ -57,6 +59,11 @@ const I18N = {
     find_loc: "📍 Use my location",
     find_or: "or search by name above",
     find_eg: "e.g. “Titiwangsa”, “Bangi”, or “Kota Kinabalu”.",
+    loc_locating: "Locating you…",
+    loc_denied: "Location access denied — search by name above instead.",
+    loc_error: "Couldn't get your location — search by name above instead.",
+    loc_unsupported: "Your browser can't share location — search by name above instead.",
+    loc_notfound: "Couldn't match your location to a seat — search by name above instead.",
     empty_more: "Explore the whole map",
     src_bound: "Boundaries", src_proj: "Projection",
     loading: "Loading boundaries…",
@@ -90,6 +97,11 @@ const I18N = {
     find_loc: "📍 Guna lokasi saya",
     find_or: "atau cari nama di atas",
     find_eg: "cth. “Titiwangsa”, “Bangi”, atau “Kota Kinabalu”.",
+    loc_locating: "Mengesan lokasi anda…",
+    loc_denied: "Akses lokasi dinafikan — cari mengikut nama di atas.",
+    loc_error: "Tidak dapat lokasi anda — cari mengikut nama di atas.",
+    loc_unsupported: "Pelayar anda tidak boleh kongsi lokasi — cari mengikut nama di atas.",
+    loc_notfound: "Tidak dapat padankan lokasi anda dengan kerusi — cari mengikut nama di atas.",
     empty_more: "Terokai seluruh peta",
     src_bound: "Sempadan", src_proj: "Projeksi",
     loading: "Memuatkan sempadan…",
@@ -318,6 +330,7 @@ function deselect() {
   zoomFull();
   RESET.hidden = true;
   clearMatches();
+  setFindStatus(null);   // drop any stale geolocation message
   writeHash();
 }
 
@@ -483,6 +496,46 @@ Q.addEventListener("keydown", (e) => {
 document.addEventListener("click", (e) => {
   if (!e.target.closest(".search")) RESULTS.hidden = true;
 });
+
+// ---- geolocation: "📍 Use my location" → find your seat ----
+// Always non-fatal: any failure (unsupported / denied / timeout / no match) shows a
+// short status that points back to the search box, which is the always-present manual
+// fallback. The status lives in #panel-empty and re-translates on language toggle.
+let locating = false;
+function setFindStatus(key) {
+  if (!FIND_STATUS) return;
+  if (!key) { delete FIND_STATUS.dataset.i18n; FIND_STATUS.textContent = ""; FIND_STATUS.hidden = true; return; }
+  FIND_STATUS.dataset.i18n = key;     // applyStatic() re-translates it on setLang
+  FIND_STATUS.textContent = t(key);
+  FIND_STATUS.hidden = false;
+}
+function locate() {
+  if (locating) return;
+  if (!navigator.geolocation) { setFindStatus("loc_unsupported"); return; }
+  locating = true;
+  FIND_LOC.disabled = true;
+  setFindStatus("loc_locating");
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      locating = false;
+      FIND_LOC.disabled = false;
+      const { latitude: lat, longitude: lng } = pos.coords;
+      const seats = state.data[state.tier] && state.data[state.tier].seats;
+      const seat = seats && (findSeatForLocation(lat, lng, seats) || nearestSeat(lat, lng, seats));
+      if (!seat) { setFindStatus("loc_notfound"); return; }
+      setFindStatus(null);
+      select(seat.code);
+    },
+    (err) => {
+      locating = false;
+      FIND_LOC.disabled = false;
+      // PERMISSION_DENIED === 1; everything else (unavailable, timeout) is a generic error
+      setFindStatus(err && err.code === 1 ? "loc_denied" : "loc_error");
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+  );
+}
+if (FIND_LOC) FIND_LOC.addEventListener("click", locate);
 
 // ---- toggles ----
 async function setTier(tier) {
