@@ -32,7 +32,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
 - [x] (claude) [MV] `pickInitialLang(saved, navLanguages)` pure fn + tests; wire boot default (BM-first w/ browser
       override — ship the MECHANISM; final taste is Danial's). `node --test`.
 - [ ] (codex) [MV] VERIFY+STRESS lang picker: saved-pref wins; ms/en/other/empty nav langs.
-- [ ] (claude) [MV] Pure card-format helpers in lib.js surfacing `party_full`, `n_candidates`, `runner_up.votes` + tests.
+- [x] (claude) [MV] Pure card-format helpers in lib.js surfacing `party_full`, `n_candidates`, `runner_up.votes` + tests.
 - [ ] (codex) [MV] VERIFY+STRESS formatters: missing runner-up, 0 votes, 100% turnout, single-candidate seats.
 
 ## Phase 2 — The front door (drafts for morning review)

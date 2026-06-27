@@ -145,3 +145,63 @@ export function nearestSeat(lat, lng, seats) {
   }
   return best;
 }
+
+// ---- seat-card formatting ----
+// Pure shapers that turn a raw GE15 result row into display-ready values for the
+// seat card. They surface fields the panel didn't previously show — `party_full`,
+// `n_candidates`, `runner_up.votes` — and guard every edge (missing runner-up,
+// 0 votes, 100% turnout, single-candidate seats). NO HTML here: callers render,
+// we only shape. Every numeric field passes through a Number.isFinite guard so a
+// legitimate 0 (0 votes, 0% majority) survives where a falsy check would drop it.
+
+const str = (v) => (typeof v === "string" && v.trim() ? v.trim() : null);
+const num = (v) => (Number.isFinite(v) ? v : null);
+
+// Full party name + abbreviation. `party_full` is the human label ("Perikatan
+// Nasional"); `party` is the code ("PN"). Returns {abbr, full, label} or null when
+// neither is present. label = "Perikatan Nasional (PN)" when both exist and differ,
+// otherwise whichever single value we have.
+export function formatParty(r) {
+  if (!r || typeof r !== "object") return null;
+  const abbr = str(r.party);
+  const full = str(r.party_full);
+  if (!abbr && !full) return null;
+  const label = abbr && full && abbr !== full ? `${full} (${abbr})` : (full || abbr);
+  return { abbr, full, label };
+}
+
+// Number of candidates who contested. Returns the integer (>= 1) or null when
+// absent/invalid. 1 marks a single-candidate seat — callers can word that specially.
+export function candidateCount(r) {
+  const n = r && r.n_candidates;
+  return Number.isFinite(n) && n >= 1 ? Math.trunc(n) : null;
+}
+
+// Runner-up summary, surfacing `runner_up.votes` (the panel previously showed only
+// the name + party). Returns {name, party, votes} with per-field guards, or null
+// when there is no runner-up (e.g. a single-candidate seat).
+export function formatRunnerUp(r) {
+  const ru = r && r.runner_up;
+  if (!ru || typeof ru !== "object") return null;
+  return { name: str(ru.name), party: str(ru.party), votes: num(ru.votes) };
+}
+
+// Compose the whole display-ready card from a raw result row. Pure: shapes values,
+// no HTML. Numeric fields use the Number.isFinite guard so 0s and extremes (100%
+// turnout) pass through unchanged. Returns null for a missing/non-object row.
+export function formatResultCard(r) {
+  if (!r || typeof r !== "object") return null;
+  return {
+    name: str(r.name),
+    party: formatParty(r),
+    coalition: str(r.coalition),
+    coalitionFull: str(r.coalition_full),
+    votes: num(r.votes),
+    votePct: num(r.vote_pct),
+    majority: num(r.majority),
+    majorityPct: num(r.majority_pct),
+    turnout: num(r.turnout),
+    candidates: candidateCount(r),
+    runnerUp: formatRunnerUp(r),
+  };
+}

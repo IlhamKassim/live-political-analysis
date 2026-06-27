@@ -8,12 +8,17 @@ import {
   pickInitialLang,
   project, parsePathRings, pointInRings,
   findSeatForLocation, haversine, nearestSeat,
+  formatParty, candidateCount, formatRunnerUp, formatResultCard,
 } from "./lib.js";
 
 const parlimen = JSON.parse(
   readFileSync(fileURLToPath(new URL("./data/seats-parlimen.json", import.meta.url)), "utf8")
 );
 const SEATS = parlimen.seats;
+
+const RESULTS = JSON.parse(
+  readFileSync(fileURLToPath(new URL("./data/results-ge15.json", import.meta.url)), "utf8")
+);
 
 test("encodeHash: tier + mode, no selection", () => {
   assert.equal(encodeHash({ tier: "parlimen", mode: "parti" }), "#parlimen/parti");
@@ -204,4 +209,126 @@ test("pickInitialLang: BM-first default when nothing matches", () => {
 test("pickInitialLang: ignores non-string entries in nav list", () => {
   assert.equal(pickInitialLang(null, [null, 42, {}, "en-US"]), "en");
   assert.equal(pickInitialLang(null, [undefined, "ms"]), "ms");
+});
+
+// ---- seat-card formatting ----
+
+test("formatParty: full + abbr produce a combined label", () => {
+  assert.deepEqual(
+    formatParty({ party: "PN", party_full: "Perikatan Nasional" }),
+    { abbr: "PN", full: "Perikatan Nasional", label: "Perikatan Nasional (PN)" }
+  );
+});
+
+test("formatParty: identical abbr & full collapse to one value", () => {
+  // GE15 rows where party === coalition often repeat the name; don't echo "X (X)".
+  assert.deepEqual(
+    formatParty({ party: "PH", party_full: "PH" }),
+    { abbr: "PH", full: "PH", label: "PH" }
+  );
+});
+
+test("formatParty: missing one side falls back to the other", () => {
+  assert.deepEqual(formatParty({ party: "BN" }), { abbr: "BN", full: null, label: "BN" });
+  assert.deepEqual(
+    formatParty({ party_full: "Pakatan Harapan" }),
+    { abbr: null, full: "Pakatan Harapan", label: "Pakatan Harapan" }
+  );
+});
+
+test("formatParty: no usable party → null; trims whitespace", () => {
+  assert.equal(formatParty({}), null);
+  assert.equal(formatParty({ party: "   ", party_full: "" }), null);
+  assert.equal(formatParty(null), null);
+  assert.equal(formatParty(undefined), null);
+  assert.deepEqual(formatParty({ party: "  PN  " }), { abbr: "PN", full: null, label: "PN" });
+});
+
+test("candidateCount: surfaces n_candidates; null when absent/invalid", () => {
+  assert.equal(candidateCount({ n_candidates: 5 }), 5);
+  assert.equal(candidateCount({ n_candidates: 1 }), 1);   // single-candidate seat
+  assert.equal(candidateCount({ n_candidates: 3.9 }), 3); // truncates
+  assert.equal(candidateCount({ n_candidates: 0 }), null); // 0 candidates is nonsense
+  assert.equal(candidateCount({}), null);
+  assert.equal(candidateCount({ n_candidates: "5" }), null); // non-number
+  assert.equal(candidateCount(null), null);
+});
+
+test("formatRunnerUp: surfaces name, party and votes", () => {
+  assert.deepEqual(
+    formatRunnerUp({ runner_up: { name: "Zahida Binti Zarik Khan", party: "BN", votes: 11753 } }),
+    { name: "Zahida Binti Zarik Khan", party: "BN", votes: 11753 }
+  );
+});
+
+test("formatRunnerUp: 0 votes survives the guard", () => {
+  // Number.isFinite(0) is true — a falsy check would wrongly drop a real zero.
+  assert.deepEqual(
+    formatRunnerUp({ runner_up: { name: "X", party: "IND", votes: 0 } }),
+    { name: "X", party: "IND", votes: 0 }
+  );
+});
+
+test("formatRunnerUp: no runner-up (single-candidate seat) → null", () => {
+  assert.equal(formatRunnerUp({ name: "Solo" }), null);
+  assert.equal(formatRunnerUp({ runner_up: null }), null);
+  assert.equal(formatRunnerUp(null), null);
+});
+
+test("formatRunnerUp: per-field guards for partial runner-up", () => {
+  assert.deepEqual(
+    formatRunnerUp({ runner_up: { name: "  Y  ", votes: "lots" } }),
+    { name: "Y", party: null, votes: null }
+  );
+});
+
+test("formatResultCard: shapes the full Perlis fixture (real data)", () => {
+  const card = formatResultCard(RESULTS["P.001"]);
+  assert.equal(card.name, "Rushdan Bin Rusmi");
+  assert.deepEqual(card.party, { abbr: "PN", full: "Perikatan Nasional", label: "Perikatan Nasional (PN)" });
+  assert.equal(card.coalition, "PN");
+  assert.equal(card.votes, 24267);
+  assert.equal(card.votePct, 53.6);
+  assert.equal(card.majority, 12514);
+  assert.equal(card.majorityPct, 27.6);
+  assert.equal(card.turnout, 76.5);
+  assert.equal(card.candidates, 5);
+  assert.deepEqual(card.runnerUp, { name: "Zahida Binti Zarik Khan", party: "BN", votes: 11753 });
+});
+
+test("formatResultCard: every result row shapes without throwing", () => {
+  // Whole-dataset smoke test — name + party + finite votes for all 222 seats.
+  for (const [code, r] of Object.entries(RESULTS)) {
+    const card = formatResultCard(r);
+    assert.ok(card, `${code} → card`);
+    assert.ok(card.name, `${code} → name`);
+    assert.ok(card.party && card.party.label, `${code} → party label`);
+    assert.ok(Number.isFinite(card.votes), `${code} → votes`);
+  }
+});
+
+test("formatResultCard: edge values survive — 0 votes, 0% majority, 100% turnout", () => {
+  const card = formatResultCard({
+    name: "Edge", party: "IND", party_full: "Independent", coalition: "IND",
+    votes: 0, vote_pct: 0, majority: 0, majority_pct: 0, turnout: 100, n_candidates: 1,
+  });
+  assert.equal(card.votes, 0);
+  assert.equal(card.votePct, 0);
+  assert.equal(card.majority, 0);
+  assert.equal(card.majorityPct, 0);
+  assert.equal(card.turnout, 100);
+  assert.equal(card.candidates, 1);
+  assert.equal(card.runnerUp, null);
+});
+
+test("formatResultCard: missing/garbage input → null or null-filled fields", () => {
+  assert.equal(formatResultCard(null), null);
+  assert.equal(formatResultCard(undefined), null);
+  assert.equal(formatResultCard("nope"), null);
+  const sparse = formatResultCard({ name: "Only Name" });
+  assert.equal(sparse.name, "Only Name");
+  assert.equal(sparse.party, null);
+  assert.equal(sparse.votes, null);
+  assert.equal(sparse.candidates, null);
+  assert.equal(sparse.runnerUp, null);
 });
