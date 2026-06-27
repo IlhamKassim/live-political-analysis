@@ -206,6 +206,8 @@ a:hover { text-decoration: underline; }
   grid-area: panel; background: var(--panel); border-left: 1px solid var(--line);
   padding: 20px 18px; overflow-y: auto;
 }
+/* the bottom-sheet grab-handle only exists on mobile (see the ≤820px block) */
+.sheet-handle { display: none; }
 #panel h2 { font-size: 16px; margin: 0 0 6px; letter-spacing: .01em; }
 .muted { color: var(--ink-dim); }
 .src { font-size: 11px; margin-top: 22px; }
@@ -291,10 +293,45 @@ a:hover { text-decoration: underline; }
 @media (prefers-reduced-motion: reduce) { .toast { transition: opacity .2s; } }
 
 @media (max-width: 820px) {
-  #app { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto;
-    grid-template-areas: "top" "stage" "panel"; }
-  #panel { border-left: 0; border-top: 1px solid var(--line); max-height: 42vh; }
+  /* map gets the full stage; the panel becomes a bottom sheet that overlays it */
+  #app { --sheet-peek: 172px; --sheet-pad: 16px;
+    grid-template-columns: 1fr; grid-template-rows: auto 1fr;
+    grid-template-areas: "top" "stage"; }
   .controls { width: 100%; }
+
+  /* draggable bottom sheet: peeks at the bottom, slides up to ~85dvh when opened.
+     The map stays visible behind it (the map is the reward, not the gate). */
+  #panel {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    height: 85vh; height: 85dvh;
+    border-left: 0; border-top: 1px solid var(--line); border-radius: 16px 16px 0 0;
+    padding: 0 var(--sheet-pad) calc(20px + env(safe-area-inset-bottom));
+    box-shadow: 0 -12px 40px rgba(0,0,0,.5);
+    overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+    transform: translateY(calc(100% - var(--sheet-peek)));
+    transition: transform .3s cubic-bezier(.22,.61,.36,1);
+  }
+  #panel.sheet-open { transform: translateY(0); }
+  /* while finger-dragging, JS sets an inline transform — drop the transition so it tracks */
+  #panel.dragging { transition: none; }
+  @media (prefers-reduced-motion: reduce) { #panel { transition: none; } }
+
+  /* grab-handle: full-bleed sticky bar, stays put while the sheet body scrolls.
+     touch-action:none so the drag gesture isn't stolen by the browser's scroll. */
+  .sheet-handle {
+    display: flex; align-items: center; justify-content: center;
+    position: sticky; top: 0; z-index: 2;
+    min-height: 44px; padding: 14px 0 8px; cursor: grab; touch-action: none;
+    margin-left: calc(-1 * var(--sheet-pad)); margin-right: calc(-1 * var(--sheet-pad));
+    background: var(--panel); border: 0; border-radius: 16px 16px 0 0;
+  }
+  .sheet-handle:active { cursor: grabbing; }
+  .sheet-grip { display: block; width: 40px; height: 4px; border-radius: 999px;
+    background: var(--line-2); transition: background .15s; }
+  .sheet-handle:hover .sheet-grip { background: var(--ink-faint); }
+
+  /* float the "Show all" button above the peeking sheet so it stays reachable */
+  #reset { bottom: calc(var(--sheet-peek) + 12px); }
 }
 
 /* ---- narrow / mobile (≤480px) ---- */
@@ -310,8 +347,8 @@ a:hover { text-decoration: underline; }
   .search input { width: 100%; }
   /* anchor the results dropdown to the full search width so it never overflows */
   .results { left: 0; right: 0; width: auto; }
-  #panel { padding: 16px 14px; }
-  #reset { left: 12px; bottom: 12px; }
+  #app { --sheet-pad: 14px; }
+  #reset { left: 12px; }
 }
 
 /* ---- very narrow (≤390px) ---- */
@@ -320,6 +357,5 @@ a:hover { text-decoration: underline; }
   .brand .tag { display: none; }
   .seg button { font-size: 11px; padding: 8px 8px; letter-spacing: .02em; }
   .search input { font-size: 12px; padding: 8px 10px; }
-  #panel { max-height: 46vh; }
   .seat-head h2 { font-size: 19px; }
 }

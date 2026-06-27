@@ -48,7 +48,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
 - [x] (claude) [HVR] Onboarding clarity: actionable empty copy, first-load tap hint (localStorage-dismissed),
       **Skor → "Segera/Soon" pill** (NOT a dead button; Skor STAYS gated), reset discoverability.
 - [ ] (codex) [HVR] VERIFY onboarding: confirm Skor stays gated even if scores.json present; localStorage guarded.
-- [ ] (claude) [HVR] Mobile-first sheet: draggable/scrollable bottom sheet (`dvh`, peek/expand ~85dvh), ≥44px tap targets,
+- [x] (claude) [HVR] Mobile-first sheet: draggable/scrollable bottom sheet (`dvh`, peek/expand ~85dvh), ≥44px tap targets,
       find-flow reachable in-sheet.
 - [ ] (codex) [HVR] VERIFY mobile: 42vh truncation fixed, tap-target sizes, no horizontal overflow at ≤390px.
 

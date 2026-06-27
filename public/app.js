@@ -21,6 +21,7 @@ const FIND_STATUS = document.getElementById("find-status");
 const TOAST = document.getElementById("toast");
 const TAP_HINT = document.getElementById("tap-hint");
 const TAP_HINT_X = document.getElementById("tap-hint-x");
+const SHEET_HANDLE = document.getElementById("sheet-handle");
 
 const state = {
   tier: "parlimen",
@@ -59,6 +60,7 @@ const I18N = {
     tap_hint: "Tap any seat to see its YB — or “Find your YB” →", tap_hint_dismiss: "Dismiss hint",
     search_ph: "Search a seat…",
     search_aria: "Search a seat", results_aria: "Search results", reset_aria: "Show all seats",
+    sheet_handle: "Expand or collapse the panel",
     find_kicker: "FIND YOUR YB",
     find_h: "Who represents you?",
     find_sub: "Find your Parliament or State (DUN) seat in seconds.",
@@ -101,6 +103,7 @@ const I18N = {
     tap_hint: "Ketik mana-mana kerusi untuk lihat YB — atau “Cari YB anda” →", tap_hint_dismiss: "Tutup petunjuk",
     search_ph: "Cari kawasan…",
     search_aria: "Cari kawasan", results_aria: "Hasil carian", reset_aria: "Papar semua kerusi",
+    sheet_handle: "Buka atau tutup panel",
     find_kicker: "CARI YB ANDA",
     find_h: "Siapa wakil anda?",
     find_sub: "Cari kerusi Parlimen atau Negeri (DUN) anda dalam beberapa saat.",
@@ -333,6 +336,7 @@ function select(code, { zoom = true } = {}) {
   renderPanel(seat);
   if (zoom) zoomToSeat(seat);
   RESET.hidden = false;
+  setSheet(true);  // on mobile, slide the bottom sheet up so the card is in view
   dismissHint();   // user found the interaction — retire the nudge
   writeHash();
 }
@@ -343,6 +347,7 @@ function deselect() {
   PANEL.classList.add("empty");
   PANEL_EMPTY.hidden = false;
   PANEL_SEAT.hidden = true;
+  setSheet(false); // collapse the bottom sheet back to its peek — the map is the reward
   zoomFull();
   RESET.hidden = true;
   clearMatches();
@@ -619,6 +624,55 @@ function maybeShowHint() {
   TAP_HINT.hidden = false;
 }
 if (TAP_HINT_X) TAP_HINT_X.addEventListener("click", dismissHint);
+
+// ---- mobile bottom sheet ----
+// On narrow screens the panel is a draggable sheet that overlays the map: it peeks
+// at the bottom (CSS transform) and slides up to ~85dvh when opened. Tapping or
+// dragging the grab-handle toggles it; selecting a seat opens it, deselect collapses.
+// On desktop the handle is display:none and the .sheet-open class is inert (no CSS
+// rule), so all of this is a no-op there — select/deselect call setSheet harmlessly.
+const SHEET_MQ = window.matchMedia("(max-width: 820px)");
+function sheetOpen() { return PANEL.classList.contains("sheet-open"); }
+function setSheet(open) {
+  PANEL.classList.toggle("sheet-open", open);
+  if (SHEET_HANDLE) SHEET_HANDLE.setAttribute("aria-expanded", open ? "true" : "false");
+}
+function peekPx() {
+  const v = parseFloat(getComputedStyle(PANEL).getPropertyValue("--sheet-peek"));
+  return Number.isFinite(v) ? v : 172;
+}
+if (SHEET_HANDLE) {
+  let startY = null, base = 0, moved = false;
+  const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+  SHEET_HANDLE.addEventListener("pointerdown", (e) => {
+    if (!SHEET_MQ.matches) return;
+    startY = e.clientY; moved = false;
+    base = sheetOpen() ? 0 : Math.max(0, PANEL.offsetHeight - peekPx());
+    PANEL.classList.add("dragging"); // suspend the CSS transition while finger-following
+    try { SHEET_HANDLE.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+  SHEET_HANDLE.addEventListener("pointermove", (e) => {
+    if (startY === null) return;
+    const dy = e.clientY - startY;
+    if (Math.abs(dy) > 6) moved = true;
+    const closed = Math.max(0, PANEL.offsetHeight - peekPx());
+    PANEL.style.transform = `translateY(${clamp(base + dy, 0, closed)}px)`;
+  });
+  const endDrag = (e) => {
+    if (startY === null) return;
+    const dy = (e.clientY ?? startY) - startY;
+    const closed = Math.max(0, PANEL.offsetHeight - peekPx());
+    startY = null;
+    PANEL.classList.remove("dragging");
+    PANEL.style.transform = ""; // hand control back to the class-driven CSS transform
+    if (moved) setSheet(clamp(base + dy, 0, closed) < closed / 2);
+    // a pure tap (no move) is handled by the click listener below
+  };
+  SHEET_HANDLE.addEventListener("pointerup", endDrag);
+  SHEET_HANDLE.addEventListener("pointercancel", endDrag);
+  // tap / keyboard (Enter/Space) → toggle; suppressed right after a drag gesture
+  SHEET_HANDLE.addEventListener("click", () => { if (!moved) setSheet(!sheetOpen()); });
+}
 
 // ---- toggles ----
 async function setTier(tier) {
