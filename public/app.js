@@ -3,7 +3,7 @@
 // "Parti"/"Skor" modes and panel rows as soon as their JSON exists.
 
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
-  formatResultCard, fitBox, partyColor, scoreColor } from "./lib.js";
+  formatResultCard, fitBox, partyColor, scoreColor, searchSeats } from "./lib.js";
 import { I18N } from "./i18n.js";
 
 const SVG = document.getElementById("map");
@@ -628,9 +628,7 @@ Q.addEventListener("input", () => {
   clearMatches();
   if (!q) return;
   const data = state.data[state.tier];
-  const hits = data.seats.filter((s) =>
-    s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q) || s.state.toLowerCase().includes(q)
-  );
+  const hits = searchSeats(data.seats, q, state.tier);
   if (!hits.length) return;
   for (const p of state.paths.values()) p.classList.add("dim");
   for (const s of hits.slice(0, 60)) {

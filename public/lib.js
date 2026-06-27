@@ -151,6 +151,23 @@ export function findSeatForLocation(lat, lng, seats) {
   return null;
 }
 
+// Filter seats for the search dropdown. Case-insensitive substring match on the
+// citizen-visible fields — `name`, `code`, `state` for every tier, PLUS a DUN
+// seat's visible `dun_code` and its parent `parlimen` code (so a citizen can
+// find a DUN by its parliamentary constituency). Same predicate the app used
+// inline; app.js still slices the result for the dropdown / map highlight.
+// Non-array seats or a null / blank / non-string query → [] (never throws).
+export function searchSeats(seats, query, tier) {
+  if (!Array.isArray(seats)) return [];
+  const q = (typeof query === "string" ? query : "").trim().toLowerCase();
+  if (!q) return [];
+  const hit = (v) => typeof v === "string" && v.toLowerCase().includes(q);
+  return seats.filter((s) =>
+    !!s && (hit(s.name) || hit(s.code) || hit(s.state) ||
+      (tier === "dun" && (hit(s.dun_code) || hit(s.parlimen))))
+  );
+}
+
 // Great-circle distance in km (haversine). lat/lng in degrees.
 export function haversine(lat1, lng1, lat2, lng2) {
   const R = 6371;

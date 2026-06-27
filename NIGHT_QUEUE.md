@@ -135,7 +135,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
       no duplicate history entry. `node --check`. Bug → top.
 
 ## Phase 8 — Critique round 4 (replenished 2026-06-27 · full regression GREEN: 60 tests pass, node --check app.js+lib.js+i18n.js + py_compile OK — audit found NO bugs. Verified two suspected issues are non-bugs: GE15 `runner_up.party` is a COALITION code ("BN") so the runner-up pill colours correctly, and DUN `code` ("10_N.01") contains `dun_code` ("N.01") as a substring so search-by-DUN-code already matches. These are tested-foundation growth + link-preview growth craft.)
-- [ ] (claude) [MV] Extract the inline search filter (app.js ~631 `data.seats.filter(s => name||code||state includes q)`) into a pure
+- [x] (claude) [MV] Extract the inline search filter (app.js ~631 `data.seats.filter(s => name||code||state includes q)`) into a pure
       `searchSeats(seats, query, tier)` in `public/lib.js` and have app.js `import` + call it (NO behaviour change — same predicate,
       same file order, app.js still slices `.slice(0,8)`/`.slice(0,60)` and does the DOM dim/match highlighting). Search is the one core
       citizen interaction with NO unit tests today. Match case-insensitively on `name`, `code`, `state`; ALSO match DUN seats on their

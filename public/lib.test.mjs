@@ -9,7 +9,7 @@ import {
   project, parsePathRings, pointInRings,
   findSeatForLocation, haversine, nearestSeat,
   formatParty, candidateCount, formatRunnerUp, formatResultCard, fitBox,
-  partyColor, COALITION_COLORS, scoreColor,
+  partyColor, COALITION_COLORS, scoreColor, searchSeats,
 } from "./lib.js";
 import { I18N } from "./i18n.js";
 
@@ -502,4 +502,70 @@ test("I18N: every value is a non-empty, non-whitespace-only string", () => {
       assert.ok(value.trim().length > 0, `${locale}.${key} must not be empty/whitespace`);
     }
   }
+});
+
+// ---- searchSeats (search dropdown filter) ----
+const SS_PARLIMEN = [
+  { code: "P.092", name: "Sungai Buloh", state: "Selangor" },
+  { code: "P.114", name: "Bangi", state: "Selangor" },
+  { code: "P.001", name: "Padang Besar", state: "Perlis" },
+];
+const SS_DUN = [
+  { code: "10_N.01", dun_code: "N.01", parlimen: "P.092", name: "Sungai Air Tawar", state: "Selangor" },
+  { code: "01_N.02", dun_code: "N.02", parlimen: "P.001", name: "Beseri", state: "Perlis" },
+];
+
+test("searchSeats: empty / whitespace / null / non-string query → []", () => {
+  assert.deepEqual(searchSeats(SS_PARLIMEN, "", "parlimen"), []);
+  assert.deepEqual(searchSeats(SS_PARLIMEN, "   ", "parlimen"), []);
+  assert.deepEqual(searchSeats(SS_PARLIMEN, null, "parlimen"), []);
+  assert.deepEqual(searchSeats(SS_PARLIMEN, undefined, "parlimen"), []);
+  assert.deepEqual(searchSeats(SS_PARLIMEN, 123, "parlimen"), []);
+});
+
+test("searchSeats: non-array seats → [] (no throw)", () => {
+  assert.deepEqual(searchSeats(null, "bangi", "parlimen"), []);
+  assert.deepEqual(searchSeats(undefined, "bangi", "parlimen"), []);
+  assert.deepEqual(searchSeats({}, "bangi", "parlimen"), []);
+});
+
+test("searchSeats: case-insensitive name substring", () => {
+  const hits = searchSeats(SS_PARLIMEN, "BANGI", "parlimen");
+  assert.equal(hits.length, 1);
+  assert.equal(hits[0].code, "P.114");
+});
+
+test("searchSeats: case-insensitive code substring", () => {
+  const hits = searchSeats(SS_PARLIMEN, "p.09", "parlimen");
+  assert.equal(hits.length, 1);
+  assert.equal(hits[0].name, "Sungai Buloh");
+});
+
+test("searchSeats: case-insensitive state substring", () => {
+  const hits = searchSeats(SS_PARLIMEN, "selangor", "parlimen");
+  assert.deepEqual(hits.map((s) => s.code), ["P.092", "P.114"]);
+});
+
+test("searchSeats: DUN matches on dun_code", () => {
+  const hits = searchSeats(SS_DUN, "n.02", "dun");
+  assert.equal(hits.length, 1);
+  assert.equal(hits[0].name, "Beseri");
+});
+
+test("searchSeats: DUN matches on parent parlimen code", () => {
+  const hits = searchSeats(SS_DUN, "P.092", "dun");
+  assert.equal(hits.length, 1);
+  assert.equal(hits[0].name, "Sungai Air Tawar");
+});
+
+test("searchSeats: parlimen tier does NOT match dun_code/parlimen fields", () => {
+  // Even if such fields existed on a parlimen seat, only name/code/state count.
+  const seats = [{ code: "P.092", name: "Sungai Buloh", state: "Selangor", dun_code: "N.99", parlimen: "P.500" }];
+  assert.deepEqual(searchSeats(seats, "n.99", "parlimen"), []);
+  assert.deepEqual(searchSeats(seats, "p.500", "parlimen"), []);
+});
+
+test("searchSeats: tolerates null entries and missing fields (no throw)", () => {
+  const seats = [null, { code: "P.001" }, { name: "Bangi" }, undefined];
+  assert.deepEqual(searchSeats(seats, "bangi", "parlimen").map((s) => s.name), ["Bangi"]);
 });
