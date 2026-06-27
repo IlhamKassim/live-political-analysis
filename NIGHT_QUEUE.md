@@ -45,7 +45,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
 - [x] (claude) [HVR] Enrich `renderPanel` (279-326) with the new fields + a **Share / Copy-link** button (`encodeHash` +
       `navigator.clipboard` + toast). Keep every number's source line (transparency).
 - [ ] (codex) [HVR] VERIFY share/deep-link: hash round-trip via lib.test; open-on-load selects the seat; clipboard guarded.
-- [ ] (claude) [HVR] Onboarding clarity: actionable empty copy, first-load tap hint (localStorage-dismissed),
+- [x] (claude) [HVR] Onboarding clarity: actionable empty copy, first-load tap hint (localStorage-dismissed),
       **Skor → "Segera/Soon" pill** (NOT a dead button; Skor STAYS gated), reset discoverability.
 - [ ] (codex) [HVR] VERIFY onboarding: confirm Skor stays gated even if scores.json present; localStorage guarded.
 - [ ] (claude) [HVR] Mobile-first sheet: draggable/scrollable bottom sheet (`dvh`, peek/expand ~85dvh), ≥44px tap targets,

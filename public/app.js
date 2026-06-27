@@ -19,6 +19,8 @@ const RESULTS = document.getElementById("results");
 const FIND_LOC = document.getElementById("find-location");
 const FIND_STATUS = document.getElementById("find-status");
 const TOAST = document.getElementById("toast");
+const TAP_HINT = document.getElementById("tap-hint");
+const TAP_HINT_X = document.getElementById("tap-hint-x");
 
 const state = {
   tier: "parlimen",
@@ -52,7 +54,9 @@ const I18N = {
     brand_tag: "Your representatives, on the map",
     tier_parlimen: "Parliament", tier_dun: "DUN",
     mode_negeri: "State", mode_parti: "Party", mode_skor: "Score",
+    mode_soon: "Soon",
     mode_parti_need: "Needs GE15 data", mode_skor_need: "Needs score data",
+    tap_hint: "Tap any seat to see its YB — or “Find your YB” →", tap_hint_dismiss: "Dismiss hint",
     search_ph: "Search a seat…",
     search_aria: "Search a seat", results_aria: "Search results", reset_aria: "Show all seats",
     find_kicker: "FIND YOUR YB",
@@ -92,7 +96,9 @@ const I18N = {
     brand_tag: "Wakil rakyat anda, atas peta",
     tier_parlimen: "Parlimen", tier_dun: "DUN",
     mode_negeri: "Negeri", mode_parti: "Parti", mode_skor: "Skor",
+    mode_soon: "Segera",
     mode_parti_need: "Perlu data PRU15", mode_skor_need: "Perlu data skor",
+    tap_hint: "Ketik mana-mana kerusi untuk lihat YB — atau “Cari YB anda” →", tap_hint_dismiss: "Tutup petunjuk",
     search_ph: "Cari kawasan…",
     search_aria: "Cari kawasan", results_aria: "Hasil carian", reset_aria: "Papar semua kerusi",
     find_kicker: "CARI YB ANDA",
@@ -143,6 +149,9 @@ function applyStatic() {
   document.querySelectorAll("[data-i18n-title]").forEach((el) => { el.setAttribute("title", t(el.dataset.i18nTitle)); });
   document.querySelectorAll("[data-i18n-aria]").forEach((el) => { el.setAttribute("aria-label", t(el.dataset.i18nAria)); });
   document.querySelectorAll("[data-i18n-content]").forEach((el) => { el.setAttribute("content", t(el.dataset.i18nContent)); });
+  // data-i18n-after → CSS ::after pill (e.g. the "Soon/Segera" badge on the gated Skor tab).
+  // textContent assignment above can't clobber it: the badge is a pseudo-element, not a child.
+  document.querySelectorAll("[data-i18n-after]").forEach((el) => { el.setAttribute("data-after", t(el.dataset.i18nAfter)); });
   document.documentElement.lang = lang;
   document.title = t("title");
 }
@@ -324,6 +333,7 @@ function select(code, { zoom = true } = {}) {
   renderPanel(seat);
   if (zoom) zoomToSeat(seat);
   RESET.hidden = false;
+  dismissHint();   // user found the interaction — retire the nudge
   writeHash();
 }
 function deselect() {
@@ -589,6 +599,27 @@ function locate() {
 }
 if (FIND_LOC) FIND_LOC.addEventListener("click", locate);
 
+// ---- first-load tap hint (dismissed for good once seen) ----
+// A one-time nudge over the map so first-time visitors know the seats are tappable.
+// Dismissed by the ✕, by selecting any seat, and remembered in localStorage so it
+// never re-appears. localStorage access is guarded — a blocked store just means the
+// hint shows each visit (harmless) rather than throwing.
+const HINT_KEY = "peta-yb-hint-seen";
+function hintSeen() {
+  try { return localStorage.getItem(HINT_KEY) === "1"; } catch (_) { return false; }
+}
+function dismissHint() {
+  if (!TAP_HINT || TAP_HINT.hidden) return;
+  TAP_HINT.hidden = true;
+  try { localStorage.setItem(HINT_KEY, "1"); } catch (_) {}
+}
+function maybeShowHint() {
+  // only on a fresh visit with nothing selected — a deep-linked seat skips the hint
+  if (!TAP_HINT || hintSeen() || state.selected) return;
+  TAP_HINT.hidden = false;
+}
+if (TAP_HINT_X) TAP_HINT_X.addEventListener("click", dismissHint);
+
 // ---- toggles ----
 async function setTier(tier) {
   if (tier === state.tier) return;
@@ -665,4 +696,5 @@ RESET.addEventListener("click", deselect);
     const data = state.data[state.tier];
     if (data.byCode.has(h.code)) select(h.code);
   }
+  maybeShowHint();   // fresh visit, nothing selected → nudge that seats are tappable
 })();
