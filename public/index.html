@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Peta YB — Map Malaysia's Representatives</title>
+<meta name="description" content="Interactive map of every Malaysian Parliament and State (DUN) seat. Click your area to see the representative, party, and performance — public data, computed transparently." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div id="app">
+  <header id="topbar">
+    <div class="brand">
+      <span class="mark">◧ PETA<b>YB</b></span>
+      <span class="tag" data-i18n="brand_tag">Your representatives, on the map</span>
+    </div>
+
+    <div class="controls">
+      <div class="seg" id="tier" role="tablist" aria-label="Seat layer">
+        <button data-tier="parlimen" class="on" role="tab" data-i18n="tier_parlimen">Parliament</button>
+        <button data-tier="dun" role="tab" data-i18n="tier_dun">DUN</button>
+      </div>
+      <div class="seg" id="mode" role="tablist" aria-label="Colour mode">
+        <button data-mode="negeri" class="on" role="tab" data-i18n="mode_negeri">State</button>
+        <button data-mode="parti" role="tab" disabled data-i18n="mode_parti" data-i18n-title="mode_parti_need" title="Needs GE15 data">Party</button>
+        <button data-mode="skor" role="tab" disabled data-i18n="mode_skor" data-i18n-title="mode_skor_need" title="Needs score data">Score</button>
+      </div>
+      <div class="search">
+        <input id="q" type="search" data-i18n-ph="search_ph" placeholder="Search a seat…" autocomplete="off" spellcheck="false" />
+        <div id="results" class="results" hidden></div>
+      </div>
+      <div class="seg" id="lang" role="tablist" aria-label="Language">
+        <button data-lang="en" class="on" role="tab">EN</button>
+        <button data-lang="ms" role="tab">BM</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="stage">
+    <svg id="map" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" aria-label="Peta kerusi Malaysia">
+      <g id="seats"></g>
+    </svg>
+    <div id="tooltip" hidden></div>
+    <button id="reset" hidden data-i18n="reset_btn" data-i18n-title="reset_title" title="Show all (Esc)">↺ Show all</button>
+    <div id="loading" data-i18n="loading">Loading boundaries…</div>
+  </main>
+
+  <aside id="panel" class="empty">
+    <div id="panel-empty">
+      <h2 data-i18n="empty_h">Pick a seat</h2>
+      <p class="muted" data-i18n="empty_p">Click any seat on the map, or search by name above.</p>
+      <div id="legend" class="legend"></div>
+      <dl id="summary" class="summary"></dl>
+      <p class="src muted"><span data-i18n="src_bound">Boundaries</span>: <a href="https://github.com/dosm-malaysia/data-open" target="_blank" rel="noopener">DOSM</a> ·
+      <span data-i18n="src_proj">Projection</span>: <a href="https://maps.krackeddevs.com" target="_blank" rel="noopener">krackedmaps</a></p>
+    </div>
+    <div id="panel-seat" hidden></div>
+  </aside>
+</div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

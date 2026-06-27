@@ -1,0 +1,12 @@
+{
+  "name": "peta-yb",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Interactive map of Malaysia's Parliament + DUN seats — see your wakil rakyat, party, and performance. Public data, computed transparently.",
+  "scripts": {
+    "data": "python3 pipeline/01_boundaries.py",
+    "dev": "python3 -m http.server 4178 --directory public",
+    "deploy:staging": "wrangler deploy --env staging",
+    "deploy": "wrangler deploy"
+  }
+}
