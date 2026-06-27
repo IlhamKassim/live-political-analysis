@@ -98,7 +98,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
       a neutral fallback. Grows the tested foundation exactly like the partyColor port. `node --test` + `node --check`.
 - [ ] (codex) [MV] VERIFY+STRESS scoreColor port: imported ramp byte-identical to the old inline math at 0/25/50/75/100;
       junk/NaN/string/out-of-range → fallback, never a malformed `hsl()`. node --test/--check. Bug → top.
-- [ ] (claude) [HVR] A11y combobox semantics: confirm `#q` carries `role="combobox"`, `aria-controls="results"`,
+- [x] (claude) [HVR] A11y combobox semantics: confirm `#q` carries `role="combobox"`, `aria-controls="results"`,
       `aria-autocomplete="list"`, and an initial `aria-expanded="false"` in `index.html` (the JS already toggles
       `aria-expanded` + `aria-activedescendant`). Add any missing attribute so screen readers announce the listbox
       relationship — completes the keyboard-nav a11y pass. `node --check public/app.js`.
