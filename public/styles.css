@@ -154,6 +154,15 @@ a:hover { text-decoration: underline; }
   pointer-events: none;
 }
 #loading[hidden] { display: none; }
+/* subtle "still working" affordance while boundaries load; no layout impact */
+#loading:not(.error) { animation: loading-pulse 1.5s ease-in-out infinite; }
+@keyframes loading-pulse { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
+/* friendly, non-alarming message when a data layer can't be fetched */
+#loading.error span {
+  display: block; max-width: 260px; text-align: center; line-height: 1.5;
+  color: var(--ink-dim); padding: 0 24px;
+}
+@media (prefers-reduced-motion: reduce) { #loading { animation: none; } }
 
 /* ---- panel ---- */
 #panel {

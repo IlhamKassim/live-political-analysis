@@ -53,6 +53,7 @@ const I18N = {
     empty_p: "Click any seat on the map, or search by name above.",
     src_bound: "Boundaries", src_proj: "Projection",
     loading: "Loading boundaries…",
+    load_error: "Couldn't load seat boundaries — check your connection and refresh.",
     reset_btn: "↺ Show all", reset_title: "Show all (Esc)",
     rep: "Representative", rep_ph: "GE15 data not loaded",
     party_bloc: "Party / Bloc", majority: "GE15 majority", win_votes: "Winning votes",
@@ -80,6 +81,7 @@ const I18N = {
     empty_p: "Klik mana-mana kerusi pada peta, atau cari nama kawasan di atas.",
     src_bound: "Sempadan", src_proj: "Projeksi",
     loading: "Memuatkan sempadan…",
+    load_error: "Tidak dapat memuatkan sempadan kerusi — semak sambungan dan muat semula.",
     reset_btn: "↺ Papar semua", reset_title: "Papar semua (Esc)",
     rep: "Wakil rakyat", rep_ph: "data PRU15 belum dimuat",
     party_bloc: "Parti / Blok", majority: "Majoriti PRU15", win_votes: "Undi menang",
@@ -116,6 +118,7 @@ function setLang(l) {
   try { localStorage.setItem("peta-yb-lang", l); } catch (_) {}
   document.querySelectorAll("#lang button").forEach((x) => setOn(x, x.dataset.lang === l));
   applyStatic();
+  if (loadError) showLoadError();   // applyStatic reset #loading to t("loading") — restore the error copy
   renderSummary();
   if (state.selected) {
     const seat = state.data[state.tier] && state.data[state.tier].byCode.get(state.selected);
@@ -169,6 +172,23 @@ async function loadOptional() {
 function enableMode(mode) {
   const btn = document.querySelector(`#mode button[data-mode="${mode}"]`);
   if (btn) { btn.disabled = false; btn.removeAttribute("title"); btn.removeAttribute("data-i18n-title"); }
+}
+
+// ---- loading + empty states ----
+// The #loading element is an inset:0 overlay (pointer-events:none), so swapping
+// between the loading affordance and a friendly error message never shifts layout.
+let loadError = false;
+function showLoading() {
+  loadError = false;
+  LOADING.classList.remove("error");
+  LOADING.textContent = t("loading");
+  LOADING.hidden = false;
+}
+function showLoadError() {
+  loadError = true;
+  LOADING.innerHTML = `<span>${esc(t("load_error"))}</span>`;
+  LOADING.classList.add("error");
+  LOADING.hidden = false;
 }
 
 // ---- rendering ----
@@ -340,6 +360,7 @@ function renderPanel(seat) {
 // ---- summary + legend (empty panel) ----
 function renderSummary() {
   const data = state.data[state.tier];
+  if (!data) return;   // boundary layer unavailable — error overlay is showing instead
   const states = new Set(data.seats.map((s) => s.state));
   $("#summary").innerHTML =
     `<dt>${t("seats")}</dt><dd>${data.count}</dd>` +
@@ -450,11 +471,20 @@ document.addEventListener("click", (e) => {
 // ---- toggles ----
 async function setTier(tier) {
   if (tier === state.tier) return;
+  const prev = state.tier;
   document.querySelectorAll("#tier button").forEach((x) => setOn(x, x.dataset.tier === tier));
   state.tier = tier;
   state.selected = null;
-  LOADING.hidden = false;
-  await render(tier);
+  showLoading();
+  try {
+    await render(tier);
+  } catch (_) {
+    // new tier's boundaries unavailable — keep the previous layer and explain why
+    state.tier = prev;
+    document.querySelectorAll("#tier button").forEach((x) => setOn(x, x.dataset.tier === prev));
+    showLoadError();
+    return;
+  }
   deselect();
   renderSummary();
   writeHash();
@@ -506,7 +536,12 @@ RESET.addEventListener("click", deselect);
   const tier = h && (h.tier === "dun" || h.tier === "parlimen") ? h.tier : "parlimen";
   state.tier = tier;
   document.querySelectorAll("#tier button").forEach((x) => setOn(x, x.dataset.tier === tier));
-  await render(tier);
+  try {
+    await render(tier);
+  } catch (_) {
+    showLoadError();              // core boundaries unavailable — stop here with a friendly message
+    return;
+  }
   renderSummary();
   await loadOptional();           // results/scores ready → modes can be restored
   if (h && (h.mode === "parti" || h.mode === "skor")) setMode(h.mode);

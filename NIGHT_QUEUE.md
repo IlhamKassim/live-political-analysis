@@ -15,7 +15,7 @@ in AGENTS.md. Verify with syntax checks / data validation only (no browser).
       language toggle; a visible `:focus-visible` ring; ensure the legend isn't colour-only. Client-only.
 - [x] (codex) Verify the `loadOptional()` failure path: if `results-ge15.json`/`scores.json` fail to
       load, the map must still render boundaries. Read the code, confirm, write findings — change only if broken.
-- [ ] (claude) Loading + empty states: a subtle "loading seats…" affordance and a friendly message if a
+- [x] (claude) Loading + empty states: a subtle "loading seats…" affordance and a friendly message if a
       data layer is unavailable. No layout shift. Client-only.
 - [ ] (codex) Hygiene: scan `public/app.js` for stray `console.log`/debug and dead code; report, and
       remove only clearly-dead lines conservatively. `node --check` after.
