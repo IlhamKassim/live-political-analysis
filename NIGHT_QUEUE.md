@@ -7,7 +7,7 @@ in AGENTS.md. Verify with syntax checks / data validation only (no browser).
       `JSON.parse` each `public/data/*.json`; assert the GE15 coalition tally
       (PH 82 · PN 74 · BN 30 · GPS 23 · GRS 6 · WARISAN 3 = 222) from `results-ge15.json`.
       Print PASS/FAIL, exit non-zero on failure. Run it; paste the result in the handoff.
-- [ ] (claude) Mobile/responsive pass: make the map, side panel, search, and legend usable on
+- [x] (claude) Mobile/responsive pass: make the map, side panel, search, and legend usable on
       narrow screens (≤390px) with no horizontal overflow. CSS in `public/styles.css` only.
 - [ ] (claude) i18n completeness: find any user-facing string in `index.html`/`app.js` not wired
       through the `I18N`/`data-i18n` system; add the missing EN + BM entries. List every string touched.
