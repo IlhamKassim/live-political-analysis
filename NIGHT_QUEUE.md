@@ -84,7 +84,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
       on empty results; aria-activedescendant clears when the dropdown hides. node --check.
 
 ## Phase 6 — Critique round 2 (replenished 2026-06-27 · full regression GREEN: 53 tests pass, node --check + py_compile OK)
-- [ ] (claude) [HVR] FIX stale-result Enter (bug): `hideResults()` (app.js ~711) hides `#results` but never clears
+- [x] (claude) [HVR] FIX stale-result Enter (bug): `hideResults()` (app.js ~711) hides `#results` but never clears
       `RESULTS.innerHTML`, and the empty-input / Escape / post-selection paths leave the old option buttons in the DOM.
       The `#q` Enter handler (~754) has NO `RESULTS.hidden` guard (unlike ArrowUp/Down), so pressing Enter after Escape
       or after a selection re-clicks `opts[0]` and reselects a STALE seat. Fix: guard Enter with `if (RESULTS.hidden) return;`

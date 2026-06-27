@@ -710,7 +710,8 @@ function moveActiveResult(delta) {
 }
 function hideResults() {
   RESULTS.hidden = true;
-  setActiveResult(-1);                         // also clears aria-activedescendant
+  RESULTS.innerHTML = "";                       // drop stale options so they can't be announced or re-clicked
+  setActiveResult(-1);                          // also clears aria-activedescendant
   Q.setAttribute("aria-expanded", "false");
 }
 Q.addEventListener("input", () => {
@@ -752,6 +753,7 @@ Q.addEventListener("keydown", (e) => {
     if (RESULTS.hidden) return;
     e.preventDefault(); moveActiveResult(-1);
   } else if (e.key === "Enter") {
+    if (RESULTS.hidden) return;                  // no open dropdown → don't re-select a stale seat
     const opts = resultOptions();
     const pick = activeResult >= 0 ? opts[activeResult] : opts[0];   // highlighted, else first
     if (pick) pick.click();
