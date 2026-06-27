@@ -83,6 +83,28 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
 - [ ] (codex) [HVR] VERIFY search keyboard nav: ↑/↓ wrap, Enter picks the highlighted seat, Escape clears, no JS error
       on empty results; aria-activedescendant clears when the dropdown hides. node --check.
 
+## Phase 6 — Critique round 2 (replenished 2026-06-27 · full regression GREEN: 53 tests pass, node --check + py_compile OK)
+- [ ] (claude) [HVR] FIX stale-result Enter (bug): `hideResults()` (app.js ~711) hides `#results` but never clears
+      `RESULTS.innerHTML`, and the empty-input / Escape / post-selection paths leave the old option buttons in the DOM.
+      The `#q` Enter handler (~754) has NO `RESULTS.hidden` guard (unlike ArrowUp/Down), so pressing Enter after Escape
+      or after a selection re-clicks `opts[0]` and reselects a STALE seat. Fix: guard Enter with `if (RESULTS.hidden) return;`
+      (mirror the arrow keys) — and/or clear `RESULTS.innerHTML` in `hideResults()` so stale options can't be announced
+      or clicked. `node --check public/app.js`.
+- [ ] (codex) [HVR] VERIFY stale-Enter fix: search→Escape→Enter does NOT select; search→click a result→Enter (empty box)
+      does NOT reselect; ↑/↓+Enter still picks the highlighted seat; empty results → no JS error. node --check. Bug → top.
+- [ ] (claude) [MV] Extract the score→colour ramp from `seatValueColor` (app.js ~273-276: `0..100 → hsl(0→130 60% 45%)`)
+      into a pure `scoreColor(score)` in `public/lib.js`, have app.js `import` it (no behaviour change), and add
+      lib.test.mjs cases: 0→hue 0 (red), 100→hue 130 (green), clamp <0 and >100 to the ends, NaN/non-number/null →
+      a neutral fallback. Grows the tested foundation exactly like the partyColor port. `node --test` + `node --check`.
+- [ ] (codex) [MV] VERIFY+STRESS scoreColor port: imported ramp byte-identical to the old inline math at 0/25/50/75/100;
+      junk/NaN/string/out-of-range → fallback, never a malformed `hsl()`. node --test/--check. Bug → top.
+- [ ] (claude) [HVR] A11y combobox semantics: confirm `#q` carries `role="combobox"`, `aria-controls="results"`,
+      `aria-autocomplete="list"`, and an initial `aria-expanded="false"` in `index.html` (the JS already toggles
+      `aria-expanded` + `aria-activedescendant`). Add any missing attribute so screen readers announce the listbox
+      relationship — completes the keyboard-nav a11y pass. `node --check public/app.js`.
+- [ ] (codex) [HVR] VERIFY combobox a11y: all four attributes present on `#q`; `aria-controls` id matches `#results`;
+      `aria-expanded` flips true/false with the dropdown. node --check.
+
 ## ♻️ PERPETUAL TAIL — do NOT tick; keeps the night productive
 - [ ] (claude) ♻️ CRITIQUE & REPLENISH (NEVER tick — leave in place): when the lists above are drained, FIRST run the
       full regression, THEN audit code + behaviour against the AGENTS.md vision, hunt bugs/regressions/edge-cases, and
