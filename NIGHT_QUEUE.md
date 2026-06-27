@@ -9,7 +9,7 @@ in AGENTS.md. Verify with syntax checks / data validation only (no browser).
       Print PASS/FAIL, exit non-zero on failure. Run it; paste the result in the handoff.
 - [x] (claude) Mobile/responsive pass: make the map, side panel, search, and legend usable on
       narrow screens (≤390px) with no horizontal overflow. CSS in `public/styles.css` only.
-- [ ] (claude) i18n completeness: find any user-facing string in `index.html`/`app.js` not wired
+- [x] (claude) i18n completeness: find any user-facing string in `index.html`/`app.js` not wired
       through the `I18N`/`data-i18n` system; add the missing EN + BM entries. List every string touched.
 - [ ] (claude) Accessibility pass: `aria-label`s on the search box, mode toggles, reset/zoom, and the
       language toggle; a visible `:focus-visible` ring; ensure the legend isn't colour-only. Client-only.

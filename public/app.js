@@ -40,6 +40,9 @@ const partyColor = (p) => COALITION_COLORS[(p || "").toUpperCase()] || "#5d6b7d"
 const I18N = {
   en: {
     title: "Peta YB — Map Malaysia's Representatives",
+    meta_desc: "Interactive map of every Malaysian Parliament and State (DUN) seat. Click your area to see the representative, party, and performance — public data, computed transparently.",
+    map_aria: "Map of Malaysia's electoral seats",
+    aria_tier: "Seat layer", aria_mode: "Colour mode", aria_lang: "Language",
     brand_tag: "Your representatives, on the map",
     tier_parlimen: "Parliament", tier_dun: "DUN",
     mode_negeri: "State", mode_parti: "Party", mode_skor: "Score",
@@ -63,6 +66,9 @@ const I18N = {
   },
   ms: {
     title: "Peta YB — Petakan Wakil Rakyat Malaysia",
+    meta_desc: "Peta interaktif setiap kerusi Parlimen dan Negeri (DUN) Malaysia. Klik kawasan anda untuk melihat wakil rakyat, parti dan prestasi — data awam, dikira secara telus.",
+    map_aria: "Peta kerusi pilihan raya Malaysia",
+    aria_tier: "Lapisan kerusi", aria_mode: "Mod warna", aria_lang: "Bahasa",
     brand_tag: "Wakil rakyat anda, atas peta",
     tier_parlimen: "Parlimen", tier_dun: "DUN",
     mode_negeri: "Negeri", mode_parti: "Parti", mode_skor: "Skor",
@@ -97,6 +103,8 @@ function applyStatic() {
   document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll("[data-i18n-ph]").forEach((el) => { el.setAttribute("placeholder", t(el.dataset.i18nPh)); });
   document.querySelectorAll("[data-i18n-title]").forEach((el) => { el.setAttribute("title", t(el.dataset.i18nTitle)); });
+  document.querySelectorAll("[data-i18n-aria]").forEach((el) => { el.setAttribute("aria-label", t(el.dataset.i18nAria)); });
+  document.querySelectorAll("[data-i18n-content]").forEach((el) => { el.setAttribute("content", t(el.dataset.i18nContent)); });
   document.documentElement.lang = lang;
   document.title = t("title");
 }
