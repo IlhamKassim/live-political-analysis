@@ -3,7 +3,7 @@
 Small, contained, client-side or verification tasks. One per round. Respect the UNTOUCHABLES
 in AGENTS.md. Verify with syntax checks / data validation only (no browser).
 
-- [ ] (codex) Add `scripts/validate.sh`: `node --check public/app.js`; `python3 -m py_compile pipeline/*.py`;
+- [x] (codex) Add `scripts/validate.sh`: `node --check public/app.js`; `python3 -m py_compile pipeline/*.py`;
       `JSON.parse` each `public/data/*.json`; assert the GE15 coalition tally
       (PH 82 · PN 74 · BN 30 · GPS 23 · GRS 6 · WARISAN 3 = 222) from `results-ge15.json`.
       Print PASS/FAIL, exit non-zero on failure. Run it; paste the result in the handoff.
