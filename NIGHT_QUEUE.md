@@ -8,7 +8,7 @@ RULES: one task per round · `[MV]` = machine-verifiable (`node --test`/`node --
 build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]` fix task at the TOP.
 
 ## Phase B — Brand rename → MyPolitik (do first; user request)
-- [ ] (claude) [HVR] BRAND RENAME → **MyPolitik**: replace the "PETAYB" / "Peta YB" brand mark + tagline in the
+- [x] (claude) [HVR] BRAND RENAME → **MyPolitik**: replace the "PETAYB" / "Peta YB" brand mark + tagline in the
       `index.html` header (`.brand`) and `#panel-empty`, the `<title>`, and any brand strings in `I18N` (both EN+BM)
       with **MyPolitik** (Malaysian "My" + *politik*). KEEP folder/worker/deploy names (`peta-yb`/`politics`) unchanged
       — infra only. List every string changed in the handoff.

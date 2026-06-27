@@ -1,4 +1,4 @@
-// Peta YB — interactive map of Malaysia's electoral seats.
+// MyPolitik — interactive map of Malaysia's electoral seats.
 // Data-driven: boundaries render now; GE15 results + scores light up the
 // "Parti"/"Skor" modes and panel rows as soon as their JSON exists.
 
@@ -39,7 +39,7 @@ const partyColor = (p) => COALITION_COLORS[(p || "").toUpperCase()] || "#5d6b7d"
 // ---- i18n (English default, Bahasa Melayu toggle) ----
 const I18N = {
   en: {
-    title: "Peta YB — Map Malaysia's Representatives",
+    title: "MyPolitik — Map Malaysia's Representatives",
     meta_desc: "Interactive map of every Malaysian Parliament and State (DUN) seat. Click your area to see the representative, party, and performance — public data, computed transparently.",
     map_aria: "Map of Malaysia's electoral seats",
     aria_tier: "Seat layer", aria_mode: "Colour mode", aria_lang: "Language",
@@ -67,7 +67,7 @@ const I18N = {
     by_score: "Coloured by score (red→green)",
   },
   ms: {
-    title: "Peta YB — Petakan Wakil Rakyat Malaysia",
+    title: "MyPolitik — Petakan Wakil Rakyat Malaysia",
     meta_desc: "Peta interaktif setiap kerusi Parlimen dan Negeri (DUN) Malaysia. Klik kawasan anda untuk melihat wakil rakyat, parti dan prestasi — data awam, dikira secara telus.",
     map_aria: "Peta kerusi pilihan raya Malaysia",
     aria_tier: "Lapisan kerusi", aria_mode: "Mod warna", aria_lang: "Bahasa",
