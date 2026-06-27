@@ -13,7 +13,7 @@ in AGENTS.md. Verify with syntax checks / data validation only (no browser).
       through the `I18N`/`data-i18n` system; add the missing EN + BM entries. List every string touched.
 - [ ] (claude) Accessibility pass: `aria-label`s on the search box, mode toggles, reset/zoom, and the
       language toggle; a visible `:focus-visible` ring; ensure the legend isn't colour-only. Client-only.
-- [ ] (codex) Verify the `loadOptional()` failure path: if `results-ge15.json`/`scores.json` fail to
+- [x] (codex) Verify the `loadOptional()` failure path: if `results-ge15.json`/`scores.json` fail to
       load, the map must still render boundaries. Read the code, confirm, write findings — change only if broken.
 - [ ] (claude) Loading + empty states: a subtle "loading seats…" affordance and a friendly message if a
       data layer is unavailable. No layout shift. Client-only.
