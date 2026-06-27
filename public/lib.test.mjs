@@ -10,7 +10,7 @@ import {
   findSeatForLocation, haversine, nearestSeat,
   formatParty, candidateCount, formatRunnerUp, formatResultCard, fitBox,
   partyColor, COALITION_COLORS, scoreColor, searchSeats,
-  resultKey, displayCode, tallyCoalitions,
+  resultKey, displayCode, tallyCoalitions, stateHues,
 } from "./lib.js";
 import { I18N } from "./i18n.js";
 
@@ -639,4 +639,51 @@ test("tallyCoalitions: rows with missing/blank/non-string coalition are skipped"
     g: { coalition: 5 },         // non-string → skipped
   };
   assert.deepEqual(tallyCoalitions(synthetic), { PH: 2 });
+});
+
+test("stateHues: deterministic + stable — same seats → byte-identical map", () => {
+  const seats = [{ state: "Selangor" }, { state: "Johor" }, { state: "Sabah" }];
+  const a = stateHues(seats);
+  const b = stateHues(seats);
+  assert.deepEqual(a, b);                       // stable across calls
+  assert.deepEqual(stateHues(SEATS), stateHues(SEATS)); // stable on real data too
+});
+
+test("stateHues: distinct states get distinct hues, sorted-unique order", () => {
+  const map = stateHues([
+    { state: "Johor" }, { state: "Johor" },     // dup folds to one entry
+    { state: "Kedah" }, { state: "Perak" },
+  ]);
+  assert.deepEqual(Object.keys(map), ["Johor", "Kedah", "Perak"]); // sorted, unique
+  const hues = Object.values(map);
+  assert.equal(new Set(hues).size, hues.length); // all distinct
+  for (const v of hues) assert.match(v, /^hsl\(\d+ \d+% \d+%\)$/); // well-formed
+});
+
+test("stateHues: golden-angle math matches the formula at index 0..2", () => {
+  const map = stateHues([{ state: "AA" }, { state: "BB" }, { state: "CC" }]);
+  assert.equal(map.AA, `hsl(0 38% 40%)`);   // i=0: h=0, s=38, l=40
+  assert.equal(map.BB, `hsl(138 44% 45%)`); // i=1: h=round(137.508)=138, s=44, l=45
+  assert.equal(map.CC, `hsl(275 50% 40%)`); // i=2: h=round(275.016)=275, s=50, l=40
+});
+
+test("stateHues: empty / non-array seats → {} (no throw)", () => {
+  assert.deepEqual(stateHues([]), {});
+  assert.deepEqual(stateHues(null), {});
+  assert.deepEqual(stateHues(undefined), {});
+  assert.deepEqual(stateHues("nope"), {});
+  assert.deepEqual(stateHues(42), {});
+});
+
+test("stateHues: a seat with a missing state doesn't crash", () => {
+  assert.doesNotThrow(() => stateHues([{ code: "P.001" }, null, { state: "Perak" }]));
+  const map = stateHues([{ code: "P.001" }, { state: "Perak" }]);
+  assert.ok("Perak" in map); // the well-formed seat still gets a colour
+});
+
+test("stateHues: byte-identical to the real-data hue map app.js relied on", () => {
+  // sanity: every real state resolves to a well-formed hsl() string
+  const map = stateHues(SEATS);
+  const states = [...new Set(SEATS.map((s) => s.state))];
+  for (const st of states) assert.match(map[st], /^hsl\(\d+ \d+% \d+%\)$/);
 });

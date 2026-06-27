@@ -290,6 +290,25 @@ export function fitBox(bbox, targetW, targetH, pad = 0) {
   return { scale, dx, dy };
 }
 
+// Deterministic per-state colour map for "Negeri" mode + the legend swatches.
+// Golden-angle (137.508°) hue spacing keeps consecutive states (e.g. Sabah/Sarawak)
+// far apart on the wheel instead of clashing on a smooth ramp; the i%3 / i%2 jitter
+// adds gentle saturation/lightness separation. Pure + stable: same seats array →
+// byte-identical map (states sorted unique). Non-array seats → {} (no throw); a
+// seat with a missing `state` is folded under the `undefined` key without crashing.
+export function stateHues(seats) {
+  if (!Array.isArray(seats)) return {};
+  const states = [...new Set(seats.map((s) => s && s.state))].sort();
+  const map = {};
+  states.forEach((st, i) => {
+    const h = Math.round((i * 137.508) % 360);
+    const s = 38 + (i % 3) * 6;          // gentle sat/light jitter for extra separation
+    const l = 40 + (i % 2) * 5;
+    map[st] = `hsl(${h} ${s}% ${l}%)`;
+  });
+  return map;
+}
+
 // Compose the whole display-ready card from a raw result row. Pure: shapes values,
 // no HTML. Numeric fields use the Number.isFinite guard so 0s and extremes (100%
 // turnout) pass through unchanged. Returns null for a missing/non-object row.

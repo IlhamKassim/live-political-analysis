@@ -4,7 +4,7 @@
 
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
-  resultKey, displayCode, tallyCoalitions } from "./lib.js";
+  resultKey, displayCode, tallyCoalitions, stateHues } from "./lib.js";
 import { I18N } from "./i18n.js";
 
 const SVG = document.getElementById("map");
@@ -90,19 +90,7 @@ const $ = (sel, el = document) => el.querySelector(sel);
 const setOn = (el, on) => { el.classList.toggle("on", on); el.setAttribute("aria-selected", on ? "true" : "false"); };
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-function stateHues(seats) {
-  // golden-angle hue spacing → consecutive states (e.g. Sabah/Sarawak) always
-  // land far apart on the wheel instead of clashing on a smooth ramp.
-  const states = [...new Set(seats.map((s) => s.state))].sort();
-  const map = {};
-  states.forEach((st, i) => {
-    const h = Math.round((i * 137.508) % 360);
-    const s = 38 + (i % 3) * 6;          // gentle sat/light jitter for extra separation
-    const l = 40 + (i % 2) * 5;
-    map[st] = `hsl(${h} ${s}% ${l}%)`;
-  });
-  return map;
-}
+// stateHues() now lives in lib.js (pure, tested) — imported above.
 
 // ---- data loading ----
 async function loadTier(tier) {

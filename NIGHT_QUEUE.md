@@ -217,7 +217,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
 - [ ] (codex) [MV] VERIFY Skor stays gated: drop a synthetic `data/scores.json` in → Skor tab STAYS `disabled` + keeps its
       "Soon/Segera" pill; `#parlimen/skor` deep-link does NOT activate skor (normalises away per the honest-deep-link rule);
       `parti` still enables when results load. `node --check`. Bug → top.
-- [ ] (claude) [MV] Extract `stateHues(seats)` (app.js ~93-105) into a pure DOM-free `stateHues(seats)` in `public/lib.js`,
+- [x] (claude) [MV] Extract `stateHues(seats)` (app.js ~93-105) into a pure DOM-free `stateHues(seats)` in `public/lib.js`,
       `import` it into app.js (NO behaviour change — same golden-angle 137.508° hue spacing, same `i%3`/`i%2` sat/light
       jitter, same sorted-unique state order). It's the LAST pure helper still inline in app.js. Add lib.test.mjs cases:
       deterministic + stable (same seats array → byte-identical `{state: hsl(...)}` map); distinct states get distinct hues;
