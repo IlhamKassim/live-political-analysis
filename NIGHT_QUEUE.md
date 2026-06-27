@@ -62,6 +62,27 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
       `python3 -m py_compile pipeline/*.py` + `scripts/validate.sh`. All green. Any failure → top task.
 - [ ] (codex) Write/refresh `NIGHT_REPORT.md`: every commit, what passed verification, the short **"needs Danial's eyes"** list.
 
+## Phase 5 — Critique round 1 (replenished 2026-06-27 23:30 UTC; full regression GREEN — no bugs found, these are hardening/craft)
+- [ ] (claude) [MV] Move the pure colour mapping into lib.js: export `partyColor(coalition)` + the `COALITION_COLORS`
+      table from `public/lib.js` (currently inline in app.js ~40-46), have app.js `import` it (no behaviour change),
+      and add unit tests in lib.test.mjs — every GE15 coalition (PH/PN/BN/GPS/GRS/WARISAN) maps to its colour,
+      case-insensitive, unknown/empty/null/undefined → the `#5d6b7d` fallback. Strengthens the testable foundation
+      (regime: every pure fn ships WITH tests). `node --test` + `node --check public/app.js`.
+- [ ] (codex) [MV] VERIFY+STRESS partyColor port: run node --test/--check; confirm the imported colours are byte-identical
+      to the old inline table (no swatch drift in legend/pills/share-card); junk/mixed-case/non-string input → fallback. Bug → top.
+- [ ] (claude) [MV] Harden `renderPanel` numeric rows against partial result data by reusing the existing
+      `formatResultCard` Number.isFinite guards (lib.js) for votes/majority/turnout, so a row with `vote_pct` present
+      but `votes` missing can never render "NaN" (real GE15 data is complete today — this is defensive for future/DUN
+      data). Add a lib.test case asserting formatResultCard drops non-finite numerics. `node --test` + `node --check`.
+- [ ] (codex) [MV] VERIFY+STRESS panel hardening: synthetic rows (pct-without-votes, majority-without-pct, NaN/string
+      numerics) render clean rows or omit them — never "NaN"/"undefined". node --check. Bug → top.
+- [ ] (claude) [HVR] Search-results keyboard nav: in the `#results` listbox, ↑/↓ move a `.active` highlight through the
+      option buttons (wrap at ends), Enter selects the HIGHLIGHTED option (not just the first), Escape still clears;
+      set `aria-activedescendant` on `#q` + `id`s on options so screen readers announce the focused row. Completes the
+      accessibility pass. `node --check public/app.js`.
+- [ ] (codex) [HVR] VERIFY search keyboard nav: ↑/↓ wrap, Enter picks the highlighted seat, Escape clears, no JS error
+      on empty results; aria-activedescendant clears when the dropdown hides. node --check.
+
 ## ♻️ PERPETUAL TAIL — do NOT tick; keeps the night productive
 - [ ] (claude) ♻️ CRITIQUE & REPLENISH (NEVER tick — leave in place): when the lists above are drained, FIRST run the
       full regression, THEN audit code + behaviour against the AGENTS.md vision, hunt bugs/regressions/edge-cases, and
