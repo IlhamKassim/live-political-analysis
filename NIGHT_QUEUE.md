@@ -117,7 +117,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
 - [ ] (codex) [MV] VERIFY+STRESS geo distance guard: confirm offshore-but-near points still resolve, far/out-of-country
       coords now return null (→ `loc_notfound`, fallback search still reachable), default maxKm unchanged vs old tests,
       NaN/garbage still null. `node --test` + `node --check`. Bug → top.
-- [ ] (claude) [MV] I18N parity foundation: extract the `I18N` table (app.js ~45-136) into a new DOM-free module
+- [x] (claude) [MV] I18N parity foundation: extract the `I18N` table (app.js ~45-136) into a new DOM-free module
       `public/i18n.js` that `export`s it, and have app.js `import { I18N } from "./i18n.js"` (no behaviour change — same keys,
       same strings, zero new deps / no build step, it's a plain static ES module like lib.js). Then add lib.test.mjs cases
       that import it and assert: `en` and `ms` have IDENTICAL key sets (catches "added an EN key, forgot the BM translation"),
