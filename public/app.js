@@ -859,5 +859,8 @@ RESET.addEventListener("click", deselect);
     const data = state.data[state.tier];
     if (data.byCode.has(h.code)) select(h.code);
   }
+  writeHash();       // normalise URL to the actually-active state — a gated mode (Skor) or bad seat
+                     // code in the deep link gets dropped so a re-shared link can't misrepresent state
+                     // (replaceState → no extra history entry)
   maybeShowHint();   // fresh visit, nothing selected → nudge that seats are tappable
 })();

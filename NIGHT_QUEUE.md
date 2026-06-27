@@ -125,7 +125,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
       class. `node --test` + `node --check public/app.js`.
 - [ ] (codex) [MV] VERIFY i18n parity foundation: confirm app.js still loads (node --check), every existing I18N key/string
       is byte-identical to before the move (no copy drift), the new parity test fails if you delete one BM key. Bug → top.
-- [ ] (claude) [HVR] Honest deep-link hash: when a deep-linked mode is gated/unavailable, boot (app.js ~944 `setMode(h.mode)`)
+- [x] (claude) [HVR] Honest deep-link hash: when a deep-linked mode is gated/unavailable, boot (app.js ~944 `setMode(h.mode)`)
       silently no-ops (the button is disabled) but the URL still reads e.g. `#parlimen/skor` while the active mode is `negeri`,
       so a re-shared link misrepresents state. After the boot mode/code restore (~948), call `writeHash()` once so the URL
       reflects the actually-active tier/mode/selection (the shareable link is the growth engine — keep it truthful). Confirm
