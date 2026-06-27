@@ -183,7 +183,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
       `node --test` + `node --check public/app.js`.
 - [ ] (codex) [MV] VERIFY+STRESS resultKey/displayCode port: confirm panel/seat-fill/tooltip/share-card/search all resolve
       byte-identical keys to the old inline ternaries on real parlimen + DUN data; missing fields → no throw; node --test/--check. Bug → top.
-- [ ] (claude) [MV] Pin the GE15 coalition tally in a unit test: extract the legend bloc counter (app.js ~542
+- [x] (claude) [MV] Pin the GE15 coalition tally in a unit test: extract the legend bloc counter (app.js ~542
       `for (const v of Object.values(state.results)) counts[v.coalition] = (counts[v.coalition]||0)+1`) into a pure
       `tallyCoalitions(results)` in `public/lib.js` returning `{coalition: count}` (null/non-object/empty → `{}`, skips
       rows with a missing/blank coalition), `import` it into `renderSummary` (no behaviour change). Add a lib.test that

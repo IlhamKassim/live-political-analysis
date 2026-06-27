@@ -10,7 +10,7 @@ import {
   findSeatForLocation, haversine, nearestSeat,
   formatParty, candidateCount, formatRunnerUp, formatResultCard, fitBox,
   partyColor, COALITION_COLORS, scoreColor, searchSeats,
-  resultKey, displayCode,
+  resultKey, displayCode, tallyCoalitions,
 } from "./lib.js";
 import { I18N } from "./i18n.js";
 
@@ -606,4 +606,37 @@ test("resultKey/displayCode: missing/non-object seat → undefined, no throw", (
     assert.equal(resultKey(bad, "parlimen"), undefined);
     assert.equal(displayCode(bad, "parlimen"), undefined);
   }
+});
+
+// ---- tallyCoalitions: the GE15 invariant (AGENTS.md UNTOUCHABLE) ----
+test("tallyCoalitions: GE15 results match the frozen PH82·PN74·BN30·GPS23·GRS6·WARISAN3 = 222 tally", () => {
+  const counts = tallyCoalitions(RESULTS);
+  assert.equal(counts.PH, 82);
+  assert.equal(counts.PN, 74);
+  assert.equal(counts.BN, 30);
+  assert.equal(counts.GPS, 23);
+  assert.equal(counts.GRS, 6);
+  assert.equal(counts.WARISAN, 3);
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  assert.equal(total, 222);
+});
+
+test("tallyCoalitions: null/non-object/empty input → {} (no throw)", () => {
+  for (const bad of [null, undefined, 42, "x", []]) {
+    assert.deepEqual(tallyCoalitions(bad), {});
+  }
+  assert.deepEqual(tallyCoalitions({}), {});
+});
+
+test("tallyCoalitions: rows with missing/blank/non-string coalition are skipped", () => {
+  const synthetic = {
+    a: { coalition: "PH" },
+    b: { coalition: "PH" },
+    c: { coalition: "" },        // blank → skipped
+    d: { coalition: "   " },     // whitespace → skipped
+    e: {},                       // missing → skipped
+    f: null,                     // null row → skipped
+    g: { coalition: 5 },         // non-string → skipped
+  };
+  assert.deepEqual(tallyCoalitions(synthetic), { PH: 2 });
 });

@@ -187,6 +187,21 @@ export function displayCode(seat, tier) {
   return tier === "parlimen" ? seat.code : seat.dun_code;
 }
 
+// ---- coalition tally (legend bloc bar) ----
+// Count seats won per coalition from the RESULTS table — `{coalition: count}`.
+// Faithful extraction of renderSummary's old inline counter. Null / non-object
+// input → `{}`; rows with a missing/blank/non-string coalition are skipped (so a
+// future partial row can never seed an `undefined`/empty bloc in the legend).
+export function tallyCoalitions(results) {
+  const counts = {};
+  if (!results || typeof results !== "object") return counts;
+  for (const v of Object.values(results)) {
+    const c = v && typeof v.coalition === "string" ? v.coalition.trim() : "";
+    if (c) counts[c] = (counts[c] || 0) + 1;
+  }
+  return counts;
+}
+
 // Great-circle distance in km (haversine). lat/lng in degrees.
 export function haversine(lat1, lng1, lat2, lng2) {
   const R = 6371;

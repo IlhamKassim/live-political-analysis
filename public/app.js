@@ -4,7 +4,7 @@
 
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
-  resultKey, displayCode } from "./lib.js";
+  resultKey, displayCode, tallyCoalitions } from "./lib.js";
 import { I18N } from "./i18n.js";
 
 const SVG = document.getElementById("map");
@@ -539,8 +539,7 @@ function renderSummary() {
       top.map((st) => `<div class="row"><span class="sw" style="background:${data.hues[st]}"></span>${esc(st)}</div>`).join("") +
       (states.size > 6 ? `<div class="row muted">${t("more", { n: states.size - 6 })}</div>` : "");
   } else if (state.mode === "parti") {
-    const counts = {};
-    if (state.results) for (const v of Object.values(state.results)) counts[v.coalition] = (counts[v.coalition] || 0) + 1;
+    const counts = tallyCoalitions(state.results);
     const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
     const ordered = COALITION_ORDER.filter((c) => counts[c]);
     const bar = `<div class="sharebar">` +
