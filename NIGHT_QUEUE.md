@@ -92,7 +92,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
       or clicked. `node --check public/app.js`.
 - [ ] (codex) [HVR] VERIFY stale-Enter fix: search→Escape→Enter does NOT select; search→click a result→Enter (empty box)
       does NOT reselect; ↑/↓+Enter still picks the highlighted seat; empty results → no JS error. node --check. Bug → top.
-- [ ] (claude) [MV] Extract the score→colour ramp from `seatValueColor` (app.js ~273-276: `0..100 → hsl(0→130 60% 45%)`)
+- [x] (claude) [MV] Extract the score→colour ramp from `seatValueColor` (app.js ~273-276: `0..100 → hsl(0→130 60% 45%)`)
       into a pure `scoreColor(score)` in `public/lib.js`, have app.js `import` it (no behaviour change), and add
       lib.test.mjs cases: 0→hue 0 (red), 100→hue 130 (green), clamp <0 and >100 to the ends, NaN/non-number/null →
       a neutral fallback. Grows the tested foundation exactly like the partyColor port. `node --test` + `node --check`.

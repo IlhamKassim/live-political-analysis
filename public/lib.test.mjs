@@ -9,7 +9,7 @@ import {
   project, parsePathRings, pointInRings,
   findSeatForLocation, haversine, nearestSeat,
   formatParty, candidateCount, formatRunnerUp, formatResultCard, fitBox,
-  partyColor, COALITION_COLORS,
+  partyColor, COALITION_COLORS, scoreColor,
 } from "./lib.js";
 
 const parlimen = JSON.parse(
@@ -429,6 +429,35 @@ test("partyColor: unknown / empty / nullish / non-string → #5d6b7d fallback", 
   assert.equal(partyColor(42), "#5d6b7d");
   assert.equal(partyColor({}), "#5d6b7d");
   assert.equal(partyColor([]), "#5d6b7d");
+});
+
+// ---- scoreColor (0..100 red→green ramp) ----
+test("scoreColor: byte-identical to old inline math at 0/25/50/75/100", () => {
+  // Mirrors seatValueColor's old math: h = round(clamp(s/100,0,1) * 130).
+  assert.equal(scoreColor(0), "hsl(0 60% 45%)");    // red
+  assert.equal(scoreColor(25), "hsl(33 60% 45%)");  // round(32.5)
+  assert.equal(scoreColor(50), "hsl(65 60% 45%)");
+  assert.equal(scoreColor(75), "hsl(98 60% 45%)");  // round(97.5)
+  assert.equal(scoreColor(100), "hsl(130 60% 45%)"); // green
+});
+
+test("scoreColor: clamps out-of-range scores to the ends", () => {
+  assert.equal(scoreColor(-1), "hsl(0 60% 45%)");
+  assert.equal(scoreColor(-9999), "hsl(0 60% 45%)");
+  assert.equal(scoreColor(101), "hsl(130 60% 45%)");
+  assert.equal(scoreColor(9999), "hsl(130 60% 45%)");
+});
+
+test("scoreColor: NaN / non-number / nullish → #5d6b7d fallback (never malformed hsl)", () => {
+  assert.equal(scoreColor(NaN), "#5d6b7d");
+  assert.equal(scoreColor(Infinity), "#5d6b7d");
+  assert.equal(scoreColor(-Infinity), "#5d6b7d");
+  assert.equal(scoreColor("50"), "#5d6b7d");
+  assert.equal(scoreColor(null), "#5d6b7d");
+  assert.equal(scoreColor(undefined), "#5d6b7d");
+  assert.equal(scoreColor(), "#5d6b7d");
+  assert.equal(scoreColor({}), "#5d6b7d");
+  assert.equal(scoreColor([]), "#5d6b7d");
 });
 
 test("COALITION_COLORS: exact byte-for-byte table (no swatch drift)", () => {

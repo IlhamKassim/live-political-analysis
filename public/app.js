@@ -3,7 +3,7 @@
 // "Parti"/"Skor" modes and panel rows as soon as their JSON exists.
 
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
-  formatResultCard, fitBox, partyColor } from "./lib.js";
+  formatResultCard, fitBox, partyColor, scoreColor } from "./lib.js";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -270,10 +270,7 @@ function seatValueColor(seat) {
     const key = state.tier === "parlimen" ? seat.code : seat.parlimen;
     const sc = state.scores[key];
     if (!sc) return "#222b36";
-    // 0..100 -> red..yellow..green
-    const t = Math.max(0, Math.min(1, sc.score / 100));
-    const h = Math.round(t * 130); // 0 red -> 130 green
-    return `hsl(${h} 60% 45%)`;
+    return scoreColor(sc.score); // 0..100 -> red..yellow..green ramp (lib.js)
   }
   return data.hues[seat.state] || "#1b2530";
 }

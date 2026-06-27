@@ -19,6 +19,18 @@ export function partyColor(p) {
   return COALITION_COLORS[(typeof p === "string" ? p : "").toUpperCase()] || "#5d6b7d";
 }
 
+// Map a 0..100 performance score to a red→yellow→green ramp. Faithful
+// extraction of app.js's old inline seatValueColor math: 0 → hue 0 (red),
+// 100 → hue 130 (green), clamped at both ends. Non-finite / non-number input
+// (NaN, null, undefined, strings) falls back to the neutral grey #5d6b7d
+// rather than emitting a malformed `hsl(NaN …)`.
+export function scoreColor(score) {
+  if (typeof score !== "number" || !Number.isFinite(score)) return "#5d6b7d";
+  const t = Math.max(0, Math.min(1, score / 100));
+  const h = Math.round(t * 130); // 0 red -> 130 green
+  return `hsl(${h} 60% 45%)`;
+}
+
 // ---- shareable URL state  (#tier/mode[/code]) ----
 // encodeHash builds the location hash from app state; decodeHash parses one
 // back. Faithful extraction of app.js's old writeHash/parseHash internals —
