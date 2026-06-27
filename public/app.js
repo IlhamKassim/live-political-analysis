@@ -123,7 +123,10 @@ async function loadOptional() {
   } catch (_) {}
   try {
     const s = await fetch("data/scores.json");
-    if (s.ok) { state.scores = await s.json(); enableMode("skor"); }
+    // AGENTS.md UNTOUCHABLE: "Keep Skor GATED ('Soon') even if scores.json appears."
+    // Load the scores (panel score row + seatValueColor skor branch use them) but
+    // NEVER enableMode("skor") — the tab stays disabled with its "Soon/Segera" pill.
+    if (s.ok) { state.scores = await s.json(); }
   } catch (_) {}
   return state;
 }

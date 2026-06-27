@@ -206,7 +206,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
 - [ ] (codex) [MV] VERIFY+STRESS Escape fix: seat selected + typing in `#q` → Escape clears search only (seat stays
       selected/zoomed); Escape with empty search + seat selected (focus outside `#q`) still deselects; arrow/Enter result
       nav unchanged; no JS error on empty results. `node --check`. Bug → top.
-- [ ] (claude) [MV] HARDEN Skor gating (guardrail): AGENTS.md UNTOUCHABLE says **"Keep Skor GATED ('Soon') even if
+- [x] (claude) [MV] HARDEN Skor gating (guardrail): AGENTS.md UNTOUCHABLE says **"Keep Skor GATED ('Soon') even if
       scores.json appears"**, but `loadOptional()` (app.js ~124-127) calls `enableMode("skor")` the moment a
       `data/scores.json` fetch succeeds — removing `disabled` + the title so the gated tab becomes clickable (and a
       `#parlimen/skor` deep-link would then activate it). That directly contradicts the guardrail. scores.json does NOT
