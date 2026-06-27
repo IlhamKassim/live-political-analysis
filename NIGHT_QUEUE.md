@@ -23,7 +23,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
       hashes; confirm app.js imports cleanly. Any bug → fix task at top.
 
 ## Phase 1 — The brain (machine-verified)
-- [ ] (claude) [MV] Geolocation core in lib.js: faithful port of `project()` from pipeline/01_boundaries.py (INCL. the
+- [x] (claude) [MV] Geolocation core in lib.js: faithful port of `project()` from pipeline/01_boundaries.py (INCL. the
       `lng>=107` Borneo-shift), `parsePathRings`, `pointInRings` (even-odd), bbox-prefiltered
       `findSeatForLocation(lat,lng,seats)` (point-in-polygon) + haversine `nearestSeat` fallback. Fixture-table tests:
       KLCC, Putrajaya, Penang, JB, **Kuching + KK** (shift branch). `node --test`.
