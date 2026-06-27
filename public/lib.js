@@ -168,6 +168,25 @@ export function searchSeats(seats, query, tier) {
   );
 }
 
+// ---- seat join / display keys ----
+// ONE source of truth for the two tier-dependent seat codes, which were each
+// duplicated inline across app.js. Both treat any non-"parlimen" tier as DUN,
+// matching app.js's existing `=== "parlimen"` checks.
+//
+// resultKey: the key a seat joins the RESULTS table on — a parlimen seat keys on
+// its own `code` (P.xxx); a DUN seat keys on its parent `parlimen` code.
+export function resultKey(seat, tier) {
+  if (!seat || typeof seat !== "object") return undefined;
+  return tier === "parlimen" ? seat.code : seat.parlimen;
+}
+
+// displayCode: the citizen-visible code shown on the card / dropdown — a parlimen
+// seat shows its `code` (P.xxx); a DUN seat shows its own `dun_code` (N.xx).
+export function displayCode(seat, tier) {
+  if (!seat || typeof seat !== "object") return undefined;
+  return tier === "parlimen" ? seat.code : seat.dun_code;
+}
+
 // Great-circle distance in km (haversine). lat/lng in degrees.
 export function haversine(lat1, lng1, lat2, lng2) {
   const R = 6371;

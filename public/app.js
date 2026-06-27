@@ -3,7 +3,8 @@
 // "Parti"/"Skor" modes and panel rows as soon as their JSON exists.
 
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
-  formatResultCard, fitBox, partyColor, scoreColor, searchSeats } from "./lib.js";
+  formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
+  resultKey, displayCode } from "./lib.js";
 import { I18N } from "./i18n.js";
 
 const SVG = document.getElementById("map");
@@ -173,12 +174,12 @@ async function render(tier) {
 function seatValueColor(seat) {
   const data = state.data[state.tier];
   if (state.mode === "parti" && state.results) {
-    const key = state.tier === "parlimen" ? seat.code : seat.parlimen;
+    const key = resultKey(seat, state.tier);
     const r = state.results[key];
     return r ? partyColor(r.coalition) : "#222b36";
   }
   if (state.mode === "skor" && state.scores) {
-    const key = state.tier === "parlimen" ? seat.code : seat.parlimen;
+    const key = resultKey(seat, state.tier);
     const sc = state.scores[key];
     if (!sc) return "#222b36";
     return scoreColor(sc.score); // 0..100 -> red..yellow..green ramp (lib.js)
@@ -273,9 +274,9 @@ function renderPanel(seat) {
 
   const isP = state.tier === "parlimen";
   const kicker = isP ? `${t("kicker_parlimen")} · ${seat.code}` : `DUN · ${seat.dun_code}`;
-  const resultKey = isP ? seat.code : seat.parlimen;
-  const r = state.results && state.results[resultKey];
-  const sc = state.scores && state.scores[resultKey];
+  const rk = resultKey(seat, state.tier);
+  const r = state.results && state.results[rk];
+  const sc = state.scores && state.scores[rk];
 
   let rows = "";
   if (r) {
@@ -378,8 +379,8 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 function drawSeatCard(seat) {
   const isP = state.tier === "parlimen";
-  const resultKey = isP ? seat.code : seat.parlimen;
-  const r = state.results && state.results[resultKey];
+  const rk = resultKey(seat, state.tier);
+  const r = state.results && state.results[rk];
   const accent = r ? partyColor(r.coalition) : "#5d6b7d";
 
   const cv = document.createElement("canvas");
@@ -563,8 +564,8 @@ SVG.addEventListener("mousemove", (e) => {
     if (!data) return;   // boundary layer unavailable — no seat paths exist anyway; guard for symmetry
     const seat = data.byCode.get(t.dataset.code);
     if (!seat) return;
-    const code = state.tier === "parlimen" ? seat.code : seat.dun_code;
-    const rk = state.tier === "parlimen" ? seat.code : seat.parlimen;
+    const code = displayCode(seat, state.tier);
+    const rk = resultKey(seat, state.tier);
     const r = state.results && state.results[rk];
     const win = r
       ? `<div class="t-win">${esc(r.name)} <span class="pill" style="background:${partyColor(r.coalition)};color:#fff">${esc(r.coalition)}</span></div>`
@@ -638,7 +639,7 @@ Q.addEventListener("input", () => {
     if (p) { p.classList.remove("dim"); p.classList.add("match"); }
   }
   RESULTS.innerHTML = hits.slice(0, 8).map((s, i) => {
-    const code = state.tier === "parlimen" ? s.code : s.dun_code;
+    const code = displayCode(s, state.tier);
     return `<button id="result-opt-${i}" role="option" aria-selected="false" data-code="${esc(s.code)}"><span>${esc(s.name)} <span class="muted" style="font-size:11px">${esc(s.state)}</span></span><span class="code">${esc(code)}</span></button>`;
   }).join("");
   setActiveResult(-1);            // fresh list: nothing highlighted yet

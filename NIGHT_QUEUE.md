@@ -172,7 +172,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
       node --check. Bug → top.
 
 ## Phase 9 — Critique round 5 (replenished 2026-06-27 · full regression GREEN: 69 tests pass, node --check app.js+lib.js+i18n.js + py_compile OK, JSON.parse OK, GE15 tally PH82·PN74·BN30·GPS23·GRS6·WARISAN3+others=222 verified. validate.sh's only failures are `/tmp` log-write permission denials in this sandbox — every underlying check passes when run directly. Audit found ONE defensive bug (queued at top) + these tested-foundation/DRY items.)
-- [ ] (claude) [MV] Extract the seat→key helpers into lib.js + tests: the `tier === "parlimen" ? seat.code : seat.parlimen`
+- [x] (claude) [MV] Extract the seat→key helpers into lib.js + tests: the `tier === "parlimen" ? seat.code : seat.parlimen`
       RESULT join-key is duplicated 5× (app.js ~176, ~181, ~276, ~381, ~566) and the citizen-visible `tier === "parlimen"
       ? seat.code : seat.dun_code` DISPLAY code 2× (~565, ~639). Add pure `resultKey(seat, tier)` (parlimen→`seat.code`,
       dun→`seat.parlimen`) and `displayCode(seat, tier)` (parlimen→`seat.code`, dun→`seat.dun_code`) to `public/lib.js`,

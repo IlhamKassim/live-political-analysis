@@ -10,6 +10,7 @@ import {
   findSeatForLocation, haversine, nearestSeat,
   formatParty, candidateCount, formatRunnerUp, formatResultCard, fitBox,
   partyColor, COALITION_COLORS, scoreColor, searchSeats,
+  resultKey, displayCode,
 } from "./lib.js";
 import { I18N } from "./i18n.js";
 
@@ -568,4 +569,41 @@ test("searchSeats: parlimen tier does NOT match dun_code/parlimen fields", () =>
 test("searchSeats: tolerates null entries and missing fields (no throw)", () => {
   const seats = [null, { code: "P.001" }, { name: "Bangi" }, undefined];
   assert.deepEqual(searchSeats(seats, "bangi", "parlimen").map((s) => s.name), ["Bangi"]);
+});
+
+// ---- resultKey / displayCode (seat join + display codes) ----
+const KEY_SEAT = { code: "P.092", parlimen: "P.092", dun_code: "N.01" };
+const DUN_SEAT = { code: "10_N.01", parlimen: "P.092", dun_code: "N.01" };
+
+test("resultKey: parlimen tier returns the seat's own code", () => {
+  assert.equal(resultKey(KEY_SEAT, "parlimen"), "P.092");
+});
+
+test("resultKey: dun tier returns the parent parlimen code", () => {
+  assert.equal(resultKey(DUN_SEAT, "dun"), "P.092");
+});
+
+test("resultKey: non-parlimen tier strings treated as dun", () => {
+  assert.equal(resultKey(DUN_SEAT, "negeri"), "P.092");
+  assert.equal(resultKey(DUN_SEAT, undefined), "P.092");
+});
+
+test("displayCode: parlimen tier returns the seat's own code", () => {
+  assert.equal(displayCode(KEY_SEAT, "parlimen"), "P.092");
+});
+
+test("displayCode: dun tier returns the visible dun_code", () => {
+  assert.equal(displayCode(DUN_SEAT, "dun"), "N.01");
+});
+
+test("resultKey/displayCode: missing field → undefined, no throw", () => {
+  assert.equal(resultKey({ code: "P.001" }, "dun"), undefined);   // no parlimen
+  assert.equal(displayCode({ code: "P.001" }, "dun"), undefined); // no dun_code
+});
+
+test("resultKey/displayCode: missing/non-object seat → undefined, no throw", () => {
+  for (const bad of [null, undefined, 42, "P.001"]) {
+    assert.equal(resultKey(bad, "parlimen"), undefined);
+    assert.equal(displayCode(bad, "parlimen"), undefined);
+  }
 });
