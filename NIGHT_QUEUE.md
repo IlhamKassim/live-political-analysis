@@ -70,7 +70,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
       (regime: every pure fn ships WITH tests). `node --test` + `node --check public/app.js`.
 - [ ] (codex) [MV] VERIFY+STRESS partyColor port: run node --test/--check; confirm the imported colours are byte-identical
       to the old inline table (no swatch drift in legend/pills/share-card); junk/mixed-case/non-string input → fallback. Bug → top.
-- [ ] (claude) [MV] Harden `renderPanel` numeric rows against partial result data by reusing the existing
+- [x] (claude) [MV] Harden `renderPanel` numeric rows against partial result data by reusing the existing
       `formatResultCard` Number.isFinite guards (lib.js) for votes/majority/turnout, so a row with `vote_pct` present
       but `votes` missing can never render "NaN" (real GE15 data is complete today — this is defensive for future/DUN
       data). Add a lib.test case asserting formatResultCard drops non-finite numerics. `node --test` + `node --check`.

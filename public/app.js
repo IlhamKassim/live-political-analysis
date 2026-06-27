@@ -3,7 +3,7 @@
 // "Parti"/"Skor" modes and panel rows as soon as their JSON exists.
 
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
-  formatParty, candidateCount, formatRunnerUp, fitBox, partyColor } from "./lib.js";
+  formatResultCard, fitBox, partyColor } from "./lib.js";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -371,29 +371,33 @@ function renderPanel(seat) {
 
   let rows = "";
   if (r) {
+    // formatResultCard runs every numeric through a Number.isFinite guard (non-finite
+    // → null) and composes party / candidate / runner-up shaping. Driving the panel
+    // off the card means a partial row — vote_pct present but votes missing, a NaN or
+    // string numeric — OMITS the row instead of rendering "NaN"/"undefined". Real GE15
+    // data is complete today; this is defensive for future / DUN result data.
+    const card = formatResultCard(r);
     const blocPill = `<span class="pill" style="background:${partyColor(r.coalition)};color:#fff">${esc(r.coalition)}</span>`;
     // surface party_full ("Perikatan Nasional (PN)") via the pure helper; only show
     // it when it adds something beyond the bloc pill (skip a redundant "PN · PN")
-    const pf = formatParty(r);
-    const partyTxt = pf && pf.label && pf.label !== r.coalition ? `${esc(pf.label)} · ` : "";
+    const partyTxt = card.party && card.party.label && card.party.label !== r.coalition ? `${esc(card.party.label)} · ` : "";
     rows += `<dt>${t("rep")}</dt><dd>${esc(r.name)}</dd>`;
     rows += `<dt>${t("party_bloc")}</dt><dd>${partyTxt}${blocPill}</dd>`;
-    if (r.majority != null)
-      rows += `<dt>${t("majority")}</dt><dd class="mono">${Number(r.majority).toLocaleString()}${r.majority_pct != null ? ` <span class="muted">(${r.majority_pct}%)</span>` : ""}</dd>`;
-    if (r.vote_pct != null)
-      rows += `<dt>${t("win_votes")}</dt><dd class="mono">${Number(r.votes).toLocaleString()} <span class="muted">(${r.vote_pct}%)</span></dd>`;
-    if (r.turnout != null)
-      rows += `<dt>${t("turnout")}</dt><dd class="mono">${r.turnout}%</dd>`;
-    const nc = candidateCount(r);
-    if (nc != null)
-      rows += `<dt>${t("candidates")}</dt><dd class="mono">${nc}</dd>`;
-    const ru = formatRunnerUp(r);
+    if (card.majority != null)
+      rows += `<dt>${t("majority")}</dt><dd class="mono">${card.majority.toLocaleString()}${card.majorityPct != null ? ` <span class="muted">(${card.majorityPct}%)</span>` : ""}</dd>`;
+    if (card.votes != null)
+      rows += `<dt>${t("win_votes")}</dt><dd class="mono">${card.votes.toLocaleString()}${card.votePct != null ? ` <span class="muted">(${card.votePct}%)</span>` : ""}</dd>`;
+    if (card.turnout != null)
+      rows += `<dt>${t("turnout")}</dt><dd class="mono">${card.turnout}%</dd>`;
+    if (card.candidates != null)
+      rows += `<dt>${t("candidates")}</dt><dd class="mono">${card.candidates}</dd>`;
+    const ru = card.runnerUp;
     if (ru) {
       const ruPill = ru.party
         ? ` <span class="pill" style="background:${partyColor(ru.party === r.party ? r.coalition : ru.party)};color:#fff;opacity:.85">${esc(ru.party)}</span>`
         : "";
       // now also surfaces runner_up.votes (panel previously showed only name + party)
-      const ruVotes = ru.votes != null ? ` <span class="muted">${Number(ru.votes).toLocaleString()}</span>` : "";
+      const ruVotes = ru.votes != null ? ` <span class="muted">${ru.votes.toLocaleString()}</span>` : "";
       rows += `<dt>${t("runner")}</dt><dd>${esc(ru.name || "")}${ruPill}${ruVotes}</dd>`;
     }
   } else {

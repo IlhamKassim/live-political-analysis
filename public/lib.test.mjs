@@ -334,6 +334,29 @@ test("formatResultCard: missing/garbage input → null or null-filled fields", (
   assert.equal(sparse.runnerUp, null);
 });
 
+test("formatResultCard: non-finite numerics drop to null (panel renders no NaN)", () => {
+  // A partial / malformed row — vote_pct present but votes missing, NaN majority,
+  // string turnout. renderPanel gates each numeric row on `card.<field> != null`,
+  // so every one of these must become null (→ the row is omitted, never "NaN").
+  const card = formatResultCard({
+    name: "Partial", party: "PH", coalition: "PH",
+    vote_pct: 53.2,            // present, but…
+    votes: undefined,          // …missing → null
+    majority: NaN,             // garbage → null
+    majority_pct: "53",        // non-number → null
+    turnout: "100",            // string → null
+    n_candidates: "3",         // non-number → null candidate count
+  });
+  assert.equal(card.votes, null);
+  assert.equal(card.votePct, 53.2);   // the lone finite value survives
+  assert.equal(card.majority, null);
+  assert.equal(card.majorityPct, null);
+  assert.equal(card.turnout, null);
+  assert.equal(card.candidates, null);
+  // Infinity is not finite either → null
+  assert.equal(formatResultCard({ votes: Infinity }).votes, null);
+});
+
 // ---- fitBox: share-card thumbnail transform ----
 test("fitBox: a square bbox centres in a wider target, no overflow", () => {
   const f = fitBox({ x: 0, y: 0, w: 100, h: 100 }, 400, 200, 0);
