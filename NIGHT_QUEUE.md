@@ -105,6 +105,35 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
 - [ ] (codex) [HVR] VERIFY combobox a11y: all four attributes present on `#q`; `aria-controls` id matches `#results`;
       `aria-expanded` flips true/false with the dropdown. node --check.
 
+## Phase 7 — Critique round 3 (replenished 2026-06-27 · full regression GREEN: 56 tests pass, node --check app.js+lib.js + py_compile OK — no bugs found; these are edge-case hardening + tested-foundation growth + share-link craft)
+- [ ] (claude) [MV] HARDEN out-of-country geolocation (honest "no match"): `nearestSeat` (lib.js) returns the closest seat
+      at ANY distance, so `locate()` (app.js ~787 `findSeatForLocation(...) || nearestSeat(...)`) silently drops a user who
+      is abroad (Singapore/Indonesia/elsewhere) onto a random Malaysian border seat instead of showing `loc_notfound`. Add an
+      optional `maxKm` param to `nearestSeat(lat,lng,seats,maxKm)` (default `Infinity` → no behaviour change for existing
+      callers/tests) that returns `null` when the closest seat's representative point is farther than `maxKm`; pass a sane
+      bound from `locate()` (~150 km covers genuine offshore islands without claiming a match for far-away points). Add
+      lib.test cases: a KK-offshore point still matches; a London / far-abroad point → null with a finite small maxKm; the
+      default (no maxKm) keeps the current closest-seat behaviour. `node --test` + `node --check public/app.js`.
+- [ ] (codex) [MV] VERIFY+STRESS geo distance guard: confirm offshore-but-near points still resolve, far/out-of-country
+      coords now return null (→ `loc_notfound`, fallback search still reachable), default maxKm unchanged vs old tests,
+      NaN/garbage still null. `node --test` + `node --check`. Bug → top.
+- [ ] (claude) [MV] I18N parity foundation: extract the `I18N` table (app.js ~45-136) into a new DOM-free module
+      `public/i18n.js` that `export`s it, and have app.js `import { I18N } from "./i18n.js"` (no behaviour change — same keys,
+      same strings, zero new deps / no build step, it's a plain static ES module like lib.js). Then add lib.test.mjs cases
+      that import it and assert: `en` and `ms` have IDENTICAL key sets (catches "added an EN key, forgot the BM translation"),
+      and no value is an empty/whitespace-only string. Grows the tested foundation to guard the untranslated-key regression
+      class. `node --test` + `node --check public/app.js`.
+- [ ] (codex) [MV] VERIFY i18n parity foundation: confirm app.js still loads (node --check), every existing I18N key/string
+      is byte-identical to before the move (no copy drift), the new parity test fails if you delete one BM key. Bug → top.
+- [ ] (claude) [HVR] Honest deep-link hash: when a deep-linked mode is gated/unavailable, boot (app.js ~944 `setMode(h.mode)`)
+      silently no-ops (the button is disabled) but the URL still reads e.g. `#parlimen/skor` while the active mode is `negeri`,
+      so a re-shared link misrepresents state. After the boot mode/code restore (~948), call `writeHash()` once so the URL
+      reflects the actually-active tier/mode/selection (the shareable link is the growth engine — keep it truthful). Confirm
+      no extra history entry (writeHash uses `replaceState`). `node --check public/app.js`.
+- [ ] (codex) [HVR] VERIFY honest deep-link hash: load `#parlimen/skor` (Skor gated) → URL normalises to the active mode, no
+      stale `skor`; a valid `#dun/parti/<code>` deep-link still selects + keeps its hash; bad seat code still ignored cleanly;
+      no duplicate history entry. `node --check`. Bug → top.
+
 ## ♻️ PERPETUAL TAIL — do NOT tick; keeps the night productive
 - [ ] (claude) ♻️ CRITIQUE & REPLENISH (NEVER tick — leave in place): when the lists above are drained, FIRST run the
       full regression, THEN audit code + behaviour against the AGENTS.md vision, hunt bugs/regressions/edge-cases, and
