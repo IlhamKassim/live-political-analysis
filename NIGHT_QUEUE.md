@@ -237,7 +237,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
       `public/`. `node --check`. Bug → top.
 
 ## Phase 11 — Critique round 7 (replenished 2026-06-27 · full regression GREEN: 85 tests pass, node --check app.js+lib.js+i18n.js + py_compile OK. GE15 tally invariant test green. validate.sh's only failures remain the sandbox `/tmp` log-write denials — every underlying check passes run directly. Audit found NO active bugs; combobox a11y is complete (#q role=combobox + aria-controls→#results role=listbox), both og:image/icon assets resolve under public/assets/. These are latent-landmine hardening + dead-code cleanup + tested-foundation growth.)
-- [ ] (claude) [MV] HARDEN i18n-shadow (latent landmine): the SVG `mousemove` (app.js ~551) and `click` (~576) handlers each
+- [x] (claude) [MV] HARDEN i18n-shadow (latent landmine): the SVG `mousemove` (app.js ~551) and `click` (~576) handlers each
       open with `const t = e.target;`, which SHADOWS the module-level `t()` i18n translation fn (app.js ~56) inside those
       blocks. Safe today — neither handler calls `t("...")` — but it is a trap: the moment anyone adds a translated string to
       the tooltip or click path, `t("key")` throws `TypeError: t is not a function`. Rename BOTH locals from `t` to `tgt`

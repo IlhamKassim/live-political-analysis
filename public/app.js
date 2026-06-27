@@ -548,11 +548,11 @@ function renderSummary() {
 
 // ---- hover tooltip ----
 SVG.addEventListener("mousemove", (e) => {
-  const t = e.target;
-  if (t.classList && t.classList.contains("seat")) {
+  const tgt = e.target;   // NOT `t` — that name is the module-level i18n fn t(); shadowing it would break any t("key") added here
+  if (tgt.classList && tgt.classList.contains("seat")) {
     const data = state.data[state.tier];
     if (!data) return;   // boundary layer unavailable — no seat paths exist anyway; guard for symmetry
-    const seat = data.byCode.get(t.dataset.code);
+    const seat = data.byCode.get(tgt.dataset.code);
     if (!seat) return;
     const code = displayCode(seat, state.tier);
     const rk = resultKey(seat, state.tier);
@@ -573,9 +573,9 @@ SVG.addEventListener("mouseleave", () => { TOOLTIP.hidden = true; });
 
 // ---- click ----
 SVG.addEventListener("click", (e) => {
-  const t = e.target;
-  if (t.classList && t.classList.contains("seat")) {
-    select(t.dataset.code);
+  const tgt = e.target;   // NOT `t` — that name is the module-level i18n fn t(); shadowing it would break any t("key") added here
+  if (tgt.classList && tgt.classList.contains("seat")) {
+    select(tgt.dataset.code);
   } else {
     deselect();
   }
