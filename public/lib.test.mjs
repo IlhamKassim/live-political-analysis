@@ -11,6 +11,7 @@ import {
   formatParty, candidateCount, formatRunnerUp, formatResultCard, fitBox,
   partyColor, COALITION_COLORS, scoreColor,
 } from "./lib.js";
+import { I18N } from "./i18n.js";
 
 const parlimen = JSON.parse(
   readFileSync(fileURLToPath(new URL("./data/seats-parlimen.json", import.meta.url)), "utf8")
@@ -485,4 +486,20 @@ test("COALITION_COLORS: exact byte-for-byte table (no swatch drift)", () => {
     GRS: "#e8772e", WARISAN: "#16a085", KDM: "#8e44ad", PBM: "#6c7a89",
     BEBAS: "#8a97a6",
   });
+});
+
+// ---- i18n parity (guards the untranslated-key regression class) ----
+test("I18N: en and ms have IDENTICAL key sets (no forgotten translation)", () => {
+  const en = Object.keys(I18N.en).sort();
+  const ms = Object.keys(I18N.ms).sort();
+  assert.deepEqual(ms, en);
+});
+
+test("I18N: every value is a non-empty, non-whitespace-only string", () => {
+  for (const locale of ["en", "ms"]) {
+    for (const [key, value] of Object.entries(I18N[locale])) {
+      assert.equal(typeof value, "string", `${locale}.${key} must be a string`);
+      assert.ok(value.trim().length > 0, `${locale}.${key} must not be empty/whitespace`);
+    }
+  }
 });
