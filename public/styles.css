@@ -104,7 +104,9 @@ a:hover { text-decoration: underline; }
   border-bottom: 1px solid var(--line);
 }
 .results button:last-child { border-bottom: 0; }
-.results button:hover { background: var(--bg-2); }
+.results button:hover,
+.results button.active { background: var(--bg-2); }
+.results button.active { box-shadow: inset 2px 0 0 var(--accent); }
 .results .code { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); }
 
 /* ---- stage / map ---- */

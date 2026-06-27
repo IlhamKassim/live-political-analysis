@@ -685,9 +685,37 @@ SVG.addEventListener("click", (e) => {
 function clearMatches() {
   for (const p of state.paths.values()) p.classList.remove("dim", "match");
 }
+// keyboard nav over the #results listbox: an .active highlight tracks the
+// focused option, mirrored to aria-activedescendant on #q for screen readers.
+let activeResult = -1;
+const resultOptions = () => RESULTS.querySelectorAll("button");
+function setActiveResult(idx) {
+  const opts = resultOptions();
+  activeResult = idx;
+  opts.forEach((o, i) => {
+    const on = i === idx;
+    o.classList.toggle("active", on);
+    o.setAttribute("aria-selected", on ? "true" : "false");
+    if (on) { Q.setAttribute("aria-activedescendant", o.id); o.scrollIntoView({ block: "nearest" }); }
+  });
+  if (idx < 0) Q.removeAttribute("aria-activedescendant");
+}
+function moveActiveResult(delta) {
+  const opts = resultOptions();
+  if (!opts.length) return;
+  let idx = activeResult + delta;
+  if (idx < 0) idx = opts.length - 1;        // wrap up → bottom
+  else if (idx >= opts.length) idx = 0;      // wrap down → top
+  setActiveResult(idx);
+}
+function hideResults() {
+  RESULTS.hidden = true;
+  setActiveResult(-1);                         // also clears aria-activedescendant
+  Q.setAttribute("aria-expanded", "false");
+}
 Q.addEventListener("input", () => {
   const q = Q.value.trim().toLowerCase();
-  RESULTS.hidden = true;
+  hideResults();
   clearMatches();
   if (!q) return;
   const data = state.data[state.tier];
@@ -700,28 +728,37 @@ Q.addEventListener("input", () => {
     const p = state.paths.get(s.code);
     if (p) { p.classList.remove("dim"); p.classList.add("match"); }
   }
-  RESULTS.innerHTML = hits.slice(0, 8).map((s) => {
+  RESULTS.innerHTML = hits.slice(0, 8).map((s, i) => {
     const code = state.tier === "parlimen" ? s.code : s.dun_code;
-    return `<button data-code="${esc(s.code)}"><span>${esc(s.name)} <span class="muted" style="font-size:11px">${esc(s.state)}</span></span><span class="code">${esc(code)}</span></button>`;
+    return `<button id="result-opt-${i}" role="option" aria-selected="false" data-code="${esc(s.code)}"><span>${esc(s.name)} <span class="muted" style="font-size:11px">${esc(s.state)}</span></span><span class="code">${esc(code)}</span></button>`;
   }).join("");
+  setActiveResult(-1);            // fresh list: nothing highlighted yet
   RESULTS.hidden = false;
+  Q.setAttribute("aria-expanded", "true");
 });
 RESULTS.addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b) return;
-  RESULTS.hidden = true;
+  hideResults();
   Q.value = "";
   clearMatches();
   select(b.dataset.code);
 });
 Q.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    const first = RESULTS.querySelector("button");
-    if (first) first.click();
-  } else if (e.key === "Escape") { Q.value = ""; RESULTS.hidden = true; clearMatches(); }
+  if (e.key === "ArrowDown") {
+    if (RESULTS.hidden) return;
+    e.preventDefault(); moveActiveResult(1);
+  } else if (e.key === "ArrowUp") {
+    if (RESULTS.hidden) return;
+    e.preventDefault(); moveActiveResult(-1);
+  } else if (e.key === "Enter") {
+    const opts = resultOptions();
+    const pick = activeResult >= 0 ? opts[activeResult] : opts[0];   // highlighted, else first
+    if (pick) pick.click();
+  } else if (e.key === "Escape") { Q.value = ""; hideResults(); clearMatches(); }
 });
 document.addEventListener("click", (e) => {
-  if (!e.target.closest(".search")) RESULTS.hidden = true;
+  if (!e.target.closest(".search")) hideResults();
 });
 
 // ---- geolocation: "📍 Use my location" → find your seat ----

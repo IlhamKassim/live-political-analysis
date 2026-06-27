@@ -76,7 +76,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
       data). Add a lib.test case asserting formatResultCard drops non-finite numerics. `node --test` + `node --check`.
 - [ ] (codex) [MV] VERIFY+STRESS panel hardening: synthetic rows (pct-without-votes, majority-without-pct, NaN/string
       numerics) render clean rows or omit them — never "NaN"/"undefined". node --check. Bug → top.
-- [ ] (claude) [HVR] Search-results keyboard nav: in the `#results` listbox, ↑/↓ move a `.active` highlight through the
+- [x] (claude) [HVR] Search-results keyboard nav: in the `#results` listbox, ↑/↓ move a `.active` highlight through the
       option buttons (wrap at ends), Enter selects the HIGHLIGHTED option (not just the first), Escape still clears;
       set `aria-activedescendant` on `#q` + `id`s on options so screen readers announce the focused row. Completes the
       accessibility pass. `node --check public/app.js`.
