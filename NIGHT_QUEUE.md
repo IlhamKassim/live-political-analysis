@@ -11,7 +11,7 @@ in AGENTS.md. Verify with syntax checks / data validation only (no browser).
       narrow screens (≤390px) with no horizontal overflow. CSS in `public/styles.css` only.
 - [x] (claude) i18n completeness: find any user-facing string in `index.html`/`app.js` not wired
       through the `I18N`/`data-i18n` system; add the missing EN + BM entries. List every string touched.
-- [ ] (claude) Accessibility pass: `aria-label`s on the search box, mode toggles, reset/zoom, and the
+- [x] (claude) Accessibility pass: `aria-label`s on the search box, mode toggles, reset/zoom, and the
       language toggle; a visible `:focus-visible` ring; ensure the legend isn't colour-only. Client-only.
 - [x] (codex) Verify the `loadOptional()` failure path: if `results-ge15.json`/`scores.json` fail to
       load, the map must still render boundaries. Read the code, confirm, write findings — change only if broken.

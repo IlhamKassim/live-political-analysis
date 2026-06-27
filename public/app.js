@@ -48,6 +48,7 @@ const I18N = {
     mode_negeri: "State", mode_parti: "Party", mode_skor: "Score",
     mode_parti_need: "Needs GE15 data", mode_skor_need: "Needs score data",
     search_ph: "Search a seat…",
+    search_aria: "Search a seat", results_aria: "Search results", reset_aria: "Show all seats",
     empty_h: "Pick a seat",
     empty_p: "Click any seat on the map, or search by name above.",
     src_bound: "Boundaries", src_proj: "Projection",
@@ -74,6 +75,7 @@ const I18N = {
     mode_negeri: "Negeri", mode_parti: "Parti", mode_skor: "Skor",
     mode_parti_need: "Perlu data PRU15", mode_skor_need: "Perlu data skor",
     search_ph: "Cari kawasan…",
+    search_aria: "Cari kawasan", results_aria: "Hasil carian", reset_aria: "Papar semua kerusi",
     empty_h: "Pilih sesebuah kawasan",
     empty_p: "Klik mana-mana kerusi pada peta, atau cari nama kawasan di atas.",
     src_bound: "Sempadan", src_proj: "Projeksi",
@@ -112,7 +114,7 @@ function setLang(l) {
   if (l !== "en" && l !== "ms") return;
   lang = l;
   try { localStorage.setItem("peta-yb-lang", l); } catch (_) {}
-  document.querySelectorAll("#lang button").forEach((x) => x.classList.toggle("on", x.dataset.lang === l));
+  document.querySelectorAll("#lang button").forEach((x) => setOn(x, x.dataset.lang === l));
   applyStatic();
   renderSummary();
   if (state.selected) {
@@ -123,6 +125,8 @@ function setLang(l) {
 
 // ---- helpers ----
 const $ = (sel, el = document) => el.querySelector(sel);
+// toggle a tab/segment button's active class AND its ARIA selected state together
+const setOn = (el, on) => { el.classList.toggle("on", on); el.setAttribute("aria-selected", on ? "true" : "false"); };
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 function stateHues(seats) {
@@ -446,7 +450,7 @@ document.addEventListener("click", (e) => {
 // ---- toggles ----
 async function setTier(tier) {
   if (tier === state.tier) return;
-  document.querySelectorAll("#tier button").forEach((x) => x.classList.toggle("on", x.dataset.tier === tier));
+  document.querySelectorAll("#tier button").forEach((x) => setOn(x, x.dataset.tier === tier));
   state.tier = tier;
   state.selected = null;
   LOADING.hidden = false;
@@ -458,7 +462,7 @@ async function setTier(tier) {
 function setMode(mode) {
   const b = document.querySelector(`#mode button[data-mode="${mode}"]`);
   if (!b || b.disabled) return;
-  document.querySelectorAll("#mode button").forEach((x) => x.classList.toggle("on", x === b));
+  document.querySelectorAll("#mode button").forEach((x) => setOn(x, x === b));
   state.mode = mode;
   paint();
   renderSummary();
@@ -496,12 +500,12 @@ RESET.addEventListener("click", deselect);
 
 // ---- boot ----
 (async function init() {
-  document.querySelectorAll("#lang button").forEach((x) => x.classList.toggle("on", x.dataset.lang === lang));
+  document.querySelectorAll("#lang button").forEach((x) => setOn(x, x.dataset.lang === lang));
   applyStatic();
   const h = parseHash();
   const tier = h && (h.tier === "dun" || h.tier === "parlimen") ? h.tier : "parlimen";
   state.tier = tier;
-  document.querySelectorAll("#tier button").forEach((x) => x.classList.toggle("on", x.dataset.tier === tier));
+  document.querySelectorAll("#tier button").forEach((x) => setOn(x, x.dataset.tier === tier));
   await render(tier);
   renderSummary();
   await loadOptional();           // results/scores ready → modes can be restored

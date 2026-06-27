@@ -20,21 +20,21 @@
 
     <div class="controls">
       <div class="seg" id="tier" role="tablist" data-i18n-aria="aria_tier" aria-label="Seat layer">
-        <button data-tier="parlimen" class="on" role="tab" data-i18n="tier_parlimen">Parliament</button>
-        <button data-tier="dun" role="tab" data-i18n="tier_dun">DUN</button>
+        <button data-tier="parlimen" class="on" role="tab" aria-selected="true" data-i18n="tier_parlimen">Parliament</button>
+        <button data-tier="dun" role="tab" aria-selected="false" data-i18n="tier_dun">DUN</button>
       </div>
       <div class="seg" id="mode" role="tablist" data-i18n-aria="aria_mode" aria-label="Colour mode">
-        <button data-mode="negeri" class="on" role="tab" data-i18n="mode_negeri">State</button>
-        <button data-mode="parti" role="tab" disabled data-i18n="mode_parti" data-i18n-title="mode_parti_need" title="Needs GE15 data">Party</button>
-        <button data-mode="skor" role="tab" disabled data-i18n="mode_skor" data-i18n-title="mode_skor_need" title="Needs score data">Score</button>
+        <button data-mode="negeri" class="on" role="tab" aria-selected="true" data-i18n="mode_negeri">State</button>
+        <button data-mode="parti" role="tab" aria-selected="false" disabled data-i18n="mode_parti" data-i18n-title="mode_parti_need" title="Needs GE15 data">Party</button>
+        <button data-mode="skor" role="tab" aria-selected="false" disabled data-i18n="mode_skor" data-i18n-title="mode_skor_need" title="Needs score data">Score</button>
       </div>
       <div class="search">
-        <input id="q" type="search" data-i18n-ph="search_ph" placeholder="Search a seat…" autocomplete="off" spellcheck="false" />
-        <div id="results" class="results" hidden></div>
+        <input id="q" type="search" data-i18n-aria="search_aria" aria-label="Search a seat" data-i18n-ph="search_ph" placeholder="Search a seat…" autocomplete="off" spellcheck="false" />
+        <div id="results" class="results" role="listbox" data-i18n-aria="results_aria" aria-label="Search results" hidden></div>
       </div>
       <div class="seg" id="lang" role="tablist" data-i18n-aria="aria_lang" aria-label="Language">
-        <button data-lang="en" class="on" role="tab">EN</button>
-        <button data-lang="ms" role="tab">BM</button>
+        <button data-lang="en" class="on" role="tab" aria-selected="true" aria-label="English">EN</button>
+        <button data-lang="ms" role="tab" aria-selected="false" aria-label="Bahasa Melayu">BM</button>
       </div>
     </div>
   </header>
@@ -44,7 +44,7 @@
       <g id="seats"></g>
     </svg>
     <div id="tooltip" hidden></div>
-    <button id="reset" hidden data-i18n="reset_btn" data-i18n-title="reset_title" title="Show all (Esc)">↺ Show all</button>
+    <button id="reset" hidden data-i18n="reset_btn" data-i18n-aria="reset_aria" aria-label="Show all seats" data-i18n-title="reset_title" title="Show all (Esc)">↺ Show all</button>
     <div id="loading" data-i18n="loading">Loading boundaries…</div>
   </main>
 
