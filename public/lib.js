@@ -186,6 +186,28 @@ export function formatRunnerUp(r) {
   return { name: str(ru.name), party: str(ru.party), votes: num(ru.votes) };
 }
 
+// ---- share-image geometry ----
+// Fit a seat's bbox into a target rectangle, preserving aspect ratio and centering.
+// Returns {scale, dx, dy} such that a seat point (px, py) maps to canvas coords
+// (px*scale + dx, py*scale + dy) — i.e. translate(dx,dy)+scale(scale) before
+// filling new Path2D(seat.d). `pad` is the inner margin on every side (px of the
+// TARGET box). Returns null for a missing/degenerate bbox or non-positive target.
+// Pure geometry so the share-card thumbnail transform is unit-testable headless.
+export function fitBox(bbox, targetW, targetH, pad = 0) {
+  if (!bbox || typeof bbox !== "object") return null;
+  const { x, y, w, h } = bbox;
+  if (![x, y, w, h, targetW, targetH, pad].every(Number.isFinite)) return null;
+  if (w <= 0 || h <= 0) return null;
+  const innerW = targetW - 2 * pad;
+  const innerH = targetH - 2 * pad;
+  if (innerW <= 0 || innerH <= 0) return null;
+  const scale = Math.min(innerW / w, innerH / h);
+  // centre the scaled content inside the padded box
+  const dx = pad + (innerW - w * scale) / 2 - x * scale;
+  const dy = pad + (innerH - h * scale) / 2 - y * scale;
+  return { scale, dx, dy };
+}
+
 // Compose the whole display-ready card from a raw result row. Pure: shapes values,
 // no HTML. Numeric fields use the Number.isFinite guard so 0s and extremes (100%
 // turnout) pass through unchanged. Returns null for a missing/non-object row.

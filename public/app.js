@@ -3,7 +3,7 @@
 // "Parti"/"Skor" modes and panel rows as soon as their JSON exists.
 
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
-  formatParty, candidateCount, formatRunnerUp } from "./lib.js";
+  formatParty, candidateCount, formatRunnerUp, fitBox } from "./lib.js";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -81,6 +81,8 @@ const I18N = {
     party_bloc: "Party / Bloc", majority: "GE15 majority", win_votes: "Winning votes",
     turnout: "Turnout", candidates: "Candidates", runner: "Runner-up", score: "Performance score",
     share_btn: "🔗 Share link", share_ok: "Link copied to clipboard", share_fail: "Couldn't copy — copy the link from your address bar",
+    card_btn: "🖼️ Share card", card_fail: "Couldn't make the card — try the share link instead",
+    card_find: "Find your YB at",
     src_ge15: "Results: official GE15 (SPR · DOSM/Thevesh)",
     state_label: "State", kicker_parlimen: "PARLIAMENT SEAT",
     dun_note: "Results shown at the parent Parliament level ({p}). State-election (PRN) results coming soon.",
@@ -124,6 +126,8 @@ const I18N = {
     party_bloc: "Parti / Blok", majority: "Majoriti PRU15", win_votes: "Undi menang",
     turnout: "Penyertaan", candidates: "Calon", runner: "Penyangga", score: "Skor prestasi",
     share_btn: "🔗 Kongsi pautan", share_ok: "Pautan disalin ke papan keratan", share_fail: "Tidak dapat menyalin — salin pautan dari bar alamat",
+    card_btn: "🖼️ Kongsi kad", card_fail: "Tidak dapat membina kad — cuba pautan kongsi",
+    card_find: "Cari YB anda di",
     src_ge15: "Keputusan: rasmi PRU15 (SPR · DOSM/Thevesh)",
     state_label: "Negeri", kicker_parlimen: "KERUSI PARLIMEN",
     dun_note: "Keputusan dipaparkan pada peringkat Parlimen induk ({p}). Keputusan DUN (PRN) menyusul.",
@@ -420,6 +424,7 @@ function renderPanel(seat) {
     ${!r && isP ? `<div class="note">${t("score_building")}</div>` : ""}
     <div class="seat-actions">
       <button id="share-link" class="share-btn" type="button">${esc(t("share_btn"))}</button>
+      <button id="share-card" class="share-btn" type="button">${esc(t("card_btn"))}</button>
     </div>
   `;
 }
@@ -448,9 +453,164 @@ async function shareLink() {
   } catch (_) { ok = false; }
   showToast(ok ? "share_ok" : "share_fail");
 }
+// ---- share IMAGE: a 1080×1350 seat card (Canvas 2D) ----
+// Draws the selected seat's silhouette (new Path2D(seat.d), fit via the pure
+// fitBox transform) + headline facts onto an off-screen canvas, then shares the
+// PNG via navigator.share({files}) where supported, falling back to a download.
+// Fully guarded — any failure shows a toast pointing back to the 🔗 share link.
+const CARD_W = 1080, CARD_H = 1350;
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+function drawSeatCard(seat) {
+  const isP = state.tier === "parlimen";
+  const resultKey = isP ? seat.code : seat.parlimen;
+  const r = state.results && state.results[resultKey];
+  const accent = r ? partyColor(r.coalition) : "#5d6b7d";
+
+  const cv = document.createElement("canvas");
+  cv.width = CARD_W; cv.height = CARD_H;
+  const ctx = cv.getContext("2d");
+  if (!ctx) return null;
+
+  // backdrop
+  ctx.fillStyle = "#0f141b";
+  ctx.fillRect(0, 0, CARD_W, CARD_H);
+  // accent header band
+  ctx.fillStyle = accent;
+  ctx.fillRect(0, 0, CARD_W, 12);
+
+  // brand
+  ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = "#e8edf3";
+  ctx.font = "600 44px 'Space Grotesk', system-ui, sans-serif";
+  ctx.fillText("◧ MyPolitik", 64, 110);
+
+  // seat silhouette in a centred region, tinted by the bloc colour
+  const REG = { x: 64, y: 170, w: CARD_W - 128, h: 620 };
+  const fit = fitBox(seat.bbox, REG.w, REG.h, 40);
+  if (fit) {
+    try {
+      const path = new Path2D(seat.d);
+      ctx.save();
+      ctx.translate(REG.x, REG.y);
+      ctx.translate(fit.dx, fit.dy);
+      ctx.scale(fit.scale, fit.scale);
+      ctx.fillStyle = accent;
+      ctx.globalAlpha = 0.92;
+      ctx.fill(path, "evenodd");
+      ctx.restore();
+    } catch (_) { /* Path2D unsupported / bad d — text card still works */ }
+  }
+  ctx.globalAlpha = 1;
+
+  // kicker · code
+  const kicker = isP ? `${t("kicker_parlimen")} · ${seat.code}` : `DUN · ${seat.dun_code}`;
+  ctx.fillStyle = accent;
+  ctx.font = "600 30px 'Space Grotesk', system-ui, sans-serif";
+  ctx.fillText(kicker.toUpperCase(), 64, 900);
+
+  // seat name (clamped to width)
+  ctx.fillStyle = "#f5f8fb";
+  ctx.font = "700 84px 'Space Grotesk', system-ui, sans-serif";
+  let name = String(seat.name || "");
+  while (name.length > 6 && ctx.measureText(name).width > CARD_W - 128) name = name.slice(0, -1);
+  if (name !== seat.name) name = name.trim() + "…";
+  ctx.fillText(name, 64, 985);
+
+  // state
+  ctx.fillStyle = "#9fb0c0";
+  ctx.font = "400 38px 'Space Grotesk', system-ui, sans-serif";
+  ctx.fillText(`${t("state_label")}: ${seat.state || ""}`, 64, 1045);
+
+  // representative + bloc pill, or a gentle "data soon" line
+  let y = 1130;
+  if (r) {
+    ctx.fillStyle = "#e8edf3";
+    ctx.font = "600 46px 'Space Grotesk', system-ui, sans-serif";
+    ctx.fillText(String(r.name || ""), 64, y);
+    // bloc pill
+    const label = String(r.coalition || "");
+    ctx.font = "600 30px 'Space Grotesk', system-ui, sans-serif";
+    const pw = ctx.measureText(label).width + 40;
+    ctx.fillStyle = accent;
+    roundRect(ctx, 64, y + 28, pw, 50, 25);
+    ctx.fill();
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(label, 84, y + 62);
+    if (r.majority != null) {
+      ctx.fillStyle = "#9fb0c0";
+      ctx.font = "400 30px 'JetBrains Mono', monospace";
+      ctx.fillText(`${t("majority")}: ${Number(r.majority).toLocaleString()}`, 84 + pw, y + 62);
+    }
+  } else {
+    ctx.fillStyle = "#9fb0c0";
+    ctx.font = "400 40px 'Space Grotesk', system-ui, sans-serif";
+    ctx.fillText(t("rep_ph"), 64, y);
+  }
+
+  // footer: call-to-action + source line
+  ctx.fillStyle = "#7d8da0";
+  ctx.font = "400 28px 'Space Grotesk', system-ui, sans-serif";
+  const host = (location.host || "mypolitik").replace(/^www\./, "");
+  ctx.fillText(`${t("card_find")} ${host}`, 64, CARD_H - 90);
+  ctx.fillStyle = "#5d6b7d";
+  ctx.font = "400 24px 'Space Grotesk', system-ui, sans-serif";
+  if (r) ctx.fillText(t("src_ge15"), 64, CARD_H - 52);
+  return cv;
+}
+let sharingCard = false;
+async function shareCard() {
+  if (sharingCard) return;
+  const seat = state.selected && state.data[state.tier] &&
+    state.data[state.tier].byCode.get(state.selected);
+  if (!seat) return;
+  sharingCard = true;
+  try {
+    if (document.fonts && document.fonts.ready) {
+      try { await document.fonts.ready; } catch (_) {}
+    }
+    const cv = drawSeatCard(seat);
+    if (!cv) { showToast("card_fail"); return; }
+    const blob = await new Promise((res) =>
+      cv.toBlob ? cv.toBlob(res, "image/png") : res(null));
+    if (!blob) { showToast("card_fail"); return; }
+    const fname = `mypolitik-${(seat.code || "seat").replace(/[^\w.-]/g, "_")}.png`;
+    const file = new File([blob], fname, { type: "image/png" });
+    // prefer the native share sheet when it accepts files (mobile)
+    if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
+      try {
+        await navigator.share({ files: [file], title: t("title"), text: seat.name });
+        return;
+      } catch (err) {
+        if (err && err.name === "AbortError") return; // user dismissed — not an error
+        // fall through to download
+      }
+    }
+    // fallback: trigger a download
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = fname;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  } catch (_) {
+    showToast("card_fail");
+  } finally {
+    sharingCard = false;
+  }
+}
 // PANEL_SEAT.innerHTML is rebuilt on every render, so delegate rather than re-bind.
 PANEL_SEAT.addEventListener("click", (e) => {
   if (e.target.closest("#share-link")) shareLink();
+  else if (e.target.closest("#share-card")) shareCard();
 });
 
 // ---- summary + legend (empty panel) ----

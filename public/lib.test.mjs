@@ -8,7 +8,7 @@ import {
   pickInitialLang,
   project, parsePathRings, pointInRings,
   findSeatForLocation, haversine, nearestSeat,
-  formatParty, candidateCount, formatRunnerUp, formatResultCard,
+  formatParty, candidateCount, formatRunnerUp, formatResultCard, fitBox,
 } from "./lib.js";
 
 const parlimen = JSON.parse(
@@ -331,4 +331,51 @@ test("formatResultCard: missing/garbage input → null or null-filled fields", (
   assert.equal(sparse.votes, null);
   assert.equal(sparse.candidates, null);
   assert.equal(sparse.runnerUp, null);
+});
+
+// ---- fitBox: share-card thumbnail transform ----
+test("fitBox: a square bbox centres in a wider target, no overflow", () => {
+  const f = fitBox({ x: 0, y: 0, w: 100, h: 100 }, 400, 200, 0);
+  // height is the limiting dimension → scale = 200/100 = 2
+  assert.equal(f.scale, 2);
+  // scaled content 200×200 centred in 400×200 → dx offset, dy 0
+  assert.equal(f.dy, 0);
+  assert.equal(f.dx, 100); // (400-200)/2 - 0
+  // a corner point maps inside the target box
+  assert.deepEqual([0 * f.scale + f.dx, 0 * f.scale + f.dy], [100, 0]);
+  assert.deepEqual([100 * f.scale + f.dx, 100 * f.scale + f.dy], [300, 200]);
+});
+
+test("fitBox: honours padding and a non-zero bbox origin", () => {
+  const f = fitBox({ x: 50, y: 50, w: 100, h: 100 }, 220, 220, 10);
+  // inner box 200×200, square content → scale = 2
+  assert.equal(f.scale, 2);
+  // top-left of seat maps to the padded edge (centred square fills inner box)
+  assert.equal(50 * f.scale + f.dx, 10);
+  assert.equal(50 * f.scale + f.dy, 10);
+  // bottom-right maps to the far padded edge
+  assert.equal(150 * f.scale + f.dx, 210);
+  assert.equal(150 * f.scale + f.dy, 210);
+});
+
+test("fitBox: a real seat bbox fits within a 1080×1350 card region", () => {
+  const seat = SEATS[0]; // P.001 Padang Besar
+  const W = 1080, H = 760, PAD = 60;
+  const f = fitBox(seat.bbox, W, H, PAD);
+  assert.ok(f && Number.isFinite(f.scale) && f.scale > 0);
+  const b = seat.bbox;
+  for (const [px, py] of [[b.x, b.y], [b.x + b.w, b.y + b.h]]) {
+    const cx = px * f.scale + f.dx, cy = py * f.scale + f.dy;
+    assert.ok(cx >= PAD - 0.01 && cx <= W - PAD + 0.01, `x ${cx} in box`);
+    assert.ok(cy >= PAD - 0.01 && cy <= H - PAD + 0.01, `y ${cy} in box`);
+  }
+});
+
+test("fitBox: degenerate / garbage input → null", () => {
+  assert.equal(fitBox(null, 100, 100), null);
+  assert.equal(fitBox({ x: 0, y: 0, w: 0, h: 10 }, 100, 100), null);   // zero width
+  assert.equal(fitBox({ x: 0, y: 0, w: 10, h: -5 }, 100, 100), null);  // negative height
+  assert.equal(fitBox({ x: 0, y: 0, w: 10, h: 10 }, 0, 100), null);    // no target
+  assert.equal(fitBox({ x: NaN, y: 0, w: 10, h: 10 }, 100, 100), null);// NaN coord
+  assert.equal(fitBox({ x: 0, y: 0, w: 10, h: 10 }, 20, 20, 15), null);// pad eats the box
 });

@@ -277,8 +277,8 @@ a:hover { text-decoration: underline; }
 .src-line { margin-top: 12px; font-size: 11px; line-height: 1.4; }
 
 /* share / copy-link */
-.seat-actions { margin-top: 18px; }
-.share-btn { width: 100%; min-height: 44px; padding: 11px 14px; font-size: 14px; font-weight: 600;
+.seat-actions { margin-top: 18px; display: flex; gap: 8px; flex-wrap: wrap; }
+.share-btn { flex: 1 1 140px; width: 100%; min-height: 44px; padding: 11px 14px; font-size: 14px; font-weight: 600;
   cursor: pointer; color: var(--ink); background: var(--bg); border: 1px solid var(--line);
   border-radius: var(--radius); transition: border-color .15s, color .15s; }
 .share-btn:hover { border-color: var(--accent); color: var(--accent); }

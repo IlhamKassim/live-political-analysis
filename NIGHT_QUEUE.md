@@ -53,7 +53,7 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
 - [ ] (codex) [HVR] VERIFY mobile: 42vh truncation fixed, tap-target sizes, no horizontal overflow at ≤390px.
 
 ## Phase 3 — Growth surface (last/optional)
-- [ ] (claude) [HVR] Share IMAGE `drawSeatCard()`: Canvas 2D + `new Path2D(seat.d)` silhouette, 1080×1350,
+- [x] (claude) [HVR] Share IMAGE `drawSeatCard()`: Canvas 2D + `new Path2D(seat.d)` silhouette, 1080×1350,
       `await document.fonts.ready`, `toBlob` → `navigator.share`/download. Reuse `partyColor`, `seat.bbox`.
 - [ ] (codex) [HVR] VERIFY card image: bbox→thumbnail transform unit-tested; graceful Copy-link fallback when unsupported.
 
