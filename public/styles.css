@@ -714,3 +714,41 @@ h1, h2, .seat-head h2 { font-family: var(--font-display); font-weight: 700; lett
   /* search now sits low → results open upward instead of off-screen */
   .results { top: auto; bottom: calc(100% + 6px); }
 }
+
+/* ============================================================
+   MOBILE v6 — bottom bar, stacked + centered:
+     row 1: search
+     row 2: the 3 toggles (Parliament · State · EN/BM), centered
+     row 3: MyPolitik logo, centered, at the very bottom
+   ============================================================ */
+@media (max-width: 820px) {
+  #topbar {
+    grid-area: top;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px calc(12px + env(safe-area-inset-bottom));
+    text-align: center;
+  }
+  .controls { display: contents; }
+
+  .search { order: 0; flex: 1 1 100%; }          /* row 1 */
+
+  #tier { order: 1; margin-left: 0; }            /* row 2: the 3 options, centered */
+  #mode { order: 2; }
+  #lang { order: 3; margin-left: 0; }
+
+  .brand {                                        /* row 3: centered logo, very bottom */
+    order: 4;
+    flex: 1 1 100%;
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    margin-top: 2px;
+  }
+  .brand .tag { display: none; }
+  .brand .mark { font-size: 16px; }
+
+  .seg button { padding: 6px 10px; font-size: 11px; }
+}
