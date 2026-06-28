@@ -4,6 +4,8 @@
 // added EN key with a missing BM translation fails the suite.
 export const I18N = {
   en: {
+    home_aria: "Show the whole map", info_aria: "About MyPolitik", share_aria: "Share MyPolitik",
+    info_toast: "MyPolitik — public data, computed transparently. Tap your area to see your YB.",
     title: "MyPolitik — Map Malaysia's Representatives",
     meta_desc: "Interactive map of every Malaysian Parliament and State (DUN) seat. Click your area to see the representative, party, and performance — public data, computed transparently.",
     map_aria: "Map of Malaysia's electoral seats",
@@ -49,6 +51,8 @@ export const I18N = {
     by_score: "Coloured by score (red→green)",
   },
   ms: {
+    home_aria: "Papar seluruh peta", info_aria: "Tentang MyPolitik", share_aria: "Kongsi MyPolitik",
+    info_toast: "MyPolitik — data awam, dikira secara telus. Ketik kawasan anda untuk lihat YB anda.",
     title: "MyPolitik — Petakan Wakil Rakyat Malaysia",
     meta_desc: "Peta interaktif setiap kerusi Parlimen dan Negeri (DUN) Malaysia. Klik kawasan anda untuk melihat wakil rakyat, parti dan prestasi — data awam, dikira secara telus.",
     map_aria: "Peta kerusi pilihan raya Malaysia",

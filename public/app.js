@@ -896,3 +896,14 @@ document.getElementById("loc-btn")?.addEventListener("click", locate);
   if (document.readyState === "complete") setTimeout(showLocateCoach, 500);
   else window.addEventListener("load", function () { setTimeout(showLocateCoach, 500); });
 })();
+
+/* XIO layout — top-bar icon actions */
+document.getElementById("home-btn")?.addEventListener("click", () => deselect());
+document.getElementById("info-btn")?.addEventListener("click", () => showToast("info_toast"));
+document.getElementById("share-app-btn")?.addEventListener("click", async () => {
+  const url = location.origin + location.pathname;
+  try {
+    if (navigator.share) await navigator.share({ title: "MyPolitik", url });
+    else { await navigator.clipboard.writeText(url); showToast("share_ok"); }
+  } catch (e) { /* user cancelled the share sheet */ }
+});

@@ -5,23 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>MyPolitik — Map Malaysia's Representatives</title>
 <meta name="description" data-i18n-content="meta_desc" content="Interactive map of every Malaysian Parliament and State (DUN) seat. Click your area to see the representative, party, and performance — public data, computed transparently." />
-<meta name="theme-color" content="#0b0e13" />
+<meta name="theme-color" content="#0e0f12" />
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-<!-- Link-preview (Open Graph / Twitter) — og:title/og:description mirror the I18N title/meta_desc so the lang toggle keeps them translated. og:image is a placeholder SVG card; swap a 1200×630 PNG into public/assets/og-card.svg later. -->
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="MyPolitik" />
-<!-- og:url is the canonical link many unfurlers require — placeholder origin; Danial: confirm the final deployed domain. -->
 <meta property="og:url" content="https://mypolitik.my/" />
 <meta property="og:locale" content="en_MY" />
 <meta property="og:title" data-i18n-content="title" content="MyPolitik — Map Malaysia's Representatives" />
 <meta property="og:description" data-i18n-content="meta_desc" content="Interactive map of every Malaysian Parliament and State (DUN) seat. Click your area to see the representative, party, and performance — public data, computed transparently." />
 <meta property="og:image" content="assets/og-card.svg" />
-<meta property="og:image:alt" content="MyPolitik — interactive map of every Malaysian Parliament and State (DUN) seat, with your representative, party and source." />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" data-i18n-content="title" content="MyPolitik — Map Malaysia's Representatives" />
 <meta name="twitter:description" data-i18n-content="meta_desc" content="Interactive map of every Malaysian Parliament and State (DUN) seat. Click your area to see the representative, party, and performance — public data, computed transparently." />
 <meta name="twitter:image" content="assets/og-card.svg" />
-<meta name="twitter:image:alt" content="MyPolitik — interactive map of every Malaysian Parliament and State (DUN) seat, with your representative, party and source." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -30,30 +26,22 @@
 <body>
 <div id="app">
   <header id="topbar">
-    <div class="brand">
-      <span class="mark">◧ My<b>Politik</b></span>
-      <span class="tag" data-i18n="brand_tag">Your representatives, on the map</span>
-    </div>
-
-    <div class="controls">
-      <div class="seg" id="tier" role="tablist" data-i18n-aria="aria_tier" aria-label="Seat layer">
-        <button data-tier="parlimen" class="on" role="tab" aria-selected="true" data-i18n="tier_parlimen">Parliament</button>
-        <button data-tier="dun" role="tab" aria-selected="false" data-i18n="tier_dun">DUN</button>
-      </div>
-      <div class="seg" id="mode" role="tablist" data-i18n-aria="aria_mode" aria-label="Colour mode">
-        <button data-mode="negeri" class="on" role="tab" aria-selected="true" data-i18n="mode_negeri">State</button>
-        <button data-mode="parti" role="tab" aria-selected="false" disabled data-i18n="mode_parti" data-i18n-title="mode_parti_need" title="Needs GE15 data">Party</button>
-      </div>
-      <div class="search">
-        <input id="q" type="search" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="results" aria-expanded="false" data-i18n-aria="search_aria" aria-label="Search a seat" data-i18n-ph="search_ph" placeholder="Search a seat…" autocomplete="off" spellcheck="false" />
-        <button id="loc-btn" class="loc-btn" type="button" data-i18n-title="find_loc" title="Use my location" aria-label="Use my location"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="2" x2="5" y1="12" y2="12"/><line x1="19" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="5"/><line x1="12" x2="12" y1="19" y2="22"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg></button>
-        <div id="results" class="results" role="listbox" data-i18n-aria="results_aria" aria-label="Search results" hidden></div>
-      </div>
-      <div class="seg" id="lang" role="tablist" data-i18n-aria="aria_lang" aria-label="Language">
+    <div class="brand"><span class="mark">◧ My<b>Politik</b></span></div>
+    <nav class="topicons" aria-label="Actions">
+      <button id="home-btn" class="iconbtn" type="button" data-i18n-aria="home_aria" aria-label="Show the whole map" data-i18n-title="home_aria" title="Show the whole map">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.6 12 3.2l9 7.4"/><path d="M5.2 9.4V20.8h13.6V9.4"/></svg>
+      </button>
+      <div class="seg lang-seg" id="lang" role="tablist" data-i18n-aria="aria_lang" aria-label="Language">
         <button data-lang="en" class="on" role="tab" aria-selected="true" aria-label="English">EN</button>
         <button data-lang="ms" role="tab" aria-selected="false" aria-label="Bahasa Melayu">BM</button>
       </div>
-    </div>
+      <button id="info-btn" class="iconbtn" type="button" data-i18n-aria="info_aria" aria-label="About MyPolitik" data-i18n-title="info_aria" title="About MyPolitik">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.2"/><circle cx="12" cy="7.6" r="0.7" fill="currentColor" stroke="none"/></svg>
+      </button>
+      <button id="share-app-btn" class="iconbtn" type="button" data-i18n-aria="share_aria" aria-label="Share MyPolitik" data-i18n-title="share_aria" title="Share MyPolitik">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.4"/><circle cx="6" cy="12" r="2.4"/><circle cx="18" cy="19" r="2.4"/><path d="M8.1 10.9 15.9 6.1M8.1 13.1l7.8 4.8"/></svg>
+      </button>
+    </nav>
   </header>
 
   <main id="stage">
@@ -62,31 +50,38 @@
     </svg>
     <div id="tooltip" hidden></div>
     <div id="tap-hint" class="tap-hint" hidden>
-      <span data-i18n="tap_hint">Tap any seat to see its YB — or “Find your YB” →</span>
+      <span data-i18n="tap_hint">Tap any seat to see its YB</span>
       <button id="tap-hint-x" class="tap-hint-x" type="button" data-i18n-aria="tap_hint_dismiss" aria-label="Dismiss hint">✕</button>
     </div>
-    <button id="reset" hidden data-i18n="reset_btn" data-i18n-aria="reset_aria" aria-label="Show all seats" data-i18n-title="reset_title" title="Show all (Esc)">↺ Show all</button>
+    <button id="reset" hidden aria-label="Show all seats">↺</button>
     <div id="loading" data-i18n="loading">Loading boundaries…</div>
   </main>
 
   <aside id="panel" class="empty">
-    <button id="sheet-handle" class="sheet-handle" type="button" aria-expanded="false" data-i18n-aria="sheet_handle" aria-label="Expand or collapse the panel"><span class="sheet-grip"></span></button>
     <div id="panel-empty">
-      <div class="find">
-        <p class="find-kicker" data-i18n="find_kicker">FIND YOUR YB</p>
-        <h2 data-i18n="find_h">Who represents you?</h2>
-        <p class="find-sub muted" data-i18n="find_sub">Find your Parliament or State (DUN) seat in seconds.</p>
-        <p class="find-or muted" data-i18n="find_or">or search by name above</p>
-        <p class="find-eg muted" data-i18n="find_eg">e.g. “Titiwangsa”, “Bangi”, or “Kota Kinabalu”.</p>
-        <p id="find-status" class="find-status" role="status" aria-live="polite" hidden></p>
+      <div class="search">
+        <input id="q" type="search" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="results" aria-expanded="false" data-i18n-aria="search_aria" aria-label="Search a seat" data-i18n-ph="search_ph" placeholder="Search your seat…" autocomplete="off" spellcheck="false" />
+        <div id="results" class="results" role="listbox" data-i18n-aria="results_aria" aria-label="Search results" hidden></div>
       </div>
-      <details id="empty-more" class="empty-more">
-        <summary data-i18n="empty_more">Explore the whole map</summary>
+      <div class="card-row">
+        <div class="seg chip" id="tier" role="tablist" data-i18n-aria="aria_tier" aria-label="Seat layer">
+          <button data-tier="parlimen" class="on" role="tab" aria-selected="true" data-i18n="tier_parlimen">Parliament</button>
+          <button data-tier="dun" role="tab" aria-selected="false" data-i18n="tier_dun">DUN</button>
+        </div>
+        <div class="seg chip" id="mode" role="tablist" data-i18n-aria="aria_mode" aria-label="Colour mode">
+          <button data-mode="negeri" class="on" role="tab" aria-selected="true" data-i18n="mode_negeri">State</button>
+          <button data-mode="parti" role="tab" aria-selected="false" disabled data-i18n="mode_parti" data-i18n-title="mode_parti_need" title="Needs GE15 data">Party</button>
+        </div>
+        <button id="loc-btn" class="loc-fab" type="button" data-i18n-title="find_loc" title="Use my location" aria-label="Use my location">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="2" x2="5" y1="12" y2="12"/><line x1="19" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="5"/><line x1="12" x2="12" y1="19" y2="22"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>
+        </button>
+      </div>
+      <p id="find-status" class="find-status" role="status" aria-live="polite" hidden></p>
+      <details id="empty-more" class="empty-more" hidden>
+        <summary data-i18n="empty_more">Explore</summary>
         <div id="legend" class="legend"></div>
         <dl id="summary" class="summary"></dl>
       </details>
-      <p class="src muted"><span data-i18n="src_bound">Boundaries</span>: <a href="https://github.com/dosm-malaysia/data-open" target="_blank" rel="noopener">DOSM</a> ·
-      <span data-i18n="src_proj">Projection</span>: <a href="https://maps.krackeddevs.com" target="_blank" rel="noopener">krackedmaps</a></p>
     </div>
     <div id="panel-seat" hidden></div>
   </aside>
