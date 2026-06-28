@@ -672,3 +672,45 @@ h1, h2, .seat-head h2 { font-family: var(--font-display); font-weight: 700; lett
   #panel-empty .find-eg,
   #panel-empty .src { display: none; }
 }
+
+/* ============================================================
+   MOBILE v5 — bottom nav bar.
+   order top→bottom:  [ map ] · [ Find-your-YB / card ] · [ search · logo+toggles ]
+   logo + Parliament + State + EN/BM share the VERY BOTTOM row.
+   ============================================================ */
+@media (max-width: 820px) {
+  #app {
+    grid-template-rows: 1fr auto auto;
+    grid-template-areas:
+      "stage"
+      "panel"
+      "top";
+  }
+  #stage { grid-area: stage; padding-bottom: 0; }
+  #panel { grid-area: panel; border-radius: 0; border-top: 1px solid var(--line); }
+
+  /* the bottom bar */
+  #topbar {
+    grid-area: top;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+    padding: 9px 12px calc(9px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    border-bottom: 0;
+    background: var(--panel);
+  }
+  /* promote the toggles so the logo + toggles become one flex row */
+  .controls { display: contents; }
+  .search { order: 0; flex: 1 1 100%; }     /* search = its own row, on top of the bar */
+  .brand  { order: 1; flex: 0 0 auto; gap: 0; }
+  .brand .tag { display: none; }
+  .brand .mark { font-size: 14px; }
+  #tier { order: 2; }
+  #mode { order: 3; }
+  #lang { order: 4; margin-left: auto; }
+  .seg button { padding: 6px 9px; font-size: 11px; }
+
+  /* search now sits low → results open upward instead of off-screen */
+  .results { top: auto; bottom: calc(100% + 6px); }
+}
