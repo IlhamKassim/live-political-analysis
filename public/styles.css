@@ -779,3 +779,5 @@ h1, h2, .seat-head h2 { font-family: var(--font-display); font-weight: 700; lett
 .loc-btn:active { background: rgba(0,0,0,.14); }
 .search input { padding-right: 38px; }
 .search input::-webkit-search-cancel-button { display: none; }
+
+.loc-btn svg { width: 17px; height: 17px; display: block; }
