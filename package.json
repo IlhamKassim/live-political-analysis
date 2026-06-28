@@ -4,7 +4,8 @@
   "private": true,
   "description": "Interactive map of Malaysia's Parliament + DUN seats — see your wakil rakyat, party, and performance. Public data, computed transparently.",
   "scripts": {
-    "data": "python3 pipeline/01_boundaries.py",
+    "data": "python3 pipeline/01_boundaries.py && python3 pipeline/02_results.py && python3 pipeline/03_results_dun.py",
+    "data:dun": "python3 pipeline/03_results_dun.py",
     "dev": "python3 -m http.server 4178 --directory public",
     "deploy:staging": "wrangler deploy --env staging",
     "deploy": "wrangler deploy"

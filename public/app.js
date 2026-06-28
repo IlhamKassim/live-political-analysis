@@ -30,6 +30,7 @@ const state = {
   mode: "negeri",
   data: {},        // tier -> {viewBox, seats, byCode}
   results: null,   // code_parlimen -> {name, party, coalition, votes, majority}
+  resultsDun: null,// code_state_dun -> same shape (state-election / PRN result, where we have it)
   scores: null,    // code -> {score, grade, components}
   selected: null,
   paths: new Map(),// code -> <path>
@@ -107,7 +108,14 @@ async function loadOptional() {
   // results + scores are baked by later pipeline stages; absence is fine.
   try {
     const r = await fetch("data/results-ge15.json");
-    if (r.ok) { state.results = await r.json(); enableMode("parti"); }
+    if (r.ok) { state.results = await r.json(); enableMode("parti"); renderNatGlance(); }
+  } catch (_) {}
+  try {
+    // DUN (state-assembly / PRN) results, where Thevesh publishes them (the 6-state
+    // 2023 PRN today). Per-seat: a DUN seat with an entry shows its own result; one
+    // without keeps the parent-Parliament fallback + "PRN coming soon" note.
+    const rd = await fetch("data/results-dun.json");
+    if (rd.ok) state.resultsDun = await rd.json();
   } catch (_) {}
   try {
     const s = await fetch("data/scores.json");
@@ -140,6 +148,21 @@ function showLoadError() {
   LOADING.hidden = false;
 }
 
+// ---- entrance motion: compositor-only fade + slide for continuity on drill-down.
+// Branches on reduced-motion (keep a gentle fade, drop the travel) per a11y. ----
+const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)");
+function animateIn(el, dist = 10) {
+  if (!el || !el.animate) return;
+  if (REDUCE_MOTION.matches) {
+    el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 120, easing: "linear" });
+    return;
+  }
+  el.animate(
+    [{ opacity: 0, transform: `translateY(${dist}px)` }, { opacity: 1, transform: "none" }],
+    { duration: 300, easing: "cubic-bezier(0,0,0.2,1)" }
+  );
+}
+
 // ---- rendering ----
 async function render(tier) {
   const data = await loadTier(tier);
@@ -160,13 +183,24 @@ async function render(tier) {
   SEATS.appendChild(frag);
   paint();
   LOADING.hidden = true;
+  animateIn(SEATS, 0);   // the map arrives with a soft fade (opacity only on the group)
+}
+
+// A DUN seat's OWN state-election (PRN) result, when we have one (the states in
+// results-dun.json). Undefined for parlimen tier or an uncovered DUN seat.
+function ownDunResult(seat) {
+  return state.tier !== "parlimen" && state.resultsDun ? state.resultsDun[seat.code] : undefined;
+}
+// The result to DISPLAY for a seat: a DUN seat shows its own PRN result where it
+// exists, otherwise falls back to the parent Parliament GE15 result.
+function resultFor(seat) {
+  return ownDunResult(seat) || (state.results && state.results[resultKey(seat, state.tier)]);
 }
 
 function seatValueColor(seat) {
   const data = state.data[state.tier];
   if (state.mode === "parti" && state.results) {
-    const key = resultKey(seat, state.tier);
-    const r = state.results[key];
+    const r = resultFor(seat);
     return r ? partyColor(r.coalition) : "#222b36";
   }
   if (state.mode === "skor" && state.scores) {
@@ -236,9 +270,9 @@ function deselect() { backToControls(); }
 function seatCardHTML(seat) {
   const isP = state.tier === "parlimen";
   const kicker = isP ? `${t("kicker_parlimen")} · ${seat.code}` : `DUN · ${seat.dun_code}`;
-  const rk = resultKey(seat, state.tier);
-  const r = state.results && state.results[rk];
-  const sc = state.scores && state.scores[rk];
+  const r = resultFor(seat);
+  const ownDun = !!ownDunResult(seat);          // a real PRN result (not the parent fallback)?
+  const sc = state.scores && state.scores[resultKey(seat, state.tier)];
 
   let rows = "";
   if (r) {
@@ -255,7 +289,7 @@ function seatCardHTML(seat) {
     rows += `<dt>${t("rep")}</dt><dd>${esc(r.name)}</dd>`;
     rows += `<dt>${t("party_bloc")}</dt><dd>${partyTxt}${blocPill}</dd>`;
     if (card.majority != null)
-      rows += `<dt>${t("majority")}</dt><dd class="mono">${card.majority.toLocaleString()}${card.majorityPct != null ? ` <span class="muted">(${card.majorityPct}%)</span>` : ""}</dd>`;
+      rows += `<dt>${t(ownDun ? "majority_prn" : "majority")}</dt><dd class="mono">${card.majority.toLocaleString()}${card.majorityPct != null ? ` <span class="muted">(${card.majorityPct}%)</span>` : ""}</dd>`;
     if (card.votes != null)
       rows += `<dt>${t("win_votes")}</dt><dd class="mono">${card.votes.toLocaleString()}${card.votePct != null ? ` <span class="muted">(${card.votePct}%)</span>` : ""}</dd>`;
     if (card.turnout != null)
@@ -279,7 +313,9 @@ function seatCardHTML(seat) {
     rows += `<dt>${t("score")}</dt><dd class="mono"><b style="color:var(--accent-2)">${sc.score.toFixed(1)}</b> · ${esc(sc.grade || "")}</dd>`;
   }
 
-  const dunNote = !isP
+  // only nudge "PRN coming soon / shown at the parent level" when we DON'T have the
+  // seat's own state-election result; covered DUN seats show real PRN data instead.
+  const dunNote = (!isP && !ownDun)
     ? `<div class="note">${t("dun_note", { p: `<b>${esc(seat.parlimen)}</b>` })}</div>`
     : "";
 
@@ -290,7 +326,7 @@ function seatCardHTML(seat) {
       <div class="where">${t("state_label")} <b>${esc(seat.state)}</b></div>
     </div>
     <dl class="rows">${rows}</dl>
-    ${r ? `<div class="src-line muted">${esc(t("src_ge15"))}</div>` : ""}
+    ${r ? `<div class="src-line muted">${esc(t(ownDun ? "src_prn15" : "src_ge15"))}</div>` : ""}
     ${dunNote}
     ${!r && isP ? `<div class="note">${t("score_building")}</div>` : ""}
     <div class="seat-actions">
@@ -302,6 +338,7 @@ function seatCardHTML(seat) {
 function renderPanel(seat) {
   PANEL.classList.remove("empty"); PANEL_EMPTY.hidden = true; PANEL_SEAT.hidden = false;
   PANEL_SEAT.innerHTML = seatCardHTML(seat);
+  animateIn(PANEL_SEAT);
 }
 
 // ---- share / copy deep-link ----
@@ -345,8 +382,8 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 function drawSeatCard(seat) {
   const isP = state.tier === "parlimen";
-  const rk = resultKey(seat, state.tier);
-  const r = state.results && state.results[rk];
+  const r = resultFor(seat);
+  const ownDun = !!ownDunResult(seat);
   const accent = r ? partyColor(r.coalition) : "#5d6b7d";
 
   const cv = document.createElement("canvas");
@@ -422,7 +459,7 @@ function drawSeatCard(seat) {
     if (r.majority != null) {
       ctx.fillStyle = "#9fb0c0";
       ctx.font = "400 30px 'JetBrains Mono', monospace";
-      ctx.fillText(`${t("majority")}: ${Number(r.majority).toLocaleString()}`, 84 + pw, y + 62);
+      ctx.fillText(`${t(ownDun ? "majority_prn" : "majority")}: ${Number(r.majority).toLocaleString()}`, 84 + pw, y + 62);
     }
   } else {
     ctx.fillStyle = "#9fb0c0";
@@ -437,7 +474,7 @@ function drawSeatCard(seat) {
   ctx.fillText(`${t("card_find")} ${host}`, 64, CARD_H - 90);
   ctx.fillStyle = "#5d6b7d";
   ctx.font = "400 24px 'Space Grotesk', system-ui, sans-serif";
-  if (r) ctx.fillText(t("src_ge15"), 64, CARD_H - 52);
+  if (r) ctx.fillText(t(ownDun ? "src_prn15" : "src_ge15"), 64, CARD_H - 52);
   return cv;
 }
 let sharingCard = false;
@@ -489,6 +526,22 @@ PANEL_SEAT.addEventListener("click", (e) => {
 });
 
 // ---- summary + legend (empty panel) ----
+// national at-a-glance: the Dewan Rakyat (GE15) coalition makeup, shown on the idle
+// card the moment results load. Always the parliament picture (tier-independent).
+function renderNatGlance() {
+  const host = document.getElementById("nat-glance");
+  if (!host) return;
+  if (!state.results) { host.hidden = true; return; }
+  const counts = tallyCoalitions(state.results);
+  const ordered = COALITION_ORDER.filter((c) => counts[c]);
+  document.getElementById("nat-bar").innerHTML = ordered
+    .map((c) => `<span style="flex:${counts[c]};background:${partyColor(c)}"></span>`).join("");
+  document.getElementById("nat-key").innerHTML = ordered
+    .map((c) => `<span class="sk"><span class="sw" style="background:${partyColor(c)}"></span>${esc(c)} <b>${counts[c]}</b></span>`).join("");
+  host.hidden = false;
+  animateIn(host);
+}
+
 function renderSummary() {
   const data = state.data[state.tier];
   if (!data) return;   // boundary layer unavailable — error overlay is showing instead
@@ -530,8 +583,7 @@ SVG.addEventListener("mousemove", (e) => {
     const seat = data.byCode.get(tgt.dataset.code);
     if (!seat) return;
     const code = displayCode(seat, state.tier);
-    const rk = resultKey(seat, state.tier);
-    const r = state.results && state.results[rk];
+    const r = resultFor(seat);
     const win = r
       ? `<div class="t-win">${esc(r.name)} <span class="pill" style="background:${partyColor(r.coalition)};color:#fff">${esc(r.coalition)}</span></div>`
       : "";
@@ -911,6 +963,19 @@ function stateBBox(name) {
   return { x: a, y: b, w: c - a, h: e - b };
 }
 
+// spotlight the open state on the main overview map: keep its seats lit, dim the rest.
+// name === null clears the effect (no class left on any path).
+function highlightState(name) {
+  const d = state.data[state.tier];
+  if (!d) return;
+  for (const s of d.seats) {
+    const p = state.paths.get(s.code);
+    if (!p) continue;
+    p.classList.toggle("instate", name != null && s.state === name);
+    p.classList.toggle("outstate", name != null && s.state !== name);
+  }
+}
+
 function stateSummaryHTML(name) {
   const d = state.data[state.tier];
   const seats = d.seats.filter((s) => s.state === name);
@@ -956,15 +1021,18 @@ function openStateCard(name) {
   }
   STATE_SEATS.appendChild(frag);
   document.getElementById("state-name").textContent = name;
-  document.getElementById("state-count").textContent =
-    seats.length + " " + (state.tier === "parlimen" ? "Parliament" : "DUN") + (seats.length === 1 ? " seat" : " seats");
+  const n = seats.length;
+  const countKey = "state_count_" + (state.tier === "parlimen" ? "parlimen" : "dun") + (n === 1 ? "_one" : "");
+  document.getElementById("state-count").textContent = t(countKey, { n });
   STATE_INFO.innerHTML = stateSummaryHTML(name);
   state.openState = name;
   state.selected = null;
+  highlightState(name);
   PANEL.classList.remove("empty");
   PANEL_EMPTY.hidden = true;
   PANEL_SEAT.hidden = true;
   PANEL_STATE.hidden = false;
+  animateIn(PANEL_STATE);
   writeHash();
 }
 
@@ -976,12 +1044,14 @@ function showDistrict(code) {
   const sel = STATE_SEATS.querySelector('.mini-seat[data-code="' + (window.CSS && CSS.escape ? CSS.escape(code) : code) + '"]');
   if (sel) sel.classList.add("sel");
   STATE_INFO.innerHTML = seatCardHTML(seat);
+  animateIn(STATE_INFO, 6);   // the district detail swaps in under the mini-map
   writeHash();
 }
 
 function backToControls() {
   state.selected = null;
   state.openState = null;
+  highlightState(null);
   PANEL.classList.add("empty");
   PANEL_EMPTY.hidden = false;
   PANEL_SEAT.hidden = true;

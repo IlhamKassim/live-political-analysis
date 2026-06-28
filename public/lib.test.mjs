@@ -23,6 +23,10 @@ const RESULTS = JSON.parse(
   readFileSync(fileURLToPath(new URL("./data/results-ge15.json", import.meta.url)), "utf8")
 );
 
+const RESULTS_DUN = JSON.parse(
+  readFileSync(fileURLToPath(new URL("./data/results-dun.json", import.meta.url)), "utf8")
+);
+
 test("encodeHash: tier + mode, no selection", () => {
   assert.equal(encodeHash({ tier: "parlimen", mode: "parti" }), "#parlimen/parti");
 });
@@ -636,6 +640,29 @@ test("tallyCoalitions: GE15 results match the frozen PH82·PN74·BN30·GPS23·GR
   assert.equal(counts.WARISAN, 3);
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   assert.equal(total, 222);
+});
+
+// ---- DUN (PRN) results: the 2023 six-state tally invariant ----
+test("results-dun.json: 2023 six-state PRN tally is PN146·PH80·BN19 = 245 seats", () => {
+  const counts = tallyCoalitions(RESULTS_DUN);
+  assert.equal(counts.PN, 146);
+  assert.equal(counts.PH, 80);
+  assert.equal(counts.BN, 19);
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  assert.equal(total, 245);
+  // covered states only (the other 7 DUN states keep the parent-Parliament fallback)
+  const states = new Set(Object.values(RESULTS_DUN).map((v) => v.state));
+  assert.equal(states.size, 6);
+  // turnout isn't in the PRN source → must be null on every entry (card omits the row)
+  assert.ok(Object.values(RESULTS_DUN).every((v) => v.turnout === null));
+});
+
+test("results-dun.json: every key matches a real DUN boundary code", () => {
+  const dun = JSON.parse(
+    readFileSync(fileURLToPath(new URL("./data/seats-dun.json", import.meta.url)), "utf8")
+  );
+  const valid = new Set(dun.seats.map((s) => s.code));
+  for (const key of Object.keys(RESULTS_DUN)) assert.ok(valid.has(key), `orphan DUN result: ${key}`);
 });
 
 test("tallyCoalitions: null/non-object/empty input → {} (no throw)", () => {

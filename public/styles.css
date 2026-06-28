@@ -333,6 +333,10 @@ h1, h2, .seat-head h2 { font-family: var(--font-display); font-weight: 700; lett
   --ink: #e9eaed; --ink-dim: #9a9da4; --ink-faint: #6b6f77;
   --accent: #eceef1; --accent-2: #eceef1;
   --land: #1c2026; --land-hi: #2a2f37; --stroke: #3a3f48; --select: #ffffff;
+  /* ---- motion vocabulary (one source of truth; compositor-only props only) ---- */
+  --dur-1: 150ms; --dur-2: 200ms; --dur-3: 300ms; --dur-4: 400ms;
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);      /* entrances / user-triggered */
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1); /* reflow */
 }
 
 body { font-family: var(--sans); }
@@ -351,6 +355,10 @@ body { font-family: var(--sans); }
     radial-gradient(120% 90% at 50% 0%, #15171c 0%, var(--sea) 72%);
 }
 #loading, #tooltip, #tap-hint, #seats { position: relative; z-index: 2; }
+/* lift the wide map into the upper-centre and reserve the lower band for the floating
+   card. On a landscape laptop this also makes the map fit-to-height (so it fills more
+   width); on a tall/portrait screen it pulls the map up out of the dead space. */
+#map { height: calc(100% - 200px); }
 
 /* ---- floating top bar: logo left, icon cluster right ---- */
 #topbar {
@@ -446,6 +454,15 @@ body { font-family: var(--sans); }
 .results { top: auto; bottom: calc(100% + 8px); left: 0; right: 0; width: auto;
   background: var(--panel); border-color: var(--line-2); box-shadow: 0 -16px 40px rgba(0,0,0,.5); }
 
+/* ---- national at-a-glance: the Dewan Rakyat (GE15) makeup, idle card header ---- */
+.nat-glance { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.nat-glance[hidden] { display: none; }
+.nat-glance-h { font-size: 11px; color: var(--ink-faint); letter-spacing: .02em; }
+.nat-glance .sharebar { margin: 9px 0 7px; }
+.nat-glance .sharebar-key { gap: 5px 13px; }
+.nat-glance .sharebar-key .sk { display: inline-flex; align-items: center; gap: 5px; }  /* keep each PH·82 together on wrap */
+.nat-glance-maj { font-size: 11px; color: var(--ink-faint); margin-top: 7px; }
+
 .card-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
 .seg.chip { background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px; }
 .seg.chip button { padding: 8px 13px; font-size: 12px; }
@@ -479,6 +496,26 @@ body { font-family: var(--sans); }
 /* ---- state-first overview: hide internal seat borders so states read as blobs ---- */
 #seats.overview .seat { stroke: none; }
 #seats.overview .seat:hover { stroke: none; filter: brightness(1.12); }
+
+/* ---- spotlight: with a state card open, the open state stays lit, the rest dim back ---- */
+#seats .seat { transition: opacity .18s ease; }
+#seats.overview .seat.outstate { opacity: .24; }
+#seats.overview .seat.instate { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { #seats .seat { transition: none; } }
+
+/* ---- tactile press feedback: a small compositor-only scale on :active ---- */
+.seg button, .lang-seg button, .iconbtn, .share-btn, .card-back, .find-loc {
+  transition-property: background, color, border-color, transform;
+  transition-duration: var(--dur-1);
+  transition-timing-function: var(--ease-out);
+}
+.seg button:active:not(:disabled), .lang-seg button:active, .card-back:active { transform: scale(.94); }
+.iconbtn:active { transform: scale(.9); }
+.share-btn:active, .find-loc:active:not(:disabled) { transform: scale(.985); }
+@media (prefers-reduced-motion: reduce) {
+  .seg button:active, .lang-seg button:active, .iconbtn:active,
+  .share-btn:active, .card-back:active, .find-loc:active { transform: none; }
+}
 
 /* ---- narrow phones: let the controls row breathe ---- */
 @media (max-width: 380px) {

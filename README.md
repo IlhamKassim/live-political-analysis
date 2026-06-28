@@ -44,7 +44,14 @@ npm run deploy           # prod
 |---|---|---|---|
 | 1 | `01_boundaries.py` | DOSM `electoral_0_parlimen` / `electoral_1_dun` | `seats-parlimen.json`, `seats-dun.json` |
 | 2 | `02_results.py` | Thevesh `candidates_ge15` / `results_parlimen_ge15` | `results-ge15.json` |
-| 3 | `03_scores.py` *(WIP)* | Hansard via Sinar pardocs / parlimen.gov.my | `scores.json` |
+| 3 | `03_results_dun.py` | Thevesh `candidates_prn15` (2023 six-state PRN) | `results-dun.json` |
+| 4 | `04_scores.py` *(WIP)* | Hansard via Sinar pardocs / parlimen.gov.my | `scores.json` |
+
+**DUN coverage:** `candidates_prn15.csv` is the **2023 six-state PRN** (Selangor, Kelantan,
+Pulau Pinang, Kedah, Negeri Sembilan, Terengganu) — **245 of 600** DUN seats. The other 7
+DUN states voted on different dates and aren't in this file, so the frontend (per-seat,
+`loadOptional()`) shows their DUN seats' parent-Parliament GE15 result with a "PRN coming
+soon" note. A DUN seat with an entry in `results-dun.json` shows its own state-election result.
 
 Raw downloads are cached in `pipeline/raw/` (delete to refresh).
 
@@ -81,5 +88,7 @@ instead of being swallowed by the SPA asset fallback.
 - ✅ i18n: **English default + Bahasa Melayu toggle** (EN/BM, persisted in localStorage).
   Strings live in `I18N` in `app.js`; static markup uses `data-i18n` / `data-i18n-ph` / `data-i18n-title`.
 - ✅ **Staging live** — staging.politics.krackeddevs.com
+- ✅ DUN (PRN) results — 2023 six-state election (245/600 seats); other states fall back to
+  the parent Parliament result with a "coming soon" note
 - ⏳ Performance scoring from Hansard (own, transparent method)
-- ⏳ DUN-level (PRN) election results · prod promote · mobile pass
+- ⏳ DUN for the remaining 7 states · prod promote · mobile pass
