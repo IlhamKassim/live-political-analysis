@@ -816,3 +816,6 @@ h1, h2, .seat-head h2 { font-family: var(--font-display); font-weight: 700; lett
 
 /* hide the Find-your-YB hero + Explore section (DOM kept for the map legend/summary) */
 #panel-empty .find, #panel-empty .empty-more { display: none; }
+
+/* remove the Show-all / reset button */
+#reset { display: none !important; }
