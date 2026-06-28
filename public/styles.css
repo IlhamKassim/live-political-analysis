@@ -527,3 +527,32 @@ h1, h2, .seat-head h2 { font-family: var(--font-display); font-weight: 700; lett
   box-shadow: -2px -1px 8px 0 #ffffff, 2px 1px 8px 0 rgba(0,0,0,.18);
 }
 .find-loc:active, #reset:active, .seat-actions button:active { box-shadow: none; }
+
+/* ============================================================
+   Nav segmented toggles — no black fill.
+   recessed track · hover = grey · selected protrudes (raised pill)
+   ============================================================ */
+.seg {
+  overflow: visible;
+  background: #eeeef0;
+  border-color: transparent;
+  padding: 3px;
+  gap: 2px;
+  box-shadow: inset 1px 1px 3px rgba(0,0,0,.08), inset -1px -1px 3px #ffffff;
+}
+.seg button {
+  color: #5a5a5a;
+  background: transparent;
+  border-radius: 7px;
+  transition: .15s;
+}
+.seg button:hover:not(:disabled) { color: #111; background: #e3e3e6; }
+.seg button.on {
+  color: #111111;
+  background: #ffffff;
+  font-weight: 600;
+  box-shadow: -2px -2px 5px #ffffff, 2px 3px 8px rgba(0,0,0,.20);
+  position: relative;
+  z-index: 1;
+}
+.seg button.on:hover { background: #ffffff; }
