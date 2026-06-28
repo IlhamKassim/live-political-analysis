@@ -305,7 +305,7 @@ a:hover { text-decoration: underline; }
      The map stays visible behind it (the map is the reward, not the gate). */
   #panel {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
-    height: 85vh; height: 85dvh;
+    height: 50vh; height: 50dvh;
     border-left: 0; border-top: 1px solid var(--line); border-radius: 16px 16px 0 0;
     padding: 0 var(--sheet-pad) calc(20px + env(safe-area-inset-bottom));
     box-shadow: 0 -12px 40px rgba(0,0,0,.5);
@@ -363,3 +363,5 @@ a:hover { text-decoration: underline; }
 }
 
 .seat { transition: filter .12s ease, stroke-width .12s ease; }
+
+@media (max-width: 820px) { #stage { box-sizing: border-box; padding-bottom: 50dvh; } }
