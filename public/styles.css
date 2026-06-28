@@ -367,3 +367,63 @@ a:hover { text-decoration: underline; }
 @media (max-width: 820px) { #stage { box-sizing: border-box; padding-bottom: 50dvh; } }
 
 @media (max-width: 820px) { #reset { top: 14px; right: 14px; left: auto; bottom: auto; z-index: 45; } }
+
+/* =================================================================
+   LIGHT MODE + NEUMORPHIC (soft-UI) BUTTONS  — appended override
+   ================================================================= */
+:root {
+  --bg: #e7edf4;
+  --bg-2: #dde6f1;
+  --panel: #eceff7;
+  --sea: #dfe8f2;
+  --line: #ccd9e8;
+  --line-2: #b8c8db;
+  --ink: #33425a;
+  --ink-dim: #5f7188;
+  --ink-faint: #8b9bb0;
+  --accent: #4a82d8;
+  --accent-2: #df9a26;
+  --land: #d5dfeb;
+  --land-hi: #c4d4e7;
+  --stroke: #a9bbd1;
+  --select: #4a82d8;
+}
+
+/* map background → light */
+#stage { background: radial-gradient(120% 90% at 50% 0%, #eef4fb 0%, var(--sea) 70%); }
+
+/* tooltip → light card */
+#tooltip { background: rgba(248,251,255,.96); color: var(--ink); border-color: var(--line-2);
+  box-shadow: 0 8px 24px rgba(74,110,160,.22); }
+
+/* soft, blue-tinted shadows on floating surfaces */
+.results { box-shadow: 0 14px 40px rgba(74,110,160,.22); }
+@media (max-width: 820px) { #panel { box-shadow: 0 -14px 40px rgba(74,110,160,.20); } }
+
+/* segmented toggles: light recessed group + raised active */
+.seg { background: #e1e9f3; border-color: transparent;
+  box-shadow: inset 2px 2px 5px rgba(95,130,180,.22), inset -2px -2px 5px #ffffff; }
+.seg button.on { box-shadow: -2px -2px 6px #ffffff, 2px 2px 6px rgba(95,130,180,.40); }
+
+/* search input: neumorphic inset */
+.search input { background: #e6edf6; border-color: transparent;
+  box-shadow: inset 2px 2px 6px rgba(95,130,180,.20), inset -2px -2px 6px #ffffff; }
+.search input:focus { border-color: var(--accent);
+  box-shadow: inset 2px 2px 6px rgba(95,130,180,.16); }
+
+/* ---- neumorphic action buttons (Uiverse · barisdogansutcu) ---- */
+.find-loc, #reset, .seat-actions button {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  font-family: inherit; font-size: 13px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: .4px;
+  color: #7e97b8; background-color: #e0e8ef;
+  border: 2px solid rgba(255,255,255,.5);
+  border-radius: 40px; padding: 16px 24px 16px 28px;
+  transition: .2s; cursor: pointer; opacity: 1;
+  box-shadow: -4px -2px 16px 0 #ffffff, 4px 2px 16px 0 rgb(95 157 231 / 48%);
+}
+.find-loc:hover, #reset:hover, .seat-actions button:hover {
+  color: #516d91; background-color: #e5edf5;
+  box-shadow: -2px -1px 8px 0 #ffffff, 2px 1px 8px 0 rgb(95 157 231 / 48%);
+}
+.find-loc:active, #reset:active, .seat-actions button:active { box-shadow: none; }
