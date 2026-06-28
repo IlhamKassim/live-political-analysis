@@ -83,6 +83,15 @@
         <dl id="summary" class="summary"></dl>
       </details>
     </div>
+    <div id="panel-state" hidden>
+      <div class="state-head">
+        <button id="state-back" class="card-back" type="button" data-i18n-aria="home_aria" aria-label="Back">←</button>
+        <div class="state-h"><h2 id="state-name"></h2><span id="state-count" class="muted"></span></div>
+      </div>
+      <div class="state-map-wrap">
+        <svg id="state-map" preserveAspectRatio="xMidYMid meet"><g id="state-seats"></g></svg>
+      </div>
+    </div>
     <div id="panel-seat" hidden></div>
   </aside>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>

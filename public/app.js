@@ -224,37 +224,14 @@ function zoomToSeat(seat) {
 function zoomFull() { animateTo(FULL.slice()); }
 
 // ---- selection + panel ----
-function select(code, { zoom = true } = {}) {
-  const data = state.data[state.tier];
-  const seat = data.byCode.get(code);
+function select(code) {
+  const seat = state.data[state.tier] && state.data[state.tier].byCode.get(code);
   if (!seat) return;
-  if (state.selected && state.paths.get(state.selected))
-    state.paths.get(state.selected).classList.remove("sel");
-  state.selected = code;
-  state.zoomedState = seat.state; SEATS.classList.remove("overview");
-  const p = state.paths.get(code);
-  if (p) { p.classList.add("sel"); SEATS.appendChild(p); } // raise to top
-  renderPanel(seat);
-  if (zoom) zoomToSeat(seat);
-  RESET.hidden = false;
-  setSheet(true);  // on mobile, slide the bottom sheet up so the card is in view
-  dismissHint();   // user found the interaction — retire the nudge
-  writeHash();
+  openStateCard(seat.state);   // build the state's mini-map
+  showSeatDetail(code);        // then surface this seat's detail in the card
+  dismissHint();
 }
-function deselect() {
-  if (state.selected && state.paths.get(state.selected))
-    state.paths.get(state.selected).classList.remove("sel");
-  state.selected = null;
-  PANEL.classList.add("empty");
-  PANEL_EMPTY.hidden = false;
-  PANEL_SEAT.hidden = true;
-  setSheet(false); // collapse the bottom sheet back to its peek — the map is the reward
-  if (state.zoomedState) zoomToBox(stateBBox(state.zoomedState)); else zoomFull();
-  RESET.hidden = true;
-  clearMatches();
-  setFindStatus(null);   // drop any stale geolocation message
-  writeHash();
-}
+function deselect() { backToControls(); }
 
 function renderPanel(seat) {
   PANEL.classList.remove("empty");
@@ -573,11 +550,9 @@ SVG.addEventListener("mouseleave", () => { TOOLTIP.hidden = true; });
 SVG.addEventListener("click", (e) => {
   const tgt = e.target;   // NOT `t` — that name is the module-level i18n fn t(); shadowing it would break any t("key") added here
   if (tgt.classList && tgt.classList.contains("seat")) {
-    if (!state.zoomedState) zoomToState(state.data[state.tier].byCode.get(tgt.dataset.code).state);
-    else select(tgt.dataset.code);
+    openStateCard(state.data[state.tier].byCode.get(tgt.dataset.code).state);
   } else {
-    if (state.selected) deselect();
-    else if (state.zoomedState) exitState();
+    backToControls();
   }
 });
 
@@ -900,18 +875,22 @@ document.getElementById("loc-btn")?.addEventListener("click", locate);
   else window.addEventListener("load", function () { setTimeout(showLocateCoach, 500); });
 })();
 
-/* XIO layout — top-bar icon actions */
-document.getElementById("home-btn")?.addEventListener("click", () => exitState());
+/* ===== top-bar icon actions ===== */
+document.getElementById("home-btn")?.addEventListener("click", () => backToControls());
 document.getElementById("info-btn")?.addEventListener("click", () => showToast("info_toast"));
 document.getElementById("share-app-btn")?.addEventListener("click", async () => {
   const url = location.origin + location.pathname;
   try {
     if (navigator.share) await navigator.share({ title: "MyPolitik", url });
     else { await navigator.clipboard.writeText(url); showToast("share_ok"); }
-  } catch (e) { /* user cancelled the share sheet */ }
+  } catch (e) { /* user cancelled */ }
 });
 
-/* ---- state-first drill-down: overview shows states; tap a state to zoom in ---- */
+/* ===== state-first drill: main map = states; tap a state to open its mini-map in the card ===== */
+const STATE_MAP = document.getElementById("state-map");
+const STATE_SEATS = document.getElementById("state-seats");
+const PANEL_STATE = document.getElementById("panel-state");
+
 function stateBBox(name) {
   const d = state.data[state.tier];
   let a = Infinity, b = Infinity, c = -Infinity, e = -Infinity;
@@ -925,28 +904,70 @@ function stateBBox(name) {
   }
   return { x: a, y: b, w: c - a, h: e - b };
 }
-function zoomToBox(box) {
-  const pad = Math.max(box.w, box.h) * 0.1 + 5;
-  const w = box.w + pad * 2, h = box.h + pad * 2, ar = FULL[2] / FULL[3];
-  let vw = w, vh = h;
-  if (vw / vh > ar) vh = vw / ar; else vw = vh * ar;
-  animateTo([box.x + box.w / 2 - vw / 2, box.y + box.h / 2 - vh / 2, vw, vh]);
-}
-function zoomToState(name) {
+
+function openStateCard(name) {
   if (!name) return;
-  state.zoomedState = name;
-  SEATS.classList.remove("overview");
-  zoomToBox(stateBBox(name));
-}
-function exitState() {
-  if (state.selected) state.paths.get(state.selected)?.classList.remove("sel");
+  const d = state.data[state.tier];
+  const seats = d.seats.filter((s) => s.state === name);
+  const box = stateBBox(name);
+  const pad = Math.max(box.w, box.h) * 0.05 + 1.5;
+  STATE_MAP.setAttribute("viewBox", `${box.x - pad} ${box.y - pad} ${box.w + pad * 2} ${box.h + pad * 2}`);
+  STATE_SEATS.innerHTML = "";
+  const frag = document.createDocumentFragment();
+  for (const seat of seats) {
+    const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    p.setAttribute("d", seat.d);
+    p.setAttribute("class", "mini-seat");
+    p.style.fill = seatValueColor(seat);
+    p.dataset.code = seat.code;
+    frag.appendChild(p);
+  }
+  STATE_SEATS.appendChild(frag);
+  document.getElementById("state-name").textContent = name;
+  document.getElementById("state-count").textContent =
+    seats.length + " " + (state.tier === "parlimen" ? "Parliament" : "DUN") + (seats.length === 1 ? " seat" : " seats");
+  state.openState = name;
   state.selected = null;
-  state.zoomedState = null;
+  PANEL.classList.remove("empty");
+  PANEL_EMPTY.hidden = true;
+  PANEL_SEAT.hidden = true;
+  PANEL_STATE.hidden = false;
+  writeHash();
+}
+
+function showSeatDetail(code) {
+  const seat = state.data[state.tier] && state.data[state.tier].byCode.get(code);
+  if (!seat) return;
+  state.selected = code;
+  STATE_SEATS.querySelectorAll(".mini-seat.sel").forEach((p) => p.classList.remove("sel"));
+  const mp = STATE_SEATS.querySelector('.mini-seat[data-code="' + (window.CSS && CSS.escape ? CSS.escape(code) : code) + '"]');
+  if (mp) mp.classList.add("sel");
+  renderPanel(seat);                 // fills + shows #panel-seat, hides #panel-empty
+  PANEL_STATE.hidden = true;
+  PANEL_SEAT.insertAdjacentHTML("afterbegin",
+    '<button class="card-back" type="button" data-back="state">← ' + esc(seat.state) + '</button>');
+  writeHash();
+}
+
+function backToControls() {
+  state.selected = null;
+  state.openState = null;
   PANEL.classList.add("empty");
   PANEL_EMPTY.hidden = false;
   PANEL_SEAT.hidden = true;
-  SEATS.classList.add("overview");
-  zoomFull();
+  PANEL_STATE.hidden = true;
+  clearMatches();
+  setFindStatus(null);
   writeHash();
 }
-SEATS.classList.add("overview");
+
+SEATS.classList.add("overview");   // the main map is always the states overview
+
+STATE_SEATS.addEventListener("click", (e) => {
+  const t2 = e.target.closest(".mini-seat");
+  if (t2) showSeatDetail(t2.dataset.code);
+});
+document.getElementById("state-back")?.addEventListener("click", backToControls);
+PANEL_SEAT.addEventListener("click", (e) => {
+  if (e.target.closest(".card-back")) openStateCard(state.openState);
+});
