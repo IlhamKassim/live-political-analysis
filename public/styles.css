@@ -813,3 +813,6 @@ h1, h2, .seat-head h2 { font-family: var(--font-display); font-weight: 700; lett
 }
 .coach.below .coach-arrow { top: -5px; }
 .coach.above .coach-arrow { bottom: -5px; }
+
+/* hide the Find-your-YB hero + Explore section (DOM kept for the map legend/summary) */
+#panel-empty .find, #panel-empty .empty-more { display: none; }
