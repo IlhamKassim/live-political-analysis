@@ -365,3 +365,5 @@ a:hover { text-decoration: underline; }
 .seat { transition: filter .12s ease, stroke-width .12s ease; }
 
 @media (max-width: 820px) { #stage { box-sizing: border-box; padding-bottom: 50dvh; } }
+
+@media (max-width: 820px) { #reset { top: 14px; right: 14px; left: auto; bottom: auto; z-index: 45; } }
