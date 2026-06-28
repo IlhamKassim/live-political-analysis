@@ -452,3 +452,17 @@ a:hover { text-decoration: underline; }
 
 /* the pairing move: headlines in the Redaction serif, body stays Space Grotesk */
 h1, h2, .seat-head h2 { font-family: var(--font-display); font-weight: 700; letter-spacing: 0; }
+
+/* ============================================================
+   "Mappy" gridlines behind the map — minor + major (chart feel)
+   layered over the light sea; shows in the water around the seats
+   ============================================================ */
+#stage {
+  background:
+    linear-gradient(to right,  rgba(70,110,165,.13) 1px, transparent 1px) 0 0 / 190px 190px,
+    linear-gradient(to bottom, rgba(70,110,165,.13) 1px, transparent 1px) 0 0 / 190px 190px,
+    linear-gradient(to right,  rgba(70,110,165,.07) 1px, transparent 1px) 0 0 / 38px 38px,
+    linear-gradient(to bottom, rgba(70,110,165,.07) 1px, transparent 1px) 0 0 / 38px 38px,
+    radial-gradient(120% 90% at 50% 0%, #eef4fb 0%, var(--sea) 70%);
+  background-attachment: local;
+}
