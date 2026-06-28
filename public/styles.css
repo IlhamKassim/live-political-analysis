@@ -437,6 +437,10 @@ body { font-family: var(--sans); }
 .coach { background: #f3f4f6; color: #121316; box-shadow: 0 10px 30px rgba(0,0,0,.5); border: 0; }
 .coach-arrow { background: #f3f4f6; }
 
+/* ---- state-first overview: hide internal seat borders so states read as blobs ---- */
+#seats.overview .seat { stroke: none; }
+#seats.overview .seat:hover { stroke: none; filter: brightness(1.12); }
+
 /* ---- narrow phones: let the controls row breathe ---- */
 @media (max-width: 380px) {
   .seg.chip button { padding: 8px 10px; font-size: 11px; }

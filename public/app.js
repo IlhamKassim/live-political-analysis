@@ -231,6 +231,7 @@ function select(code, { zoom = true } = {}) {
   if (state.selected && state.paths.get(state.selected))
     state.paths.get(state.selected).classList.remove("sel");
   state.selected = code;
+  state.zoomedState = seat.state; SEATS.classList.remove("overview");
   const p = state.paths.get(code);
   if (p) { p.classList.add("sel"); SEATS.appendChild(p); } // raise to top
   renderPanel(seat);
@@ -248,7 +249,7 @@ function deselect() {
   PANEL_EMPTY.hidden = false;
   PANEL_SEAT.hidden = true;
   setSheet(false); // collapse the bottom sheet back to its peek — the map is the reward
-  zoomFull();
+  if (state.zoomedState) zoomToBox(stateBBox(state.zoomedState)); else zoomFull();
   RESET.hidden = true;
   clearMatches();
   setFindStatus(null);   // drop any stale geolocation message
@@ -572,9 +573,11 @@ SVG.addEventListener("mouseleave", () => { TOOLTIP.hidden = true; });
 SVG.addEventListener("click", (e) => {
   const tgt = e.target;   // NOT `t` — that name is the module-level i18n fn t(); shadowing it would break any t("key") added here
   if (tgt.classList && tgt.classList.contains("seat")) {
-    select(tgt.dataset.code);
+    if (!state.zoomedState) zoomToState(state.data[state.tier].byCode.get(tgt.dataset.code).state);
+    else select(tgt.dataset.code);
   } else {
-    deselect();
+    if (state.selected) deselect();
+    else if (state.zoomedState) exitState();
   }
 });
 
@@ -898,7 +901,7 @@ document.getElementById("loc-btn")?.addEventListener("click", locate);
 })();
 
 /* XIO layout — top-bar icon actions */
-document.getElementById("home-btn")?.addEventListener("click", () => deselect());
+document.getElementById("home-btn")?.addEventListener("click", () => exitState());
 document.getElementById("info-btn")?.addEventListener("click", () => showToast("info_toast"));
 document.getElementById("share-app-btn")?.addEventListener("click", async () => {
   const url = location.origin + location.pathname;
@@ -907,3 +910,43 @@ document.getElementById("share-app-btn")?.addEventListener("click", async () => 
     else { await navigator.clipboard.writeText(url); showToast("share_ok"); }
   } catch (e) { /* user cancelled the share sheet */ }
 });
+
+/* ---- state-first drill-down: overview shows states; tap a state to zoom in ---- */
+function stateBBox(name) {
+  const d = state.data[state.tier];
+  let a = Infinity, b = Infinity, c = -Infinity, e = -Infinity;
+  for (const s of d.seats) {
+    if (s.state !== name) continue;
+    const x = s.bbox;
+    if (x.x < a) a = x.x;
+    if (x.y < b) b = x.y;
+    if (x.x + x.w > c) c = x.x + x.w;
+    if (x.y + x.h > e) e = x.y + x.h;
+  }
+  return { x: a, y: b, w: c - a, h: e - b };
+}
+function zoomToBox(box) {
+  const pad = Math.max(box.w, box.h) * 0.1 + 5;
+  const w = box.w + pad * 2, h = box.h + pad * 2, ar = FULL[2] / FULL[3];
+  let vw = w, vh = h;
+  if (vw / vh > ar) vh = vw / ar; else vw = vh * ar;
+  animateTo([box.x + box.w / 2 - vw / 2, box.y + box.h / 2 - vh / 2, vw, vh]);
+}
+function zoomToState(name) {
+  if (!name) return;
+  state.zoomedState = name;
+  SEATS.classList.remove("overview");
+  zoomToBox(stateBBox(name));
+}
+function exitState() {
+  if (state.selected) state.paths.get(state.selected)?.classList.remove("sel");
+  state.selected = null;
+  state.zoomedState = null;
+  PANEL.classList.add("empty");
+  PANEL_EMPTY.hidden = false;
+  PANEL_SEAT.hidden = true;
+  SEATS.classList.add("overview");
+  zoomFull();
+  writeHash();
+}
+SEATS.classList.add("overview");
