@@ -781,3 +781,35 @@ h1, h2, .seat-head h2 { font-family: var(--font-display); font-weight: 700; lett
 .search input::-webkit-search-cancel-button { display: none; }
 
 .loc-btn svg { width: 17px; height: 17px; display: block; }
+
+/* ---- boot coachmark (points to the locate target) ---- */
+.coach {
+  position: fixed;
+  z-index: 60;
+  max-width: 210px;
+  background: #111111;
+  color: #ffffff;
+  padding: 9px 13px;
+  border-radius: 10px;
+  font-family: var(--sans);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.35;
+  box-shadow: 0 10px 30px rgba(0,0,0,.28);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity .25s ease, transform .25s ease;
+  pointer-events: none;
+}
+.coach.above { transform: translateY(4px); }
+.coach.show { opacity: 1; transform: translateY(0); }
+.coach-arrow {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #111111;
+  transform: rotate(45deg);
+  border-radius: 2px;
+}
+.coach.below .coach-arrow { top: -5px; }
+.coach.above .coach-arrow { bottom: -5px; }

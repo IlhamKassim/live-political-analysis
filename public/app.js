@@ -859,3 +859,40 @@ RESET.addEventListener("click", deselect);
   maybeShowHint();   // fresh visit, nothing selected → nudge that seats are tappable
 })();
 document.getElementById("loc-btn")?.addEventListener("click", locate);
+
+
+/* ---- boot coachmark → points users to the locate target in the search bar ---- */
+(function () {
+  function showLocateCoach() {
+    var t = document.getElementById("loc-btn");
+    if (!t || document.querySelector(".coach")) return;
+    var r = t.getBoundingClientRect();
+    if (!r.width) { setTimeout(showLocateCoach, 300); return; }
+    var lang = (localStorage.getItem("peta-yb-lang") || "en");
+    var msg = lang === "ms" ? "Cari kerusi anda — ketik sasaran" : "Find your seat — tap the target";
+    var c = document.createElement("div");
+    c.className = "coach";
+    c.innerHTML = '<i class="coach-arrow"></i><span></span>';
+    c.querySelector("span").textContent = msg;
+    document.body.appendChild(c);
+    var below = r.top < window.innerHeight / 2;
+    c.classList.add(below ? "below" : "above");
+    var cw = c.offsetWidth, ch = c.offsetHeight;
+    var left = Math.max(8, Math.min(r.left + r.width / 2 - cw / 2, window.innerWidth - cw - 8));
+    c.style.left = left + "px";
+    c.style.top = (below ? r.bottom + 10 : r.top - ch - 10) + "px";
+    c.querySelector(".coach-arrow").style.left = (r.left + r.width / 2 - left - 6) + "px";
+    requestAnimationFrame(function () { c.classList.add("show"); });
+    var done = false;
+    function dismiss() {
+      if (done) return; done = true;
+      c.classList.remove("show");
+      setTimeout(function () { if (c.parentNode) c.parentNode.removeChild(c); }, 300);
+      document.removeEventListener("pointerdown", dismiss, true);
+    }
+    setTimeout(dismiss, 6000);
+    document.addEventListener("pointerdown", dismiss, true);
+  }
+  if (document.readyState === "complete") setTimeout(showLocateCoach, 500);
+  else window.addEventListener("load", function () { setTimeout(showLocateCoach, 500); });
+})();
