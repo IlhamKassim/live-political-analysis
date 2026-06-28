@@ -595,3 +595,34 @@ h1, h2, .seat-head h2 { font-family: var(--font-display); font-weight: 700; lett
   /* keep "Show all" floating over the top-half map */
   #reset { top: 14px; right: 14px; left: auto; bottom: auto; z-index: 45; }
 }
+
+/* ============================================================
+   MOBILE v3 — map owns the TOP; logo + nav + buttons all at the BOTTOM
+   order: [ map ] · [ logo + toggles + search ] · [ Find-your-YB + buttons ]
+   ============================================================ */
+@media (max-width: 820px) {
+  #app {
+    grid-template-rows: 48dvh auto 1fr;
+    grid-template-areas:
+      "stage"
+      "top"
+      "panel";
+  }
+
+  /* map = clean top half */
+  #stage { grid-area: stage; padding-bottom: 0; }
+
+  /* the header (logo + nav) drops below the map */
+  #topbar {
+    grid-area: top;
+    border-bottom: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  /* buttons / Find-your-YB / seat card fill the rest of the bottom */
+  #panel {
+    grid-area: panel;
+    border-radius: 0;
+    border-top: 1px solid var(--line);
+  }
+}
