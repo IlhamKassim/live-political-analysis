@@ -559,3 +559,39 @@ h1, h2, .seat-head h2 { font-family: var(--font-display); font-weight: 700; lett
 
 /* search: no focus outline/border — just the blinking caret */
 .search input:focus, .search input:focus-visible { outline: none; border-color: transparent; box-shadow: inset 2px 2px 6px rgba(0,0,0,.08), inset -2px -2px 6px #ffffff; caret-color: #111111; }
+
+/* ============================================================
+   MOBILE layout v2 — map in the TOP half, controls/buttons in a
+   tall BOTTOM half (replaces the draggable peek-sheet).
+   ============================================================ */
+@media (max-width: 820px) {
+  #app {
+    grid-template-rows: auto 1fr 1fr;
+    grid-template-areas: "top" "stage" "panel";
+  }
+
+  /* map owns the top half (undo the earlier padding hack) */
+  #stage { padding-bottom: 0; grid-area: stage; }
+
+  /* panel becomes an in-flow, tall bottom half — not a fixed sheet */
+  #panel {
+    position: static;
+    grid-area: panel;
+    height: auto;
+    min-height: 0;
+    transform: none !important;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -8px 26px rgba(0,0,0,.06);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+  }
+
+  /* no more grab-handle (not a sheet anymore) */
+  .sheet-handle { display: none; }
+
+  /* keep "Show all" floating over the top-half map */
+  #reset { top: 14px; right: 14px; left: auto; bottom: auto; z-index: 45; }
+}
