@@ -341,16 +341,14 @@ body { font-family: var(--sans); }
 /* ---- full-bleed map canvas ---- */
 #stage {
   position: fixed; inset: 0; z-index: 1; border: 0;
-  background: radial-gradient(120% 90% at 50% 0%, #15171c 0%, var(--sea) 72%);
-}
-/* subtle chart gridlines behind the map (minor + major) */
-#stage::before {
-  content: ""; position: absolute; inset: 0; pointer-events: none;
+  /* the grid is part of the stage BACKGROUND, so it's always behind the map;
+     smaller cells (24px) with a fainter 96px major line for a chart feel */
   background:
-    linear-gradient(to right,  rgba(255,255,255,.055) 1px, transparent 1px) 0 0 / 190px 190px,
-    linear-gradient(to bottom, rgba(255,255,255,.055) 1px, transparent 1px) 0 0 / 190px 190px,
-    linear-gradient(to right,  rgba(255,255,255,.028) 1px, transparent 1px) 0 0 / 38px 38px,
-    linear-gradient(to bottom, rgba(255,255,255,.028) 1px, transparent 1px) 0 0 / 38px 38px;
+    linear-gradient(to right,  rgba(255,255,255,.045) 1px, transparent 1px) 0 0 / 96px 96px,
+    linear-gradient(to bottom, rgba(255,255,255,.045) 1px, transparent 1px) 0 0 / 96px 96px,
+    linear-gradient(to right,  rgba(255,255,255,.025) 1px, transparent 1px) 0 0 / 24px 24px,
+    linear-gradient(to bottom, rgba(255,255,255,.025) 1px, transparent 1px) 0 0 / 24px 24px,
+    radial-gradient(120% 90% at 50% 0%, #15171c 0%, var(--sea) 72%);
 }
 #loading, #tooltip, #tap-hint, #seats { position: relative; z-index: 2; }
 
