@@ -44,6 +44,19 @@
     </nav>
   </header>
 
+  <div id="info-card" hidden>
+    <div class="info-head">
+      <h2 data-i18n="info_title">About MyPolitik</h2>
+      <button id="info-close" class="card-back" type="button" aria-label="Close">✕</button>
+    </div>
+    <p class="muted" data-i18n="info_body">MyPolitik maps every Malaysian Parliament and State (DUN) seat. Tap a state, then a district, to see your representative, party, and GE15 result — built from public, official data, shown transparently.</p>
+    <p class="src muted">
+      <span data-i18n="src_bound">Boundaries</span>: <a href="https://github.com/dosm-malaysia/data-open" target="_blank" rel="noopener">DOSM</a> ·
+      <span data-i18n="src_res">Results</span>: <a href="https://github.com/Thevesh/analysis-election-msia" target="_blank" rel="noopener">Thevesh</a> ·
+      <span data-i18n="src_proj">Projection</span>: <a href="https://maps.krackeddevs.com" target="_blank" rel="noopener">krackedmaps</a>
+    </p>
+  </div>
+
   <main id="stage">
     <svg id="map" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" data-i18n-aria="map_aria" aria-label="Map of Malaysia's electoral seats">
       <g id="seats"></g>
@@ -91,6 +104,7 @@
       <div class="state-map-wrap">
         <svg id="state-map" preserveAspectRatio="xMidYMid meet"><g id="state-seats"></g></svg>
       </div>
+      <div id="state-info"></div>
     </div>
     <div id="panel-seat" hidden></div>
   </aside>

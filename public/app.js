@@ -227,17 +227,13 @@ function zoomFull() { animateTo(FULL.slice()); }
 function select(code) {
   const seat = state.data[state.tier] && state.data[state.tier].byCode.get(code);
   if (!seat) return;
-  openStateCard(seat.state);   // build the state's mini-map
-  showSeatDetail(code);        // then surface this seat's detail in the card
+  openStateCard(seat.state);
+  showDistrict(code);
   dismissHint();
 }
 function deselect() { backToControls(); }
 
-function renderPanel(seat) {
-  PANEL.classList.remove("empty");
-  PANEL_EMPTY.hidden = true;
-  PANEL_SEAT.hidden = false;
-
+function seatCardHTML(seat) {
   const isP = state.tier === "parlimen";
   const kicker = isP ? `${t("kicker_parlimen")} · ${seat.code}` : `DUN · ${seat.dun_code}`;
   const rk = resultKey(seat, state.tier);
@@ -287,7 +283,7 @@ function renderPanel(seat) {
     ? `<div class="note">${t("dun_note", { p: `<b>${esc(seat.parlimen)}</b>` })}</div>`
     : "";
 
-  PANEL_SEAT.innerHTML = `
+  return `
     <div class="seat-head">
       <div class="kicker">${esc(kicker)}</div>
       <h2>${esc(seat.name)}</h2>
@@ -302,6 +298,10 @@ function renderPanel(seat) {
       <button id="share-card" class="share-btn" type="button">${esc(t("card_btn"))}</button>
     </div>
   `;
+}
+function renderPanel(seat) {
+  PANEL.classList.remove("empty"); PANEL_EMPTY.hidden = true; PANEL_SEAT.hidden = false;
+  PANEL_SEAT.innerHTML = seatCardHTML(seat);
 }
 
 // ---- share / copy deep-link ----
@@ -877,7 +877,12 @@ document.getElementById("loc-btn")?.addEventListener("click", locate);
 
 /* ===== top-bar icon actions ===== */
 document.getElementById("home-btn")?.addEventListener("click", () => backToControls());
-document.getElementById("info-btn")?.addEventListener("click", () => showToast("info_toast"));
+document.getElementById("info-btn")?.addEventListener("click", () => {
+  const ic = document.getElementById("info-card"); if (ic) ic.hidden = !ic.hidden;
+});
+document.getElementById("info-close")?.addEventListener("click", () => {
+  const ic = document.getElementById("info-card"); if (ic) ic.hidden = true;
+});
 document.getElementById("share-app-btn")?.addEventListener("click", async () => {
   const url = location.origin + location.pathname;
   try {
@@ -886,10 +891,11 @@ document.getElementById("share-app-btn")?.addEventListener("click", async () => 
   } catch (e) { /* user cancelled */ }
 });
 
-/* ===== state-first drill: main map = states; tap a state to open its mini-map in the card ===== */
+/* ===== state-first drill: main map = states; tap a state to open its district mini-map in the card ===== */
 const STATE_MAP = document.getElementById("state-map");
 const STATE_SEATS = document.getElementById("state-seats");
 const PANEL_STATE = document.getElementById("panel-state");
+const STATE_INFO = document.getElementById("state-info");
 
 function stateBBox(name) {
   const d = state.data[state.tier];
@@ -903,6 +909,32 @@ function stateBBox(name) {
     if (x.y + x.h > e) e = x.y + x.h;
   }
   return { x: a, y: b, w: c - a, h: e - b };
+}
+
+function stateSummaryHTML(name) {
+  const d = state.data[state.tier];
+  const seats = d.seats.filter((s) => s.state === name);
+  const tally = {};
+  let tSum = 0, tN = 0;
+  for (const s of seats) {
+    const r = state.results && state.results[resultKey(s, state.tier)];
+    if (r) {
+      tally[r.coalition] = (tally[r.coalition] || 0) + 1;
+      if (r.turnout != null) { tSum += r.turnout; tN++; }
+    }
+  }
+  const ents = Object.entries(tally).sort((a, b) => b[1] - a[1]);
+  if (!ents.length) return '<p class="state-tap-hint">' + esc(t("tap_district")) + "</p>";
+  const bar = ents.map(([c, n]) => '<span style="flex:' + n + ';background:' + partyColor(c) + '"></span>').join("");
+  const key = ents.map(([c, n]) => '<span class="sw" style="background:' + partyColor(c) + '"></span>' + esc(c) + " <b>" + n + "</b>").join("");
+  const avg = tN ? Math.round(tSum / tN) : null;
+  return (
+    '<div class="state-info-h muted">' + esc(t("state_makeup")) + "</div>" +
+    '<div class="sharebar">' + bar + "</div>" +
+    '<div class="sharebar-key">' + key + "</div>" +
+    (avg != null ? '<div class="state-turnout muted">' + esc(t("turnout")) + ": <b>" + avg + "%</b></div>" : "") +
+    '<p class="state-tap-hint muted">' + esc(t("tap_district")) + "</p>"
+  );
 }
 
 function openStateCard(name) {
@@ -926,6 +958,7 @@ function openStateCard(name) {
   document.getElementById("state-name").textContent = name;
   document.getElementById("state-count").textContent =
     seats.length + " " + (state.tier === "parlimen" ? "Parliament" : "DUN") + (seats.length === 1 ? " seat" : " seats");
+  STATE_INFO.innerHTML = stateSummaryHTML(name);
   state.openState = name;
   state.selected = null;
   PANEL.classList.remove("empty");
@@ -935,17 +968,14 @@ function openStateCard(name) {
   writeHash();
 }
 
-function showSeatDetail(code) {
+function showDistrict(code) {
   const seat = state.data[state.tier] && state.data[state.tier].byCode.get(code);
   if (!seat) return;
   state.selected = code;
   STATE_SEATS.querySelectorAll(".mini-seat.sel").forEach((p) => p.classList.remove("sel"));
-  const mp = STATE_SEATS.querySelector('.mini-seat[data-code="' + (window.CSS && CSS.escape ? CSS.escape(code) : code) + '"]');
-  if (mp) mp.classList.add("sel");
-  renderPanel(seat);                 // fills + shows #panel-seat, hides #panel-empty
-  PANEL_STATE.hidden = true;
-  PANEL_SEAT.insertAdjacentHTML("afterbegin",
-    '<button class="card-back" type="button" data-back="state">← ' + esc(seat.state) + '</button>');
+  const sel = STATE_SEATS.querySelector('.mini-seat[data-code="' + (window.CSS && CSS.escape ? CSS.escape(code) : code) + '"]');
+  if (sel) sel.classList.add("sel");
+  STATE_INFO.innerHTML = seatCardHTML(seat);
   writeHash();
 }
 
@@ -965,9 +995,10 @@ SEATS.classList.add("overview");   // the main map is always the states overview
 
 STATE_SEATS.addEventListener("click", (e) => {
   const t2 = e.target.closest(".mini-seat");
-  if (t2) showSeatDetail(t2.dataset.code);
+  if (t2) showDistrict(t2.dataset.code);
 });
 document.getElementById("state-back")?.addEventListener("click", backToControls);
-PANEL_SEAT.addEventListener("click", (e) => {
-  if (e.target.closest(".card-back")) openStateCard(state.openState);
+PANEL_STATE.addEventListener("click", (e) => {
+  if (e.target.closest("#share-link")) shareLink();
+  else if (e.target.closest("#share-card")) shareCard();
 });

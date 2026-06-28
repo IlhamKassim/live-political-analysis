@@ -4,6 +4,11 @@
 // added EN key with a missing BM translation fails the suite.
 export const I18N = {
   en: {
+    tap_district: "Tap a district to see its representative",
+    state_makeup: "Seats by coalition",
+    info_title: "About MyPolitik",
+    info_body: "MyPolitik maps every Malaysian Parliament and State (DUN) seat. Tap a state, then a district, to see your representative, party, and GE15 result — built from public, official data, shown transparently.",
+    src_res: "Results",
     home_aria: "Show the whole map", info_aria: "About MyPolitik", share_aria: "Share MyPolitik",
     info_toast: "MyPolitik — public data, computed transparently. Tap your area to see your YB.",
     title: "MyPolitik — Map Malaysia's Representatives",
@@ -51,6 +56,11 @@ export const I18N = {
     by_score: "Coloured by score (red→green)",
   },
   ms: {
+    tap_district: "Ketik kawasan untuk lihat wakil rakyatnya",
+    state_makeup: "Kerusi ikut gabungan",
+    info_title: "Tentang MyPolitik",
+    info_body: "MyPolitik memetakan setiap kerusi Parlimen dan Negeri (DUN) Malaysia. Ketik negeri, kemudian kawasan, untuk lihat wakil rakyat, parti dan keputusan PRU15 — daripada data awam rasmi, dipaparkan secara telus.",
+    src_res: "Keputusan",
     home_aria: "Papar seluruh peta", info_aria: "Tentang MyPolitik", share_aria: "Kongsi MyPolitik",
     info_toast: "MyPolitik — data awam, dikira secara telus. Ketik kawasan anda untuk lihat YB anda.",
     title: "MyPolitik — Petakan Wakil Rakyat Malaysia",
