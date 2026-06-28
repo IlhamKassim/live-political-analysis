@@ -752,3 +752,30 @@ h1, h2, .seat-head h2 { font-family: var(--font-display); font-weight: 700; lett
 
   .seg button { padding: 6px 10px; font-size: 11px; }
 }
+
+/* ============================================================
+   Persistent "use my location" button on the right of the search bar
+   ============================================================ */
+.loc-btn {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  padding: 0;
+  transition: background .15s;
+}
+.loc-btn:hover { background: rgba(0,0,0,.08); }
+.loc-btn:active { background: rgba(0,0,0,.14); }
+.search input { padding-right: 38px; }
+.search input::-webkit-search-cancel-button { display: none; }

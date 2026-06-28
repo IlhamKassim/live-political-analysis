@@ -858,3 +858,4 @@ RESET.addEventListener("click", deselect);
                      // (replaceState → no extra history entry)
   maybeShowHint();   // fresh visit, nothing selected → nudge that seats are tappable
 })();
+document.getElementById("loc-btn")?.addEventListener("click", locate);
