@@ -556,3 +556,6 @@ h1, h2, .seat-head h2 { font-family: var(--font-display); font-weight: 700; lett
   z-index: 1;
 }
 .seg button.on:hover { background: #ffffff; }
+
+/* search: no focus outline/border — just the blinking caret */
+.search input:focus, .search input:focus-visible { outline: none; border-color: transparent; box-shadow: inset 2px 2px 6px rgba(0,0,0,.08), inset -2px -2px 6px #ffffff; caret-color: #111111; }
