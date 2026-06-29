@@ -12,6 +12,8 @@
   },
   "observability": { "enabled": true },
   "routes": [
+    { "pattern": "mypolitik.xyz", "custom_domain": true },
+    { "pattern": "www.mypolitik.xyz", "custom_domain": true },
     { "pattern": "politics.krackeddevs.com", "custom_domain": true }
   ],
   "env": {
