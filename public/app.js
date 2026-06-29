@@ -733,11 +733,20 @@ function renderSummary() {
 // map, so hovering should tell you which state you're pointing at (and about to open).
 const CAN_HOVER = matchMedia("(hover: hover) and (pointer: fine)").matches;
 const STATE_LABEL = document.getElementById("state-label");
+let labelText = null;
+// the big name centred atop the map — the STATE in the overview, the DISTRICT once isolated.
+function showHoverLabel(text) {
+  if (text === labelText) return;
+  labelText = text;
+  if (!STATE_LABEL) return;
+  if (text) { STATE_LABEL.textContent = text; STATE_LABEL.classList.add("show"); }
+  else STATE_LABEL.classList.remove("show");
+}
 function setStateHover(name, data) {
   if (name === hoverState) return;   // only re-paint when the hovered state actually changes
   clearStateHover();
   hoverState = name;
-  if (STATE_LABEL) { STATE_LABEL.textContent = name; STATE_LABEL.classList.add("show"); }   // big name atop the map
+  showHoverLabel(name);
   for (const s of data.seats) {
     if (s.state === name) { const p = state.paths.get(s.code); if (p) p.classList.add("state-hover"); }
   }
@@ -745,15 +754,22 @@ function setStateHover(name, data) {
 function clearStateHover() {
   if (!hoverState) return;
   hoverState = null;
-  if (STATE_LABEL) STATE_LABEL.classList.remove("show");
+  showHoverLabel(null);
   SEATS.querySelectorAll(".seat.state-hover").forEach((p) => p.classList.remove("state-hover"));
 }
 if (CAN_HOVER) {
   SVG.addEventListener("mousemove", (e) => {
     const tgt = e.target;   // NOT `t` — that name is the module-level i18n fn t(); shadowing breaks t("key")
-    // isolated state view: the card already shows the detail and the cursor is over the
-    // districts, so a hover tooltip there just overlaps the card.
-    if (state.openState) { TOOLTIP.hidden = true; clearStateHover(); return; }
+    // isolated state view: name the hovered DISTRICT big atop the map (its CSS :hover lights
+    // it up); no cursor tooltip here (it would overlap the card).
+    if (state.openState) {
+      TOOLTIP.hidden = true;
+      const d = state.data[state.tier];
+      const seat = (tgt.classList && tgt.classList.contains("seat") && tgt.classList.contains("instate") && d)
+        ? d.byCode.get(tgt.dataset.code) : null;
+      showHoverLabel(seat ? seat.name : null);
+      return;
+    }
     if (tgt.classList && tgt.classList.contains("seat") && !tgt.classList.contains("no-dun")) {
       const data = state.data[state.tier];
       if (!data) return;   // boundary layer unavailable — no seat paths exist anyway
@@ -774,7 +790,7 @@ if (CAN_HOVER) {
       TOOLTIP.hidden = true; clearStateHover();
     }
   });
-  SVG.addEventListener("mouseleave", () => { TOOLTIP.hidden = true; clearStateHover(); });
+  SVG.addEventListener("mouseleave", () => { TOOLTIP.hidden = true; showHoverLabel(null); clearStateHover(); });
 }
 
 // ---- click ----
