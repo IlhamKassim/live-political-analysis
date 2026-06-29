@@ -150,6 +150,22 @@ a:hover { text-decoration: underline; }
   font-size: 11px; color: var(--ink-dim); display: flex; align-items: center; gap: 6px; }
 #tooltip .pill { font-size: 10px; padding: 1px 6px; }
 
+/* big state name centred at the TOP of the map, shown on hover (desktop). Fades + lifts in. */
+#state-label {
+  position: absolute; top: clamp(36px, 6.5vh, 88px); left: 50%;
+  transform: translateX(-50%) translateY(7px);
+  z-index: 16; pointer-events: none;
+  font-family: var(--font-display); font-weight: 700; line-height: 1;
+  font-size: clamp(28px, 4vw, 60px); letter-spacing: .01em;
+  color: var(--ink); text-align: center; white-space: nowrap;
+  text-shadow: 0 2px 30px rgba(0,0,0,.72), 0 1px 3px rgba(0,0,0,.55);
+  opacity: 0; transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out);
+}
+#state-label.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+@media (prefers-reduced-motion: reduce) {
+  #state-label { transition: opacity 120ms linear; transform: translateX(-50%); }
+}
+
 /* coalition seat-share bar (overview) */
 .sharebar { display: flex; height: 12px; border-radius: 4px; overflow: hidden; margin: 16px 0 8px; }
 .sharebar span { display: block; height: 100%; }
@@ -452,12 +468,19 @@ body { font-family: var(--sans); }
   display: flex; justify-content: center; align-items: flex-end;
   background: none; border: 0; overflow: visible;
   padding: 0 12px calc(12px + env(safe-area-inset-bottom));
+  transition: padding 280ms cubic-bezier(0.4, 0, 0.2, 1);   /* ease the lift when crossing the breakpoint */
 }
 #panel-empty { transform-origin: bottom center; }   /* the minimize collapse grows/shrinks from the bottom */
 #panel-empty, #panel-seat, #panel-state {
   width: 100%; max-width: 560px;
   background: var(--panel); border: 1px solid var(--line); border-radius: 20px;
   box-shadow: none; padding: 12px;
+  /* mobile↔desktop is a media-query flip; transition the size props so the card MORPHS
+     between the two sizes instead of snapping (also a smooth follow on window drag). */
+  transition: width 280ms cubic-bezier(0.4, 0, 0.2, 1), max-width 280ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 280ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  #panel, #panel-empty, #panel-seat, #panel-state { transition: none; }
 }
 #panel-seat, #panel-state { padding: 16px; max-height: 72dvh; overflow-y: auto; }
 /* the card shows exactly one view at a time (toggled by the [hidden] attrs in JS) */
@@ -570,6 +593,28 @@ body.state-open #panel-state {
   transform-origin: bottom center;   /* the minimize→bounce scale grows upward from the bottom */
 }
 
+/* ---- wider than a phone (landscape / desktop): the bottom sheet becomes a FLOATING card
+   over a full-bleed map. An open state zooms into the map full-bleed with its detail in the
+   floating card — NOT the tall mobile backdrop (which left a lot of empty space here). ---- */
+@media (min-aspect-ratio: 1/1) {
+  #panel { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+  /* cap the map width on wide screens and CENTRE it (grid stays full-bleed behind). The map
+     is aspect-locked, so a width cap also bounds its height — stops it stretching edge-to-edge
+     / oversized on big monitors. Height stays the upper band (lower band = the floating card). */
+  #map { max-width: 1280px; margin-left: auto; margin-right: auto; }
+  /* the card widens with the viewport on wider screens (not a lost 560px under a huge map),
+     capped so the content stays readable */
+  #panel-empty, #panel-seat, #panel-state {
+    max-width: clamp(560px, 62vw, 820px);
+    box-shadow: 0 22px 60px rgba(0,0,0,.55);
+  }
+  /* map sits BEHIND the floating card (undo the mobile "lift map above the card" backdrop) */
+  body.state-open #stage { z-index: 2; pointer-events: auto; }
+  body.state-open #panel-state {
+    min-height: 0; max-height: 72dvh; max-width: clamp(560px, 62vw, 820px); justify-content: flex-start;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) { #seats .seat { transition: none; } }
 
 /* ---- tactile press feedback: a small compositor-only scale on :active ---- */
@@ -591,3 +636,19 @@ body.state-open #panel-state {
   .seg.chip button { padding: 8px 10px; font-size: 11px; }
   .loc-fab { width: 44px; height: 44px; }
 }
+
+/* ---- fluid card type + spacing: scales UP with viewport width on wide screens, giving the
+   card bigger text and more height/room. Each clamp's MINIMUM is the existing phone size, and
+   vw is tiny on phones/tablets, so those are unchanged — it only grows on wide desktops.
+   Continuous (no breakpoint jump), so no transition needed. ---- */
+#panel-seat, #panel-state { padding: clamp(16px, 1.55vw, 28px); }
+#panel .seat-head h2 { font-size: clamp(16px, 1.9vw, 30px); }   /* min 16 = the real phone size (beats `#panel h2`) */
+.seat-head .where { font-size: clamp(13px, 1.05vw, 16px); }
+.seat-head .kicker { font-size: clamp(11px, 0.82vw, 13px); }
+#panel .state-h h2 { font-size: clamp(16px, 1.6vw, 25px); }
+.state-h .muted { font-size: clamp(12px, 0.95vw, 15px); }
+.rows dt { font-size: clamp(12.5px, 1.02vw, 15.5px); }
+.rows dd { font-size: clamp(14px, 1.18vw, 18px); }
+.rows dt, .rows dd { padding-block: clamp(10px, 0.95vw, 16px); }
+.sharebar { height: clamp(12px, 1.05vw, 18px); }
+.sharebar-key { font-size: clamp(11px, 0.92vw, 14px); }

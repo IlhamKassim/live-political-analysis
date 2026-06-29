@@ -163,6 +163,29 @@ function animateIn(el, dist = 10) {
   );
 }
 
+// Smoothly grow/shrink the floating card to fit new content (make-up ⇄ district detail) so it
+// doesn't snap. Measures the natural old→new height and animates between them. Only on the
+// desktop floating card — on mobile the card is a fixed-height backdrop, so it's a plain swap.
+// Height is a layout property, but this is ONE card (no list/scroll thrash) so it stays smooth.
+function animateCardResize(card, mutate) {
+  if (!card || !card.animate || REDUCE_MOTION.matches || !matchMedia("(min-aspect-ratio: 1/1)").matches) {
+    mutate(); return;
+  }
+  const oldH = card.getBoundingClientRect().height;
+  mutate();
+  const newH = card.getBoundingClientRect().height;
+  if (Math.abs(newH - oldH) < 2) return;
+  const prevOverflow = card.style.overflow;
+  card.style.overflow = "hidden";   // clip content to the animating height (revealed as it grows)
+  const a = card.animate(
+    [{ height: oldH + "px" }, { height: newH + "px" }],
+    { duration: 320, easing: "cubic-bezier(0.4,0,0.2,1)" }
+  );
+  const done = () => { card.style.overflow = prevOverflow; };
+  a.onfinish = done; a.oncancel = done;
+  setTimeout(done, 360);   // safety: always restore overflow even if onfinish is missed
+}
+
 // the backdrop card, choreographed to FOLLOW the isolate/zoom (a delay lets the state
 // lead): it starts MINIMIZED (a thin bar at the bottom) and springs UPWARD, growing into
 // the backdrop with an overshoot bounce (transform-origin: bottom). Compositor-only
@@ -337,6 +360,9 @@ function stateBottomScreenY(name) {
 // pinned regardless of content length (a long detail scrolls inside that band).
 function pinBelowState(sb) {
   if (!PANEL_STATE.getClientRects().length) return;
+  // landscape / desktop: the card FLOATS over a full-bleed map (it isn't a backdrop the
+  // state sits on), so don't pin the text beneath the state — let the card size naturally.
+  if (matchMedia("(min-aspect-ratio: 1/1)").matches) { STATE_INFO.style.height = ""; STATE_INFO.style.overflowY = ""; return; }
   const head = document.querySelector("#panel-state .state-head");
   if (!head) return;
   // MEASURE the header-top → info-box-top overhead (header height + every margin between),
@@ -706,10 +732,12 @@ function renderSummary() {
 // Gated to mouse/pointer devices so it never flashes on a touch tap. The overview is a state
 // map, so hovering should tell you which state you're pointing at (and about to open).
 const CAN_HOVER = matchMedia("(hover: hover) and (pointer: fine)").matches;
+const STATE_LABEL = document.getElementById("state-label");
 function setStateHover(name, data) {
   if (name === hoverState) return;   // only re-paint when the hovered state actually changes
   clearStateHover();
   hoverState = name;
+  if (STATE_LABEL) { STATE_LABEL.textContent = name; STATE_LABEL.classList.add("show"); }   // big name atop the map
   for (const s of data.seats) {
     if (s.state === name) { const p = state.paths.get(s.code); if (p) p.classList.add("state-hover"); }
   }
@@ -717,6 +745,7 @@ function setStateHover(name, data) {
 function clearStateHover() {
   if (!hoverState) return;
   hoverState = null;
+  if (STATE_LABEL) STATE_LABEL.classList.remove("show");
   SEATS.querySelectorAll(".seat.state-hover").forEach((p) => p.classList.remove("state-hover"));
 }
 if (CAN_HOVER) {
@@ -736,7 +765,7 @@ if (CAN_HOVER) {
       const win = r
         ? `<div class="t-win">${esc(r.name)} <span class="pill" style="background:${partyColor(r.coalition)};color:#fff">${esc(r.coalition)}</span></div>`
         : "";
-      TOOLTIP.innerHTML = `<div class="t-statename">${esc(seat.state)}</div><div class="t-code">${esc(code)} · ${esc(seat.name)}</div>${win}`;
+      TOOLTIP.innerHTML = `<div class="t-code">${esc(code)} · ${esc(seat.name)}</div>${win}`;
       const rect = STAGE.getBoundingClientRect();
       TOOLTIP.style.left = `${e.clientX - rect.left}px`;
       TOOLTIP.style.top = `${e.clientY - rect.top}px`;
@@ -1250,8 +1279,10 @@ function showDistrict(code) {
   SEATS.querySelectorAll(".seat.sel").forEach((p) => p.classList.remove("sel"));
   const sel = state.paths.get(code);
   if (sel) sel.classList.add("sel");
-  STATE_INFO.innerHTML = seatCardHTML(seat);
-  refitMeasured();            // state is settled here → pin the detail below the real render
+  animateCardResize(PANEL_STATE, () => {   // grow/shrink the floating card to fit the detail
+    STATE_INFO.innerHTML = seatCardHTML(seat);
+    refitMeasured();            // state is settled here → pin the detail below the real render
+  });
   animateIn(STATE_INFO, 6);   // the district detail swaps into the card under the header
   writeHash();
 }
@@ -1261,8 +1292,10 @@ function goBack() {
   if (state.selected && state.openState) {
     state.selected = null;
     SEATS.querySelectorAll(".seat.sel").forEach((p) => p.classList.remove("sel"));
-    STATE_INFO.innerHTML = stateSummaryHTML(state.openState);
-    refitMeasured();          // state is settled here → pin the make-up below the real render
+    animateCardResize(PANEL_STATE, () => {   // shrink the floating card back to the make-up size
+      STATE_INFO.innerHTML = stateSummaryHTML(state.openState);
+      refitMeasured();          // state is settled here → pin the make-up below the real render
+    });
     animateIn(STATE_INFO, 6);
     writeHash();
   } else {
