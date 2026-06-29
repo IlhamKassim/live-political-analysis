@@ -21,28 +21,45 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="styles.css?v=2" />
 </head>
 <body>
 <div id="app">
   <header id="topbar">
-    <div class="brand"><span class="mark">◧ My<b>Politik</b></span></div>
-    <nav class="topicons" aria-label="Actions">
-      <button id="home-btn" class="iconbtn" type="button" data-i18n-aria="home_aria" aria-label="Show the whole map" data-i18n-title="home_aria" title="Show the whole map">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.6 12 3.2l9 7.4"/><path d="M5.2 9.4V20.8h13.6V9.4"/></svg>
+    <button id="menu-btn" class="iconbtn" type="button" data-i18n-aria="menu_aria" aria-label="Menu" aria-haspopup="true" aria-expanded="false" aria-controls="menu-drawer">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><line x1="4" x2="20" y1="8" y2="8"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="16" y2="16"/></svg>
+    </button>
+  </header>
+  <div id="scrim" hidden></div>
+  <aside id="menu-drawer" hidden aria-label="Menu" aria-hidden="true">
+    <div class="drawer-head">
+      <span class="brand"><span class="mark">◧ My<b>Politik</b></span></span>
+      <button id="drawer-close" class="iconbtn" type="button" data-i18n-aria="menu_close" aria-label="Close menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><line x1="6" x2="18" y1="6" y2="18"/><line x1="6" x2="18" y1="18" y2="6"/></svg>
       </button>
+    </div>
+    <nav class="drawer-nav" aria-label="Pages">
+      <button class="drawer-item" data-act="map" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.6 12 3.2l9 7.4"/><path d="M5.2 9.4V20.8h13.6V9.4"/></svg>
+        <span data-i18n="nav_map">Map</span>
+      </button>
+      <button class="drawer-item" data-act="about" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.2"/><circle cx="12" cy="7.6" r="0.7" fill="currentColor" stroke="none"/></svg>
+        <span data-i18n="nav_about">About</span>
+      </button>
+      <button class="drawer-item" data-act="share" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.4"/><circle cx="6" cy="12" r="2.4"/><circle cx="18" cy="19" r="2.4"/><path d="M8.1 10.9 15.9 6.1M8.1 13.1l7.8 4.8"/></svg>
+        <span data-i18n="nav_share">Share</span>
+      </button>
+    </nav>
+    <div class="drawer-foot">
+      <span class="drawer-foot-label" data-i18n="aria_lang">Language</span>
       <div class="seg lang-seg" id="lang" role="tablist" data-i18n-aria="aria_lang" aria-label="Language">
         <button data-lang="en" class="on" role="tab" aria-selected="true" aria-label="English">EN</button>
         <button data-lang="ms" role="tab" aria-selected="false" aria-label="Bahasa Melayu">BM</button>
       </div>
-      <button id="info-btn" class="iconbtn" type="button" data-i18n-aria="info_aria" aria-label="About MyPolitik" data-i18n-title="info_aria" title="About MyPolitik">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.2"/><circle cx="12" cy="7.6" r="0.7" fill="currentColor" stroke="none"/></svg>
-      </button>
-      <button id="share-app-btn" class="iconbtn" type="button" data-i18n-aria="share_aria" aria-label="Share MyPolitik" data-i18n-title="share_aria" title="Share MyPolitik">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.4"/><circle cx="6" cy="12" r="2.4"/><circle cx="18" cy="19" r="2.4"/><path d="M8.1 10.9 15.9 6.1M8.1 13.1l7.8 4.8"/></svg>
-      </button>
-    </nav>
-  </header>
+    </div>
+  </aside>
 
   <div id="info-card" hidden>
     <div class="info-head">
@@ -116,6 +133,6 @@
   </aside>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 </div>
-<script type="module" src="app.js"></script>
+<script type="module" src="app.js?v=2"></script>
 </body>
 </html>

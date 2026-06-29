@@ -4,8 +4,8 @@
 
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
-  resultKey, displayCode, tallyCoalitions, stateHues } from "./lib.js";
-import { I18N } from "./i18n.js";
+  resultKey, displayCode, tallyCoalitions, stateHues } from "./lib.js?v=2";
+import { I18N } from "./i18n.js?v=2";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -163,15 +163,60 @@ function animateIn(el, dist = 10) {
   );
 }
 
+// the backdrop card, choreographed to FOLLOW the isolate/zoom (a delay lets the state
+// lead): it starts MINIMIZED (a thin bar at the bottom) and springs UPWARD, growing into
+// the backdrop with an overshoot bounce (transform-origin: bottom). Compositor-only
+// (scaleY + opacity). Reduced-motion: a plain delayed fade — no scale, no bounce.
+function riseCard(el, delay = 260) {
+  if (!el || !el.animate) return;
+  if (REDUCE_MOTION.matches) {
+    el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, delay, fill: "backwards" });
+    return;
+  }
+  el.animate([
+    { offset: 0,    transform: "scaleY(0.05)", opacity: 0.25, easing: "cubic-bezier(0.34, 1.5, 0.64, 1)" }, // minimized → spring up
+    { offset: 0.45, opacity: 1 },                                                                           // content faded in by mid-rise
+    { offset: 1,    transform: "scaleY(1)",    opacity: 1 },                                                 // bounced up to full
+  ], { duration: 660, delay, fill: "backwards" });
+}
+
+// MINIMIZE the overview card down to a bar (we watch it collapse) before the state
+// backdrop springs up from that same point. Compositor-only (scaleY + opacity).
+function minimizeCard(el) {
+  if (!el || !el.animate) return;
+  if (REDUCE_MOTION.matches) { el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, fill: "forwards" }); return; }
+  el.animate([
+    { transform: "scaleY(1)",    opacity: 1, offset: 0 },
+    { transform: "scaleY(0.4)",  opacity: 1, offset: 0.55 },   // visibly shrinking
+    { transform: "scaleY(0.05)", opacity: 0, offset: 1 },      // collapsed to a faded bar
+  ], { duration: 300, easing: "cubic-bezier(0.5, 0, 0.75, 0)", fill: "forwards" });
+}
+
 // ---- rendering ----
+let hoverState = null;   // name of the state currently lit up under the cursor (mouse only)
 async function render(tier) {
   const data = await loadTier(tier);
   SVG.setAttribute("viewBox", data.viewBox);
   viewBox = data.viewBox.split(" ").map(Number);
   SEATS.innerHTML = "";
   state.paths.clear();
+  hoverState = null;   // paths are rebuilt → any prior hover highlight is gone
 
   const frag = document.createDocumentFragment();
+  // DUN tier has no federal-territory seats (KL / Putrajaya / Labuan have no state assembly),
+  // which would otherwise leave black holes in the map. Underlay those FT areas using the
+  // Parliament geometry (identical FROZEN projection) as muted, non-interactive
+  // "no state assembly" shapes — so the map reads as complete, not broken.
+  if (tier === "dun") {
+    const pdata = await loadTier("parlimen");
+    for (const seat of pdata.seats) {
+      if (!(seat.state || "").startsWith("W.P.")) continue;   // W.P. Kuala Lumpur / Putrajaya / Labuan
+      const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      p.setAttribute("d", seat.d);
+      p.setAttribute("class", "seat no-dun");
+      frag.appendChild(p);
+    }
+  }
   for (const seat of data.seats) {
     const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
     p.setAttribute("d", seat.d);
@@ -231,6 +276,11 @@ function paint() {
 let animId = null;
 function animateTo(target, ms = 480) {
   cancelAnimationFrame(animId);
+  if (REDUCE_MOTION.matches) {   // a11y: no large zoom travel — jump straight to the frame
+    viewBox = target.slice();
+    SVG.setAttribute("viewBox", viewBox.map((n) => n.toFixed(2)).join(" "));
+    return;
+  }
   const start = viewBox.slice();
   const t0 = performance.now();
   const ease = (t) => 1 - Math.pow(1 - t, 3);
@@ -256,6 +306,82 @@ function zoomToSeat(seat) {
   animateTo([cx - vw / 2, cy - vh / 2, vw, vh]);
 }
 function zoomFull() { animateTo(FULL.slice()); }
+// the viewBox that frames a whole state into the upper part of the map (state centre
+// ~37% down). Aspect-matched so preserveAspectRatio won't distort. Returns [x,y,w,h].
+function stateViewBox(name) {
+  const b = stateBBox(name);
+  const pad = Math.max(b.w, b.h) * 0.06 + 2;
+  let w = b.w + pad * 2, h = b.h + pad * 2;
+  const ar = FULL[2] / FULL[3];
+  if (w / h > ar) h = w / ar; else w = h * ar;
+  const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+  return [cx - w / 2, cy - 0.37 * h, w, h];
+}
+function zoomToState(name) { animateTo(stateViewBox(name), 540); }
+
+// The state's bottom edge in screen px, at its FINAL zoom — computed deterministically
+// from the target viewBox + the SVG's preserveAspectRatio="xMidYMid meet", so it is
+// correct on ANY viewport and even before the zoom animation has settled (no measuring).
+function stateBottomScreenY(name) {
+  const b = stateBBox(name);
+  const vb = stateViewBox(name);
+  const mr = SVG.getBoundingClientRect();
+  const scale = Math.min(mr.width / vb[2], mr.height / vb[3]);   // "meet": fit, don't crop
+  const offsetY = (mr.height - vb[3] * scale) / 2;               // letterbox top/bottom
+  return mr.top + offsetY + ((b.y + b.h) - vb[1]) * scale;
+}
+
+// PIN the card text (header + info) so the header sits ~10px BELOW where the state ends
+// on screen, for BOTH the make-up and district views — the map can then never cover the
+// writing. #state-info gets a FIXED height = the room beneath the state, so the header is
+// pinned regardless of content length (a long detail scrolls inside that band).
+function pinBelowState(sb) {
+  if (!PANEL_STATE.getClientRects().length) return;
+  const head = document.querySelector("#panel-state .state-head");
+  if (!head) return;
+  // MEASURE the header-top → info-box-top overhead (header height + every margin between),
+  // so the pin is exact regardless of font size, a wrapped header, or card chrome. Then
+  // size #state-info so its box-top — hence the header top — lands ~12px BELOW the state.
+  const overhead = STATE_INFO.getBoundingClientRect().top - head.getBoundingClientRect().top;
+  const padB = parseFloat(getComputedStyle(PANEL_STATE).paddingBottom) || 16;
+  const infoBottom = PANEL_STATE.getBoundingClientRect().bottom - padB;   // measured → includes safe-area
+  const h = Math.max(96, infoBottom - (sb + 12) - overhead);
+  STATE_INFO.style.height = h + "px";
+  STATE_INFO.style.overflowY = "auto";
+}
+// GROUND TRUTH: where the visible state actually ends on screen right now.
+function visibleStateBottom() {
+  const ins = SEATS.querySelectorAll(".seat.instate");
+  if (!ins.length) return null;
+  let sb = -Infinity;
+  ins.forEach((p) => { const r = p.getBoundingClientRect(); if (r.bottom > sb) sb = r.bottom; });
+  return isFinite(sb) ? sb : null;
+}
+// Deterministic — for the IMMEDIATE reveal: correct for the FINAL frame even mid-zoom.
+function fitContentBelowState() {
+  if (!state.openState || !PANEL_STATE.getClientRects().length) return;
+  pinBelowState(stateBottomScreenY(state.openState));
+}
+// Measured — used once the state has SETTLED (and on resize / font swap): uses the real
+// render, so it cannot be wrong about where the state is, whatever the viewport.
+function refitMeasured() {
+  if (!state.openState || !PANEL_STATE.getClientRects().length) return;
+  const sb = visibleStateBottom();
+  if (sb != null) pinBelowState(sb);
+}
+
+// Re-pin when the viewport changes while a state is open (rotation, resize, iOS URL-bar)
+// and after a late webfont swap reflows the header — otherwise the pin goes stale.
+let refitTimer = null;
+function scheduleRefit() {
+  if (!state.openState) return;
+  clearTimeout(refitTimer);
+  refitTimer = setTimeout(refitMeasured, 120);
+}
+addEventListener("resize", scheduleRefit);
+addEventListener("orientationchange", scheduleRefit);
+if (window.visualViewport) visualViewport.addEventListener("resize", scheduleRefit);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (state.openState) refitMeasured(); });
 
 // ---- selection + panel ----
 function select(code) {
@@ -285,9 +411,11 @@ function seatCardHTML(seat) {
     const blocPill = `<span class="pill" style="background:${partyColor(r.coalition)};color:#fff">${esc(r.coalition)}</span>`;
     // surface party_full ("Perikatan Nasional (PN)") via the pure helper; only show
     // it when it adds something beyond the bloc pill (skip a redundant "PN · PN")
-    const partyTxt = card.party && card.party.label && card.party.label !== r.coalition ? `${esc(card.party.label)} · ` : "";
+    const partyLabel = card.party && card.party.label && card.party.label !== r.coalition ? esc(card.party.label) : "";
+    // keep the "· <pill>" together so the pill never orphans onto its own line on mobile
+    const blocUnit = `<span class="bloc-unit">${partyLabel ? "· " : ""}${blocPill}</span>`;
     rows += `<dt>${t("rep")}</dt><dd>${esc(r.name)}</dd>`;
-    rows += `<dt>${t("party_bloc")}</dt><dd>${partyTxt}${blocPill}</dd>`;
+    rows += `<dt>${t("party_bloc")}</dt><dd>${partyLabel ? partyLabel + " " : ""}${blocUnit}</dd>`;
     if (card.majority != null)
       rows += `<dt>${t(ownDun ? "majority_prn" : "majority")}</dt><dd class="mono">${card.majority.toLocaleString()}${card.majorityPct != null ? ` <span class="muted">(${card.majorityPct}%)</span>` : ""}</dd>`;
     if (card.votes != null)
@@ -574,37 +702,67 @@ function renderSummary() {
   }
 }
 
-// ---- hover tooltip ----
-SVG.addEventListener("mousemove", (e) => {
-  const tgt = e.target;   // NOT `t` — that name is the module-level i18n fn t(); shadowing it would break any t("key") added here
-  if (tgt.classList && tgt.classList.contains("seat")) {
-    const data = state.data[state.tier];
-    if (!data) return;   // boundary layer unavailable — no seat paths exist anyway; guard for symmetry
-    const seat = data.byCode.get(tgt.dataset.code);
-    if (!seat) return;
-    const code = displayCode(seat, state.tier);
-    const r = resultFor(seat);
-    const win = r
-      ? `<div class="t-win">${esc(r.name)} <span class="pill" style="background:${partyColor(r.coalition)};color:#fff">${esc(r.coalition)}</span></div>`
-      : "";
-    TOOLTIP.innerHTML = `<div class="t-code">${esc(code)}</div>${esc(seat.name)}<div class="t-state">${esc(seat.state)}</div>${win}`;
-    const rect = STAGE.getBoundingClientRect();
-    TOOLTIP.style.left = `${e.clientX - rect.left}px`;
-    TOOLTIP.style.top = `${e.clientY - rect.top}px`;
-    TOOLTIP.hidden = false;
-  } else {
-    TOOLTIP.hidden = true;
+// ---- hover: light up the state under the cursor and name it ----
+// Gated to mouse/pointer devices so it never flashes on a touch tap. The overview is a state
+// map, so hovering should tell you which state you're pointing at (and about to open).
+const CAN_HOVER = matchMedia("(hover: hover) and (pointer: fine)").matches;
+function setStateHover(name, data) {
+  if (name === hoverState) return;   // only re-paint when the hovered state actually changes
+  clearStateHover();
+  hoverState = name;
+  for (const s of data.seats) {
+    if (s.state === name) { const p = state.paths.get(s.code); if (p) p.classList.add("state-hover"); }
   }
-});
-SVG.addEventListener("mouseleave", () => { TOOLTIP.hidden = true; });
+}
+function clearStateHover() {
+  if (!hoverState) return;
+  hoverState = null;
+  SEATS.querySelectorAll(".seat.state-hover").forEach((p) => p.classList.remove("state-hover"));
+}
+if (CAN_HOVER) {
+  SVG.addEventListener("mousemove", (e) => {
+    const tgt = e.target;   // NOT `t` — that name is the module-level i18n fn t(); shadowing breaks t("key")
+    // isolated state view: the card already shows the detail and the cursor is over the
+    // districts, so a hover tooltip there just overlaps the card.
+    if (state.openState) { TOOLTIP.hidden = true; clearStateHover(); return; }
+    if (tgt.classList && tgt.classList.contains("seat") && !tgt.classList.contains("no-dun")) {
+      const data = state.data[state.tier];
+      if (!data) return;   // boundary layer unavailable — no seat paths exist anyway
+      const seat = data.byCode.get(tgt.dataset.code);
+      if (!seat) return;
+      setStateHover(seat.state, data);   // light up the whole state under the cursor
+      const code = displayCode(seat, state.tier);
+      const r = resultFor(seat);
+      const win = r
+        ? `<div class="t-win">${esc(r.name)} <span class="pill" style="background:${partyColor(r.coalition)};color:#fff">${esc(r.coalition)}</span></div>`
+        : "";
+      TOOLTIP.innerHTML = `<div class="t-statename">${esc(seat.state)}</div><div class="t-code">${esc(code)} · ${esc(seat.name)}</div>${win}`;
+      const rect = STAGE.getBoundingClientRect();
+      TOOLTIP.style.left = `${e.clientX - rect.left}px`;
+      TOOLTIP.style.top = `${e.clientY - rect.top}px`;
+      TOOLTIP.hidden = false;
+    } else {
+      TOOLTIP.hidden = true; clearStateHover();
+    }
+  });
+  SVG.addEventListener("mouseleave", () => { TOOLTIP.hidden = true; clearStateHover(); });
+}
 
 // ---- click ----
 SVG.addEventListener("click", (e) => {
   const tgt = e.target;   // NOT `t` — that name is the module-level i18n fn t(); shadowing it would break any t("key") added here
+  TOOLTIP.hidden = true; clearStateHover();  // dismiss any lingering hover tooltip / state highlight
   if (tgt.classList && tgt.classList.contains("seat")) {
-    openStateCard(state.data[state.tier].byCode.get(tgt.dataset.code).state);
+    const seat = state.data[state.tier] && state.data[state.tier].byCode.get(tgt.dataset.code);
+    if (!seat) return;
+    if (state.openState) {
+      // already isolated in a state → tapping a district shows its detail
+      if (seat.state === state.openState) showDistrict(seat.code);
+    } else {
+      openStateCard(seat.state);   // overview → isolate + zoom into the tapped state
+    }
   } else {
-    backToControls();
+    goBack();   // tap empty space → step back one level
   }
 });
 
@@ -928,20 +1086,61 @@ document.getElementById("loc-btn")?.addEventListener("click", locate);
 })();
 
 /* ===== top-bar icon actions ===== */
-document.getElementById("home-btn")?.addEventListener("click", () => backToControls());
-document.getElementById("info-btn")?.addEventListener("click", () => {
-  const ic = document.getElementById("info-card"); if (ic) ic.hidden = !ic.hidden;
-});
 document.getElementById("info-close")?.addEventListener("click", () => {
   const ic = document.getElementById("info-card"); if (ic) ic.hidden = true;
 });
-document.getElementById("share-app-btn")?.addEventListener("click", async () => {
+async function shareApp() {
   const url = location.origin + location.pathname;
   try {
     if (navigator.share) await navigator.share({ title: "MyPolitik", url });
     else { await navigator.clipboard.writeText(url); showToast("share_ok"); }
   } catch (e) { /* user cancelled */ }
+}
+
+// ---- menu drawer: a single top-left button opens a slide-in drawer with every page/action ----
+const MENU_BTN = document.getElementById("menu-btn");
+const MENU_DRAWER = document.getElementById("menu-drawer");
+const SCRIM = document.getElementById("scrim");
+let menuOpen = false, menuCloseT = null;
+function openMenu() {
+  if (menuOpen || !MENU_DRAWER) return;
+  menuOpen = true;
+  clearTimeout(menuCloseT);
+  SCRIM.hidden = false; MENU_DRAWER.hidden = false;
+  MENU_DRAWER.setAttribute("aria-hidden", "false");
+  MENU_BTN.setAttribute("aria-expanded", "true");
+  if (MENU_DRAWER.animate && !REDUCE_MOTION.matches) {
+    SCRIM.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: "cubic-bezier(0,0,0.2,1)" });
+    MENU_DRAWER.animate([{ transform: "translateX(-100%)" }, { transform: "translateX(0)" }], { duration: 300, easing: "cubic-bezier(0,0,0.2,1)" });
+  }
+  document.getElementById("drawer-close")?.focus();
+}
+function closeMenu() {
+  if (!menuOpen) return;
+  menuOpen = false;
+  MENU_DRAWER.setAttribute("aria-hidden", "true");
+  MENU_BTN.setAttribute("aria-expanded", "false");
+  const done = () => { if (!menuOpen) { SCRIM.hidden = true; MENU_DRAWER.hidden = true; } };
+  clearTimeout(menuCloseT);
+  if (MENU_DRAWER.animate && !REDUCE_MOTION.matches) {
+    SCRIM.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, easing: "cubic-bezier(0.4,0,1,1)" });
+    MENU_DRAWER.animate([{ transform: "translateX(0)" }, { transform: "translateX(-100%)" }], { duration: 220, easing: "cubic-bezier(0.4,0,1,1)" });
+    menuCloseT = setTimeout(done, 240);   // hide after the exit anim (robust — not reliant on onfinish)
+  } else { done(); }
+}
+MENU_BTN?.addEventListener("click", openMenu);
+document.getElementById("drawer-close")?.addEventListener("click", closeMenu);
+SCRIM?.addEventListener("click", closeMenu);
+MENU_DRAWER?.addEventListener("click", (e) => {
+  const item = e.target.closest(".drawer-item");
+  if (!item) return;
+  const act = item.dataset.act;
+  closeMenu();
+  if (act === "map") backToControls();
+  else if (act === "about") { const ic = document.getElementById("info-card"); if (ic) ic.hidden = false; }
+  else if (act === "share") shareApp();
 });
+addEventListener("keydown", (e) => { if (e.key === "Escape" && menuOpen) { e.stopPropagation(); closeMenu(); } });
 
 /* ===== state-first drill: main map = states; tap a state to open its district mini-map in the card ===== */
 const STATE_MAP = document.getElementById("state-map");
@@ -1006,20 +1205,6 @@ function openStateCard(name) {
   if (!name) return;
   const d = state.data[state.tier];
   const seats = d.seats.filter((s) => s.state === name);
-  const box = stateBBox(name);
-  const pad = Math.max(box.w, box.h) * 0.05 + 1.5;
-  STATE_MAP.setAttribute("viewBox", `${box.x - pad} ${box.y - pad} ${box.w + pad * 2} ${box.h + pad * 2}`);
-  STATE_SEATS.innerHTML = "";
-  const frag = document.createDocumentFragment();
-  for (const seat of seats) {
-    const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    p.setAttribute("d", seat.d);
-    p.setAttribute("class", "mini-seat");
-    p.style.fill = seatValueColor(seat);
-    p.dataset.code = seat.code;
-    frag.appendChild(p);
-  }
-  STATE_SEATS.appendChild(frag);
   document.getElementById("state-name").textContent = name;
   const n = seats.length;
   const countKey = "state_count_" + (state.tier === "parlimen" ? "parlimen" : "dun") + (n === 1 ? "_one" : "");
@@ -1027,31 +1212,76 @@ function openStateCard(name) {
   STATE_INFO.innerHTML = stateSummaryHTML(name);
   state.openState = name;
   state.selected = null;
+  // isolate: fade the other states out, reveal this state's district borders, zoom in.
+  // the big map IS the district map now — no separate mini-map in the card.
+  SEATS.classList.add("isolated");
+  document.body.classList.add("state-open");   // card rises into a tall backdrop, map lifts above it
   highlightState(name);
-  PANEL.classList.remove("empty");
-  PANEL_EMPTY.hidden = true;
+  zoomToState(name);
+  // once the zoom settles, re-pin against the GROUND-TRUTH rendered state bottom (covers
+  // any geometry edge case the deterministic pin might miss on an unusual viewport).
+  clearTimeout(settleTimer);
+  settleTimer = setTimeout(refitMeasured, REDUCE_MOTION.matches ? 80 : 700);
+  // choreograph: watch the overview card MINIMIZE, then the state backdrop springs up
+  // from that minimized point. (Coming from another state card, just reveal + bounce.)
+  clearTimeout(revealTimer);
+  if (PANEL.classList.contains("empty")) {
+    minimizeCard(PANEL_EMPTY);
+    revealTimer = setTimeout(revealStateCard, 300);
+  } else {
+    revealStateCard();
+  }
+  writeHash();
+}
+let revealTimer = null, settleTimer = null;
+function revealStateCard() {
+  PANEL.classList.remove("empty");   // hides #panel-empty, shows #panel-state (via CSS)
   PANEL_SEAT.hidden = true;
   PANEL_STATE.hidden = false;
-  animateIn(PANEL_STATE);
-  writeHash();
+  fitContentBelowState();            // keep the make-up header/bar below the state too
+  riseCard(PANEL_STATE, 0);          // the minimize already led; bounce up from the minimized bar
 }
 
 function showDistrict(code) {
   const seat = state.data[state.tier] && state.data[state.tier].byCode.get(code);
   if (!seat) return;
   state.selected = code;
-  STATE_SEATS.querySelectorAll(".mini-seat.sel").forEach((p) => p.classList.remove("sel"));
-  const sel = STATE_SEATS.querySelector('.mini-seat[data-code="' + (window.CSS && CSS.escape ? CSS.escape(code) : code) + '"]');
+  // highlight the tapped district on the (static) zoomed-in map
+  SEATS.querySelectorAll(".seat.sel").forEach((p) => p.classList.remove("sel"));
+  const sel = state.paths.get(code);
   if (sel) sel.classList.add("sel");
   STATE_INFO.innerHTML = seatCardHTML(seat);
-  animateIn(STATE_INFO, 6);   // the district detail swaps in under the mini-map
+  refitMeasured();            // state is settled here → pin the detail below the real render
+  animateIn(STATE_INFO, 6);   // the district detail swaps into the card under the header
   writeHash();
+}
+
+// two-level back: a chosen district → back to the state make-up; the state → overview.
+function goBack() {
+  if (state.selected && state.openState) {
+    state.selected = null;
+    SEATS.querySelectorAll(".seat.sel").forEach((p) => p.classList.remove("sel"));
+    STATE_INFO.innerHTML = stateSummaryHTML(state.openState);
+    refitMeasured();          // state is settled here → pin the make-up below the real render
+    animateIn(STATE_INFO, 6);
+    writeHash();
+  } else {
+    backToControls();
+  }
 }
 
 function backToControls() {
   state.selected = null;
   state.openState = null;
+  clearTimeout(revealTimer);
+  clearTimeout(settleTimer);
+  STATE_INFO.style.height = "";   // drop the pinned height for the next open / overview
+  PANEL_EMPTY.getAnimations().forEach((a) => a.cancel());   // clear the held minimize → overview shows full again
+  SEATS.classList.remove("isolated");
+  document.body.classList.remove("state-open");
+  SEATS.querySelectorAll(".seat.sel").forEach((p) => p.classList.remove("sel"));
   highlightState(null);
+  zoomFull();                 // zoom back out to the whole country
   PANEL.classList.add("empty");
   PANEL_EMPTY.hidden = false;
   PANEL_SEAT.hidden = true;
@@ -1067,8 +1297,9 @@ STATE_SEATS.addEventListener("click", (e) => {
   const t2 = e.target.closest(".mini-seat");
   if (t2) showDistrict(t2.dataset.code);
 });
-document.getElementById("state-back")?.addEventListener("click", backToControls);
+document.getElementById("state-back")?.addEventListener("click", goBack);
 PANEL_STATE.addEventListener("click", (e) => {
   if (e.target.closest("#share-link")) shareLink();
   else if (e.target.closest("#share-card")) shareCard();
+  else if (e.target === PANEL_STATE) goBack();   // tap the empty backdrop (behind the state) → step back
 });
