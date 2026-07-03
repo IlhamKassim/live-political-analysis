@@ -411,7 +411,7 @@ function syncMapToCard() {
   const cardTop = PANEL.getBoundingClientRect().bottom - panelPadBottom - activeCard.offsetHeight;
   const mapH = Math.max(0, Math.floor(cardTop - stageRect.top - topInset - gap));
   root.style.setProperty("--map-h", `${mapH}px`);
-  requestAnimationFrame(syncStageLabelPosition);
+  requestAnimationFrame(() => { syncStageLabelPosition(); syncSelectedTexture(); });
 }
 
 function mobileMenuOpen() {
@@ -576,6 +576,28 @@ function setSelectedDistrict(code) {
   overlay.setAttribute("class", "selected-texture");
   overlay.setAttribute("data-code", code);
   SELECTED_OVERLAY.appendChild(overlay);
+  syncSelectedTexture();
+}
+
+// The stripe pattern is defined in map user units, but the frozen projection means px-per-
+// unit varies ~20× between a zoomed-in W.P. and a whole-Malaysia view — fixed user-unit
+// stripes render as a solid blob on small states. Re-derive the pattern from the CURRENT
+// render scale so the stripes are always ~1px thin and ~5px apart ON SCREEN, everywhere.
+const SEL_TEX_PATTERN = document.getElementById("selected-district-lines");
+const SEL_TEX_LINE = SEL_TEX_PATTERN && SEL_TEX_PATTERN.querySelector("path");
+const SEL_TEX_SPACING_PX = 5;   // stripe pitch on screen
+const SEL_TEX_WIDTH_PX = 1;     // stripe thickness on screen
+function syncSelectedTexture() {
+  if (!SEL_TEX_PATTERN || !SEL_TEX_LINE || !SELECTED_OVERLAY || !SELECTED_OVERLAY.childElementCount) return;
+  const r = SVG.getBoundingClientRect();
+  if (!(r.width > 0) || !(viewBox[2] > 0) || !(viewBox[3] > 0)) return;
+  const k = Math.min(r.width / viewBox[2], r.height / viewBox[3]);   // meet scale: px per unit
+  if (!Number.isFinite(k) || k <= 0) return;
+  const cell = (SEL_TEX_SPACING_PX / k).toFixed(4);
+  SEL_TEX_PATTERN.setAttribute("width", cell);
+  SEL_TEX_PATTERN.setAttribute("height", cell);
+  SEL_TEX_LINE.setAttribute("d", `M0 0V${cell}`);
+  SEL_TEX_LINE.setAttribute("stroke-width", (SEL_TEX_WIDTH_PX / k).toFixed(4));
 }
 
 // ---- viewBox zoom (lerp) ----
@@ -585,6 +607,8 @@ function animateTo(target, ms = 480, ease = (t) => 1 - Math.pow(1 - t, 3)) {
   if (ANIM_OFF || REDUCE_MOTION.matches) {   // animations off / a11y: jump straight to the frame
     viewBox = target.slice();
     SVG.setAttribute("viewBox", viewBox.map((n) => n.toFixed(2)).join(" "));
+    syncStageLabelPosition();
+    syncSelectedTexture();
     return;
   }
   const start = viewBox.slice();
@@ -595,6 +619,7 @@ function animateTo(target, ms = 480, ease = (t) => 1 - Math.pow(1 - t, 3)) {
     viewBox = start.map((v, i) => v + (target[i] - v) * e);
     SVG.setAttribute("viewBox", viewBox.map((n) => n.toFixed(2)).join(" "));
     syncStageLabelPosition();
+    syncSelectedTexture();
     if (k < 1) animId = requestAnimationFrame(step);
   }
   animId = requestAnimationFrame(step);
@@ -2226,6 +2251,7 @@ function setViewBoxNow(vb) {
   viewBox = vb.slice();
   SVG.setAttribute("viewBox", viewBox.map((n) => n.toFixed(2)).join(" "));
   syncStageLabelPosition();
+  syncSelectedTexture();
 }
 
 // The map band was just resized by layout (oldRect → newRect) while the viewBox is

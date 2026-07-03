@@ -1582,14 +1582,14 @@ body { font-family: var(--sans); }
 }
 #seats.isolated .seat.sel {
   stroke: #fff;
-  stroke-width: 3;
+  stroke-width: 1.8;
   paint-order: stroke;
 }
 .selected-texture {
   pointer-events: none;
   fill: url(#selected-district-lines);
   stroke: rgba(255,255,255,.95);
-  stroke-width: 1.4;
+  stroke-width: 1.1;
   vector-effect: non-scaling-stroke;
   paint-order: stroke;
 }
@@ -1607,10 +1607,10 @@ body { font-family: var(--sans); }
   }
   #seats.isolated .seat.sel {
     stroke: #fff;
-    stroke-width: 3.2;
+    stroke-width: 1.8;
   }
   .selected-texture {
-    stroke-width: 1.6;
+    stroke-width: 1.1;
   }
 }
 .state-map-wrap { display: none; }   /* the isolated state IS the map now — drop the card mini-map */
