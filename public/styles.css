@@ -396,6 +396,11 @@ body { font-family: var(--sans); }
   margin-top: var(--map-top, 70px);
   height: var(--map-h, calc(100% - var(--map-top, 70px) - 200px));
 }
+/* While a state is isolated, let the map paint OUTSIDE its band box: during the detail
+   pop the band is already small while the state holds at full size — the default SVG
+   clip read as a hard line slicing the state's bottom. Only the isolated state is
+   visible (outstate seats are opacity 0) and the card (z-30) covers it as it rises. */
+body.state-open #map { overflow: visible; }
 
 /* ---- floating top bar: logo left, icon cluster right ---- */
 #topbar {
