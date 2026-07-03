@@ -244,6 +244,12 @@ function setPanelView(view) {
 // same decelerate curve so they read as a single coordinated move.
 const DETAIL_POP_MS = 600;
 const DETAIL_POP_EASE = "cubic-bezier(0,0,0.2,1)";
+// Danial's choreography for the district-detail pop: card pops DOWN, card pops UPWARD,
+// and only once the rise is clearly underway does the state start shrinking — it lags
+// the card by DELAY and catches up with a shorter glide so both settle together.
+const DETAIL_GLIDE_DELAY_MS = 200;
+const DETAIL_GLIDE_MS = 430;
+let detailGlideTimer = null;
 // JS twin of DETAIL_POP_EASE for the rAF viewBox glide — the map camera and the card's
 // WAAPI rise must follow the IDENTICAL progress curve or the composite reads as two moves.
 function cubicBezierEase(x1, y1, x2, y2) {
@@ -2342,15 +2348,25 @@ async function showMapInspectDetails(options = {}) {
         resetStateInfoScroll();
         writeHash();
       }, (firstMap, lastMap) => {
-        // The map's whole move is ONE viewBox camera glide: first rewrite the viewBox so
-        // the state renders pixel-identical in the just-resized band (no snap), then
-        // glide the WHOLE state into the shorter band (never crop it — the selected
-        // district stays highlighted) on the SAME clock + curve as the card's rise.
-        // Returning true skips the element FLIP — its non-uniform scaleY stretched the
-        // geometry mid-move, which is what made the shrink feel rough.
+        // The map's whole move is ONE viewBox camera glide: rewrite the viewBox so the
+        // state renders pixel-identical in the just-resized band (no snap), hold it there
+        // while the card pops upward OVER it (card z-30 > stage z-1), then — only once
+        // the rise is clearly underway — glide the WHOLE state up into the band (never
+        // crop it). Returning true skips the element FLIP (its non-uniform scaleY
+        // stretched the geometry mid-move).
         if (MOBILE_MAP_INSPECT_MQ.matches && state.openState) {
+          if (!firstMap || !lastMap) {           // reduced-motion / anim-off: jump straight
+            zoomToState(state.openState);
+            return true;
+          }
           setViewBoxPreservingScreen(firstMap, lastMap);
-          zoomToState(state.openState, DETAIL_POP_MS, DETAIL_POP_EASE_FN);
+          clearTimeout(detailGlideTimer);
+          detailGlideTimer = setTimeout(() => {
+            // still in district detail? (a fast back-tap within the delay cancels the glide)
+            if (state.openState && PANEL.classList.contains("seat-detail")) {
+              zoomToState(state.openState, DETAIL_GLIDE_MS, DETAIL_POP_EASE_FN);
+            }
+          }, DETAIL_GLIDE_DELAY_MS);
           return true;
         }
         return false;
