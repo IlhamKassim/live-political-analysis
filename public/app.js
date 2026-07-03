@@ -240,10 +240,29 @@ function setPanelView(view) {
   requestAnimationFrame(syncMapToCard);
 }
 
-// One clock for the More-pop: map band FLIP, viewBox zoom and card rise all run this
-// duration with the same decelerate curve so they read as a single coordinated move.
+// One clock for the More-pop: viewBox zoom and card rise run this duration with the
+// same decelerate curve so they read as a single coordinated move.
 const DETAIL_POP_MS = 600;
 const DETAIL_POP_EASE = "cubic-bezier(0,0,0.2,1)";
+// JS twin of DETAIL_POP_EASE for the rAF viewBox glide — the map camera and the card's
+// WAAPI rise must follow the IDENTICAL progress curve or the composite reads as two moves.
+function cubicBezierEase(x1, y1, x2, y2) {
+  const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
+  const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+  const sampleX = (t) => ((ax * t + bx) * t + cx) * t;
+  const sampleY = (t) => ((ay * t + by) * t + cy) * t;
+  return (x) => {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    let lo = 0, hi = 1, t = x;
+    for (let i = 0; i < 24; i++) {
+      t = (lo + hi) / 2;
+      if (sampleX(t) < x) lo = t; else hi = t;
+    }
+    return sampleY(t);
+  };
+}
+const DETAIL_POP_EASE_FN = cubicBezierEase(0, 0, 0.2, 1);
 
 function animateRectFlip(el, first, last, duration = 360, easing = "cubic-bezier(0.4,0,0.2,1)") {
   if (!el || !el.animate || !first || !last || last.width <= 0 || last.height <= 0) return;
@@ -291,9 +310,11 @@ function animateCardResize(card, mutate) {
   animateRectFlip(SVG, firstMap, lastMap, 420);
 }
 
-// onLayout (optional) fires once the swapped-in layout is real — the moment the map's
-// FLIP starts — so callers can launch a concurrent viewBox move and the map shrinks /
-// reframes IN STEP with the card's rise instead of jumping after it.
+// onLayout (optional) fires once the swapped-in layout is real, with the map's pre/post
+// layout rects, so callers can launch a concurrent viewBox move and the map shrinks /
+// reframes IN STEP with the card's rise instead of jumping after it. Return true from
+// onLayout to own the map's motion entirely (skips the element FLIP — a viewBox-only
+// camera move has no scaleY distortion).
 async function swapCardWithMinimizePop(card, mutate, onLayout) {
   if (ANIM_OFF || !card || !card.animate || REDUCE_MOTION.matches) {
     mutate();
@@ -326,8 +347,8 @@ async function swapCardWithMinimizePop(card, mutate, onLayout) {
     mutate();
     syncMapToCard();
     const lastMap = SVG.getBoundingClientRect();
-    animateRectFlip(SVG, firstMap, lastMap, DETAIL_POP_MS, DETAIL_POP_EASE);
-    if (onLayout) onLayout();   // map box + viewBox move together, alongside the card's rise
+    const mapHandled = onLayout ? onLayout(firstMap, lastMap) : false;
+    if (!mapHandled) animateRectFlip(SVG, firstMap, lastMap, DETAIL_POP_MS, DETAIL_POP_EASE);
     await nextFrame();
 
     // Single-segment rise (no overshoot): the card's scaleY tracks the exact same
@@ -362,7 +383,13 @@ function syncMapToCard() {
     inspecting ? 0 : (TOPBAR ? TOPBAR.getBoundingClientRect().bottom : 0),
     inspecting ? 0 : (TOP_CONTROLS ? TOP_CONTROLS.getBoundingClientRect().bottom : 0)
   );
-  const topInset = inspecting ? 8 : Math.max(0, Math.ceil(chromeBottom - stageRect.top + 12));
+  let topInset = inspecting ? 8 : Math.max(0, Math.ceil(chromeBottom - stageRect.top + 12));
+  // Mobile district detail: the state title is pinned just under the topbar, so the map
+  // band starts BELOW it — the shrunken state then centers between the title and the card.
+  if (MOBILE_MAP_INSPECT_MQ.matches && PANEL.classList.contains("seat-detail") && state.openState) {
+    const labelH = (STATE_LABEL && STATE_LABEL.getBoundingClientRect().height) || 30;
+    topInset = Math.max(0, Math.ceil(chromeBottom - stageRect.top + 6 + labelH + 8));
+  }
   const panelStyle = getComputedStyle(PANEL);
   const panelPadBottom = parseFloat(panelStyle.paddingBottom) || 0;
   const gap = 12;
@@ -553,7 +580,7 @@ function setSelectedDistrict(code) {
 
 // ---- viewBox zoom (lerp) ----
 let animId = null;
-function animateTo(target, ms = 480) {
+function animateTo(target, ms = 480, ease = (t) => 1 - Math.pow(1 - t, 3)) {
   cancelAnimationFrame(animId);
   if (ANIM_OFF || REDUCE_MOTION.matches) {   // animations off / a11y: jump straight to the frame
     viewBox = target.slice();
@@ -562,7 +589,6 @@ function animateTo(target, ms = 480) {
   }
   const start = viewBox.slice();
   const t0 = performance.now();
-  const ease = (t) => 1 - Math.pow(1 - t, 3);
   function step(now) {
     const k = Math.min(1, (now - t0) / ms);
     const e = ease(k);
@@ -1401,6 +1427,14 @@ function syncStageLabelPosition() {
     document.documentElement.style.removeProperty("--state-label-top");
     return;
   }
+  // Mobile district detail: pin the title to its resting spot under the topbar (the map
+  // band starts below it — see syncMapToCard). Tracking the state's top here would make
+  // the title chase the camera through the whole district glide.
+  if (MOBILE_MAP_INSPECT_MQ.matches && PANEL.classList.contains("seat-detail")) {
+    const floor = TOPBAR ? Math.max(12, Math.round(TOPBAR.getBoundingClientRect().bottom + 6)) : 12;
+    document.documentElement.style.setProperty("--state-label-top", `${floor}px`);
+    return;
+  }
   const stateTop = currentStateTopScreenY(state.openState);
   const labelH = STATE_LABEL.getBoundingClientRect().height || 32;
   const gap = MOBILE_MAP_INSPECT_MQ.matches ? 8 : 12;
@@ -2134,6 +2168,10 @@ function refitOpenStateMap(delay = 0) {
   if (!state.openState) return;
   const run = () => {
     syncMapToCard();
+    // During the More pop the onLayout camera glide owns the viewBox — a refit here
+    // (setMapInspect(false) inside the swap's mutate) would restart the glide a frame
+    // in and stutter its launch.
+    if (mapInspectDetailsAnimating) return;
     // refit to what the view is ABOUT: mobile seat detail frames the selected district
     // (else this refit would cancel the coordinated district zoom and snap back to the
     // state), every other view frames the state.
@@ -2196,10 +2234,29 @@ function setViewBoxNow(vb) {
   syncStageLabelPosition();
 }
 
-function zoomToDistrict(seat, ms = 320) {
+// The map band was just resized by layout (oldRect → newRect) while the viewBox is
+// unchanged. Rewrite the viewBox so the content renders PIXEL-IDENTICAL in the new
+// band — same scale, same screen position — so a follow-up animateTo carries the whole
+// visual move as one distortion-free camera glide (no element FLIP, no scaleY stretch).
+function setViewBoxPreservingScreen(oldRect, newRect) {
+  if (!oldRect || !newRect || oldRect.width <= 0 || oldRect.height <= 0 || newRect.width <= 0 || newRect.height <= 0) return;
+  const [vx, vy, vw, vh] = viewBox;
+  const k = Math.min(oldRect.width / vw, oldRect.height / vh);   // xMidYMid meet scale
+  if (!Number.isFinite(k) || k <= 0) return;
+  const ox = oldRect.left + (oldRect.width - vw * k) / 2;        // content origin on screen
+  const oy = oldRect.top + (oldRect.height - vh * k) / 2;
+  setViewBoxNow([
+    vx + (newRect.left - ox) / k,
+    vy + (newRect.top - oy) / k,
+    newRect.width / k,
+    newRect.height / k
+  ]);
+}
+
+function zoomToDistrict(seat, ms = 320, ease = undefined) {
   if (!seat || !seat.bbox) return;
   const b = seat.bbox;
-  const pad = Math.max(b.w, b.h) * 0.85 + 5;
+  const pad = Math.max(b.w, b.h) * 0.62 + 5;
   let w = b.w + pad * 2;
   let h = b.h + pad * 2;
   const ar = stateFrameAspect();
@@ -2207,7 +2264,7 @@ function zoomToDistrict(seat, ms = 320) {
   else w = h * ar;
   const cx = b.x + b.w / 2;
   const cy = b.y + b.h / 2;
-  animateTo(clampInspectViewBox([cx - w / 2, cy - h / 2, w, h]), ms);
+  animateTo(clampInspectViewBox([cx - w / 2, cy - h / 2, w, h]), ms, ease);
 }
 
 function previewDistrict(code, zoom = false) {
@@ -2265,13 +2322,18 @@ async function showMapInspectDetails(options = {}) {
         STATE_INFO.innerHTML = stateSeatCardHTML(seat);
         resetStateInfoScroll();
         writeHash();
-      }, () => {
-        // launched WITH the map's FLIP: the state shrinks into the district framing
-        // while the card pops upward — one coordinated move, not zoom-after-pop.
-        // (syncMapToCard measures the card's LAYOUT top, so the band is already final.)
-        // Band FLIP, viewBox zoom and card rise all run DETAIL_POP_MS with the same
-        // decelerate curve, so map and card land together.
-        if (MOBILE_MAP_INSPECT_MQ.matches && state.openState) zoomToDistrict(seat, DETAIL_POP_MS);
+      }, (firstMap, lastMap) => {
+        // The map's whole move is ONE viewBox camera glide: first rewrite the viewBox so
+        // the state renders pixel-identical in the just-resized band (no snap), then
+        // glide into the district framing on the SAME clock + curve as the card's rise.
+        // Returning true skips the element FLIP — its non-uniform scaleY stretched the
+        // geometry mid-move, which is what made the shrink feel rough.
+        if (MOBILE_MAP_INSPECT_MQ.matches && state.openState) {
+          setViewBoxPreservingScreen(firstMap, lastMap);
+          zoomToDistrict(seat, DETAIL_POP_MS, DETAIL_POP_EASE_FN);
+          return true;
+        }
+        return false;
       });
     } finally {
       mapInspectDetailsAnimating = false;
