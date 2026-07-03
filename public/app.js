@@ -634,7 +634,7 @@ function stateViewBox(name) {
   const anchor = 0.5;
   return [cx - w / 2, cy - anchor * h, w, h];
 }
-function zoomToState(name) { animateTo(stateViewBox(name), 540); }
+function zoomToState(name, ms = 540, ease = undefined) { animateTo(stateViewBox(name), ms, ease); }
 
 // The state's bottom edge in screen px, at its FINAL zoom — computed deterministically
 // from the target viewBox + the SVG's preserveAspectRatio="xMidYMid meet", so it is
@@ -2172,15 +2172,9 @@ function refitOpenStateMap(delay = 0) {
     // (setMapInspect(false) inside the swap's mutate) would restart the glide a frame
     // in and stutter its launch.
     if (mapInspectDetailsAnimating) return;
-    // refit to what the view is ABOUT: mobile seat detail frames the selected district
-    // (else this refit would cancel the coordinated district zoom and snap back to the
-    // state), every other view frames the state.
-    const seat = selectedSeat();
-    if (seat && MOBILE_MAP_INSPECT_MQ.matches && PANEL.classList.contains("seat-detail")) {
-      zoomToDistrict(seat, DETAIL_POP_MS);
-    } else {
-      zoomToState(state.openState);
-    }
+    // Every view frames the WHOLE state — in mobile seat detail it simply refits to the
+    // shorter band's aspect (nothing cut off; the selected district stays highlighted).
+    zoomToState(state.openState);
     requestAnimationFrame(syncMapToCard);
   };
   if (delay) setTimeout(run, delay);
@@ -2256,7 +2250,7 @@ function setViewBoxPreservingScreen(oldRect, newRect) {
 function zoomToDistrict(seat, ms = 320, ease = undefined) {
   if (!seat || !seat.bbox) return;
   const b = seat.bbox;
-  const pad = Math.max(b.w, b.h) * 0.62 + 5;
+  const pad = Math.max(b.w, b.h) * 0.85 + 5;
   let w = b.w + pad * 2;
   let h = b.h + pad * 2;
   const ar = stateFrameAspect();
@@ -2287,8 +2281,7 @@ function locateMapInspectDistrict(btn, options = {}) {
       if (MOBILE_MAP_INSPECT_MQ.matches && !showDetails) setMapInspect(true);
       requestAnimationFrame(() => {
         if (showDetails) {
-          showDistrict(seat.code);
-          requestAnimationFrame(() => zoomToDistrict(seat));
+          showDistrict(seat.code);   // its mobile branch refits the whole state to the band
         } else {
           previewDistrict(seat.code, true);
         }
@@ -2325,12 +2318,13 @@ async function showMapInspectDetails(options = {}) {
       }, (firstMap, lastMap) => {
         // The map's whole move is ONE viewBox camera glide: first rewrite the viewBox so
         // the state renders pixel-identical in the just-resized band (no snap), then
-        // glide into the district framing on the SAME clock + curve as the card's rise.
+        // glide the WHOLE state into the shorter band (never crop it — the selected
+        // district stays highlighted) on the SAME clock + curve as the card's rise.
         // Returning true skips the element FLIP — its non-uniform scaleY stretched the
         // geometry mid-move, which is what made the shrink feel rough.
         if (MOBILE_MAP_INSPECT_MQ.matches && state.openState) {
           setViewBoxPreservingScreen(firstMap, lastMap);
-          zoomToDistrict(seat, DETAIL_POP_MS, DETAIL_POP_EASE_FN);
+          zoomToState(state.openState, DETAIL_POP_MS, DETAIL_POP_EASE_FN);
           return true;
         }
         return false;
@@ -2518,10 +2512,10 @@ function showDistrict(code) {
     resetStateInfoScroll();
   });
   animateIn(STATE_INFO, 6);   // the district detail swaps into the card under the header
-  // Mobile detail: the short map band above the card frames the SELECTED DISTRICT —
-  // a half-cut state sliver means nothing there; your kawasan centred above its card does.
+  // Mobile detail: refit the WHOLE state to the short band's aspect (never crop it);
+  // the selected district is highlighted, not zoomed to.
   if (MOBILE_MAP_INSPECT_MQ.matches && state.openState) {
-    requestAnimationFrame(() => zoomToDistrict(seat));
+    requestAnimationFrame(() => zoomToState(state.openState));
   }
   writeHash();
 }
