@@ -240,7 +240,12 @@ function setPanelView(view) {
   requestAnimationFrame(syncMapToCard);
 }
 
-function animateRectFlip(el, first, last, duration = 360) {
+// One clock for the More-pop: map band FLIP, viewBox zoom and card rise all run this
+// duration with the same decelerate curve so they read as a single coordinated move.
+const DETAIL_POP_MS = 600;
+const DETAIL_POP_EASE = "cubic-bezier(0,0,0.2,1)";
+
+function animateRectFlip(el, first, last, duration = 360, easing = "cubic-bezier(0.4,0,0.2,1)") {
   if (!el || !el.animate || !first || !last || last.width <= 0 || last.height <= 0) return;
   const dx = first.left - last.left;
   const dy = first.top - last.top;
@@ -256,7 +261,7 @@ function animateRectFlip(el, first, last, duration = 360) {
       { transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`, opacity: 0.98 },
       { transform: "translate(0, 0) scale(1, 1)", opacity: 1 }
     ],
-    { duration, easing: "cubic-bezier(0.4,0,0.2,1)" }
+    { duration, easing }
   );
   const done = () => {
     el.style.transformOrigin = prevOrigin;
@@ -321,18 +326,20 @@ async function swapCardWithMinimizePop(card, mutate, onLayout) {
     mutate();
     syncMapToCard();
     const lastMap = SVG.getBoundingClientRect();
-    animateRectFlip(SVG, firstMap, lastMap, 360);
+    animateRectFlip(SVG, firstMap, lastMap, DETAIL_POP_MS, DETAIL_POP_EASE);
     if (onLayout) onLayout();   // map box + viewBox move together, alongside the card's rise
     await nextFrame();
 
-    const enterDuration = 420;
+    // Single-segment rise (no overshoot): the card's scaleY tracks the exact same
+    // progress curve as the map's FLIP, so both travel and settle together.
+    const enterDuration = DETAIL_POP_MS;
     const enter = card.animate(
       [
         { offset: 0, transform: "scaleY(0.08)", opacity: 0 },
-        { offset: 0.58, transform: "scaleY(1.035)", opacity: 1 },
+        { offset: 0.35, opacity: 1 },
         { offset: 1, transform: "scaleY(1)", opacity: 1 }
       ],
-      { duration: enterDuration, easing: "cubic-bezier(0,0,0.2,1)", fill: "forwards" }
+      { duration: enterDuration, easing: DETAIL_POP_EASE, fill: "forwards" }
     );
     await animationDone(enter, enterDuration);
     enter.cancel();
@@ -2132,7 +2139,7 @@ function refitOpenStateMap(delay = 0) {
     // state), every other view frames the state.
     const seat = selectedSeat();
     if (seat && MOBILE_MAP_INSPECT_MQ.matches && PANEL.classList.contains("seat-detail")) {
-      zoomToDistrict(seat, 560);
+      zoomToDistrict(seat, DETAIL_POP_MS);
     } else {
       zoomToState(state.openState);
     }
@@ -2262,8 +2269,9 @@ async function showMapInspectDetails(options = {}) {
         // launched WITH the map's FLIP: the state shrinks into the district framing
         // while the card pops upward — one coordinated move, not zoom-after-pop.
         // (syncMapToCard measures the card's LAYOUT top, so the band is already final.)
-        // 560ms ≈ FLIP start → card-enter settle, so map and card land together.
-        if (MOBILE_MAP_INSPECT_MQ.matches && state.openState) zoomToDistrict(seat, 560);
+        // Band FLIP, viewBox zoom and card rise all run DETAIL_POP_MS with the same
+        // decelerate curve, so map and card land together.
+        if (MOBILE_MAP_INSPECT_MQ.matches && state.openState) zoomToDistrict(seat, DETAIL_POP_MS);
       });
     } finally {
       mapInspectDetailsAnimating = false;
