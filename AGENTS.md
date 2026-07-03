@@ -1,6 +1,6 @@
 # Agent Coordination — MyPolitik (VPS night shift)
 
-**MyPolitik** (folder `peta-yb`, deploys as "politics") — interactive map of every Malaysian
+**MyPolitik** (folder `mypolitik`, deploys as "mypolitik") — interactive map of every Malaysian
 Parliament/DUN seat. Static `public/` app (vanilla JS, no build) + tiny CF Worker.
 
 **This is a VPS sandbox copy for autonomous overnight work.** It does NOT deploy and is separate
@@ -45,5 +45,5 @@ your seat → a beautiful, shareable card. The map is the *reward*, not the gate
 - Frontend is data-driven (`loadOptional`) — a mode lights up only when its data file exists. **Keep Skor GATED**
   ("Soon") even if `scores.json` appears.
 - Boundaries/results are official DOSM + Thevesh — never fabricate data.
-- Brand rename touches USER-FACING strings only → **MyPolitik**; leave infra names (`peta-yb`, `politics`) alone.
+- Brand, folder, package, and Worker deploy names are **MyPolitik** / `mypolitik`.
 - **Verify via syntax checks + unit tests + data validation only** — this is a headless box, no browser/screenshots.

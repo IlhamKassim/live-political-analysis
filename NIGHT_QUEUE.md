@@ -1,4 +1,4 @@
-# Night Queue — Peta YB · Citizen-First Reframe
+# Night Queue — MyPolitik · Citizen-First Reframe
 
 GOAL: make **"Find your YB"** the front door (citizen-first), **map-first / score-later**,
 amazing-but-simple. Full vision + UNTOUCHABLES + quality regime in **AGENTS.md** — read it.
@@ -22,10 +22,10 @@ build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]
       filters). node --check. Bug → top.
 
 ## Phase B — Brand rename → MyPolitik (do first; user request)
-- [x] (claude) [HVR] BRAND RENAME → **MyPolitik**: replace the "PETAYB" / "Peta YB" brand mark + tagline in the
+- [x] (claude) [HVR] BRAND RENAME → **MyPolitik**: replace the old brand mark + tagline in the
       `index.html` header (`.brand`) and `#panel-empty`, the `<title>`, and any brand strings in `I18N` (both EN+BM)
-      with **MyPolitik** (Malaysian "My" + *politik*). KEEP folder/worker/deploy names (`peta-yb`/`politics`) unchanged
-      — infra only. List every string changed in the handoff.
+      with **MyPolitik** (Malaysian "My" + *politik*). Folder/worker/deploy names have since been
+      renamed to `mypolitik`. List every string changed in the handoff.
 - [ ] (codex) [MV] VERIFY brand: `grep -rni "petayb\|peta yb" public/` shows no user-facing leftovers; `<title>` updated;
       `node --check public/app.js`. Any leftover → fix task at top.
 

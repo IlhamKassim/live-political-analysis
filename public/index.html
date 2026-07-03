@@ -21,45 +21,45 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=2" />
+<link rel="stylesheet" href="styles.css?v=3" />
 </head>
 <body>
 <div id="app">
   <header id="topbar">
-    <button id="menu-btn" class="iconbtn" type="button" data-i18n-aria="menu_aria" aria-label="Menu" aria-haspopup="true" aria-expanded="false" aria-controls="menu-drawer">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><line x1="4" x2="20" y1="8" y2="8"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="16" y2="16"/></svg>
+    <button id="brand-home" class="brand brand-home" type="button" data-i18n-aria="home_aria" aria-label="Show the whole map" data-i18n-title="home_aria" title="Show the whole map">
+      <span class="mark"><span class="brand-symbol">◧</span> <span class="brand-word">My<b>Politik</b></span></span>
     </button>
-  </header>
-  <div id="scrim" hidden></div>
-  <aside id="menu-drawer" hidden aria-label="Menu" aria-hidden="true">
-    <div class="drawer-head">
-      <span class="brand"><span class="mark">◧ My<b>Politik</b></span></span>
-      <button id="drawer-close" class="iconbtn" type="button" data-i18n-aria="menu_close" aria-label="Close menu">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><line x1="6" x2="18" y1="6" y2="18"/><line x1="6" x2="18" y1="18" y2="6"/></svg>
-      </button>
-    </div>
-    <nav class="drawer-nav" aria-label="Pages">
-      <button class="drawer-item" data-act="map" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.6 12 3.2l9 7.4"/><path d="M5.2 9.4V20.8h13.6V9.4"/></svg>
-        <span data-i18n="nav_map">Map</span>
-      </button>
-      <button class="drawer-item" data-act="about" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.2"/><circle cx="12" cy="7.6" r="0.7" fill="currentColor" stroke="none"/></svg>
-        <span data-i18n="nav_about">About</span>
-      </button>
-      <button class="drawer-item" data-act="share" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.4"/><circle cx="6" cy="12" r="2.4"/><circle cx="18" cy="19" r="2.4"/><path d="M8.1 10.9 15.9 6.1M8.1 13.1l7.8 4.8"/></svg>
-        <span data-i18n="nav_share">Share</span>
-      </button>
-    </nav>
-    <div class="drawer-foot">
-      <span class="drawer-foot-label" data-i18n="aria_lang">Language</span>
-      <div class="seg lang-seg" id="lang" role="tablist" data-i18n-aria="aria_lang" aria-label="Language">
-        <button data-lang="en" class="on" role="tab" aria-selected="true" aria-label="English">EN</button>
-        <button data-lang="ms" role="tab" aria-selected="false" aria-label="Bahasa Melayu">BM</button>
+    <button id="mobile-menu-btn" class="iconbtn mobile-menu-btn" type="button" data-i18n-aria="mobile_menu_aria" aria-label="Open menu" aria-controls="mobile-menu" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M5 7h14"/><path d="M5 12h14"/><path d="M5 17h14"/></svg>
+    </button>
+    <div id="mobile-menu" class="mobile-menu">
+      <div id="top-controls" class="top-controls" role="group" data-i18n-aria="view_controls_aria" aria-label="View controls">
+        <div class="seg chip" id="tier" role="tablist" data-i18n-aria="aria_tier" aria-label="Seat layer">
+          <button data-tier="parlimen" class="on" role="tab" aria-selected="true" data-i18n="tier_parlimen">Parliament</button>
+          <button data-tier="dun" role="tab" aria-selected="false" data-i18n="tier_dun">DUN</button>
+        </div>
+        <div class="seg chip" id="mode" role="tablist" data-i18n-aria="aria_mode" aria-label="Colour mode">
+          <button data-mode="negeri" role="tab" aria-selected="false" data-i18n="mode_negeri">State</button>
+          <button data-mode="parti" class="on" role="tab" aria-selected="true" disabled data-i18n="mode_parti" data-i18n-title="mode_parti_need" title="Needs GE15 data">Party</button>
+        </div>
+      </div>
+      <div class="topicons" role="group" data-i18n-aria="actions_aria" aria-label="Map actions">
+        <button id="top-map" class="iconbtn top-map-btn" type="button" data-i18n-aria="home_aria" aria-label="Show the whole map" data-i18n-title="home_aria" title="Show the whole map">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.6 12 3.2l9 7.4"/><path d="M5.2 9.4V20.8h13.6V9.4"/></svg>
+        </button>
+        <button id="top-info" class="iconbtn" type="button" data-i18n-aria="info_aria" aria-label="About MyPolitik" data-i18n-title="info_aria" title="About MyPolitik">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.2"/><circle cx="12" cy="7.6" r="0.7" fill="currentColor" stroke="none"/></svg>
+        </button>
+        <button id="top-share" class="iconbtn" type="button" data-i18n-aria="share_aria" aria-label="Share MyPolitik" data-i18n-title="share_aria" title="Share MyPolitik">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.4"/><circle cx="6" cy="12" r="2.4"/><circle cx="18" cy="19" r="2.4"/><path d="M8.1 10.9 15.9 6.1M8.1 13.1l7.8 4.8"/></svg>
+        </button>
+        <div class="seg lang-seg" id="lang" role="tablist" data-i18n-aria="aria_lang" aria-label="Language">
+          <button data-lang="en" class="on" role="tab" aria-selected="true" aria-label="English">EN</button>
+          <button data-lang="ms" role="tab" aria-selected="false" aria-label="Bahasa Melayu">BM</button>
+        </div>
       </div>
     </div>
-  </aside>
+  </header>
 
   <div id="info-card" hidden>
     <div class="info-head">
@@ -76,14 +76,16 @@
 
   <main id="stage">
     <svg id="map" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" data-i18n-aria="map_aria" aria-label="Map of Malaysia's electoral seats">
+      <defs>
+        <pattern id="selected-district-lines" patternUnits="userSpaceOnUse" width="4.5" height="4.5" patternTransform="rotate(45)">
+          <path d="M0 0V4.5" stroke="rgba(255,255,255,.86)" stroke-width="1.15" />
+        </pattern>
+      </defs>
       <g id="seats"></g>
+      <g id="selected-overlay" aria-hidden="true"></g>
     </svg>
     <div id="tooltip" hidden></div>
     <div id="state-label" aria-hidden="true"></div>
-    <div id="tap-hint" class="tap-hint" hidden>
-      <span data-i18n="tap_hint">Tap any seat to see its YB</span>
-      <button id="tap-hint-x" class="tap-hint-x" type="button" data-i18n-aria="tap_hint_dismiss" aria-label="Dismiss hint">✕</button>
-    </div>
     <button id="reset" hidden aria-label="Show all seats">↺</button>
     <div id="loading" data-i18n="loading">Loading boundaries…</div>
   </main>
@@ -96,22 +98,16 @@
         <div id="nat-key" class="sharebar-key"></div>
         <div class="nat-glance-maj" data-i18n="simple_majority">Simple majority = 112 seats</div>
       </div>
-      <div class="search">
-        <input id="q" type="search" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="results" aria-expanded="false" data-i18n-aria="search_aria" aria-label="Search a seat" data-i18n-ph="search_ph" placeholder="Search your seat…" autocomplete="off" spellcheck="false" />
-        <div id="results" class="results" role="listbox" data-i18n-aria="results_aria" aria-label="Search results" hidden></div>
-      </div>
-      <div class="card-row">
-        <div class="seg chip" id="tier" role="tablist" data-i18n-aria="aria_tier" aria-label="Seat layer">
-          <button data-tier="parlimen" class="on" role="tab" aria-selected="true" data-i18n="tier_parlimen">Parliament</button>
-          <button data-tier="dun" role="tab" aria-selected="false" data-i18n="tier_dun">DUN</button>
+      <div class="search-row">
+        <div class="search">
+          <input id="q" type="search" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="results" aria-expanded="false" data-i18n-aria="search_aria" aria-label="Search a seat" data-i18n-ph="search_ph" placeholder="Search your seat…" autocomplete="off" spellcheck="false" />
+          <div id="results" class="results" role="listbox" data-i18n-aria="results_aria" aria-label="Search results" hidden></div>
         </div>
-        <div class="seg chip" id="mode" role="tablist" data-i18n-aria="aria_mode" aria-label="Colour mode">
-          <button data-mode="negeri" class="on" role="tab" aria-selected="true" data-i18n="mode_negeri">State</button>
-          <button data-mode="parti" role="tab" aria-selected="false" disabled data-i18n="mode_parti" data-i18n-title="mode_parti_need" title="Needs GE15 data">Party</button>
+        <div class="find-actions">
+          <button id="loc-btn" class="loc-fab" type="button" data-i18n-title="find_loc" title="Use my location" aria-label="Use my location">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="2" x2="5" y1="12" y2="12"/><line x1="19" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="5"/><line x1="12" x2="12" y1="19" y2="22"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>
+          </button>
         </div>
-        <button id="loc-btn" class="loc-fab" type="button" data-i18n-title="find_loc" title="Use my location" aria-label="Use my location">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="2" x2="5" y1="12" y2="12"/><line x1="19" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="5"/><line x1="12" x2="12" y1="19" y2="22"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>
-        </button>
       </div>
       <p id="find-status" class="find-status" role="status" aria-live="polite" hidden></p>
       <details id="empty-more" class="empty-more" hidden>
@@ -124,16 +120,47 @@
       <div class="state-head">
         <button id="state-back" class="card-back" type="button" data-i18n-aria="home_aria" aria-label="Back">←</button>
         <div class="state-h"><h2 id="state-name"></h2><span id="state-count" class="muted"></span></div>
+        <button id="map-inspect-toggle" class="share-icon map-inspect-toggle" type="button" aria-pressed="false" data-i18n-aria="map_inspect_aria" aria-label="Expand map" data-i18n-title="map_inspect_aria" title="Expand map">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.2 4H4v4.2"/><path d="M4 4l6.2 6.2"/><path d="M15.8 4H20v4.2"/><path d="M20 4l-6.2 6.2"/><path d="M8.2 20H4v-4.2"/><path d="M4 20l6.2-6.2"/><path d="M15.8 20H20v-4.2"/><path d="M20 20l-6.2-6.2"/></svg>
+        </button>
+        <div id="state-actions" class="state-actions" hidden>
+          <button id="share-link" class="share-icon" type="button" data-i18n-aria="share_btn" aria-label="Share link" data-i18n-title="share_btn" title="Share link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.2 14.8 14.8 9.2"/><path d="M10.4 7.4 11.8 6a4.2 4.2 0 0 1 6 6l-1.4 1.4"/><path d="M13.6 16.6 12.2 18a4.2 4.2 0 0 1-6-6l1.4-1.4"/></svg>
+          </button>
+          <button id="share-card" class="share-icon" type="button" data-i18n-aria="card_btn" aria-label="Download card" data-i18n-title="card_btn" title="Download card">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.4" y="4.4" width="17.2" height="13.8" rx="2.2"/><circle cx="8.1" cy="8.5" r="1.3"/><path d="m4.4 15 4.2-4 3.1 3 1.7-1.6 3.8 3.8"/><path d="M12 19.2v-6"/><path d="m9.7 17 2.3 2.3 2.3-2.3"/></svg>
+          </button>
+        </div>
       </div>
       <div class="state-map-wrap">
         <svg id="state-map" preserveAspectRatio="xMidYMid meet"><g id="state-seats"></g></svg>
       </div>
       <div id="state-info"></div>
+      <div id="map-inspect-tray" class="map-inspect-tray" hidden></div>
     </div>
     <div id="panel-seat" hidden></div>
   </aside>
+  <dialog id="card-preview" class="card-preview" aria-labelledby="card-preview-title">
+    <div class="card-preview-shell">
+      <div class="card-preview-head">
+        <h2 id="card-preview-title" data-i18n="card_preview_title">Card preview</h2>
+        <button id="card-preview-close" class="card-preview-close" type="button" data-i18n-aria="card_preview_close" aria-label="Close preview">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><line x1="6" x2="18" y1="6" y2="18"/><line x1="6" x2="18" y1="18" y2="6"/></svg>
+        </button>
+      </div>
+      <div class="card-preview-frame">
+        <img id="card-preview-img" alt="" />
+      </div>
+      <div class="card-preview-actions">
+        <button id="card-preview-download" class="preview-download" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v11"/><path d="m7.5 10 4.5 4.5L16.5 10"/><path d="M5 20h14"/></svg>
+          <span data-i18n="card_preview_download">Download PNG</span>
+        </button>
+      </div>
+    </div>
+  </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 </div>
-<script type="module" src="app.js?v=2"></script>
+<script type="module" src="app.js?v=3"></script>
 </body>
 </html>

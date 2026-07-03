@@ -1,7 +1,7 @@
 {
-  // Peta YB — static map app on Cloudflare Workers (assets) + tiny worker.
-  // Public/deploy name is "politics" (folder stays peta-yb).
-  "name": "politics",
+  // MyPolitik — static map app on Cloudflare Workers (assets) + tiny worker.
+  // Public/deploy name is "mypolitik".
+  "name": "mypolitik",
   "main": "worker.js",
   "compatibility_date": "2025-06-01",
   "assets": {
@@ -14,11 +14,11 @@
   "routes": [
     { "pattern": "mypolitik.xyz", "custom_domain": true },
     { "pattern": "www.mypolitik.xyz", "custom_domain": true },
-    { "pattern": "politics.krackeddevs.com", "custom_domain": true }
+    { "pattern": "mypolitik.krackeddevs.com", "custom_domain": true }
   ],
   "env": {
     "staging": {
-      "name": "politics-staging",
+      "name": "mypolitik-staging",
       "main": "worker.js",
       "assets": {
         "directory": "./public",
@@ -28,7 +28,7 @@
       },
       "observability": { "enabled": true },
       "routes": [
-        { "pattern": "staging.politics.krackeddevs.com", "custom_domain": true }
+        { "pattern": "staging.mypolitik.krackeddevs.com", "custom_domain": true }
       ]
     }
   }

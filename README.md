@@ -1,4 +1,4 @@
-# Peta YB
+# MyPolitik
 
 **Interactive map of every Malaysian Parliament + DUN seat** — click your *kawasan*
 to see the wakil rakyat, party/bloc, GE15 margin, and (soon) a transparently
@@ -20,7 +20,7 @@ npm run deploy           # prod
 1. **The projection is FROZEN, copied verbatim from krackedmaps.** `pipeline/01_boundaries.py`
    hardcodes the exact `PROJECTION` constants (viewBox `0 0 799.85 352.74`, Mercator +
    Borneo-shift). **Do not recompute bounds from the seat data** — reusing the frozen
-   constants is what keeps Peta YB aligned with maps.krackeddevs.com (seats could be
+   constants is what keeps MyPolitik aligned with maps.krackeddevs.com (seats could be
    overlaid on the state map). If krackedmaps ever re-bakes its projection, copy the new
    constants here; don't derive your own.
 2. **`code_parlimen` (`P.001`…`P.222`) is the universal join key.** DOSM boundaries,
@@ -45,7 +45,8 @@ npm run deploy           # prod
 | 1 | `01_boundaries.py` | DOSM `electoral_0_parlimen` / `electoral_1_dun` | `seats-parlimen.json`, `seats-dun.json` |
 | 2 | `02_results.py` | Thevesh `candidates_ge15` / `results_parlimen_ge15` | `results-ge15.json` |
 | 3 | `03_results_dun.py` | Thevesh `candidates_prn15` (2023 six-state PRN) | `results-dun.json` |
-| 4 | `04_scores.py` *(WIP)* | Hansard via Sinar pardocs / parlimen.gov.my | `scores.json` |
+| 4 | `04_verified_content.py` | Thevesh candidate CSVs + official SPR/MySPR links | `candidates-ge15.json`, `candidates-dun-prn15.json`, `voting-guide.json` |
+| 5 | `04_scores.py` *(WIP)* | Hansard via Sinar pardocs / parlimen.gov.my | `scores.json` |
 
 **DUN coverage:** `candidates_prn15.csv` is the **2023 six-state PRN** (Selangor, Kelantan,
 Pulau Pinang, Kedah, Negeri Sembilan, Terengganu) — **245 of 600** DUN seats. The other 7
@@ -59,22 +60,25 @@ Raw downloads are cached in `pipeline/raw/` (delete to refresh).
 
 - Boundaries: **DOSM** — github.com/dosm-malaysia/data-open (official, WGS84)
 - Election results: **Thevesh** — github.com/Thevesh/analysis-election-msia (peer-reviewed)
+- Candidate rows: **Thevesh / ElectionData.MY** — baked from `candidates_ge15.csv` and
+  `candidates_prn15.csv`; voter-specific lookups link out to official **MySPR Semak**
 - Projection: **krackedmaps** — maps.krackeddevs.com
 - Scores (planned): public **Hansard** (parlimen.gov.my) via **Sinar Project** pardocs
 
 All inputs are public, official records. Scores (step 3) are computed in-house with a
-documented, transparent method — Peta YB does not mirror any third party's proprietary
+documented, transparent method — MyPolitik does not mirror any third party's proprietary
 scores.
 
 ## Deploy
 
-Public/deploy name is **politics** (the folder stays `peta-yb`). Custom domains:
-`staging.politics.krackeddevs.com` (staging) and `politics.krackeddevs.com` (prod, reserved).
+Public/deploy name is **mypolitik**. Custom domains:
+`mypolitik.xyz` / `www.mypolitik.xyz` (prod), `mypolitik.krackeddevs.com` (prod alias), and
+`staging.mypolitik.krackeddevs.com` (staging).
 
 ```bash
 source ~/.kracked/deploy.env        # CLOUDFLARE_API_TOKEN + ACCOUNT_ID
-npx wrangler deploy --env staging   # → staging.politics.krackeddevs.com
-npx wrangler deploy                 # → politics.krackeddevs.com (prod)
+npx wrangler deploy --env staging   # → staging.mypolitik.krackeddevs.com
+npx wrangler deploy                 # → mypolitik.xyz (prod)
 ```
 
 `wrangler.jsonc` sets `run_worker_first: true` so `/api/health` reaches the Worker
@@ -87,7 +91,7 @@ instead of being swallowed by the SPA asset fallback.
 - ✅ Polish: golden-angle state palette, shareable URL hash, coalition share-bar
 - ✅ i18n: **English default + Bahasa Melayu toggle** (EN/BM, persisted in localStorage).
   Strings live in `I18N` in `app.js`; static markup uses `data-i18n` / `data-i18n-ph` / `data-i18n-title`.
-- ✅ **Staging live** — staging.politics.krackeddevs.com
+- ✅ **Staging live** — staging.mypolitik.krackeddevs.com
 - ✅ DUN (PRN) results — 2023 six-state election (245/600 seats); other states fall back to
   the parent Parliament result with a "coming soon" note
 - ⏳ Performance scoring from Hansard (own, transparent method)

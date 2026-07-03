@@ -12,21 +12,21 @@ fail() {
   status=1
 }
 
-if node --check public/app.js >/tmp/peta-yb-node-check.log 2>&1; then
+if node --check public/app.js >/tmp/mypolitik-node-check.log 2>&1; then
   pass "node --check public/app.js"
 else
   fail "node --check public/app.js"
-  cat /tmp/peta-yb-node-check.log
+  cat /tmp/mypolitik-node-check.log
 fi
 
-if python3 -m py_compile pipeline/*.py >/tmp/peta-yb-py-compile.log 2>&1; then
+if python3 -m py_compile pipeline/*.py >/tmp/mypolitik-py-compile.log 2>&1; then
   pass "python3 -m py_compile pipeline/*.py"
 else
   fail "python3 -m py_compile pipeline/*.py"
-  cat /tmp/peta-yb-py-compile.log
+  cat /tmp/mypolitik-py-compile.log
 fi
 
-if node <<'NODE' >/tmp/peta-yb-json-parse.log 2>&1
+if node <<'NODE' >/tmp/mypolitik-json-parse.log 2>&1
 const fs = require("fs");
 const path = require("path");
 
@@ -47,10 +47,10 @@ then
   pass "JSON.parse public/data/*.json"
 else
   fail "JSON.parse public/data/*.json"
-  cat /tmp/peta-yb-json-parse.log
+  cat /tmp/mypolitik-json-parse.log
 fi
 
-if node <<'NODE' >/tmp/peta-yb-ge15-tally.log 2>&1
+if node <<'NODE' >/tmp/mypolitik-ge15-tally.log 2>&1
 const fs = require("fs");
 
 const expected = {
@@ -85,7 +85,7 @@ then
   pass "GE15 coalition tally"
 else
   fail "GE15 coalition tally"
-  cat /tmp/peta-yb-ge15-tally.log
+  cat /tmp/mypolitik-ge15-tally.log
 fi
 
 exit "$status"

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bake DOSM electoral boundaries -> projected SVG paths for Peta YB.
+"""Bake DOSM electoral boundaries -> projected SVG paths for MyPolitik.
 
 Two tiers, ONE projection (frozen, copied verbatim from krackedmaps /
 maps.krackeddevs.com) so every seat aligns pixel-perfectly with the state map
