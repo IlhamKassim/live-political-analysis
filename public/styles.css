@@ -158,14 +158,28 @@ a:hover { text-decoration: underline; }
   position: absolute; top: calc(var(--map-top, 70px) + 8px); left: 50%;
   transform: translateX(-50%) translateY(7px);
   z-index: 16; pointer-events: none;
-  font-family: var(--font-display); font-weight: 700; line-height: 1;
-  font-size: clamp(28px, 4vw, 60px); letter-spacing: .01em;
+  display: flex; flex-direction: column; align-items: center;
   max-width: calc(100vw - 32px);
-  overflow: hidden; text-overflow: ellipsis;
-  color: var(--ink); text-align: center; white-space: nowrap;
-  text-shadow: 0 2px 30px rgba(0,0,0,.72), 0 1px 3px rgba(0,0,0,.55);
+  color: var(--ink); text-align: center;
   opacity: 0; transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out);
 }
+#state-label .label-main {
+  font-family: var(--font-display); font-weight: 700; line-height: 1;
+  font-size: clamp(28px, 4vw, 60px); letter-spacing: .01em; white-space: nowrap;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+  text-shadow: 0 2px 30px rgba(0,0,0,.72), 0 1px 3px rgba(0,0,0,.55);
+}
+#state-label .label-sub {
+  margin-top: 6px; line-height: 1; white-space: nowrap;
+  font-family: var(--font-display); font-weight: 600; letter-spacing: .01em;
+  font-size: clamp(13px, 1.5vw, 22px); color: var(--ink-dim);
+  text-shadow: 0 2px 20px rgba(0,0,0,.7);
+  opacity: 0; transition: opacity 140ms var(--ease-out);
+}
+#state-label .label-sub.show { opacity: 1; }
+/* reserve the sub-line's height only when a state is open, so the state name never
+   jumps as the hovered-district name fades in and out. */
+body.state-open #state-label .label-sub { min-height: 1em; }
 body.state-open #state-label {
   top: var(--state-label-top, calc(var(--map-top, 70px) + 4px));
 }

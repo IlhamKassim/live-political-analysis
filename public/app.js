@@ -970,7 +970,15 @@ function seatCardHTML(seat, options = {}) {
     panelHTML = moduleEmptyHTML(active);
   }
 
+  // desktop/landscape isolated view: keep the district finder pinned at the TOP of the
+  // seat detail too, so switching to another district stays one tap away (mobile uses
+  // the sticky bottom switcher instead).
+  const desktopFinder = (state.openState && !MOBILE_MAP_INSPECT_MQ.matches)
+    ? `<div class="state-info-h muted">${esc(t("find_district"))}</div>
+       <div class="state-district-find state-district-find-top">${districtSwitchRowHTML(seat.code, false)}</div>`
+    : "";
   return `
+    ${desktopFinder}
     <div class="seat-detail-main">
       <div class="seat-head">
         <div class="kicker">${esc(kicker)}</div>
@@ -1628,19 +1636,41 @@ function setStageLabel(text) {
   labelText = memo;
   if (!STATE_LABEL) return;
   if (text) {
-    STATE_LABEL.textContent = text;
+    // structure: a big main line (name + tier chip) with a smaller sub line reserved
+    // beneath it for the hovered district name (setStageSubLabel). Rebuilding the main
+    // clears any hover sub — fine, the label just changed which state it names.
+    const main = document.createElement("span");
+    main.className = "label-main";
+    main.textContent = text;
     if (chip) {
       const s = document.createElement("span");
       s.className = "label-tier";
       s.textContent = chip;
-      STATE_LABEL.appendChild(s);
+      main.appendChild(s);
     }
+    const sub = document.createElement("span");
+    sub.className = "label-sub";
+    STATE_LABEL.replaceChildren(main, sub);
     STATE_LABEL.classList.add("show");
     requestAnimationFrame(syncStageLabelPosition);
   } else {
     STATE_LABEL.classList.remove("show");
+    STATE_LABEL.replaceChildren();
     document.documentElement.style.removeProperty("--state-label-top");
   }
+}
+// The hovered district name, shown smaller beneath the locked state name (isolated view,
+// mouse only). Its space is reserved (CSS min-height) so the state name never jumps.
+let subLabelText = null;
+function setStageSubLabel(name) {
+  if (!STATE_LABEL) return;
+  const txt = name || "";
+  if (txt === subLabelText) return;
+  subLabelText = txt;
+  const sub = STATE_LABEL.querySelector(".label-sub");
+  if (!sub) return;
+  sub.textContent = txt;
+  sub.classList.toggle("show", !!txt);
 }
 function setStateHover(name, data) {
   if (name === hoverState) return;   // only re-paint when the hovered state actually changes
@@ -1662,6 +1692,7 @@ function clearStateHover() {
 }
 function clearHoverUI() {
   TOOLTIP.hidden = true;
+  setStageSubLabel("");
   clearStateHover();
 }
 SVG.addEventListener("mousemove", (e) => {
@@ -1670,10 +1701,18 @@ SVG.addEventListener("mousemove", (e) => {
     return;
   }
   const tgt = e.target;   // NOT `t` — that name is the module-level i18n fn t(); shadowing breaks t("key")
-  // Isolated state view: keep the state name locked above the map; no cursor tooltip here.
+  // Isolated state view: keep the state name locked above the map (no cursor tooltip),
+  // and name the hovered district in a smaller line beneath the state header.
   if (state.openState) {
     TOOLTIP.hidden = true;
     setStageLabel(state.openState);
+    if (tgt.classList && tgt.classList.contains("seat") && !tgt.classList.contains("no-dun")) {
+      const data = state.data[state.tier];
+      const seat = data && data.byCode.get(tgt.dataset.code);
+      setStageSubLabel(seat && seat.state === state.openState ? seat.name : "");
+    } else {
+      setStageSubLabel("");
+    }
     return;
   }
   if (tgt.classList && tgt.classList.contains("seat") && !tgt.classList.contains("no-dun")) {
