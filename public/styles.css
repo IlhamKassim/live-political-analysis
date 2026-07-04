@@ -1935,3 +1935,11 @@ html, body, #stage, #map { touch-action: pan-x pan-y; }   /* touch-action does n
 @media (max-width: 860px) {
   body.map-inspect .inspect-home { display: flex; }
 }
+
+
+/* typing in search (mobile): the card is keyboard-shrunk — give it entirely to the
+   search box by hiding the stats blocks that sat above it. */
+@media (max-width: 860px) {
+  body.searching #nat-glance,
+  body.searching #empty-more { display: none; }
+}

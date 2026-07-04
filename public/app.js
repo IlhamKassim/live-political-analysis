@@ -406,8 +406,11 @@ function syncMapToCard() {
   const panelPadBottom = parseFloat(panelStyle.paddingBottom) || 0;
   const gap = 12;
   const narrow = matchMedia("(max-width: 860px)").matches;
-  const preferredMinMapH = inspecting ? Math.floor(viewportH * 0.72) : (narrow ? 144 : 160);
-  const viewportBoundMin = Math.max(96, Math.floor((viewportH - topInset - panelPadBottom - gap) * 0.42));
+  // While the on-screen keyboard is up (searching), the map surrenders its minimum —
+  // the shrunken visual viewport belongs to the card so the search box stays visible.
+  const kbOpen = keyboardInset > 60;
+  const preferredMinMapH = kbOpen ? 0 : (inspecting ? Math.floor(viewportH * 0.72) : (narrow ? 144 : 160));
+  const viewportBoundMin = kbOpen ? 0 : Math.max(96, Math.floor((viewportH - topInset - panelPadBottom - gap) * 0.42));
   const minMapH = Math.min(preferredMinMapH, viewportBoundMin);
   const cardMaxH = Math.max(120, Math.floor(viewportH - topInset - minMapH - gap - panelPadBottom));
 
@@ -748,12 +751,13 @@ if (window.visualViewport) visualViewport.addEventListener("resize", () => { syn
 // would hide behind the keyboard and Safari scroll-jumps the page hunting for the input.
 // Lift the panel by the keyboard inset (--kb-inset, see styles.css) and keep the page
 // pinned at origin so the app never displaces.
+let keyboardInset = 0;
 function syncKeyboardInset() {
   const vv = window.visualViewport;
   if (!vv) return;
-  const kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
-  document.documentElement.style.setProperty("--kb-inset", `${kb}px`);
-  if (kb > 0 && (window.scrollY || window.scrollX)) window.scrollTo(0, 0);
+  keyboardInset = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+  document.documentElement.style.setProperty("--kb-inset", `${keyboardInset}px`);
+  if (keyboardInset > 0 && (window.scrollY || window.scrollX)) window.scrollTo(0, 0);
   syncMapToCard();
 }
 if (window.visualViewport) {
@@ -762,6 +766,25 @@ if (window.visualViewport) {
 }
 // Safari-only gesture events: block page pinch-zoom entirely — the UI is an app, not a document
 document.addEventListener("gesturestart", (e) => e.preventDefault());
+
+// Typing in "Search a seat": the keyboard-shrunken card belongs to the search box —
+// hide the national stats above it (they pushed the input below the card's fold).
+// The class lifts on blur AFTER a beat, so a tap on a result lands before re-layout.
+let searchBlurTimer = null;
+const SEARCH_INPUT = document.getElementById("q");
+SEARCH_INPUT?.addEventListener("focus", () => {
+  clearTimeout(searchBlurTimer);
+  document.body.classList.add("searching");
+  requestAnimationFrame(syncMapToCard);
+  setTimeout(() => { window.scrollTo(0, 0); syncKeyboardInset(); }, 350);   // after the keyboard settles
+});
+SEARCH_INPUT?.addEventListener("blur", () => {
+  clearTimeout(searchBlurTimer);
+  searchBlurTimer = setTimeout(() => {
+    document.body.classList.remove("searching");
+    syncMapToCard();
+  }, 250);
+});
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (state.openState) refitMeasured(); syncMapToCard(); });
 
 // ---- selection + panel ----
