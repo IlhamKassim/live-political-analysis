@@ -1387,7 +1387,8 @@ body.state-open #map { overflow: visible; }
 .search { flex: 1 1 auto; min-width: 0; position: relative; }
 .search input {
   width: 100%; background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px;
-  padding: 13px 14px; font-size: 14px; font-family: var(--sans); color: var(--ink);
+  padding: 13px 14px; font-size: 16px; font-family: var(--sans); color: var(--ink);
+  /* 16px minimum: anything smaller makes iOS Safari auto-zoom the page on focus */
 }
 .search input::placeholder { color: var(--ink-faint); }
 .search input:focus { border-color: var(--line-2); outline: none; }
@@ -1917,3 +1918,11 @@ button.map-inspect-overview:focus-visible { outline: 2px solid var(--accent); ou
 .prn-cand .pill { flex: 0 0 auto; }
 .prn-note { margin-top: 12px; }
 .prn-seat-head { border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 12px; }
+
+
+/* ===== app-feel on touch: no page zoom, keyboard-aware bottom panel ===== */
+/* pan gestures only — no double-tap-to-zoom, no page pinch-zoom (map gestures unaffected) */
+html, body, #stage, #map { touch-action: pan-x pan-y; }   /* touch-action does not inherit */
+/* the on-screen keyboard shrinks the VISUAL viewport while position:fixed tracks the
+   LAYOUT viewport — lift the bottom card by the keyboard inset (JS keeps --kb-inset). */
+#panel, body.state-open #panel { bottom: var(--kb-inset, 0px); }

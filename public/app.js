@@ -742,6 +742,26 @@ addEventListener("orientationchange", scheduleRefit);
 addEventListener("orientationchange", () => { syncMapToCard(); refitOpenStateMap(80); });
 if (window.visualViewport) visualViewport.addEventListener("resize", scheduleRefit);
 if (window.visualViewport) visualViewport.addEventListener("resize", () => { syncMapToCard(); refitOpenStateMap(60); });
+
+// iOS keyboard: the on-screen keyboard shrinks the VISUAL viewport while position:fixed
+// elements track the LAYOUT viewport — the bottom card (with the focused search box)
+// would hide behind the keyboard and Safari scroll-jumps the page hunting for the input.
+// Lift the panel by the keyboard inset (--kb-inset, see styles.css) and keep the page
+// pinned at origin so the app never displaces.
+function syncKeyboardInset() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+  document.documentElement.style.setProperty("--kb-inset", `${kb}px`);
+  if (kb > 0 && (window.scrollY || window.scrollX)) window.scrollTo(0, 0);
+  syncMapToCard();
+}
+if (window.visualViewport) {
+  visualViewport.addEventListener("resize", syncKeyboardInset);
+  visualViewport.addEventListener("scroll", syncKeyboardInset);
+}
+// Safari-only gesture events: block page pinch-zoom entirely — the UI is an app, not a document
+document.addEventListener("gesturestart", (e) => e.preventDefault());
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (state.openState) refitMeasured(); syncMapToCard(); });
 
 // ---- selection + panel ----
