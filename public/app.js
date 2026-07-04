@@ -391,11 +391,13 @@ function syncMapToCard() {
   const stageRect = STAGE.getBoundingClientRect();
   const viewportH = Math.floor((window.visualViewport && window.visualViewport.height) || window.innerHeight);
   const inspecting = !!(state.mapInspect && MOBILE_MAP_INSPECT_MQ.matches);
+  // the topbar is visible in every mode (logo + menu at all times) — the band always
+  // starts below it; inspect mode just tucks a little closer.
   const chromeBottom = Math.max(
-    inspecting ? 0 : (TOPBAR ? TOPBAR.getBoundingClientRect().bottom : 0),
-    inspecting ? 0 : (TOP_CONTROLS ? TOP_CONTROLS.getBoundingClientRect().bottom : 0)
+    TOPBAR ? TOPBAR.getBoundingClientRect().bottom : 0,
+    TOP_CONTROLS ? TOP_CONTROLS.getBoundingClientRect().bottom : 0
   );
-  let topInset = inspecting ? 8 : Math.max(0, Math.ceil(chromeBottom - stageRect.top + 12));
+  let topInset = Math.max(0, Math.ceil(chromeBottom - stageRect.top + (inspecting ? 8 : 12)));
   // Mobile district detail: the state title is pinned just under the topbar, so the map
   // band starts BELOW it — the shrunken state then centers between the title and the card.
   if (MOBILE_MAP_INSPECT_MQ.matches && PANEL.classList.contains("seat-detail") && state.openState) {
@@ -1582,16 +1584,8 @@ function syncStageLabelPosition() {
   const stateTop = currentStateTopScreenY(state.openState);
   const labelH = STATE_LABEL.getBoundingClientRect().height || 32;
   const gap = MOBILE_MAP_INSPECT_MQ.matches ? 8 : 12;
-  // Never rise into the top chrome: the topbar while visible, or the fixed home-logo
-  // pill that replaces it in map-inspect mode (a wide state name would collide with it).
-  const topbarVisible = TOPBAR && !document.body.classList.contains("map-inspect");
-  let floor = 12;
-  if (topbarVisible) {
-    floor = Math.max(12, Math.round(TOPBAR.getBoundingClientRect().bottom + 6));
-  } else {
-    const chip = document.getElementById("inspect-home");
-    if (chip && chip.getClientRects().length) floor = Math.max(12, Math.round(chip.getBoundingClientRect().bottom + 6));
-  }
+  // Never rise into the topbar — it is visible in EVERY mode now (logo + menu at all times).
+  const floor = TOPBAR ? Math.max(12, Math.round(TOPBAR.getBoundingClientRect().bottom + 6)) : 12;
   const top = Math.max(floor, Math.round(stateTop - labelH - gap));
   document.documentElement.style.setProperty("--state-label-top", `${top}px`);
 }
@@ -2127,7 +2121,6 @@ async function shareApp() {
 }
 function showWholeMap() { hideInfo(); backToControls(); }
 document.getElementById("brand-home")?.addEventListener("click", showWholeMap);
-document.getElementById("inspect-home")?.addEventListener("click", showWholeMap);
 document.getElementById("top-map")?.addEventListener("click", showWholeMap);
 document.getElementById("top-info")?.addEventListener("click", showInfo);
 document.getElementById("top-share")?.addEventListener("click", shareApp);

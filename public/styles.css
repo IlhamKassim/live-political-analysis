@@ -476,10 +476,8 @@ body.state-open #map { overflow: visible; }
 .lang-seg button { min-width: 44px; min-height: 44px; padding: 9px 9px; font-size: 11px; }
 
 @media (max-width: 860px) {
-  body.map-inspect #topbar {
-    opacity: 0;
-    pointer-events: none;
-  }
+  /* topbar stays visible in map-inspect too — Danial: logo top-left + menu top-right
+     AT ALL TIMES (the band and state label start below it; see syncMapToCard). */
   #tooltip {
     display: none !important;
   }
@@ -1927,14 +1925,6 @@ html, body, #stage, #map { touch-action: pan-x pan-y; }   /* touch-action does n
    (syncKeyboardInset) — iOS freezes position:fixed anchoring while the keyboard is
    open, so a bottom offset is ignored there; compositor transforms are not. */
 
-
-/* ===== persistent home logo: the topbar hides in map-inspect, so a compact clickable
-   MyPolitik pill takes the top-right corner there (burger's spot) — home at all times. */
-.inspect-home { position: fixed; top: 14px; right: 14px; z-index: 55; display: none; }
-.inspect-home .mark { font-family: var(--font-display); font-size: 16px; font-weight: 700; letter-spacing: .01em; white-space: nowrap; }
-@media (max-width: 860px) {
-  body.map-inspect .inspect-home { display: flex; }
-}
 
 
 /* typing in search (mobile): the card is keyboard-shrunk — give it entirely to the
