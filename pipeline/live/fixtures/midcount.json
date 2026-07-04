@@ -1,0 +1,265 @@
+{
+ "phase": "live",
+ "seats": {
+  "1_N.01": {
+   "status": "won",
+   "coalition": "BN",
+   "party": "UMNO",
+   "name": "Datuk Zahari Sarip",
+   "majority": "7987",
+   "sources": [
+    "manual"
+   ]
+  },
+  "1_N.03": {
+   "status": "leading",
+   "coalition": "BN",
+   "party": "UMNO",
+   "name": "Anuar Abd Manap",
+   "majority": "4968",
+   "sources": [
+    "manual"
+   ]
+  },
+  "1_N.05": {
+   "status": "won",
+   "coalition": "BN",
+   "party": "UMNO",
+   "name": "Mohd Azahar Ibrahim",
+   "majority": "4013",
+   "sources": [
+    "manual"
+   ]
+  },
+  "1_N.07": {
+   "status": "leading",
+   "coalition": "BN",
+   "party": "UMNO",
+   "name": "Ahmad Syar\u2019e Yusof",
+   "majority": "395",
+   "sources": [
+    "manual"
+   ]
+  },
+  "1_N.09": {
+   "status": "won",
+   "coalition": "BN",
+   "party": "UMNO",
+   "name": "Sahrihan Jani",
+   "majority": "11075",
+   "sources": [
+    "manual"
+   ]
+  },
+  "1_N.11": {
+   "status": "leading",
+   "coalition": "PH",
+   "party": "AMANAH",
+   "name": "Ahmad Nazari Abd Hamid",
+   "majority": "4541",
+   "sources": [
+    "manual"
+   ]
+  },
+  "1_N.13": {
+   "status": "won",
+   "coalition": "PH",
+   "party": "AMANAH",
+   "name": "Nazri Abd Rahman",
+   "majority": "10703",
+   "sources": [
+    "manual"
+   ]
+  },
+  "1_N.15": {
+   "status": "leading",
+   "coalition": "PH",
+   "party": "AMANAH",
+   "name": "Muhammad Taqiuddin Cheman",
+   "majority": "465",
+   "sources": [
+    "manual"
+   ]
+  },
+  "1_N.17": {
+   "status": "won",
+   "coalition": "PN",
+   "party": "PAS",
+   "name": "Halim Kepol",
+   "majority": "5248",
+   "sources": [
+    "manual"
+   ]
+  },
+  "1_N.19": {
+   "status": "leading",
+   "coalition": "BN",
+   "party": "MCA",
+   "name": "Ling Tian Soon",
+   "majority": "11223",
+   "sources": [
+    "manual"
+   ]
+  },
+  "1_N.21": {
+   "status": "won",
+   "coalition": "PH",
+   "party": "AMANAH",
+   "name": "Md Ezam Md Taslim",
+   "majority": "10164",
+   "sources": [
+    "manual"
+   ]
+  },
+  "1_N.23": {
+   "status": "leading",
+   "coalition": "BN",
+   "party": "MCA",
+   "name": "Boo Chin Liong",
+   "majority": "663",
+   "sources": [
+    "manual"
+   ]
+  },
+  "1_N.25": {
+   "status": "won",
+   "coalition": "PN",
+   "party": "BERSATU",
+   "name": "Syed Mohamad Syed Alwi",
+   "majority": "3910",
+   "sources": [
+    "manual"
+   ]
+  },
+  "1_N.27": {
+   "status": "leading",
+   "coalition": "BN",
+   "party": "MCA",
+   "name": "Chua Jian Boon",
+   "majority": "4453",
+   "sources": [
+    "manual"
+   ]
+  },
+  "1_N.29": {
+   "status": "won",
+   "coalition": "BN",
+   "party": "UMNO",
+   "name": "Syed Hussien Syed Abdullah",
+   "majority": "2822",
+   "sources": [
+    "manual"
+   ]
+  },
+  "1_N.31": {
+   "status": "leading",
+   "coalition": "PN",
+   "party": "PAS",
+   "name": "Mazlan Bujang",
+   "majority": "10229",
+   "sources": [
+    "manual"
+   ]
+  },
+  "1_N.33": {
+   "status": "won",
+   "coalition": "PH",
+   "party": "PKR",
+   "name": "Md Yusof Dawam",
+   "majority": "10637",
+   "sources": [
+    "manual"
+   ]
+  },
+  "1_N.35": {
+   "status": "leading",
+   "coalition": "BN",
+   "party": "UMNO",
+   "name": "Datuk Seri Dr Adham Baba",
+   "majority": "7914",
+   "sources": [
+    "manual"
+   ]
+  },
+  "1_N.37": {
+   "status": "won",
+   "coalition": "BN",
+   "party": "UMNO",
+   "name": "Norlizah Noh",
+   "majority": "10108",
+   "sources": [
+    "manual"
+   ]
+  },
+  "1_N.39": {
+   "status": "leading",
+   "coalition": "BN",
+   "party": "UMNO",
+   "name": "Aznan Tamin",
+   "majority": "3975",
+   "sources": [
+    "manual"
+   ]
+  },
+  "1_N.41": {
+   "status": "won",
+   "coalition": "BN",
+   "party": "MCA",
+   "name": "Teow Chia Ling",
+   "majority": "6227",
+   "sources": [
+    "manual"
+   ]
+  },
+  "1_N.43": {
+   "status": "leading",
+   "coalition": "BN",
+   "party": "UMNO",
+   "name": "Baharudin Mohamed Taib",
+   "majority": "7185",
+   "sources": [
+    "manual"
+   ]
+  },
+  "1_N.45": {
+   "status": "won",
+   "coalition": "PH",
+   "party": "DAP",
+   "name": "Andrew Cheng Kah Eng",
+   "majority": "5998",
+   "sources": [
+    "manual"
+   ]
+  },
+  "1_N.47": {
+   "status": "leading",
+   "coalition": "BN",
+   "party": "UMNO",
+   "name": "Datuk Ramlee Bohani",
+   "majority": "7232",
+   "sources": [
+    "manual"
+   ]
+  },
+  "1_N.49": {
+   "status": "won",
+   "coalition": "PN",
+   "party": "MIPP",
+   "name": "S Anna Pravina",
+   "majority": "9518",
+   "sources": [
+    "manual"
+   ]
+  },
+  "1_N.51": {
+   "status": "leading",
+   "coalition": "BN",
+   "party": "MIC",
+   "name": "R Kumaran",
+   "majority": "9782",
+   "sources": [
+    "manual"
+   ]
+  }
+ }
+}

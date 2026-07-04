@@ -553,10 +553,15 @@ function stateSummaryResultFor(seat) {
 function seatValueColor(seat) {
   const data = state.data[state.tier];
   // live-election view: the contested state's seats are "not yet voted" neutral
-  // until results flow in on polling night (grey → leading hatch → won solid).
+  // until results flow in on polling night (grey → leading translucent → won solid).
   if (state.prnMode && liveElection() && seat.state === liveElection().state && state.tier === liveElection().tier) {
     const lr = state.prnLive && state.prnLive.seats && state.prnLive.seats[seat.code];
-    if (lr && lr.party) return partyColor(lr.coalition || lr.party);
+    const p = state.paths.get(seat.code);
+    if (lr && (lr.coalition || lr.party)) {
+      if (p) p.style.fillOpacity = lr.status === "leading" ? "0.45" : "";
+      return prnCoalColor(lr.coalition || lr.party).bg;
+    }
+    if (p) p.style.fillOpacity = "";
     return "#39404c";
   }
   if (state.mode === "parti" && state.results) {
@@ -578,7 +583,10 @@ function paint() {
   SEATS.classList.toggle("has-data", hasData);
   for (const seat of data.seats) {
     const p = state.paths.get(seat.code);
-    if (p) p.style.fill = seatValueColor(seat);
+    if (p) {
+      if (!state.prnMode) p.style.fillOpacity = "";   // live-night "leading" translucency is PRN-only
+      p.style.fill = seatValueColor(seat);
+    }
   }
   // re-apply selection styling
   if (state.selected) setSelectedDistrict(state.selected);
@@ -2681,12 +2689,43 @@ function prnBannerHTML(name) {
     <button id="prn-open" class="prn-open-btn" type="button">${esc(t("prn_open"))} →</button>
   </div>`;
 }
+// polling-night tally block: won (solid) counts per coalition racing to the majority line
+function prnLiveTallyHTML() {
+  const e = liveElection();
+  const live = state.prnLive;
+  if (!e || !live || !live.seats) return "";
+  const won = {}, leading = {};
+  let declared = 0;
+  for (const r of Object.values(live.seats)) {
+    const coal = r.coalition || r.party;
+    if (!coal) continue;
+    if (r.status === "won" || r.status === "official") { won[coal] = (won[coal] || 0) + 1; declared++; }
+    else if (r.status === "leading") leading[coal] = (leading[coal] || 0) + 1;
+  }
+  const order = Object.entries(won).sort((a, b) => b[1] - a[1]);
+  const bar = order.map(([coal, n]) => {
+    const c = prnCoalColor(coal);
+    return `<span style="width:${(100 * n / e.total_seats).toFixed(2)}%;background:${c.bg}"></span>`;
+  }).join("");
+  const key = order.map(([coal, n]) => {
+    const c = prnCoalColor(coal);
+    const lead = leading[coal] ? ` <span class="muted">+${leading[coal]}</span>` : "";
+    return `<span class="state-bloc"><span class="sw" style="background:${c.bg}"></span>${esc(coal)} <b>${n}</b>${lead}</span>`;
+  }).join("");
+  const updated = live.updated ? new Date(live.updated).toLocaleTimeString(lang === "ms" ? "ms-MY" : "en-MY", { hour: "2-digit", minute: "2-digit" }) : "";
+  return `<div class="state-info-h muted" style="margin-top:14px">${esc(t("prn_live_tally", { n: declared, total: e.total_seats }))}</div>
+    <div class="sharebar prn-live-bar">${bar}</div>
+    <div class="sharebar-key">${key || `<span class="muted">${esc(t("prn_live_waiting"))}</span>`}</div>
+    <p class="prn-majority muted">${esc(t("prn_majority", { n: e.majority }))}${updated ? ` · ${esc(t("prn_live_updated", { t: updated }))}` : ""}${live.source ? ` · ${esc(live.source)}` : ""}</p>`;
+}
+
 // the PRN summary card (replaces the state make-up while the election view is on)
 function prnSummaryHTML() {
   const e = liveElection();
   const p = state.prn16;
   if (!e || !p) return "";
-  const cd = prnCountdownLabel(e);
+  const liveNow = state.prnLive && (state.prnLive.phase === "live" || state.prnLive.phase === "final");
+  const cd = liveNow ? null : prnCountdownLabel(e);
   const total = Object.values(p.contested || {}).reduce((a, b) => a + b, 0);
   const order = Object.entries(p.contested || {}).sort((a, b) => b[1] - a[1]);
   const bar = order.map(([coal, n]) => {
@@ -2702,8 +2741,19 @@ function prnSummaryHTML() {
     [t("prn_early"), fmtDayMonth(e.early_voting)],
     [t("prn_polling"), fmtDayMonth(e.polling_day) + " 🗳️"],
   ].map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("");
+  const head = `<div class="prn-banner-h"><span class="live-dot" aria-hidden="true"></span>🗳️ ${esc(e.name)}${liveNow ? ` <span class="prn-live-chip">${esc(t(state.prnLive.phase === "final" ? "prn_phase_final" : "prn_phase_live"))}</span>` : ""}</div>`;
+  if (liveNow) {
+    // polling night: the tally IS the card
+    return `<div class="prn-summary">
+      ${head}
+      ${prnLiveTallyHTML()}
+      <p class="state-tap-hint muted">${esc(t("prn_tap_hint"))}</p>
+      <p class="src-line muted">${esc(t("prn_source"))}</p>
+      <button id="prn-close" class="prn-close-btn" type="button">${esc(t("prn_close"))}</button>
+    </div>`;
+  }
   return `<div class="prn-summary">
-    <div class="prn-banner-h"><span class="live-dot" aria-hidden="true"></span>🗳️ ${esc(e.name)}</div>
+    ${head}
     ${cd ? `<div class="prn-countdown">${esc(cd)}</div>` : ""}
     <dl class="rows prn-dates">${rows}</dl>
     <div class="state-info-h muted" style="margin-top:14px">${esc(t("prn_contested"))} · ${total}</div>
@@ -2761,6 +2811,7 @@ async function openPrnMode() {
 function closePrnMode(options = {}) {
   if (!state.prnMode) return;
   state.prnMode = false;
+  clearTimeout(prnLiveTimer);
   document.body.classList.remove("prn-mode");
   if (!options.silent) {
     if (state.openState) {
@@ -2772,17 +2823,39 @@ function closePrnMode(options = {}) {
     writeHash();
   }
 }
-// polling-night data: harmless no-op while /api/live/johor reports campaign phase
+// polling-night data: harmless no-op while /api/live/johor reports campaign phase.
+// While the PRN view is open in a live phase, re-poll every ~75s and re-render.
+let prnLiveTimer = null;
 async function refreshPrnLive() {
+  clearTimeout(prnLiveTimer);
+  let live = null;
   try {
     const r = await fetch("/api/live/johor");
-    if (!r.ok) return;
-    const live = await r.json();
-    if (live && live.phase && live.phase !== "campaign") {
-      state.prnLive = live;
-      if (state.prnMode) paint();
-    }
+    if (r.ok) live = await r.json();
   } catch (_) {}
+  if (!live) {
+    try {
+      // dev parity: the python dev server has no /api — read the baked asset directly
+      const a = await fetch("data/live-johor.json", { cache: "no-store" });
+      if (a.ok) live = await a.json();
+    } catch (_) {}
+  }
+  if (live && live.phase && live.phase !== "campaign") {
+    state.prnLive = live;
+    if (state.prnMode) {
+      paint();
+      renderPrnSummaryIfOpen();
+      // the state card's reveal choreography may still be swapping content in —
+      // re-assert once it has settled so the LIVE tally can't lose the race
+      setTimeout(renderPrnSummaryIfOpen, 800);
+      prnLiveTimer = setTimeout(refreshPrnLive, 75000);
+    }
+  }
+}
+function renderPrnSummaryIfOpen() {
+  if (state.prnMode && state.openState && PANEL.classList.contains("state-summary")) {
+    STATE_INFO.innerHTML = stateSummaryHTML(state.openState);
+  }
 }
 // overview badge pinned above the contested state, tracking the camera
 function syncLiveBadge() {

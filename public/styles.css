@@ -1943,3 +1943,17 @@ html, body, #stage, #map { touch-action: pan-x pan-y; }   /* touch-action does n
   border: 1px solid var(--line-2); border-radius: 999px; padding: 3px 9px;
   text-shadow: none;
 }
+
+
+/* polling-night chip + tally bar accents */
+.prn-live-chip {
+  display: inline-block; margin-left: 8px; padding: 3px 9px; border-radius: 999px;
+  font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .12em;
+  background: #b8323a; color: #fff; vertical-align: middle;
+}
+.prn-live-bar { position: relative; }
+.prn-live-bar::after {
+  /* the majority line at 29/56 */
+  content: ""; position: absolute; top: -3px; bottom: -3px; left: 51.786%;
+  width: 2px; background: var(--ink); opacity: .7;
+}
