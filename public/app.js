@@ -757,6 +757,9 @@ function syncKeyboardInset() {
   if (!vv) return;
   keyboardInset = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
   document.documentElement.style.setProperty("--kb-inset", `${keyboardInset}px`);
+  // iOS freezes position:fixed anchoring while the keyboard is open — a bottom offset
+  // is visually ignored there. A compositor transform is not: lift the whole panel.
+  PANEL.style.transform = keyboardInset > 0 ? `translateY(-${keyboardInset}px)` : "";
   if (keyboardInset > 0 && (window.scrollY || window.scrollX)) window.scrollTo(0, 0);
   syncMapToCard();
 }

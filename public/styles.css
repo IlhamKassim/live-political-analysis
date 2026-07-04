@@ -1923,9 +1923,9 @@ button.map-inspect-overview:focus-visible { outline: 2px solid var(--accent); ou
 /* ===== app-feel on touch: no page zoom, keyboard-aware bottom panel ===== */
 /* pan gestures only — no double-tap-to-zoom, no page pinch-zoom (map gestures unaffected) */
 html, body, #stage, #map { touch-action: pan-x pan-y; }   /* touch-action does not inherit */
-/* the on-screen keyboard shrinks the VISUAL viewport while position:fixed tracks the
-   LAYOUT viewport — lift the bottom card by the keyboard inset (JS keeps --kb-inset). */
-#panel, body.state-open #panel { bottom: var(--kb-inset, 0px); }
+/* the on-screen keyboard lift is applied as a translateY TRANSFORM from JS
+   (syncKeyboardInset) — iOS freezes position:fixed anchoring while the keyboard is
+   open, so a bottom offset is ignored there; compositor transforms are not. */
 
 
 /* ===== persistent home logo: the topbar hides in map-inspect, so a compact clickable
