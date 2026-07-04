@@ -178,6 +178,21 @@ async function loadOptional() {
     const pj = await fetch("data/prn16-johor.json");
     if (pj.ok) state.prn16 = await pj.json();
   } catch (_) {}
+  try {
+    // per-state context: MB/KM/Premier + election clock (pipeline/07_state_context.py)
+    const sc = await fetch("data/state-context.json");
+    if (sc.ok) state.stateCtx = await sc.json();
+  } catch (_) {}
+  try {
+    // per-state economy report card, DOSM via data.gov.my (pipeline/08_state_econ.py)
+    const se = await fetch("data/state-econ.json");
+    if (se.ok) state.stateEcon = await se.json();
+  } catch (_) {}
+  try {
+    // campaign-window headlines per PRN candidate (pipeline/06_candidate_news.py)
+    const cn = await fetch("data/candidate-news-johor.json");
+    if (cn.ok) state.prnNews = await cn.json();
+  } catch (_) {}
   return state;
 }
 function enableMode(mode) {
@@ -2640,8 +2655,68 @@ function stateSummaryHTML(name) {
     '<div class="sharebar">' + bar + "</div>" +
     '<div class="sharebar-key">' + key + "</div>" +
     (stats.length ? '<div class="state-stats">' + stats.join("") + "</div>" : "") +
+    stateContextHTML(name) +
     '<p class="state-tap-hint muted">' + esc(t("tap_district")) + "</p>"
   );
+}
+
+// per-state context rows: head of government + the election clock (from
+// public/data/state-context.json, curated + verified 2026-07-04)
+function fmtDMY(iso) {
+  return `${fmtDayMonth(iso)} ${iso.slice(0, 4)}`;
+}
+function daysUntil(iso) {
+  return Math.ceil((new Date(iso + "T00:00:00+08:00").getTime() - Date.now()) / 86400000);
+}
+function addDays(iso, n) {
+  const d = new Date(iso + "T00:00:00+08:00");
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+function stateContextHTML(name) {
+  const ctx = state.stateCtx;
+  const st = ctx && ctx.states && ctx.states[name];
+  if (!st) return "";
+  const rows = [];
+  if (st.gov) {
+    const g = st.gov;
+    const title = g.title === "MB" ? "Menteri Besar" : g.title === "KM" ? "Ketua Menteri" : g.title;
+    const care = g.caretaker ? ` <span class="muted">(${esc(t("ctx_caretaker"))})</span>` : "";
+    rows.push(`<dt>${esc(title)}</dt><dd>${esc(g.name)} · ${esc(g.party)} (${esc(g.coalition)})${care}</dd>`);
+  }
+  const clock = st.clock;
+  if (clock && !prnActiveForState(name)) {
+    let v = "";
+    if (clock.federal) {
+      v = `${t("ctx_federal")} · ${t("ctx_due_by", { d: fmtDMY(addDays(ctx.parlimen.dissolve_by, 60)) })}`;
+    } else if (clock.next) {
+      v = `${fmtDMY(clock.next)} · ${t("ctx_in_days", { n: daysUntil(clock.next) })}`;
+    } else if (clock.dissolve_by) {
+      const due = addDays(clock.dissolve_by, 60);   // dissolution deadline + 60-day window
+      v = t("ctx_due_by", { d: fmtDMY(due) });
+      if (clock.expected) v += ` · ${t("ctx_expected", { y: clock.expected })}`;
+      v += ` · ${t("ctx_in_days", { n: daysUntil(due) })}`;
+    }
+    if (v) rows.push(`<dt>${esc(t("ctx_next_election"))}</dt><dd>${esc(v)}</dd>`);
+  }
+  // economy report card (Azlan's suggestion: who's growing, who's doing well)
+  const econ = state.stateEcon;
+  const ec = econ && econ.states && econ.states[name];
+  let econSrc = "";
+  if (ec) {
+    const nat = econ.national || {};
+    if (Number.isFinite(ec.gdp_growth)) {
+      const diff = Number.isFinite(nat.gdp_growth) ? ec.gdp_growth - nat.gdp_growth : null;
+      const arrow = diff == null ? "" : (diff >= 0 ? ' <span class="econ-up">▲</span>' : ' <span class="econ-down">▼</span>');
+      const natRef = Number.isFinite(nat.gdp_growth) ? ` <span class="muted">(${esc(t("econ_national"))} ${nat.gdp_growth}%)</span>` : "";
+      rows.push(`<dt>${esc(t("econ_growth", { y: econ.year_gdp }))}</dt><dd><span class="mono">${ec.gdp_growth}%</span>${arrow}${natRef}</dd>`);
+    }
+    if (ec.gdp_pc) rows.push(`<dt>${esc(t("econ_pc"))}</dt><dd class="mono">RM ${ec.gdp_pc.toLocaleString()}</dd>`);
+    if (Number.isFinite(ec.u_rate)) rows.push(`<dt>${esc(t("econ_unemp", { q: econ.u_qtr }))}</dt><dd class="mono">${ec.u_rate}%</dd>`);
+    if (ec.income_median) rows.push(`<dt>${esc(t("econ_income", { y: econ.income_year }))}</dt><dd class="mono">RM ${ec.income_median.toLocaleString()}</dd>`);
+    econSrc = `<p class="src-line muted">${esc(t("econ_src"))}</p>`;
+  }
+  return rows.length ? `<dl class="rows state-ctx">${rows.join("")}</dl>${econSrc}` : "";
 }
 
 /* ===== live election (PRN16 Johor) =====
@@ -2785,6 +2860,25 @@ function prnSeatCardHTML(seat, entry) {
     const maj = entry.majority_2022 ? ` <span class="muted">(${esc(entry.majority_2022)})</span>` : "";
     meta.push(`<dt>${esc(t("prn_incumbent"))}</dt><dd>${esc(entry.incumbent_2022)}${entry.incumbent_party_2022 ? " · " + esc(entry.incumbent_party_2022) : ""}${maj}</dd>`);
   }
+  // campaign-window headlines per candidate (links only — never paraphrased)
+  const seatNews = state.prnNews && state.prnNews[seat.code];
+  let newsHTML = "";
+  if (seatNews) {
+    const blocks = entry.candidates.map((c) => {
+      const items = seatNews[c.name];
+      if (!items || !items.length) return "";
+      const links = items.map((n) =>
+        `<a class="prn-news-item" href="${esc(n.u)}" target="_blank" rel="noopener">
+          <span class="prn-news-t">${esc(n.t)}</span>
+          <span class="prn-news-s muted">${esc(n.s)}${n.d ? " · " + esc(fmtDayMonth(n.d)) : ""}</span></a>`).join("");
+      return `<div class="prn-news-cand"><div class="prn-news-name muted">${esc(c.name)}</div>${links}</div>`;
+    }).filter(Boolean).join("");
+    if (blocks) {
+      newsHTML = `<div class="state-info-h muted" style="margin-top:14px">${esc(t("prn_news"))}</div>
+        <div class="prn-news">${blocks}</div>
+        <p class="src-line muted">${esc(t("prn_news_note"))}</p>`;
+    }
+  }
   return `<div class="seat-head prn-seat-head">
       <div class="kicker">🗳️ ${esc(e.name)} · ${esc(entry.ncode)}</div>
       <h2>${esc(entry.name)}</h2>
@@ -2792,6 +2886,7 @@ function prnSeatCardHTML(seat, entry) {
     </div>
     <div class="state-info-h muted">${esc(t("prn_candidates"))} · ${entry.candidates.length}</div>
     <div class="prn-cands">${cands}</div>
+    ${newsHTML}
     ${meta.length ? `<dl class="rows prn-dates">${meta.join("")}</dl>` : ""}
     <p class="callout prn-note">${esc(t("prn_results_note"))}</p>
     <p class="src-line muted">${esc(t("prn_source"))}</p>`;

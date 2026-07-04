@@ -1957,3 +1957,19 @@ html, body, #stage, #map { touch-action: pan-x pan-y; }   /* touch-action does n
   content: ""; position: absolute; top: -3px; bottom: -3px; left: 51.786%;
   width: 2px; background: var(--ink); opacity: .7;
 }
+
+
+/* economy arrows + candidate news links */
+.econ-up { color: #4caf78; font-size: 11px; }
+.econ-down { color: #e05555; font-size: 11px; }
+.state-ctx { margin-top: 14px; }
+.prn-news { display: grid; gap: 8px; }
+.prn-news-cand { display: grid; gap: 4px; }
+.prn-news-name { font-size: 11px; font-family: var(--mono); letter-spacing: .04em; }
+.prn-news-item {
+  display: grid; gap: 2px; padding: 8px 10px; border: 1px solid var(--line);
+  border-radius: 9px; background: rgba(255,255,255,.015); text-decoration: none;
+}
+.prn-news-item:hover { border-color: var(--line-2); background: rgba(255,255,255,.04); }
+.prn-news-t { font-size: 12.5px; line-height: 1.35; color: var(--ink); }
+.prn-news-s { font-size: 10.5px; }
