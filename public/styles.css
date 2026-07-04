@@ -335,6 +335,19 @@ body.state-open #state-label {
   cursor: pointer; color: var(--ink); background: var(--bg); border: 1px solid var(--line);
   border-radius: var(--radius); transition: border-color .15s, color .15s; }
 .share-btn:hover { border-color: var(--accent); color: var(--accent); }
+.seat-detail-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 14px;
+}
+.seat-detail-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  text-align: center;
+}
 
 /* transient confirmation toast */
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 12px);
@@ -1404,6 +1417,7 @@ body.state-open #map { overflow: visible; }
 }
 .search input::placeholder { color: var(--ink-faint); }
 .search input:focus { border-color: var(--line-2); outline: none; }
+.search input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-color: var(--accent); }
 .results { top: auto; bottom: calc(100% + 8px); left: 0; right: 0; width: auto;
   background: var(--panel); border-color: var(--line-2); box-shadow: 0 -16px 40px rgba(0,0,0,.5); }
 
@@ -1602,6 +1616,14 @@ body.state-open #map { overflow: visible; }
   stroke: #fff;
   stroke-width: 1.8;
   paint-order: stroke;
+}
+#seats.returning .seat {
+  transition-duration: 560ms;
+  transition-timing-function: var(--ease-in-out);
+}
+#seats.isolated.returning .seat.outstate {
+  opacity: 1;
+  pointer-events: none;
 }
 .selected-texture {
   pointer-events: none;
@@ -1881,7 +1903,7 @@ button.map-inspect-overview:focus-visible { outline: 2px solid var(--accent); ou
 .live-badge {
   position: absolute; z-index: 16; transform: translateX(-50%);
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 6px 11px; border-radius: 999px; border: 1px solid rgba(255,120,120,.5);
+  min-height: 44px; padding: 0 13px; border-radius: 999px; border: 1px solid rgba(255,120,120,.5);
   background: rgba(16,12,14,.88); color: var(--ink); cursor: pointer;
   font-family: var(--mono); font-size: 11px; letter-spacing: .06em; font-weight: 700;
 }
@@ -1914,6 +1936,36 @@ button.map-inspect-overview:focus-visible { outline: 2px solid var(--accent); ou
 .prn-majority { font-size: 12px; margin: 8px 0 0; }
 .prn-check { display: inline-block; margin-top: 12px; font-size: 13px; color: var(--accent); text-decoration: none; }
 .prn-check:hover { text-decoration: underline; }
+.prn-mobile-summary {
+  display: grid;
+  gap: 5px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255,120,120,.34);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255,90,90,.10), rgba(255,90,90,.025));
+}
+.prn-mobile-title {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-weight: 800;
+  font-size: 13px;
+  line-height: 1.25;
+}
+.prn-mobile-title span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.prn-mobile-meta,
+.prn-mobile-foot {
+  color: var(--ink-dim);
+  font-size: 11.5px;
+  line-height: 1.35;
+}
 .prn-close-btn {
   margin-top: 14px; width: 100%; min-height: 44px; padding: 8px 12px; border-radius: 10px;
   border: 1px solid var(--line-2); background: transparent; color: var(--ink-dim);
@@ -1943,6 +1995,13 @@ html, body, #stage, #map { touch-action: pan-x pan-y; }   /* touch-action does n
 
 /* typing in search (mobile): the card is keyboard-shrunk — give it entirely to the
    search box by hiding the stats blocks that sat above it. */
+body.searching #stage { pointer-events: none; }
+body.searching #panel { z-index: 70; }
+body.searching #panel-empty { overflow: visible; }
+body.searching .results {
+  z-index: 90;
+  pointer-events: auto;
+}
 @media (max-width: 860px) {
   body.searching #nat-glance,
   body.searching #empty-more { display: none; }

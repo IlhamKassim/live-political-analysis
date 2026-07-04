@@ -17,6 +17,18 @@ PORT = int(os.environ.get("PORT", "4178"))
 
 
 class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
+    def rewrite_api_path(self):
+        if self.path.split("?", 1)[0] == "/api/live/johor":
+            self.path = "/data/live-johor.json"
+
+    def do_GET(self):
+        self.rewrite_api_path()
+        super().do_GET()
+
+    def do_HEAD(self):
+        self.rewrite_api_path()
+        super().do_HEAD()
+
     def end_headers(self):
         self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
         self.send_header("Pragma", "no-cache")

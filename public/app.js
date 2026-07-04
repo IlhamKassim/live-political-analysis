@@ -62,6 +62,7 @@ let viewBox = FULL.slice();
 const COALITION_ORDER = ["PH", "PN", "BN", "GPS", "GRS", "WARISAN", "KDM", "PBM", "BEBAS"];
 const SEAT_TABS = ["overview", "results", "candidates", "voting"];
 const isSeatTab = (tab) => SEAT_TABS.includes(tab);
+const LOAD_GATED_SCORES = false;
 
 // ---- i18n (English default, Bahasa Melayu toggle) ----
 // The I18N string table now lives in ./i18n.js (one tested source of truth;
@@ -153,13 +154,15 @@ async function loadOptional() {
     const rd = await fetch("data/results-dun.json");
     if (rd.ok) state.resultsDun = await rd.json();
   } catch (_) {}
-  try {
-    const s = await fetch("data/scores.json");
-    // AGENTS.md UNTOUCHABLE: "Keep Skor GATED ('Soon') even if scores.json appears."
-    // Load the scores (panel score row + seatValueColor skor branch use them) but
-    // NEVER enableMode("skor") — the tab stays disabled with its "Soon/Segera" pill.
-    if (s.ok) { state.scores = await s.json(); }
-  } catch (_) {}
+  if (LOAD_GATED_SCORES) {
+    try {
+      const s = await fetch("data/scores.json");
+      // AGENTS.md UNTOUCHABLE: "Keep Skor GATED ('Soon') even if scores.json appears."
+      // Keep this optional fetch off until the score product is intentionally unlocked;
+      // otherwise local static dev logs a noisy 404 for a deliberately absent file.
+      if (s.ok) { state.scores = await s.json(); }
+    } catch (_) {}
+  }
   try {
     const c = await fetch("data/candidates-ge15.json");
     if (c.ok) state.candidates = await c.json();
@@ -265,12 +268,8 @@ function setPanelView(view) {
 // same decelerate curve so they read as a single coordinated move.
 const DETAIL_POP_MS = 600;
 const DETAIL_POP_EASE = "cubic-bezier(0,0,0.2,1)";
-// Danial's choreography for the district-detail pop: card pops DOWN, card pops UPWARD,
-// and only once the rise is clearly underway does the state start shrinking — it lags
-// the card by DELAY and catches up with a shorter glide so both settle together.
-const DETAIL_GLIDE_DELAY_MS = 200;
-const DETAIL_GLIDE_MS = 430;
-let detailGlideTimer = null;
+const STATE_ISOLATE_MS = 720;
+const STATE_EXIT_MS = 560;
 // JS twin of DETAIL_POP_EASE for the rAF viewBox glide — the map camera and the card's
 // WAAPI rise must follow the IDENTICAL progress curve or the composite reads as two moves.
 function cubicBezierEase(x1, y1, x2, y2) {
@@ -290,6 +289,7 @@ function cubicBezierEase(x1, y1, x2, y2) {
   };
 }
 const DETAIL_POP_EASE_FN = cubicBezierEase(0, 0, 0.2, 1);
+const STATE_EXIT_EASE_FN = cubicBezierEase(0.4, 0, 0.2, 1);
 
 function animateRectFlip(el, first, last, duration = 360, easing = "cubic-bezier(0.4,0,0.2,1)") {
   if (!el || !el.animate || !first || !last || last.width <= 0 || last.height <= 0) return;
@@ -318,23 +318,33 @@ function animateRectFlip(el, first, last, duration = 360, easing = "cubic-bezier
 }
 
 // Smoothly grow/shrink the bottom card to fit new content (make-up ⇄ district detail).
-// The map band is resized by layout, so use FLIP transforms on both the card and map to
-// make the final layout feel like one coordinated move.
-function animateCardResize(card, mutate) {
-  if (ANIM_OFF) { mutate(); syncMapToCard(); return; }
+// Most views FLIP both the card and map element. When preserveMapView is set, the card
+// can resize but the current map camera is rewritten so the isolated state keeps the
+// same screen size/position instead of expanding to fit the new card layout.
+function animateCardResize(card, mutate, options = {}) {
+  const preserveMapView = !!options.preserveMapView;
+  const firstMap = preserveMapView ? SVG.getBoundingClientRect() : null;
+  if (ANIM_OFF) {
+    mutate();
+    syncMapToCard();
+    if (preserveMapView) setViewBoxPreservingScreen(firstMap, SVG.getBoundingClientRect());
+    return;
+  }
   if (!card || !card.animate || REDUCE_MOTION.matches) {
     mutate();
     syncMapToCard();
+    if (preserveMapView) setViewBoxPreservingScreen(firstMap, SVG.getBoundingClientRect());
     return;
   }
   const firstCard = card.getBoundingClientRect();
-  const firstMap = SVG.getBoundingClientRect();
+  const firstMapForFlip = firstMap || SVG.getBoundingClientRect();
   mutate();
   syncMapToCard();
   const lastCard = card.getBoundingClientRect();
   const lastMap = SVG.getBoundingClientRect();
+  if (preserveMapView) setViewBoxPreservingScreen(firstMap, lastMap);
   animateRectFlip(card, firstCard, lastCard, 380);
-  animateRectFlip(SVG, firstMap, lastMap, 420);
+  if (!preserveMapView) animateRectFlip(SVG, firstMapForFlip, lastMap, 420);
 }
 
 // onLayout (optional) fires once the swapped-in layout is real, with the map's pre/post
@@ -344,9 +354,10 @@ function animateCardResize(card, mutate) {
 // camera move has no scaleY distortion).
 async function swapCardWithMinimizePop(card, mutate, onLayout) {
   if (ANIM_OFF || !card || !card.animate || REDUCE_MOTION.matches) {
+    const firstMap = onLayout ? SVG.getBoundingClientRect() : null;
     mutate();
     syncMapToCard();
-    if (onLayout) onLayout();
+    if (onLayout) onLayout(firstMap, SVG.getBoundingClientRect());
     return;
   }
   const prevOrigin = card.style.transformOrigin;
@@ -702,6 +713,16 @@ function stateFrameAspect() {
   }
   return FULL[2] / FULL[3];
 }
+function stateLabelClearanceBottom() {
+  const label = document.getElementById("state-label");
+  if (!label || !state.openState) return null;
+  const labelH = label.getBoundingClientRect().height || 0;
+  if (labelH <= 0) return null;
+  const topbarBottom = TOPBAR ? TOPBAR.getBoundingClientRect().bottom : 0;
+  const labelTop = Math.max(12, Math.round(topbarBottom + 6));
+  const gap = MOBILE_MAP_INSPECT_MQ.matches ? 8 : 14;
+  return labelTop + labelH + gap;
+}
 function stateViewBox(name) {
   const b = stateBBox(name);
   const pad = Math.max(b.w, b.h) * 0.06 + 2;
@@ -710,8 +731,21 @@ function stateViewBox(name) {
   if (w / h > ar) h = w / ar; else w = h * ar;
   const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
   // The map now has its own reserved band above the card on every viewport, so centre
-  // the state in that band instead of biasing it upward under the top chrome.
-  const anchor = 0.5;
+  // the state in that band, then bias it down only when the persistent title would
+  // otherwise overlap northern geometry (Sabah's islands are the common case).
+  let anchor = 0.5;
+  const mapRect = SVG.getBoundingClientRect();
+  const clearanceBottom = stateLabelClearanceBottom();
+  if (clearanceBottom != null && mapRect.width > 0 && mapRect.height > 0) {
+    const scale = Math.min(mapRect.width / w, mapRect.height / h);
+    if (Number.isFinite(scale) && scale > 0) {
+      const offsetY = (mapRect.height - h * scale) / 2;
+      const stateTop = mapRect.top + offsetY + (b.y - (cy - anchor * h)) * scale;
+      if (stateTop < clearanceBottom) {
+        anchor += (clearanceBottom - stateTop) / (h * scale);
+      }
+    }
+  }
   return [cx - w / 2, cy - anchor * h, w, h];
 }
 function zoomToState(name, ms = 540, ease = undefined) { animateTo(stateViewBox(name), ms, ease); }
@@ -986,12 +1020,22 @@ function seatCardHTML(seat, options = {}) {
         ${showStateLine ? `<div class="where">${t("state_label")} <b>${esc(seat.state)}</b></div>` : ""}
         ${!isP && seat.parlimen ? `<div class="where">${esc(t("parlimen_label"))} <b>${esc(parlimenContext(seat))}</b></div>` : ""}
       </div>
+      ${seatDetailActionsHTML()}
       ${seatTabsHTML(active)}
       <div id="seat-tabpanel-${esc(active)}" class="seat-tabpanel" role="tabpanel" aria-labelledby="seat-tab-${esc(active)}">
         ${panelHTML}
       </div>
     </div>
     ${includeDistrictSwitcher ? seatDistrictSwitcherHTML(seat.code) : ""}
+  `;
+}
+
+function seatDetailActionsHTML() {
+  return `
+    <div class="seat-detail-actions">
+      <button class="share-btn seat-detail-action" type="button" data-share-link>${esc(t("share_btn"))}</button>
+      <button class="share-btn seat-detail-action" type="button" data-share-card>${esc(t("card_btn"))}</button>
+    </div>
   `;
 }
 
@@ -1204,7 +1248,7 @@ function setSeatTab(tab, focusTab = false) {
   animateCardResize(PANEL_STATE, () => {
     STATE_INFO.innerHTML = stateSeatCardHTML(seat);
     resetStateInfoScroll();
-  });
+  }, { preserveMapView: !!state.openState });
   animateIn(STATE_INFO.querySelector(".seat-tabpanel"), 6);   // the new tab's content rises in
   requestAnimationFrame(() => {
     syncMapToCard();
@@ -1531,8 +1575,8 @@ async function shareCard(trigger) {
 }
 // PANEL_SEAT.innerHTML is rebuilt on every render, so delegate rather than re-bind.
 PANEL_SEAT.addEventListener("click", (e) => {
-  if (e.target.closest("#share-link")) shareLink();
-  else if (e.target.closest("#share-card")) shareCard(e.target);
+  if (e.target.closest("#share-link, [data-share-link]")) shareLink();
+  else if (e.target.closest("#share-card, [data-share-card]")) shareCard(e.target);
 });
 CARD_PREVIEW_DOWNLOAD?.addEventListener("click", downloadCardPreview);
 CARD_PREVIEW_CLOSE?.addEventListener("click", closeCardPreview);
@@ -1610,9 +1654,9 @@ function syncStageLabelPosition() {
     document.documentElement.style.removeProperty("--state-label-top");
     return;
   }
-  // Mobile district detail: pin the title to its resting spot under the topbar (the map
-  // band starts below it — see syncMapToCard). Tracking the state's top here would make
-  // the title chase the camera through the whole district glide.
+  // Mobile district detail: pin the title to its resting spot under the topbar. The
+  // isolated state now keeps its current frame when details open, so the title should
+  // stay anchored to the chrome rather than chase the map geometry.
   if (MOBILE_MAP_INSPECT_MQ.matches && PANEL.classList.contains("seat-detail")) {
     const floor = TOPBAR ? Math.max(12, Math.round(TOPBAR.getBoundingClientRect().bottom + 6)) : 12;
     document.documentElement.style.setProperty("--state-label-top", `${floor}px`);
@@ -2314,7 +2358,7 @@ function setDistrictPickerOpen(open, focusOption = false) {
   list.hidden = !next;
   if (next && focusOption) {
     const target = list.querySelector('[aria-selected="true"]') || list.querySelector(".map-inspect-option");
-    requestAnimationFrame(() => target?.focus());
+    target?.focus({ preventScroll: true });
   }
 }
 
@@ -2335,6 +2379,18 @@ function focusDistrictPickerOption(current, key) {
   else if (key === "Home") nextIndex = 0;
   else if (key === "End") nextIndex = options.length - 1;
   options[nextIndex].focus();
+}
+
+function chooseMapInspectDistrict(code, focusToggle = false) {
+  if (!code) return;
+  setDistrictPickerOpen(false);
+  if (state.mapInspect) previewDistrict(code);
+  else showDistrict(code);
+  if (focusToggle) {
+    requestAnimationFrame(() => {
+      document.getElementById("map-inspect-district-toggle")?.focus({ preventScroll: true });
+    });
+  }
 }
 
 function mapInspectOverviewHTML(seat) {
@@ -2362,6 +2418,25 @@ function mapInspectOverviewHTML(seat) {
   `;
 }
 
+function mapInspectPrnSummaryHTML() {
+  if (!state.prnMode) return "";
+  const e = prnActiveForState(state.openState);
+  const p = state.prn16;
+  if (!e || !p) return "";
+  const liveNow = state.prnLive && (state.prnLive.phase === "live" || state.prnLive.phase === "final");
+  const status = liveNow
+    ? t(state.prnLive.phase === "final" ? "prn_phase_final" : "prn_phase_live")
+    : prnCountdownLabel(e);
+  const total = Object.values(p.contested || {}).reduce((a, b) => a + b, 0);
+  return `
+    <section class="prn-mobile-summary" aria-label="${esc(e.name)}">
+      <div class="prn-mobile-title"><span class="live-dot" aria-hidden="true"></span><span>${esc(e.name)}</span></div>
+      <div class="prn-mobile-meta">${esc(t("prn_polling"))} ${esc(fmtDayMonth(e.polling_day))}${status ? " · " + esc(status) : ""}</div>
+      <div class="prn-mobile-foot">${esc(t("prn_contested"))} · ${total}</div>
+    </section>
+  `;
+}
+
 let lastTraySelection = null;
 function renderMapInspectTray() {
   if (!MAP_INSPECT_TRAY) return;
@@ -2385,6 +2460,7 @@ function renderMapInspectTray() {
   MAP_INSPECT_TRAY.innerHTML = `
     <div class="map-inspect-choice">
       ${prnRow}
+      ${mapInspectPrnSummaryHTML()}
       ${mapInspectOverviewHTML(seat)}
       ${districtSwitchRowHTML(state.selected || "", !!seat)}
     </div>
@@ -2402,12 +2478,11 @@ function refitOpenStateMap(delay = 0) {
   if (!state.openState) return;
   const run = () => {
     syncMapToCard();
-    // During the More pop the onLayout camera glide owns the viewBox — a refit here
-    // (setMapInspect(false) inside the swap's mutate) would restart the glide a frame
-    // in and stutter its launch.
+    // During the More pop the onLayout callback owns the viewBox so district details
+    // can open without refitting or expanding the isolated state.
     if (mapInspectDetailsAnimating) return;
-    // Every view frames the WHOLE state — in mobile seat detail it simply refits to the
-    // shorter band's aspect (nothing cut off; the selected district stays highlighted).
+    // Explicit refits frame the whole state; district-detail entry suppresses this so
+    // tapping a district only highlights it and does not resize the isolated state.
     zoomToState(state.openState);
     requestAnimationFrame(syncMapToCard);
   };
@@ -2421,13 +2496,24 @@ function refitOpenStateMapSettled() {
   refitOpenStateMap(360);
 }
 
+let suppressMapRefit = false;
+function setMapInspectWithoutRefit(open) {
+  suppressMapRefit = true;
+  try {
+    setMapInspect(open);
+  } finally {
+    suppressMapRefit = false;
+  }
+}
 function setMapInspect(open) {
   const next = !!open && !!state.openState && MOBILE_MAP_INSPECT_MQ.matches;
   if (state.mapInspect === next) {
     renderMapInspectTray();
     syncMapInspectButton();
-    if (next) refitOpenStateMapSettled();
-    else refitOpenStateMap();
+    if (!suppressMapRefit) {
+      if (next) refitOpenStateMapSettled();
+      else refitOpenStateMap();
+    }
     return;
   }
   state.mapInspect = next;
@@ -2435,8 +2521,10 @@ function setMapInspect(open) {
   if (next) setPanelView("state");
   renderMapInspectTray();
   syncMapInspectButton();
-  if (next) refitOpenStateMapSettled();
-  else refitOpenStateMap();
+  if (!suppressMapRefit) {
+    if (next) refitOpenStateMapSettled();
+    else refitOpenStateMap();
+  }
 }
 
 function inspectMapBounds() {
@@ -2517,7 +2605,7 @@ function locateMapInspectDistrict(btn, options = {}) {
       if (MOBILE_MAP_INSPECT_MQ.matches && !showDetails) setMapInspect(true);
       requestAnimationFrame(() => {
         if (showDetails) {
-          showDistrict(seat.code);   // its mobile branch refits the whole state to the band
+          showDistrict(seat.code);
         } else {
           previewDistrict(seat.code, true);
         }
@@ -2546,31 +2634,17 @@ async function showMapInspectDetails(options = {}) {
       await swapCardWithMinimizePop(PANEL_STATE, () => {
         state.selected = code;
         setSelectedDistrict(code);
-        setMapInspect(false);
+        setMapInspectWithoutRefit(false);
         setPanelView("seat");
         STATE_INFO.innerHTML = stateSeatCardHTML(seat);
         resetStateInfoScroll();
         writeHash();
       }, (firstMap, lastMap) => {
-        // The map's whole move is ONE viewBox camera glide: rewrite the viewBox so the
-        // state renders pixel-identical in the just-resized band (no snap), hold it there
-        // while the card pops upward OVER it (card z-30 > stage z-1), then — only once
-        // the rise is clearly underway — glide the WHOLE state up into the band (never
-        // crop it). Returning true skips the element FLIP (its non-uniform scaleY
-        // stretched the geometry mid-move).
+        // Preserve the isolated state's current screen size/position through the card
+        // swap. The district selection should highlight; it should not make the whole
+        // state expand or refit just because the detail card changed height.
         if (MOBILE_MAP_INSPECT_MQ.matches && state.openState) {
-          if (!firstMap || !lastMap) {           // reduced-motion / anim-off: jump straight
-            zoomToState(state.openState);
-            return true;
-          }
           setViewBoxPreservingScreen(firstMap, lastMap);
-          clearTimeout(detailGlideTimer);
-          detailGlideTimer = setTimeout(() => {
-            // still in district detail? (a fast back-tap within the delay cancels the glide)
-            if (state.openState && PANEL.classList.contains("seat-detail")) {
-              zoomToState(state.openState, DETAIL_GLIDE_MS, DETAIL_POP_EASE_FN);
-            }
-          }, DETAIL_GLIDE_DELAY_MS);
           return true;
         }
         return false;
@@ -2580,7 +2654,7 @@ async function showMapInspectDetails(options = {}) {
     }
     return;
   }
-  setMapInspect(false);
+  setMapInspectWithoutRefit(false);
   showDistrict(code);
 }
 
@@ -2942,6 +3016,7 @@ function prnSeatCardHTML(seat, entry) {
       <h2>${esc(entry.name)}</h2>
       ${seat.parlimen ? `<div class="where">${esc(t("parlimen_label"))} <b>${esc(parlimenContext(seat))}</b></div>` : ""}
     </div>
+    ${seatDetailActionsHTML()}
     <div class="state-info-h muted">${esc(t("prn_candidates"))} · ${entry.candidates.length}</div>
     <div class="prn-cands">${cands}</div>
     ${newsHTML}
@@ -2982,15 +3057,15 @@ let prnLiveTimer = null;
 async function refreshPrnLive() {
   clearTimeout(prnLiveTimer);
   let live = null;
-  try {
-    const r = await fetch("/api/live/johor");
-    if (r.ok) live = await r.json();
-  } catch (_) {}
-  if (!live) {
+  const localHost = ["", "localhost", "127.0.0.1", "::1"].includes(location.hostname);
+  const urls = localHost ? ["data/live-johor.json", "/api/live/johor"] : ["/api/live/johor", "data/live-johor.json"];
+  for (const url of urls) {
     try {
-      // dev parity: the python dev server has no /api — read the baked asset directly
-      const a = await fetch("data/live-johor.json", { cache: "no-store" });
-      if (a.ok) live = await a.json();
+      const r = await fetch(url, { cache: "no-store" });
+      if (r.ok) {
+        live = await r.json();
+        break;
+      }
     } catch (_) {}
   }
   if (live && live.phase && live.phase !== "campaign") {
@@ -3033,6 +3108,9 @@ function syncLiveBadge() {
 
 function openStateCard(name) {
   if (!name) return;
+  clearTimeout(stateExitTimer);
+  SEATS.classList.remove("returning");
+  const firstMap = SVG.getBoundingClientRect();
   const d = state.data[state.tier];
   const seats = d.seats.filter((s) => s.state === name);
   document.getElementById("state-name").textContent = name;
@@ -3049,29 +3127,38 @@ function openStateCard(name) {
   // the big map IS the district map now — no separate mini-map in the card.
   SEATS.classList.add("isolated");
   document.body.classList.add("state-open");   // card rises into a tall backdrop, map lifts above it
-  setMapInspect(MOBILE_MAP_INSPECT_MQ.matches);
+  suppressMapRefit = true;
+  try {
+    setMapInspect(MOBILE_MAP_INSPECT_MQ.matches);
+  } finally {
+    suppressMapRefit = false;
+  }
   highlightState(name);
-  zoomToState(name);
   // once the zoom settles, re-pin against the GROUND-TRUTH rendered state bottom (covers
   // any geometry edge case the deterministic pin might miss on an unusual viewport).
   clearTimeout(settleTimer);
-  settleTimer = setTimeout(refitMeasured, (ANIM_OFF || REDUCE_MOTION.matches) ? 60 : 700);
-  // choreograph: watch the overview card MINIMIZE, then the state backdrop springs up
-  // from that minimized point. (Coming from another state card, just reveal + bounce.)
+  settleTimer = setTimeout(refitMeasured, (ANIM_OFF || REDUCE_MOTION.matches) ? 60 : STATE_ISOLATE_MS + 120);
+  // Start the state camera move immediately. The card can compress/rise alongside it,
+  // but it must not hold the selected state in place after the click.
   clearTimeout(revealTimer);
   if (!ANIM_OFF && PANEL.classList.contains("empty")) {
     minimizeCard(PANEL_EMPTY);
-    revealTimer = setTimeout(revealStateCard, 300);
-  } else {
-    revealStateCard();
   }
+  revealStateCard({ firstMap, animateState: true });
   writeHash();
 }
-let revealTimer = null, settleTimer = null;
-function revealStateCard() {
+let revealTimer = null, settleTimer = null, stateExitTimer = null;
+function revealStateCard(options = {}) {
+  const firstMap = options.firstMap || SVG.getBoundingClientRect();
   setPanelView("state");
   syncMapToCard();
-  refitOpenStateMap();
+  if (options.animateState && state.openState) {
+    const lastMap = SVG.getBoundingClientRect();
+    setViewBoxPreservingScreen(firstMap, lastMap);
+    zoomToState(state.openState, STATE_ISOLATE_MS, DETAIL_POP_EASE_FN);
+  } else {
+    refitOpenStateMap();
+  }
   riseCard(PANEL_STATE, 0);          // the minimize already led; bounce up from the minimized bar
 }
 
@@ -3083,17 +3170,14 @@ function showDistrict(code) {
   // highlight the tapped district on the (static) zoomed-in map
   setSelectedDistrict(code);
   animateCardResize(PANEL_STATE, () => {   // grow/shrink the floating card to fit the detail
-    if (wasMapInspect) setMapInspect(false);
+    if (wasMapInspect) {
+      setMapInspectWithoutRefit(false);
+    }
     setPanelView("seat");
     STATE_INFO.innerHTML = stateSeatCardHTML(seat);
     resetStateInfoScroll();
-  });
+  }, { preserveMapView: true });
   animateIn(STATE_INFO, 6);   // the district detail swaps into the card under the header
-  // Mobile detail: refit the WHOLE state to the short band's aspect (never crop it);
-  // the selected district is highlighted, not zoomed to.
-  if (MOBILE_MAP_INSPECT_MQ.matches && state.openState) {
-    requestAnimationFrame(() => zoomToState(state.openState));
-  }
   writeHash();
 }
 
@@ -3111,8 +3195,8 @@ function goBack() {
       animateCardResize(PANEL_STATE, () => {
         STATE_INFO.innerHTML = stateSummaryHTML(state.openState);
         STATE_INFO.scrollTop = 0;
-        setMapInspect(true);
-      });
+        setMapInspectWithoutRefit(true);
+      }, { preserveMapView: true });
       writeHash();
       return;
     }
@@ -3120,7 +3204,7 @@ function goBack() {
       setPanelView("state");
       STATE_INFO.innerHTML = stateSummaryHTML(state.openState);
       STATE_INFO.scrollTop = 0;
-    });
+    }, { preserveMapView: true });
     animateIn(STATE_INFO, 6);
     writeHash();
   } else {
@@ -3129,26 +3213,45 @@ function goBack() {
 }
 
 function backToControls() {
+  const closingState = state.openState;
+  const animateStateExit = !!closingState && SEATS.classList.contains("isolated") && !ANIM_OFF && !REDUCE_MOTION.matches;
+  const firstMap = animateStateExit ? SVG.getBoundingClientRect() : null;
   if (state.prnMode) closePrnMode({ silent: true });   // leaving the state leaves the election view
   state.mapInspect = false;
   document.body.classList.remove("map-inspect");
   renderMapInspectTray();
   syncMapInspectButton();
   state.selected = null;
-  state.openState = null;
+  if (!animateStateExit) state.openState = null;
   setStageLabel(null);
   clearTimeout(revealTimer);
   clearTimeout(settleTimer);
+  clearTimeout(stateExitTimer);
   STATE_INFO.style.height = "";   // drop the pinned height for the next open / overview
   STATE_INFO.style.overflowY = "";
   PANEL_EMPTY.getAnimations().forEach((a) => a.cancel());   // clear the held minimize → overview shows full again
-  SEATS.classList.remove("isolated");
   document.body.classList.remove("state-open");
   clearSelectedDistrict();
-  highlightState(null);
-  zoomFull();                 // zoom back out to the whole country
-  syncMapToCard();            // state closed → release --map-h, map grows back to full height
+  if (animateStateExit) SEATS.classList.add("returning");
   setPanelView("overview");
+  syncMapToCard();            // state closed → release --map-h, map grows back to full height
+  if (animateStateExit) {
+    const lastMap = SVG.getBoundingClientRect();
+    setViewBoxPreservingScreen(firstMap, lastMap);
+    animateTo(FULL.slice(), STATE_EXIT_MS, STATE_EXIT_EASE_FN);
+    stateExitTimer = setTimeout(() => {
+      if (state.openState !== closingState || !PANEL.classList.contains("empty")) return;
+      state.openState = null;
+      highlightState(null);
+      SEATS.classList.remove("isolated", "returning");
+      syncLiveBadge();
+      writeHash();
+    }, STATE_EXIT_MS + 80);
+  } else {
+    highlightState(null);
+    SEATS.classList.remove("isolated", "returning");
+    zoomFull();                 // zoom back out to the whole country
+  }
   clearMatches();
   setFindStatus(null);
   writeHash();
@@ -3199,10 +3302,7 @@ PANEL_STATE.addEventListener("click", (e) => {
   }
   const districtOption = e.target.closest("[data-map-inspect-district]");
   if (districtOption) {
-    const code = districtOption.dataset.mapInspectDistrict;
-    setDistrictPickerOpen(false);
-    if (state.mapInspect) previewDistrict(code);
-    else showDistrict(code);
+    chooseMapInspectDistrict(districtOption.dataset.mapInspectDistrict);
     return;
   }
   const tab = e.target.closest("[data-seat-tab]");
@@ -3210,19 +3310,37 @@ PANEL_STATE.addEventListener("click", (e) => {
     setSeatTab(tab.dataset.seatTab, true);
     return;
   }
-  if (e.target.closest("#share-link")) shareLink();
-  else if (e.target.closest("#share-card")) shareCard(e.target);
+  if (e.target.closest("#share-link, [data-share-link]")) shareLink();
+  else if (e.target.closest("#share-card, [data-share-card]")) shareCard(e.target);
   else if (e.target === PANEL_STATE) goBack();   // tap the empty backdrop (behind the state) → step back
 });
 PANEL_STATE.addEventListener("keydown", (e) => {
   const districtToggle = e.target.closest("#map-inspect-district-toggle");
-  if (districtToggle && ["ArrowDown", "ArrowUp", "Enter", " "].includes(e.key)) {
+  if (districtToggle && ["ArrowDown", "ArrowUp"].includes(e.key)) {
     e.preventDefault();
     setDistrictPickerOpen(true, true);
     return;
   }
+  if (districtToggle && ["Enter", " "].includes(e.key)) {
+    e.preventDefault();
+    if (districtPickerOpen()) {
+      const list = document.getElementById("map-inspect-district-list");
+      const target = list?.querySelector(".map-inspect-option:focus") ||
+        list?.querySelector('[aria-selected="true"]') ||
+        list?.querySelector(".map-inspect-option");
+      chooseMapInspectDistrict(target?.dataset.mapInspectDistrict, true);
+    } else {
+      setDistrictPickerOpen(true, true);
+    }
+    return;
+  }
   const districtOption = e.target.closest("[data-map-inspect-district]");
   if (districtOption) {
+    if (["Enter", " "].includes(e.key)) {
+      e.preventDefault();
+      chooseMapInspectDistrict(districtOption.dataset.mapInspectDistrict, true);
+      return;
+    }
     if (["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) {
       e.preventDefault();
       focusDistrictPickerOption(districtOption, e.key);
