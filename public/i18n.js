@@ -5,6 +5,7 @@
 export const I18N = {
   en: {
     tap_district: "Tap a district to see its representative",
+    parlimen_label: "Parliament",
     prn_kicker: "STATE ELECTION",
     prn_open: "View PRN Johor 2026",
     prn_close: "✕ Exit election view",
@@ -133,6 +134,7 @@ export const I18N = {
   },
   ms: {
     tap_district: "Ketik kawasan untuk lihat wakil rakyatnya",
+    parlimen_label: "Parlimen",
     prn_kicker: "PILIHAN RAYA NEGERI",
     prn_open: "Lihat PRN Johor 2026",
     prn_close: "✕ Tutup paparan PRN",

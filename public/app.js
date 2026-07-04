@@ -833,6 +833,15 @@ function select(code) {
 }
 function deselect() { backToControls(); }
 
+// "P.140 · Segamat" for a DUN seat — the parliament dataset is already cached in DUN
+// tier (the FT underlays load it); degrades to the bare code if it isn't.
+function parlimenContext(seat) {
+  if (!seat || !seat.parlimen) return "";
+  const pd = state.data.parlimen;
+  const p = pd && pd.byCode.get(seat.parlimen);
+  return p ? `${seat.parlimen} · ${p.name}` : seat.parlimen;
+}
+
 function seatCardHTML(seat, options = {}) {
   const includeDistrictSwitcher = !!options.includeDistrictSwitcher;
   const showStateLine = options.showStateLine !== false;
@@ -936,6 +945,7 @@ function seatCardHTML(seat, options = {}) {
         <div class="kicker">${esc(kicker)}</div>
         <h2>${esc(seat.name)}</h2>
         ${showStateLine ? `<div class="where">${t("state_label")} <b>${esc(seat.state)}</b></div>` : ""}
+        ${!isP && seat.parlimen ? `<div class="where">${esc(t("parlimen_label"))} <b>${esc(parlimenContext(seat))}</b></div>` : ""}
       </div>
       ${seatTabsHTML(active)}
       <div id="seat-tabpanel-${esc(active)}" class="seat-tabpanel" role="tabpanel" aria-labelledby="seat-tab-${esc(active)}">
@@ -1586,12 +1596,22 @@ function syncStageLabelPosition() {
   document.documentElement.style.setProperty("--state-label-top", `${top}px`);
 }
 // The big name centred above the map: hover state in overview, locked state once isolated.
+// When the label IS the open state's name, a small tier chip (DUN / Parliament) rides
+// along so drilling into DUN level always says which layer you're in.
 function setStageLabel(text) {
-  if (text === labelText) return;
-  labelText = text;
+  const chip = text && text === state.openState ? t(state.tier === "dun" ? "tier_dun" : "tier_parlimen") : "";
+  const memo = text ? `${text}|${chip}` : text;
+  if (memo === labelText) return;
+  labelText = memo;
   if (!STATE_LABEL) return;
   if (text) {
     STATE_LABEL.textContent = text;
+    if (chip) {
+      const s = document.createElement("span");
+      s.className = "label-tier";
+      s.textContent = chip;
+      STATE_LABEL.appendChild(s);
+    }
     STATE_LABEL.classList.add("show");
     requestAnimationFrame(syncStageLabelPosition);
   } else {
@@ -2725,6 +2745,7 @@ function prnSeatCardHTML(seat, entry) {
   return `<div class="seat-head prn-seat-head">
       <div class="kicker">🗳️ ${esc(e.name)} · ${esc(entry.ncode)}</div>
       <h2>${esc(entry.name)}</h2>
+      ${seat.parlimen ? `<div class="where">${esc(t("parlimen_label"))} <b>${esc(parlimenContext(seat))}</b></div>` : ""}
     </div>
     <div class="state-info-h muted">${esc(t("prn_candidates"))} · ${entry.candidates.length}</div>
     <div class="prn-cands">${cands}</div>
