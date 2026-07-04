@@ -426,7 +426,13 @@ function syncMapToCard() {
   // While the on-screen keyboard is up (searching), the map surrenders its minimum —
   // the shrunken visual viewport belongs to the card so the search box stays visible.
   const kbOpen = keyboardInset > 60;
-  const preferredMinMapH = kbOpen ? 0 : (inspecting ? Math.floor(viewportH * 0.72) : (narrow ? 144 : 160));
+  // Desktop/landscape: the state card is now content-rich (stats + economy + context),
+  // so give the map a generous share (~40% of the viewport) instead of a fixed 160px —
+  // otherwise a wide state like Sarawak reads as a squashed sliver and the card scrolls
+  // its whole height. On desktop there's plenty of vertical room to spend.
+  const preferredMinMapH = kbOpen ? 0
+    : (inspecting ? Math.floor(viewportH * 0.72)
+    : (narrow ? 144 : Math.floor(viewportH * 0.40)));
   const viewportBoundMin = kbOpen ? 0 : Math.max(96, Math.floor((viewportH - topInset - panelPadBottom - gap) * 0.42));
   const minMapH = Math.min(preferredMinMapH, viewportBoundMin);
   const cardMaxH = Math.max(120, Math.floor(viewportH - topInset - minMapH - gap - panelPadBottom));
@@ -2650,20 +2656,22 @@ function stateSummaryHTML(name) {
   if (candidateN) stats.push(stat("state_avg_candidates", `<span class="mono">${(candidateSum / candidateN).toFixed(1)}</span>`, t("state_per_seat")));
 
   // desktop/landscape: the mobile inspect tray isn't shown, so give the state card
-  // its own district finder (dropdown + locate). On mobile the tray already has one.
+  // its own district finder (dropdown + locate) at the TOP — it's the primary action
+  // (you opened the state to drill into a district) and must be visible without
+  // scrolling past the stats + economy. On mobile the tray already has one.
   const desktopFinder = !MOBILE_MAP_INSPECT_MQ.matches
-    ? `<div class="state-info-h muted" style="margin-top:14px">${esc(t("find_district"))}</div>
-       <div class="state-district-find">${districtSwitchRowHTML(state.selected || "", false)}</div>`
+    ? `<div class="state-info-h muted">${esc(t("find_district"))}</div>
+       <div class="state-district-find state-district-find-top">${districtSwitchRowHTML(state.selected || "", false)}</div>`
     : "";
   return (
     prnBannerHTML(name) +
-    '<div class="state-info-h muted">' + esc(t("state_makeup")) + "</div>" +
+    desktopFinder +
+    '<div class="state-info-h muted"' + (desktopFinder ? ' style="margin-top:16px"' : "") + ">" + esc(t("state_makeup")) + "</div>" +
     '<div class="sharebar">' + bar + "</div>" +
     '<div class="sharebar-key">' + key + "</div>" +
     (stats.length ? '<div class="state-stats">' + stats.join("") + "</div>" : "") +
     stateContextHTML(name) +
-    desktopFinder +
-    '<p class="state-tap-hint muted">' + esc(t("tap_district")) + "</p>"
+    (desktopFinder ? "" : '<p class="state-tap-hint muted">' + esc(t("tap_district")) + "</p>")
   );
 }
 
@@ -2834,16 +2842,19 @@ function prnSummaryHTML() {
       <button id="prn-close" class="prn-close-btn" type="button">${esc(t("prn_close"))}</button>
     </div>`;
   }
+  const prnFinder = !MOBILE_MAP_INSPECT_MQ.matches
+    ? `<div class="state-info-h muted" style="margin-top:14px">${esc(t("find_district"))}</div><div class="state-district-find state-district-find-top">${districtSwitchRowHTML(state.selected || "", false)}</div>`
+    : "";
   return `<div class="prn-summary">
     ${head}
     ${cd ? `<div class="prn-countdown">${esc(cd)}</div>` : ""}
-    <dl class="rows prn-dates">${rows}</dl>
+    ${prnFinder}
+    <dl class="rows prn-dates"${prnFinder ? ' style="margin-top:14px"' : ""}>${rows}</dl>
     <div class="state-info-h muted" style="margin-top:14px">${esc(t("prn_contested"))} · ${total}</div>
     <div class="sharebar">${bar}</div>
     <div class="sharebar-key">${key}</div>
     <p class="prn-majority muted">${esc(t("prn_majority", { n: e.majority }))}</p>
-    ${!MOBILE_MAP_INSPECT_MQ.matches ? `<div class="state-info-h muted" style="margin-top:14px">${esc(t("find_district"))}</div><div class="state-district-find">${districtSwitchRowHTML(state.selected || "", false)}</div>` : ""}
-    <p class="state-tap-hint muted">${esc(t("prn_tap_hint"))}</p>
+    ${prnFinder ? "" : `<p class="state-tap-hint muted">${esc(t("prn_tap_hint"))}</p>`}
     <a class="prn-check" href="${esc(e.check_voter_url)}" target="_blank" rel="noopener">${esc(t("prn_check"))}</a>
     <p class="src-line muted">${esc(t("prn_source"))}</p>
     <button id="prn-close" class="prn-close-btn" type="button">${esc(t("prn_close"))}</button>

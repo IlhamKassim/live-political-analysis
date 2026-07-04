@@ -1989,3 +1989,8 @@ html, body, #stage, #map { touch-action: pan-x pan-y; }   /* touch-action does n
 .state-district-find { margin-top: 8px; }
 .state-district-find .map-inspect-row { display: flex; gap: 8px; }
 .state-district-find .map-inspect-select { flex: 1 1 auto; min-width: 0; }
+
+
+/* the district finder sits near the top of the desktop state card — a subtle divider
+   under it separates the primary action from the summary content below */
+.state-district-find-top { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
