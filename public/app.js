@@ -762,10 +762,41 @@ function syncKeyboardInset() {
   PANEL.style.transform = keyboardInset > 0 ? `translateY(-${keyboardInset}px)` : "";
   if (keyboardInset > 0 && (window.scrollY || window.scrollX)) window.scrollTo(0, 0);
   syncMapToCard();
+  kbDebugHud();
 }
 if (window.visualViewport) {
   visualViewport.addEventListener("resize", syncKeyboardInset);
   visualViewport.addEventListener("scroll", syncKeyboardInset);
+}
+// iOS viewport events around the keyboard are flaky (some fire mid-animation, some not
+// at all on certain versions) — while the search box is focused, FOLLOW the visual
+// viewport every frame instead of trusting events. Cheap: runs only while typing.
+let kbRaf = 0;
+function kbFollowLoop() {
+  const vv = window.visualViewport;
+  if (vv) {
+    const kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+    if (kb !== keyboardInset) {
+      syncKeyboardInset();          // full re-layout only when the inset actually changes
+    } else if (kb > 0) {
+      PANEL.style.transform = `translateY(-${kb}px)`;   // re-pin in case anything cleared it
+      if (window.scrollY || window.scrollX) window.scrollTo(0, 0);
+    }
+  }
+  kbRaf = document.activeElement === SEARCH_INPUT ? requestAnimationFrame(kbFollowLoop) : 0;
+}
+// on-device debug readout: open the app with ?kbdebug to see the live viewport numbers
+const KB_DEBUG = new URLSearchParams(location.search).has("kbdebug");
+let kbHudEl = null;
+function kbDebugHud() {
+  if (!KB_DEBUG) return;
+  if (!kbHudEl) {
+    kbHudEl = document.createElement("div");
+    kbHudEl.style.cssText = "position:fixed;top:70px;left:8px;z-index:99;background:rgba(0,0,0,.85);color:#9f9;font:11px/1.5 monospace;padding:6px 8px;border-radius:6px;pointer-events:none;white-space:pre";
+    document.body.appendChild(kbHudEl);
+  }
+  const vv = window.visualViewport;
+  kbHudEl.textContent = `ih ${window.innerHeight}\nvvH ${vv ? Math.round(vv.height) : "-"}\nvvTop ${vv ? Math.round(vv.offsetTop) : "-"}\nkb ${keyboardInset}\nscrollY ${Math.round(window.scrollY)}\ntf ${PANEL.style.transform || "none"}`;
 }
 // Safari-only gesture events: block page pinch-zoom entirely — the UI is an app, not a document
 document.addEventListener("gesturestart", (e) => e.preventDefault());
@@ -779,14 +810,16 @@ SEARCH_INPUT?.addEventListener("focus", () => {
   clearTimeout(searchBlurTimer);
   document.body.classList.add("searching");
   requestAnimationFrame(syncMapToCard);
-  setTimeout(() => { window.scrollTo(0, 0); syncKeyboardInset(); }, 350);   // after the keyboard settles
+  cancelAnimationFrame(kbRaf);
+  kbRaf = requestAnimationFrame(kbFollowLoop);   // track the keyboard frame-by-frame while typing
 });
 SEARCH_INPUT?.addEventListener("blur", () => {
   clearTimeout(searchBlurTimer);
   searchBlurTimer = setTimeout(() => {
     document.body.classList.remove("searching");
-    syncMapToCard();
+    syncKeyboardInset();          // keyboard gone → clears the transform + restores the band
   }, 250);
+  setTimeout(syncKeyboardInset, 700);   // belt-and-braces after the close animation
 });
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (state.openState) refitMeasured(); syncMapToCard(); });
 
