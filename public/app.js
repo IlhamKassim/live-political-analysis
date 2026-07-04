@@ -346,6 +346,73 @@ function openSeatFromPolitician(code) {
   const go = () => { const d = state.data.parlimen; if (d && d.byCode.has(code)) select(code); };
   if (state.tier !== "parlimen") setTier("parlimen").then(go); else go();
 }
+
+// full-profile pop-up for one politician (opened from a directory card — does NOT
+// navigate the map; a footer button offers that path explicitly).
+const POL_MODAL = document.getElementById("pol-modal");
+function openPoliticianModal(code) {
+  const mps = state.politicians && state.politicians.mps;
+  const m = mps && mps[code];
+  if (!m || !POL_MODAL) return;
+  const seat = state.data.parlimen && state.data.parlimen.byCode.get(code);
+  const res = (state.results && state.results[code]) || {};
+  const card = formatResultCard(res) || {};
+  const age = politicianAge(m.dob);
+  const bio = m.wikipedia ? (m.wikipedia[lang] || m.wikipedia.en || m.wikipedia.ms) : null;
+  const ballot = m.ballot_name && namekeyLoose(m.ballot_name) !== namekeyLoose(m.name) ? m.ballot_name : "";
+  const partyLabel = m.party && m.party !== m.coalition ? `${esc(m.party)} · ` : "";
+  const pill = m.coalition || m.party
+    ? `<span class="pill" style="background:${partyColor(m.coalition || m.party)};color:#fff">${esc(m.coalition || m.party)}</span>`
+    : "";
+  const stat = (label, value, note) => value != null && value !== ""
+    ? `<div class="pol-stat"><span>${esc(label)}</span><b>${value}</b>${note ? `<small>${esc(note)}</small>` : ""}</div>` : "";
+  const stats = [
+    age ? stat(t("pol_born"), age, m.dob ? m.dob : "") : "",
+    card.majority != null ? stat(t("majority"), card.majority.toLocaleString(), card.majorityPct != null ? `${card.majorityPct}%` : "") : "",
+    card.turnout != null ? stat(t("turnout"), `${card.turnout}%`) : "",
+  ].filter(Boolean).join("");
+  const links = [];
+  if (bio) links.push(`<a href="${esc(bio.url)}" target="_blank" rel="noopener">Wikipedia</a>`);
+  if (m.wikidata) links.push(`<a href="${esc(m.wikidata)}" target="_blank" rel="noopener">Wikidata</a>`);
+  POL_MODAL.innerHTML = `
+    <div class="pol-modal-shell">
+      <button class="pol-modal-close" type="button" aria-label="${esc(t("card_preview_close"))}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><line x1="6" x2="18" y1="6" y2="18"/><line x1="6" x2="18" y1="18" y2="6"/></svg>
+      </button>
+      <div class="pol-modal-head">
+        ${personPhotoHTML(m.name, m.photo, "pol-modal-photo")}
+        <div class="pol-modal-id">
+          <span class="yb-kicker">${esc(t("kicker_parlimen"))} · ${esc(code)}</span>
+          <h2>${esc(m.name)}</h2>
+          ${ballot ? `<span class="yb-ballot muted">${esc(ballot)}</span>` : ""}
+          <p class="pol-modal-party">${partyLabel}${pill}</p>
+          ${seat ? `<p class="pol-modal-seat muted">${esc(seat.name)} · ${esc(seat.state)}</p>` : ""}
+        </div>
+      </div>
+      ${stats ? `<div class="pol-modal-stats">${stats}</div>` : ""}
+      ${bio ? `<p class="pol-modal-bio">${esc(bio.extract)}</p>` : ""}
+      ${m.education ? `<dl class="rows pol-modal-edu"><dt>${esc(t("pol_educated"))}</dt><dd>${esc(m.education)}</dd></dl>` : ""}
+      ${socialLinksHTML(m.socials)}
+      ${links.length ? `<div class="pol-modal-links">${links.join("")}</div>` : ""}
+      ${m.photo_credit ? `<p class="yb-credit muted">${esc(t("pol_photo_by", { credit: m.photo_credit }))}</p>` : ""}
+      <button class="pol-modal-seatbtn" type="button" data-pol-seat="${esc(code)}">${esc(t("pol_view_seat"))}</button>
+    </div>`;
+  if (typeof POL_MODAL.showModal === "function") POL_MODAL.showModal();
+  else POL_MODAL.setAttribute("open", "");
+  POL_MODAL.querySelector(".pol-modal-close").focus();
+}
+function closePoliticianModal() {
+  if (!POL_MODAL) return;
+  if (POL_MODAL.open) POL_MODAL.close();
+  POL_MODAL.innerHTML = "";
+}
+POL_MODAL?.addEventListener("click", (e) => {
+  if (e.target.closest(".pol-modal-close")) { closePoliticianModal(); return; }
+  const seatBtn = e.target.closest("[data-pol-seat]");
+  if (seatBtn) { closePoliticianModal(); openSeatFromPolitician(seatBtn.dataset.polSeat); return; }
+  if (e.target === POL_MODAL) closePoliticianModal();   // backdrop click
+});
+POL_MODAL?.addEventListener("cancel", () => { POL_MODAL.innerHTML = ""; });   // native Esc
 function enableMode(mode) {
   const btn = document.querySelector(`#mode button[data-mode="${mode}"]`);
   if (btn) { btn.disabled = false; btn.removeAttribute("title"); btn.removeAttribute("data-i18n-title"); }
@@ -2417,7 +2484,7 @@ document.getElementById("top-share")?.addEventListener("click", shareApp);
 document.getElementById("top-politicians")?.addEventListener("click", () => openPoliticians());
 POL_VIEW?.addEventListener("click", (e) => {
   const card = e.target.closest("[data-pol-code]");
-  if (card) openSeatFromPolitician(card.dataset.polCode);
+  if (card) openPoliticianModal(card.dataset.polCode);   // full-profile pop-up, not the map
 });
 // browser back closes the directory (it pushed a #politicians history entry)
 window.addEventListener("popstate", () => {
