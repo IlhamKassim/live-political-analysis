@@ -2649,6 +2649,12 @@ function stateSummaryHTML(name) {
   if (voteN) stats.push(stat("state_winner_votes", `<span class="mono">${fmtInt(voteSum)}</span>`, t("state_winner_count", { n: voteN })));
   if (candidateN) stats.push(stat("state_avg_candidates", `<span class="mono">${(candidateSum / candidateN).toFixed(1)}</span>`, t("state_per_seat")));
 
+  // desktop/landscape: the mobile inspect tray isn't shown, so give the state card
+  // its own district finder (dropdown + locate). On mobile the tray already has one.
+  const desktopFinder = !MOBILE_MAP_INSPECT_MQ.matches
+    ? `<div class="state-info-h muted" style="margin-top:14px">${esc(t("find_district"))}</div>
+       <div class="state-district-find">${districtSwitchRowHTML(state.selected || "", false)}</div>`
+    : "";
   return (
     prnBannerHTML(name) +
     '<div class="state-info-h muted">' + esc(t("state_makeup")) + "</div>" +
@@ -2656,6 +2662,7 @@ function stateSummaryHTML(name) {
     '<div class="sharebar-key">' + key + "</div>" +
     (stats.length ? '<div class="state-stats">' + stats.join("") + "</div>" : "") +
     stateContextHTML(name) +
+    desktopFinder +
     '<p class="state-tap-hint muted">' + esc(t("tap_district")) + "</p>"
   );
 }
@@ -2835,6 +2842,7 @@ function prnSummaryHTML() {
     <div class="sharebar">${bar}</div>
     <div class="sharebar-key">${key}</div>
     <p class="prn-majority muted">${esc(t("prn_majority", { n: e.majority }))}</p>
+    ${!MOBILE_MAP_INSPECT_MQ.matches ? `<div class="state-info-h muted" style="margin-top:14px">${esc(t("find_district"))}</div><div class="state-district-find">${districtSwitchRowHTML(state.selected || "", false)}</div>` : ""}
     <p class="state-tap-hint muted">${esc(t("prn_tap_hint"))}</p>
     <a class="prn-check" href="${esc(e.check_voter_url)}" target="_blank" rel="noopener">${esc(t("prn_check"))}</a>
     <p class="src-line muted">${esc(t("prn_source"))}</p>
@@ -2981,9 +2989,11 @@ function openStateCard(name) {
   const n = seats.length;
   const countKey = "state_count_" + (state.tier === "parlimen" ? "parlimen" : "dun") + (n === 1 ? "_one" : "");
   document.getElementById("state-count").textContent = t(countKey, { n });
-  STATE_INFO.innerHTML = stateSummaryHTML(name);
+  // set openState/selected BEFORE rendering — the desktop district finder reads
+  // districtOptionsForOpenState(), which is empty until state.openState is set.
   state.openState = name;
   state.selected = null;
+  STATE_INFO.innerHTML = stateSummaryHTML(name);
   setStageLabel(name);
   // isolate: fade the other states out, reveal this state's district borders, zoom in.
   // the big map IS the district map now — no separate mini-map in the card.

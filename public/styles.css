@@ -1983,3 +1983,9 @@ html, body, #stage, #map { touch-action: pan-x pan-y; }   /* touch-action does n
 @media (max-width: 860px) {
   #info-card { left: 12px; right: 12px; width: auto; }
 }
+
+
+/* desktop/landscape: the state card's own district finder (dropdown + locate) */
+.state-district-find { margin-top: 8px; }
+.state-district-find .map-inspect-row { display: flex; gap: 8px; }
+.state-district-find .map-inspect-select { flex: 1 1 auto; min-width: 0; }
