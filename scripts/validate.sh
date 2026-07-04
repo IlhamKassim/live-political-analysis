@@ -88,4 +88,26 @@ else
   cat /tmp/mypolitik-ge15-tally.log
 fi
 
+if node <<'NODE' >/tmp/mypolitik-politicians.log 2>&1
+const fs = require("fs");
+const p = "public/data/politicians.json";
+if (!fs.existsSync(p)) process.exit(0);   // optional dataset
+const { mps } = JSON.parse(fs.readFileSync(p, "utf8"));
+const codes = Object.keys(mps);
+if (codes.length !== 222) throw new Error(`expected 222 MPs, got ${codes.length}`);
+for (const [code, m] of Object.entries(mps)) {
+  if (!m.name) throw new Error(`${code}: no name`);
+  if (m.photo) {
+    if (!fs.existsSync("public/" + m.photo)) throw new Error(`${code}: photo file missing ${m.photo}`);
+    if (!m.photo_credit) throw new Error(`${code}: photo without credit`);
+  }
+}
+NODE
+then
+  pass "politicians roster (222 MPs, photos have files + credit)"
+else
+  fail "politicians roster"
+  cat /tmp/mypolitik-politicians.log
+fi
+
 exit "$status"

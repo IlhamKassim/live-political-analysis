@@ -47,6 +47,7 @@ const state = {
   candidates: null,// code_parlimen -> candidate rows from candidates_ge15.csv
   candidatesDun: null,// code_state_dun -> candidate rows from candidates_prn15.csv
   votingGuide: null,
+  politicians: null,// {mps: {P.xxx -> {name, photo, bio, socials, ...}}} federal MP roster
   selected: null,
   seatTab: "overview",
   mapInspect: false,
@@ -196,7 +197,154 @@ async function loadOptional() {
     const cn = await fetch("data/candidate-news-johor.json");
     if (cn.ok) state.prnNews = await cn.json();
   } catch (_) {}
+  try {
+    // federal MP roster: photo + bio + socials per P.xxx (pipeline/09_politicians.py)
+    const pl = await fetch("data/politicians.json");
+    if (pl.ok) state.politicians = await pl.json();
+  } catch (_) {}
   return state;
+}
+
+// ---- politician profiles (federal MPs; DUN reps arrive in a later phase) ----
+function politicianFor(seat) {
+  // records are keyed by parliament code P.xxx = the current MP. Deliberately NOT
+  // applied to DUN seats — the parent MP is a different person than the ADUN.
+  if (!state.politicians || !seat || state.tier !== "parlimen") return null;
+  return (state.politicians.mps && state.politicians.mps[seat.code]) || null;
+}
+// loose person-name key (drops bin/binti/a-l/a-p/titles) — to tell whether the
+// ballot name differs meaningfully from the common name
+function namekeyLoose(s) {
+  return String(s || "").toLowerCase()
+    .replace(/\b(bin|binti|binte|bt|a\/l|a\/p|al|ap|anak|@|dato|datuk|seri|haji|hj|ir|dr|tan|sri)\b/g, " ")
+    .replace(/[^a-z0-9]/g, "");
+}
+function politicianAge(dob) {
+  if (!dob) return null;
+  const b = new Date(dob + "T00:00:00Z");
+  if (isNaN(b.getTime())) return null;
+  const now = new Date();
+  let a = now.getUTCFullYear() - b.getUTCFullYear();
+  const m = now.getUTCMonth() - b.getUTCMonth();
+  if (m < 0 || (m === 0 && now.getUTCDate() < b.getUTCDate())) a--;
+  return a >= 18 && a < 110 ? a : null;
+}
+// deterministic monogram fallback — a hashed background colour + initials, zero
+// licensing risk (used for the ~58% of MPs and all DUN reps without a Commons photo)
+function monogramColor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return `hsl(${h % 360} 42% 40%)`;
+}
+function personInitials(name) {
+  const parts = (name || "").trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "?";
+  const first = parts[0][0] || "";
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
+  return (first + last).toUpperCase();
+}
+function personPhotoHTML(name, photo, cls = "") {
+  if (photo) {
+    return `<img class="pol-photo ${cls}" src="${esc(photo)}" alt="${esc(name)}" loading="lazy" decoding="async" width="72" height="72">`;
+  }
+  return `<span class="pol-photo pol-monogram ${cls}" style="background:${monogramColor(name || "")}" aria-hidden="true">${esc(personInitials(name))}</span>`;
+}
+function socialLinksHTML(socials) {
+  if (!socials) return "";
+  const links = [];
+  if (socials.fb) links.push(`<a href="https://facebook.com/${esc(socials.fb)}" target="_blank" rel="noopener" aria-label="Facebook">Facebook</a>`);
+  if (socials.ig) links.push(`<a href="https://instagram.com/${esc(socials.ig)}" target="_blank" rel="noopener" aria-label="Instagram">Instagram</a>`);
+  if (socials.tw) links.push(`<a href="https://x.com/${esc(socials.tw)}" target="_blank" rel="noopener" aria-label="X">X</a>`);
+  return links.length ? `<div class="pol-socials">${links.join("")}</div>` : "";
+}
+
+// ---- Politicians directory (browsable roster of all MPs) ----
+const POL_VIEW = document.getElementById("politicians-view");
+function politicianList() {
+  const mps = (state.politicians && state.politicians.mps) || {};
+  const pd = state.data.parlimen;
+  return Object.entries(mps).map(([code, m]) => {
+    const seat = pd && pd.byCode.get(code);
+    return { code, name: m.name, party: m.party, coalition: m.coalition, photo: m.photo,
+             seatName: (seat && seat.name) || code, state: (seat && seat.state) || "" };
+  }).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+}
+function renderPoliticianGrid() {
+  const grid = document.getElementById("pol-grid");
+  const countEl = document.getElementById("pol-count");
+  if (!grid) return;
+  const q = norm((document.getElementById("pol-search") || {}).value || "");
+  const stateF = (document.getElementById("pol-state") || {}).value || "";
+  const coalF = (document.getElementById("pol-coal") || {}).value || "";
+  const items = politicianList().filter((p) =>
+    (!stateF || p.state === stateF) &&
+    (!coalF || p.coalition === coalF) &&
+    (!q || norm(p.name).includes(q) || norm(p.seatName).includes(q) || norm(p.code).includes(q)));
+  if (countEl) countEl.textContent = t("pol_count", { n: items.length });
+  grid.innerHTML = items.length
+    ? items.map((p) => `
+        <button class="pol-card" type="button" data-pol-code="${esc(p.code)}">
+          ${personPhotoHTML(p.name, p.photo)}
+          <div class="pol-card-name">${esc(p.name)}</div>
+          <div class="pol-card-seat">${esc(p.code)} · ${esc(p.seatName)}</div>
+          <div class="pol-card-foot">
+            <span class="pill" style="background:${partyColor(p.coalition || p.party)};color:#fff">${esc(p.party || p.coalition || "")}</span>
+          </div>
+        </button>`).join("")
+    : `<p class="pol-dir-empty">${esc(t("pol_no_match"))}</p>`;
+}
+function norm(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9]/g, ""); }
+function renderPoliticiansDirectory() {
+  if (!POL_VIEW || !state.politicians) return;
+  const states = [...new Set(politicianList().map((p) => p.state))].filter(Boolean).sort();
+  const coals = [...new Set(politicianList().map((p) => p.coalition).filter(Boolean))]
+    .sort((a, b) => COALITION_ORDER.indexOf(a) - COALITION_ORDER.indexOf(b));
+  POL_VIEW.innerHTML = `
+    <div class="pol-dir">
+      <div class="pol-dir-head">
+        <h1>${esc(t("pol_dir_title"))}</h1>
+        <p class="pol-dir-sub">${esc(t("pol_dir_sub"))}</p>
+      </div>
+      <div class="pol-dir-controls">
+        <input id="pol-search" class="pol-dir-search" type="search" autocomplete="off" spellcheck="false"
+          aria-label="${esc(t("pol_search"))}" placeholder="${esc(t("pol_search"))}">
+        <select id="pol-state" aria-label="${esc(t("pol_all_states"))}">
+          <option value="">${esc(t("pol_all_states"))}</option>
+          ${states.map((s) => `<option value="${esc(s)}">${esc(s)}</option>`).join("")}
+        </select>
+        <select id="pol-coal" aria-label="${esc(t("pol_all_coal"))}">
+          <option value="">${esc(t("pol_all_coal"))}</option>
+          ${coals.map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join("")}
+        </select>
+      </div>
+      <div id="pol-count" class="pol-dir-count"></div>
+      <div id="pol-grid" class="pol-grid"></div>
+      <p class="pol-dir-src">${esc(t("pol_sources"))}</p>
+    </div>`;
+  renderPoliticianGrid();
+  const s = document.getElementById("pol-search");
+  s && s.addEventListener("input", renderPoliticianGrid);
+  document.getElementById("pol-state").addEventListener("change", renderPoliticianGrid);
+  document.getElementById("pol-coal").addEventListener("change", renderPoliticianGrid);
+}
+async function openPoliticians() {
+  if (!state.politicians) return;
+  if (!state.data.parlimen) { try { await loadTier("parlimen"); } catch (_) {} }
+  document.body.classList.add("politicians-open");
+  renderPoliticiansDirectory();
+  if (location.hash !== "#politicians") history.pushState(null, "", "#politicians");
+  POL_VIEW.querySelector(".pol-dir").scrollTop = 0;
+}
+function closePoliticians(options = {}) {
+  if (!document.body.classList.contains("politicians-open")) return;
+  document.body.classList.remove("politicians-open");
+  if (POL_VIEW) POL_VIEW.innerHTML = "";
+  if (!options.silent) writeHash();
+}
+function openSeatFromPolitician(code) {
+  closePoliticians({ silent: true });
+  const go = () => { const d = state.data.parlimen; if (d && d.byCode.has(code)) select(code); };
+  if (state.tier !== "parlimen") setTier("parlimen").then(go); else go();
 }
 function enableMode(mode) {
   const btn = document.querySelector(`#mode button[data-mode="${mode}"]`);
@@ -966,13 +1114,41 @@ function seatCardHTML(seat, options = {}) {
       metrics.push(metric(t(ownDun ? "majority_prn" : "majority"), card.majority.toLocaleString(), card.majorityPct != null ? `${card.majorityPct}%` : ""));
     if (card.turnout != null) metrics.push(metric(t("turnout"), `${card.turnout}%`));
     if (card.candidates != null) metrics.push(metric(t("candidates"), card.candidates));
+    // enrich with the MP profile (photo/bio/socials) when we have one for this seat.
+    // The politician record's common name (e.g. "Hannah Yeoh") is more recognisable
+    // than the ballot name; keep the ballot name as a subtitle when they differ.
+    const pol = politicianFor(seat);
+    const ybName = pol && pol.name ? pol.name : r.name;
+    const ybBallot = pol && pol.ballot_name && namekeyLoose(pol.ballot_name) !== namekeyLoose(ybName) ? pol.ballot_name : "";
+    const age = pol && politicianAge(pol.dob);
+    const ybMeta = [];
+    if (age) ybMeta.push(`<span>${esc(t("pol_age", { n: age }))}</span>`);
+    if (pol && pol.education) ybMeta.push(`<span>${esc(pol.education)}</span>`);
+    const bioEntry = pol && pol.wikipedia ? (pol.wikipedia[lang] || pol.wikipedia.en || pol.wikipedia.ms) : null;
+    const ybCard = pol
+      ? `<div class="seat-yb-card has-profile">
+           <div class="yb-head">
+             ${personPhotoHTML(ybName, pol.photo, "yb-photo")}
+             <div class="yb-id">
+               <span class="yb-kicker">${esc(t("card_current_yb"))}</span>
+               <strong>${esc(ybName)}</strong>
+               ${ybBallot ? `<span class="yb-ballot muted">${esc(ybBallot)}</span>` : ""}
+               <p>${partyLabel ? partyLabel + " " : ""}${blocUnit}</p>
+               ${ybMeta.length ? `<p class="yb-meta muted">${ybMeta.join(" · ")}</p>` : ""}
+             </div>
+           </div>
+           ${bioEntry ? `<div class="yb-bio"><p class="yb-bio-text">${esc(bioEntry.extract)}</p><a class="yb-bio-more" href="${esc(bioEntry.url)}" target="_blank" rel="noopener">Wikipedia →</a></div>` : ""}
+           ${socialLinksHTML(pol.socials)}
+           ${pol.photo_credit ? `<p class="yb-credit muted">${esc(t("pol_photo_by", { credit: pol.photo_credit }))}</p>` : ""}
+         </div>`
+      : `<div class="seat-yb-card">
+           <span>${esc(t("card_current_yb"))}</span>
+           <strong>${esc(r.name)}</strong>
+           <p>${partyLabel ? partyLabel + " " : ""}${blocUnit}</p>
+         </div>`;
     overviewHTML = `
       <div class="seat-overview">
-        <div class="seat-yb-card">
-          <span>${esc(t("card_current_yb"))}</span>
-          <strong>${esc(r.name)}</strong>
-          <p>${partyLabel ? partyLabel + " " : ""}${blocUnit}</p>
-        </div>
+        ${ybCard}
         ${metrics.length ? `<div class="seat-metrics">${metrics.join("")}</div>` : ""}
       </div>
       ${sc ? `<dl class="rows seat-score-row"><dt>${t("score")}</dt><dd class="mono"><b style="color:var(--accent-2)">${sc.score.toFixed(1)}</b> · ${esc(sc.grade || "")}</dd></dl>` : ""}
@@ -2178,6 +2354,7 @@ RESET.addEventListener("click", deselect);
 (async function init() {
   document.querySelectorAll("#lang button").forEach((x) => setOn(x, x.dataset.lang === lang));
   applyStatic();
+  const bootHash = location.hash;   // captured before writeHash() normalises it
   const h = parseHash();
   const tier = h && (h.tier === "dun" || h.tier === "parlimen") ? h.tier : "parlimen";
   state.tier = tier;
@@ -2206,6 +2383,7 @@ RESET.addEventListener("click", deselect);
   writeHash();       // normalise URL to the actually-active state — a gated mode (Skor) or bad seat
                      // code in the deep link gets dropped so a re-shared link can't misrepresent state
                      // (replaceState → no extra history entry)
+  if (bootHash === "#politicians" && state.politicians) await openPoliticians();  // deep-linked directory
   maybeShowHint();   // fresh visit, nothing selected → nudge that seats are tappable
 })();
 
@@ -2236,6 +2414,16 @@ document.getElementById("brand-home")?.addEventListener("click", showWholeMap);
 document.getElementById("top-map")?.addEventListener("click", showWholeMap);
 document.getElementById("top-info")?.addEventListener("click", showInfo);
 document.getElementById("top-share")?.addEventListener("click", shareApp);
+document.getElementById("top-politicians")?.addEventListener("click", () => openPoliticians());
+POL_VIEW?.addEventListener("click", (e) => {
+  const card = e.target.closest("[data-pol-code]");
+  if (card) openSeatFromPolitician(card.dataset.polCode);
+});
+// browser back closes the directory (it pushed a #politicians history entry)
+window.addEventListener("popstate", () => {
+  if (location.hash === "#politicians") { if (state.politicians) openPoliticians(); }
+  else if (document.body.classList.contains("politicians-open")) closePoliticians({ silent: true });
+});
 
 /* ===== state-first drill: main map = states; tap a state to open its district mini-map in the card ===== */
 const STATE_MAP = document.getElementById("state-map");
