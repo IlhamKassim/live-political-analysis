@@ -545,7 +545,7 @@ body.state-open #map { overflow: visible; }
 }
 
 @media (max-width: 430px) {
-  #topbar { padding-left: 10px; padding-right: 10px; gap: 8px; }
+  #topbar { padding-left: 12px; padding-right: 12px; gap: 8px; }   /* one alignment line: buttons = card = info box */
   .brand-home { padding-inline: 10px; }
   #topbar .brand .mark { font-size: 16px; }
   .mobile-menu .topicons { gap: 6px; }
@@ -1973,3 +1973,13 @@ html, body, #stage, #map { touch-action: pan-x pan-y; }   /* touch-action does n
 .prn-news-item:hover { border-color: var(--line-2); background: rgba(255,255,255,.04); }
 .prn-news-t { font-size: 12.5px; line-height: 1.35; color: var(--ink); }
 .prn-news-s { font-size: 10.5px; }
+
+
+/* ===== info-card footer: maker credit + KD logo; box aligned to the app's 12px line ===== */
+.info-footer { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); display: grid; gap: 10px; }
+.info-credit { font-size: 12px; margin: 0; }
+.kd-logo-link { display: inline-block; width: fit-content; }
+.kd-logo { height: 40px; width: auto; image-rendering: pixelated; display: block; }
+@media (max-width: 860px) {
+  #info-card { left: 12px; right: 12px; width: auto; }
+}
