@@ -1926,3 +1926,12 @@ html, body, #stage, #map { touch-action: pan-x pan-y; }   /* touch-action does n
 /* the on-screen keyboard shrinks the VISUAL viewport while position:fixed tracks the
    LAYOUT viewport — lift the bottom card by the keyboard inset (JS keeps --kb-inset). */
 #panel, body.state-open #panel { bottom: var(--kb-inset, 0px); }
+
+
+/* ===== persistent home logo: the topbar hides in map-inspect, so a compact clickable
+   MyPolitik pill takes the top-right corner there (burger's spot) — home at all times. */
+.inspect-home { position: fixed; top: 14px; right: 14px; z-index: 55; display: none; }
+.inspect-home .mark { font-family: var(--font-display); font-size: 16px; font-weight: 700; letter-spacing: .01em; white-space: nowrap; }
+@media (max-width: 860px) {
+  body.map-inspect .inspect-home { display: flex; }
+}
