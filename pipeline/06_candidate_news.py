@@ -74,12 +74,30 @@ def fetch_news(name):
 def main():
     with open(PRN16) as f:
         prn = json.load(f)
+    # resumable: reload prior output and skip candidates already fetched, so an
+    # interrupted run loses at most one candidate's worth of work
     news = {}
-    total_c = sum(len(s["candidates"]) for s in prn["seats"].values())
+    fetched = set()
+    if os.path.exists(OUT):
+        with open(OUT) as f:
+            news = json.load(f)
+        # the _done ledger records every processed candidate, hit or miss — without it,
+        # no-hit candidates would be re-fetched on every resume and progress would stall
+        fetched = set(tuple(x.split("|", 1)) for x in news.get("_done", []))
+        for code, by_name in news.items():
+            if code == "_done":
+                continue
+            for nm in by_name:
+                fetched.add((code, nm))
+        print(f"  resuming: {len(fetched)} candidates already processed")
     done = hits = 0
+    total_c = sum(len(s["candidates"]) for s in prn["seats"].values())
     for code, s in sorted(prn["seats"].items()):
         for c in s["candidates"]:
             done += 1
+            if (code, c["name"]) in fetched:
+                hits += 1
+                continue
             try:
                 items = fetch_news(c["name"])
             except Exception as e:
@@ -88,9 +106,14 @@ def main():
             if items:
                 news.setdefault(code, {})[c["name"]] = items
                 hits += 1
-            if done % 20 == 0:
+            fetched.add((code, c["name"]))
+            if done % 10 == 0:
                 print(f"  {done}/{total_c} candidates, {hits} with news")
+                news["_done"] = sorted("|".join(x) for x in fetched)
+                with open(OUT, "w") as f:
+                    json.dump(news, f, ensure_ascii=False, separators=(",", ":"))
             time.sleep(THROTTLE)
+    news["_done"] = sorted("|".join(x) for x in fetched)
     with open(OUT, "w") as f:
         json.dump(news, f, ensure_ascii=False, separators=(",", ":"))
     kb = os.path.getsize(OUT) // 1024
