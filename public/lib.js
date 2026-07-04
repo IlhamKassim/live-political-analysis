@@ -39,14 +39,21 @@ export function scoreColor(score) {
 export function encodeHash(state) {
   const parts = [state.tier, state.mode];
   if (state.selected) parts.push(state.selected);
+  if (state.prnMode) parts.push("prn");   // live-election view (e.g. PRN Johor 2026)
   return "#" + parts.map(encodeURIComponent).join("/");
 }
 
 export function decodeHash(hash) {
   const raw = String(hash == null ? "" : hash).replace(/^#/, "");
   if (!raw) return null;
-  const [tier, mode, code] = raw.split("/").map((s) => decodeURIComponent(s || ""));
-  return { tier, mode, code };
+  const toks = raw.split("/").map((s) => decodeURIComponent(s || ""));
+  let prn = false;
+  if (toks.length > 2 && toks[toks.length - 1] === "prn") {
+    prn = true;
+    toks.pop();
+  }
+  const [tier, mode, code] = toks;
+  return { tier, mode, code, prn };
 }
 
 // ---- initial language pick ----

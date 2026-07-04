@@ -51,6 +51,21 @@ test("encodeHash: percent-encodes special characters", () => {
   );
 });
 
+test("encodeHash: prnMode appends a trailing /prn token", () => {
+  assert.equal(encodeHash({ tier: "dun", mode: "parti", prnMode: true }), "#dun/parti/prn");
+  assert.equal(
+    encodeHash({ tier: "dun", mode: "parti", selected: "1_N.01", prnMode: true }),
+    "#dun/parti/1_N.01/prn"
+  );
+  assert.equal(encodeHash({ tier: "dun", mode: "parti", prnMode: false }), "#dun/parti");
+});
+
+test("decodeHash: trailing prn token sets prn and never leaks into code", () => {
+  assert.deepEqual(decodeHash("#dun/parti/prn"), { tier: "dun", mode: "parti", code: undefined, prn: true });
+  assert.deepEqual(decodeHash("#dun/parti/1_N.01/prn"), { tier: "dun", mode: "parti", code: "1_N.01", prn: true });
+  assert.deepEqual(decodeHash("#dun/parti/1_N.01"), { tier: "dun", mode: "parti", code: "1_N.01", prn: false });
+});
+
 test("decodeHash: empty hash returns null", () => {
   assert.equal(decodeHash(""), null);
   assert.equal(decodeHash("#"), null);
@@ -63,19 +78,20 @@ test("decodeHash: full hash with leading #", () => {
     tier: "parlimen",
     mode: "parti",
     code: "P.001",
+    prn: false,
   });
 });
 
 test("decodeHash: works without leading #", () => {
-  assert.deepEqual(decodeHash("dun/skor"), { tier: "dun", mode: "skor", code: undefined });
+  assert.deepEqual(decodeHash("dun/skor"), { tier: "dun", mode: "skor", code: undefined, prn: false });
 });
 
 test("decodeHash: absent trailing segments are undefined (faithful to old parseHash)", () => {
-  assert.deepEqual(decodeHash("#parlimen"), { tier: "parlimen", mode: undefined, code: undefined });
+  assert.deepEqual(decodeHash("#parlimen"), { tier: "parlimen", mode: undefined, code: undefined, prn: false });
 });
 
 test("decodeHash: extra path segments are ignored", () => {
-  assert.deepEqual(decodeHash("#a/b/c/d/e"), { tier: "a", mode: "b", code: "c" });
+  assert.deepEqual(decodeHash("#a/b/c/d/e"), { tier: "a", mode: "b", code: "c", prn: false });
 });
 
 test("decodeHash: percent-decodes each segment", () => {
@@ -83,6 +99,7 @@ test("decodeHash: percent-decodes each segment", () => {
     tier: "parlimen",
     mode: "parti",
     code: "a b/c",
+    prn: false,
   });
 });
 

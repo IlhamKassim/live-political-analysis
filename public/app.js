@@ -172,6 +172,12 @@ async function loadOptional() {
     const vg = await fetch("data/voting-guide.json");
     if (vg.ok) state.votingGuide = await vg.json();
   } catch (_) {}
+  try {
+    // live election (PRN16 Johor): config + SPR-confirmed candidates, baked by
+    // pipeline/05_prn16_johor.py. Its presence turns the election mode on.
+    const pj = await fetch("data/prn16-johor.json");
+    if (pj.ok) state.prn16 = await pj.json();
+  } catch (_) {}
   return state;
 }
 function enableMode(mode) {
@@ -417,7 +423,7 @@ function syncMapToCard() {
   const cardTop = PANEL.getBoundingClientRect().bottom - panelPadBottom - activeCard.offsetHeight;
   const mapH = Math.max(0, Math.floor(cardTop - stageRect.top - topInset - gap));
   root.style.setProperty("--map-h", `${mapH}px`);
-  requestAnimationFrame(() => { syncStageLabelPosition(); syncSelectedTexture(); });
+  requestAnimationFrame(() => { syncStageLabelPosition(); syncSelectedTexture(); syncLiveBadge(); });
 }
 
 function mobileMenuOpen() {
@@ -541,6 +547,13 @@ function stateSummaryResultFor(seat) {
 
 function seatValueColor(seat) {
   const data = state.data[state.tier];
+  // live-election view: the contested state's seats are "not yet voted" neutral
+  // until results flow in on polling night (grey → leading hatch → won solid).
+  if (state.prnMode && liveElection() && seat.state === liveElection().state && state.tier === liveElection().tier) {
+    const lr = state.prnLive && state.prnLive.seats && state.prnLive.seats[seat.code];
+    if (lr && lr.party) return partyColor(lr.coalition || lr.party);
+    return "#39404c";
+  }
   if (state.mode === "parti" && state.results) {
     const r = resultFor(seat);
     return r ? partyColor(r.coalition) : "#222b36";
@@ -615,6 +628,7 @@ function animateTo(target, ms = 480, ease = (t) => 1 - Math.pow(1 - t, 3)) {
     SVG.setAttribute("viewBox", viewBox.map((n) => n.toFixed(2)).join(" "));
     syncStageLabelPosition();
     syncSelectedTexture();
+    syncLiveBadge();
     return;
   }
   const start = viewBox.slice();
@@ -626,6 +640,7 @@ function animateTo(target, ms = 480, ease = (t) => 1 - Math.pow(1 - t, 3)) {
     SVG.setAttribute("viewBox", viewBox.map((n) => n.toFixed(2)).join(" "));
     syncStageLabelPosition();
     syncSelectedTexture();
+    syncLiveBadge();
     if (k < 1) animId = requestAnimationFrame(step);
   }
   animId = requestAnimationFrame(step);
@@ -853,6 +868,15 @@ function seatCardHTML(seat, options = {}) {
 }
 
 function stateSeatCardHTML(seat) {
+  // live-election view: the seat card IS the PRN candidate card (the GE15/PRN15
+  // fallback stays available outside the election mode)
+  if (state.prnMode && liveElection() && seat.state === liveElection().state && state.tier === liveElection().tier) {
+    const entry = state.prn16.seats && state.prn16.seats[seat.code];
+    if (entry) {
+      const switcher = state.openState && MOBILE_MAP_INSPECT_MQ.matches ? seatDistrictSwitcherHTML(seat.code) : "";
+      return `<div class="seat-detail-main">${prnSeatCardHTML(seat, entry)}</div>${switcher}`;
+    }
+  }
   return seatCardHTML(seat, {
     includeDistrictSwitcher: !!(state.openState && MOBILE_MAP_INSPECT_MQ.matches),
     showStateLine: false,
@@ -1880,6 +1904,7 @@ if (SHEET_HANDLE) {
 // ---- toggles ----
 async function setTier(tier) {
   if (tier === state.tier) return;
+  if (state.prnMode) closePrnMode({ silent: true });   // manual tier switch leaves the election view
   const prev = state.tier;
   document.querySelectorAll("#tier button").forEach((x) => setOn(x, x.dataset.tier === tier));
   state.tier = tier;
@@ -1961,6 +1986,12 @@ RESET.addEventListener("click", deselect);
     const data = state.data[state.tier];
     if (data.byCode.has(h.code)) select(h.code);
   }
+  if (h && h.prn && liveElection()) {
+    await openPrnMode();     // deep-linked election view (#dun/parti[/seat]/prn)
+    if (h.code && state.data[state.tier].byCode.has(h.code)) showDistrict(h.code);
+  }
+  syncLiveBadge();
+  refreshPrnLive();
   writeHash();       // normalise URL to the actually-active state — a gated mode (Skor) or bad seat
                      // code in the deep link gets dropped so a re-shared link can't misrepresent state
                      // (replaceState → no extra history entry)
@@ -2180,8 +2211,13 @@ function renderMapInspectTray() {
   MAP_INSPECT_TRAY.hidden = false;
   MAP_INSPECT_TRAY.classList.add("has-select");
   MAP_INSPECT_TRAY.classList.toggle("has-selection", !!seat);
+  // mobile tray: surface the election door when the contested state is open
+  const prnRow = prnActiveForState(state.openState) && !state.prnMode
+    ? `<button id="prn-open-tray" class="prn-open-btn prn-open-compact" type="button">🗳️ ${esc(t("prn_open"))} →</button>`
+    : "";
   MAP_INSPECT_TRAY.innerHTML = `
     <div class="map-inspect-choice">
+      ${prnRow}
       ${mapInspectOverviewHTML(seat)}
       ${districtSwitchRowHTML(state.selected || "", !!seat)}
     </div>
@@ -2258,6 +2294,7 @@ function setViewBoxNow(vb) {
   SVG.setAttribute("viewBox", viewBox.map((n) => n.toFixed(2)).join(" "));
   syncStageLabelPosition();
   syncSelectedTexture();
+  syncLiveBadge();
 }
 
 // The map band was just resized by layout (oldRect → newRect) while the viewBox is
@@ -2414,6 +2451,7 @@ function highlightState(name) {
 }
 
 function stateSummaryHTML(name) {
+  if (state.prnMode && prnActiveForState(name)) return prnSummaryHTML();
   const d = state.data[state.tier];
   const seats = d.seats.filter((s) => s.state === name);
   const tally = {};
@@ -2490,12 +2528,181 @@ function stateSummaryHTML(name) {
   if (candidateN) stats.push(stat("state_avg_candidates", `<span class="mono">${(candidateSum / candidateN).toFixed(1)}</span>`, t("state_per_seat")));
 
   return (
+    prnBannerHTML(name) +
     '<div class="state-info-h muted">' + esc(t("state_makeup")) + "</div>" +
     '<div class="sharebar">' + bar + "</div>" +
     '<div class="sharebar-key">' + key + "</div>" +
     (stats.length ? '<div class="state-stats">' + stats.join("") + "</div>" : "") +
     '<p class="state-tap-hint muted">' + esc(t("tap_district")) + "</p>"
   );
+}
+
+/* ===== live election (PRN16 Johor) =====
+   Data: public/data/prn16-johor.json (config + SPR-confirmed candidates, baked by
+   pipeline/05_prn16_johor.py). Live results arrive later via /api/live/johor. */
+function liveElection() {
+  return (state.prn16 && state.prn16.election) || null;
+}
+function prnActiveForState(name) {
+  const e = liveElection();
+  return e && e.state === name ? e : null;
+}
+// coalition swatches for the PRN cards: GE15 blocs reuse partyColor; PRN-only
+// players get their own. fg is the pill text colour on that swatch.
+const PRN_COLORS = {
+  BERSAMA: { bg: "#7a5cc7", fg: "#fff" },
+  "MUDA-PSM": { bg: "#d0d4da", fg: "#101318" },
+  OTHERS: { bg: "#5d6b7d", fg: "#fff" },
+};
+function prnCoalColor(coal) {
+  return PRN_COLORS[coal] || { bg: partyColor(coal), fg: "#fff" };
+}
+function prnCountdownLabel(e) {
+  const days = Math.ceil((new Date(e.polling_day + "T00:00:00+08:00").getTime() - Date.now()) / 86400000);
+  if (days > 1) return t("prn_days", { n: days });
+  if (days === 1) return t("prn_tomorrow");
+  if (days === 0) return t("prn_today");
+  return null;
+}
+function fmtDayMonth(iso) {
+  const d = new Date(iso + "T00:00:00+08:00");
+  const months = lang === "ms"
+    ? ["Jan", "Feb", "Mac", "Apr", "Mei", "Jun", "Jul", "Ogo", "Sep", "Okt", "Nov", "Dis"]
+    : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${d.getDate()} ${months[d.getMonth()]}`;
+}
+// banner atop the contested state's card (only outside PRN view)
+function prnBannerHTML(name) {
+  const e = prnActiveForState(name);
+  if (!e || state.prnMode) return "";
+  const cd = prnCountdownLabel(e);
+  return `<div class="prn-banner">
+    <div class="prn-banner-h"><span class="live-dot" aria-hidden="true"></span>🗳️ ${esc(e.name)}</div>
+    <div class="prn-banner-sub muted">${esc(t("prn_polling"))} ${esc(fmtDayMonth(e.polling_day))}${cd ? " · " + esc(cd) : ""}</div>
+    <button id="prn-open" class="prn-open-btn" type="button">${esc(t("prn_open"))} →</button>
+  </div>`;
+}
+// the PRN summary card (replaces the state make-up while the election view is on)
+function prnSummaryHTML() {
+  const e = liveElection();
+  const p = state.prn16;
+  if (!e || !p) return "";
+  const cd = prnCountdownLabel(e);
+  const total = Object.values(p.contested || {}).reduce((a, b) => a + b, 0);
+  const order = Object.entries(p.contested || {}).sort((a, b) => b[1] - a[1]);
+  const bar = order.map(([coal, n]) => {
+    const c = prnCoalColor(coal);
+    return `<span style="width:${(100 * n / total).toFixed(2)}%;background:${c.bg}"></span>`;
+  }).join("");
+  const key = order.map(([coal, n]) => {
+    const c = prnCoalColor(coal);
+    return `<span class="state-bloc"><span class="sw" style="background:${c.bg}"></span>${esc(coal)} ${n}</span>`;
+  }).join("");
+  const rows = [
+    [t("prn_nomination"), fmtDayMonth(e.nomination_day)],
+    [t("prn_early"), fmtDayMonth(e.early_voting)],
+    [t("prn_polling"), fmtDayMonth(e.polling_day) + " 🗳️"],
+  ].map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("");
+  return `<div class="prn-summary">
+    <div class="prn-banner-h"><span class="live-dot" aria-hidden="true"></span>🗳️ ${esc(e.name)}</div>
+    ${cd ? `<div class="prn-countdown">${esc(cd)}</div>` : ""}
+    <dl class="rows prn-dates">${rows}</dl>
+    <div class="state-info-h muted" style="margin-top:14px">${esc(t("prn_contested"))} · ${total}</div>
+    <div class="sharebar">${bar}</div>
+    <div class="sharebar-key">${key}</div>
+    <p class="prn-majority muted">${esc(t("prn_majority", { n: e.majority }))}</p>
+    <p class="state-tap-hint muted">${esc(t("prn_tap_hint"))}</p>
+    <a class="prn-check" href="${esc(e.check_voter_url)}" target="_blank" rel="noopener">${esc(t("prn_check"))}</a>
+    <p class="src-line muted">${esc(t("prn_source"))}</p>
+    <button id="prn-close" class="prn-close-btn" type="button">${esc(t("prn_close"))}</button>
+  </div>`;
+}
+// per-seat candidate card (replaces the GE15-fallback seat card inside PRN view)
+function prnSeatCardHTML(seat, entry) {
+  const e = liveElection();
+  const nameKey = (s) => s.toLowerCase().replace(/\b(bin|binti|a\/l|a\/p|anak)\b/g, " ").replace(/[^a-z]+/g, "");
+  const cands = entry.candidates.map((c) => {
+    const col = prnCoalColor(c.coalition);
+    const alias = c.ballot_name && nameKey(c.ballot_name) !== nameKey(c.name)
+      ? ` <small class="muted">(${esc(c.ballot_name)})</small>` : "";
+    const sym = c.symbol ? ` <small class="muted">· ${esc(c.symbol)}</small>` : "";
+    const party = c.party && c.party !== c.coalition ? `${esc(c.coalition)} · ${esc(c.party)}` : esc(c.coalition);
+    return `<div class="prn-cand"><span class="prn-cand-name">${esc(c.name)}${alias}${sym}</span>` +
+      `<span class="pill" style="background:${col.bg};color:${col.fg}">${party}</span></div>`;
+  }).join("");
+  const meta = [];
+  if (entry.electorate) meta.push(`<dt>${esc(t("prn_electorate"))}</dt><dd class="mono">${entry.electorate.toLocaleString()}</dd>`);
+  if (entry.incumbent_2022) {
+    const maj = entry.majority_2022 ? ` <span class="muted">(${esc(entry.majority_2022)})</span>` : "";
+    meta.push(`<dt>${esc(t("prn_incumbent"))}</dt><dd>${esc(entry.incumbent_2022)}${entry.incumbent_party_2022 ? " · " + esc(entry.incumbent_party_2022) : ""}${maj}</dd>`);
+  }
+  return `<div class="seat-head prn-seat-head">
+      <div class="kicker">🗳️ ${esc(e.name)} · ${esc(entry.ncode)}</div>
+      <h2>${esc(entry.name)}</h2>
+    </div>
+    <div class="state-info-h muted">${esc(t("prn_candidates"))} · ${entry.candidates.length}</div>
+    <div class="prn-cands">${cands}</div>
+    ${meta.length ? `<dl class="rows prn-dates">${meta.join("")}</dl>` : ""}
+    <p class="callout prn-note">${esc(t("prn_results_note"))}</p>
+    <p class="src-line muted">${esc(t("prn_source"))}</p>`;
+}
+async function openPrnMode() {
+  const e = liveElection();
+  if (!e || state.prnMode) return;
+  if (state.tier !== e.tier) await setTier(e.tier);   // before the flag — setTier exits PRN mode
+  state.prnMode = true;
+  document.body.classList.add("prn-mode");
+  openStateCard(e.state);   // (re)runs the isolation choreography for the contested state
+  paint();
+  syncLiveBadge();
+  refreshPrnLive();
+  writeHash();
+}
+function closePrnMode(options = {}) {
+  if (!state.prnMode) return;
+  state.prnMode = false;
+  document.body.classList.remove("prn-mode");
+  if (!options.silent) {
+    if (state.openState) {
+      STATE_INFO.innerHTML = stateSummaryHTML(state.openState);
+      renderMapInspectTray();
+    }
+    paint();
+    syncLiveBadge();
+    writeHash();
+  }
+}
+// polling-night data: harmless no-op while /api/live/johor reports campaign phase
+async function refreshPrnLive() {
+  try {
+    const r = await fetch("/api/live/johor");
+    if (!r.ok) return;
+    const live = await r.json();
+    if (live && live.phase && live.phase !== "campaign") {
+      state.prnLive = live;
+      if (state.prnMode) paint();
+    }
+  } catch (_) {}
+}
+// overview badge pinned above the contested state, tracking the camera
+function syncLiveBadge() {
+  const el = document.getElementById("live-badge");
+  if (!el) return;
+  const e = liveElection();
+  const show = !!e && !state.openState;
+  el.hidden = !show;
+  if (!show) return;
+  let b;
+  try { b = stateBBox(e.state); } catch (_) { el.hidden = true; return; }
+  if (!b || !Number.isFinite(b.x)) { el.hidden = true; return; }
+  const r = SVG.getBoundingClientRect();
+  const [vx, vy, vw, vh] = viewBox;
+  if (!(vw > 0) || !(r.width > 0)) return;
+  const k = Math.min(r.width / vw, r.height / vh);
+  const ox = r.left + (r.width - vw * k) / 2;
+  const oy = r.top + (r.height - vh * k) / 2;
+  el.style.left = `${ox + (b.x + b.w / 2 - vx) * k}px`;
+  el.style.top = `${Math.max(oy + (b.y - vy) * k - 10, 64)}px`;
 }
 
 function openStateCard(name) {
@@ -2594,6 +2801,7 @@ function goBack() {
 }
 
 function backToControls() {
+  if (state.prnMode) closePrnMode({ silent: true });   // leaving the state leaves the election view
   state.mapInspect = false;
   document.body.classList.remove("map-inspect");
   renderMapInspectTray();
@@ -2625,7 +2833,16 @@ STATE_SEATS.addEventListener("click", (e) => {
   if (t2) showDistrict(t2.dataset.code);
 });
 document.getElementById("state-back")?.addEventListener("click", goBack);
+document.getElementById("live-badge")?.addEventListener("click", () => openPrnMode());
 PANEL_STATE.addEventListener("click", (e) => {
+  if (e.target.closest("#prn-open") || e.target.closest("#prn-open-tray")) {
+    openPrnMode();
+    return;
+  }
+  if (e.target.closest("#prn-close")) {
+    closePrnMode();
+    return;
+  }
   if (e.target.closest("#map-inspect-toggle")) {
     if (state.mapInspect && state.selected) {
       showMapInspectDetails();
