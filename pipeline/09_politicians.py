@@ -49,7 +49,7 @@ NAME_ALIAS = {"tanjongpiai": "tanjungpiai"}
 
 SPARQL = """
 SELECT ?person ?personLabel ?district ?districtLabel ?partyLabel ?coalLabel ?image ?dob ?start
-       ?eduLabel ?fb ?ig ?tw ?enTitle ?msTitle WHERE {
+       ?eduLabel ?fb ?ig ?tw ?tiktok ?youtube ?web ?telegram ?enTitle ?msTitle WHERE {
   ?person p:P39 ?st .
   ?st ps:P39 wd:Q21290861 ; pq:P2937 wd:Q115641712 .
   OPTIONAL { ?st pq:P768 ?district . }
@@ -59,7 +59,16 @@ SELECT ?person ?personLabel ?district ?districtLabel ?partyLabel ?coalLabel ?ima
   OPTIONAL { ?person wdt:P18 ?image . }
   OPTIONAL { ?person wdt:P569 ?dob . }
   OPTIONAL { ?person wdt:P69 ?edu . }
-  OPTIONAL { ?person wdt:P2013 ?fb . } OPTIONAL { ?person wdt:P2003 ?ig . } OPTIONAL { ?person wdt:P2002 ?tw . }
+  # social handles — wdt: takes the best-rank value, which EXCLUDES Wikidata's
+  # deprecated-rank claims (accounts editors flagged as wrong/stale). This is the
+  # verification: we surface only community-referenced, non-deprecated accounts.
+  OPTIONAL { ?person wdt:P2013 ?fb . }
+  OPTIONAL { ?person wdt:P2003 ?ig . }
+  OPTIONAL { ?person wdt:P2002 ?tw . }
+  OPTIONAL { ?person wdt:P7085 ?tiktok . }
+  OPTIONAL { ?person wdt:P2397 ?youtube . }
+  OPTIONAL { ?person wdt:P856 ?web . }
+  OPTIONAL { ?person wdt:P3789 ?telegram . }
   OPTIONAL { [] schema:about ?person ; schema:isPartOf <https://en.wikipedia.org/> ; schema:name ?enTitle . }
   OPTIONAL { [] schema:about ?person ; schema:isPartOf <https://ms.wikipedia.org/> ; schema:name ?msTitle . }
   SERVICE wikibase:label { bd:serviceParam wikibase:language "en,ms". }
@@ -107,6 +116,8 @@ def merge_people(rows):
             "district": v(r, "districtLabel"), "image": None, "dob": v(r, "dob"),
             "edu": set(), "starts": set(),
             "fb": v(r, "fb"), "ig": v(r, "ig"), "tw": v(r, "tw"),
+            "tiktok": v(r, "tiktok"), "youtube": v(r, "youtube"),
+            "web": v(r, "web"), "telegram": v(r, "telegram"),
             "en": v(r, "enTitle"), "ms": v(r, "msTitle"),
         })
         if v(r, "image"):
@@ -240,7 +251,7 @@ def main():
             "coalition": res.get("coalition") or None,
             "dob": e["dob"][:10] if e["dob"] else None,
             "education": sorted(e["edu"])[0] if e["edu"] else None,
-            "socials": {k: e[k] for k in ("fb", "ig", "tw") if e.get(k)} or None,
+            "socials": {k: e[k] for k in ("fb", "ig", "tw", "tiktok", "youtube", "web", "telegram") if e.get(k)} or None,
             "wikidata": f"https://www.wikidata.org/wiki/{e['qid']}",
             "photo": None, "photo_credit": None, "wikipedia": None,
         }

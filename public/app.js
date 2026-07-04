@@ -249,12 +249,19 @@ function personPhotoHTML(name, photo, cls = "") {
   }
   return `<span class="pol-photo pol-monogram ${cls}" style="background:${monogramColor(name || "")}" aria-hidden="true">${esc(personInitials(name))}</span>`;
 }
+// social links — all sourced from Wikidata's non-deprecated (best-rank) claims.
 function socialLinksHTML(socials) {
   if (!socials) return "";
+  const s = socials;
   const links = [];
-  if (socials.fb) links.push(`<a href="https://facebook.com/${esc(socials.fb)}" target="_blank" rel="noopener" aria-label="Facebook">Facebook</a>`);
-  if (socials.ig) links.push(`<a href="https://instagram.com/${esc(socials.ig)}" target="_blank" rel="noopener" aria-label="Instagram">Instagram</a>`);
-  if (socials.tw) links.push(`<a href="https://x.com/${esc(socials.tw)}" target="_blank" rel="noopener" aria-label="X">X</a>`);
+  const add = (label, url) => links.push(`<a href="${esc(url)}" target="_blank" rel="noopener" aria-label="${esc(label)}">${esc(label)}</a>`);
+  if (s.fb) add("Facebook", `https://facebook.com/${s.fb}`);
+  if (s.ig) add("Instagram", `https://instagram.com/${s.ig}`);
+  if (s.tw) add("X", `https://x.com/${s.tw}`);
+  if (s.tiktok) add("TikTok", `https://tiktok.com/@${s.tiktok}`);
+  if (s.youtube) add("YouTube", `https://youtube.com/channel/${s.youtube}`);
+  if (s.telegram) add("Telegram", `https://t.me/${s.telegram}`);
+  if (s.web) add(t("pol_website"), /^https?:\/\//.test(s.web) ? s.web : `https://${s.web}`);
   return links.length ? `<div class="pol-socials">${links.join("")}</div>` : "";
 }
 
