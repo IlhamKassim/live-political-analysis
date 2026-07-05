@@ -3534,24 +3534,40 @@ function prnSpotlightHTML() {
   if (!seat || !entry) {
     return `<div class="bento-spot-empty"><div class="bento-spot-mark">🗳️</div><p class="muted">${esc(t("prn_bento_pick"))}</p></div>`;
   }
-  const nameKey = (s) => s.toLowerCase().replace(/\b(bin|binti|a\/l|a\/p|anak)\b/g, " ").replace(/[^a-z]+/g, "");
-  const cands = entry.candidates.map((c) => {
-    const col = prnCoalColor(c.coalition);
-    const alias = c.ballot_name && nameKey(c.ballot_name) !== nameKey(c.name)
-      ? ` <small class="muted">(${esc(c.ballot_name)})</small>` : "";
-    const party = c.party && c.party !== c.coalition ? `${esc(c.coalition)} · ${esc(c.party)}` : esc(c.coalition);
-    return `<div class="prn-cand"><span class="prn-cand-name">${esc(c.name)}${alias}</span>` +
-      `<span class="pill" style="background:${col.bg};color:${col.fg}">${party}</span></div>`;
-  }).join("");
   const inc = incumbentBlockHTML(entry);
   const elec = entry.electorate ? `<span class="bento-spot-elec muted">${entry.electorate.toLocaleString()} ${esc(t("prn_electorate"))}</span>` : "";
   // incumbent right under the seat name (answers "who holds this now?" first),
-  // then the 2026 candidates contesting it
+  // then the 2026 candidates as cards laid out beside the map
   return `<div class="bento-spot-head">
       <div class="bento-spot-kicker">${esc(entry.ncode)} · ${esc(t("prn_candidates"))} ${entry.candidates.length}</div>
       <h3>${esc(entry.name)}</h3>${elec}
     </div>${inc}
-    <div class="prn-cands bento-spot-cands">${cands}</div>`;
+    <div class="bento-cand-grid">${prnCandidateCardsHTML(entry, seat.code)}</div>`;
+}
+
+// per-candidate cards for the bento spotlight — coalition-accented, with the ballot
+// name, party badge, ballot symbol and any campaign-window headlines we have.
+function prnCandidateCardsHTML(entry, seatCode) {
+  const nameKey = (s) => s.toLowerCase().replace(/\b(bin|binti|a\/l|a\/p|anak)\b/g, " ").replace(/[^a-z]+/g, "");
+  const seatNews = state.prnNews && state.prnNews[seatCode];
+  return entry.candidates.map((c) => {
+    const col = prnCoalColor(c.coalition);
+    const alias = c.ballot_name && nameKey(c.ballot_name) !== nameKey(c.name)
+      ? `<span class="prn-cc-alias muted">${esc(c.ballot_name)}</span>` : "";
+    const party = c.party && c.party !== c.coalition ? `${esc(c.coalition)} · ${esc(c.party)}` : esc(c.coalition);
+    const sym = c.symbol ? `<span class="prn-cc-sym muted">🗳 ${esc(c.symbol)}</span>` : "";
+    const items = seatNews && seatNews[c.name];
+    const news = items && items.length
+      ? `<div class="prn-cc-news">${items.slice(0, 2).map((n) =>
+          `<a class="prn-cc-newslink" href="${esc(n.u)}" target="_blank" rel="noopener"><span class="prn-cc-newst">${esc(n.t)}</span><span class="muted">${esc(n.s)}${n.d ? " · " + esc(fmtDayMonth(n.d)) : ""}</span></a>`).join("")}</div>`
+      : "";
+    const extra = sym || news ? `<div class="prn-cc-extra">${sym}${news}</div>` : "";
+    return `<div class="prn-cc" style="--cc:${col.bg}">
+      <div class="prn-cc-head">
+        <div class="prn-cc-id"><span class="prn-cc-name">${esc(c.name)}</span>${alias}</div>
+        <span class="pill" style="background:${col.bg};color:${col.fg}">${party}</span>
+      </div>${extra}</div>`;
+  }).join("");
 }
 
 function prnStandingsTileHTML() {

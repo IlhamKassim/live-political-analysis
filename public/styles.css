@@ -2310,3 +2310,17 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 .prn-inc-kicker { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-dim); font-weight: 600; }
 .prn-inc-name { font-size: 14px; margin-top: 3px; }
 .prn-inc-stat { font-size: 12px; margin-top: 2px; }
+
+/* candidate cards in the bento spotlight (beside the map) */
+.bento-cand-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; align-content: start; }
+.prn-cc { background: var(--bg-2); border: 1px solid var(--line); border-left: 3px solid var(--cc, var(--line-2)); border-radius: 10px; padding: 9px 11px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.prn-cc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.prn-cc-id { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.prn-cc-name { font-size: 13px; font-weight: 600; line-height: 1.25; }
+.prn-cc-alias { font-size: 11px; }
+.prn-cc-head .pill { flex: 0 0 auto; align-self: flex-start; }
+.prn-cc-extra { display: flex; flex-direction: column; gap: 5px; }
+.prn-cc-sym { font-size: 11px; }
+.prn-cc-news { display: flex; flex-direction: column; gap: 4px; }
+.prn-cc-newslink { display: flex; flex-direction: column; font-size: 11px; line-height: 1.3; gap: 1px; }
+.prn-cc-newst { color: var(--ink); }
