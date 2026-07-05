@@ -311,12 +311,12 @@ function renderPoliticianGrid() {
   grid.innerHTML = items.length
     ? items.map((p) => `
         <div class="pol-card" tabindex="0" role="button" data-pol-code="${esc(p.code)}" aria-label="${esc(p.name)}, ${esc(p.seatName)}">
-          ${personPhotoHTML(p.name, p.photo)}
+          <div class="pol-card-photo">
+            ${personPhotoHTML(p.name, p.photo)}
+            <span class="pol-card-badge pill" style="background:${partyColor(p.coalition || p.party)};color:#fff">${esc(p.party || p.coalition || "")}</span>
+          </div>
           <div class="pol-card-name">${esc(p.name)}</div>
           <div class="pol-card-seat">${esc(p.code)} · ${esc(p.seatName)}</div>
-          <div class="pol-card-foot">
-            <span class="pill" style="background:${partyColor(p.coalition || p.party)};color:#fff">${esc(p.party || p.coalition || "")}</span>
-          </div>
           ${socialLinksHTML(p.socials, p.socials_source, { compact: true })}
         </div>`).join("")
     : `<p class="pol-dir-empty">${esc(t("pol_no_match"))}</p>`;
