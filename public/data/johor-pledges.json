@@ -1,9 +1,9 @@
 {
  "election": "prn16-johor",
- "note": "Coalition manifesto pledges for PRN Johor 2026, faithfully summarised from the published manifestos / credible reporting. Attributed to the coalition, not individual candidates.",
+ "note": "Coalition platforms for PRN Johor 2026, faithfully summarised from published manifestos / credible reporting and attributed to the coalition, not individual candidates. A coalition marked pending had not released a manifesto as of the stated date.",
  "coalitions": {
   "PH": {
-   "title": "Johor Untuk Semua — 10-point manifesto",
+   "title": "Johor Untuk Semua ~ 10-point manifesto",
    "source": "https://www.thestar.com.my/news/nation/2026/07/03/johor-polls-pakatan-unveils-10-point-manifesto",
    "pledges": [
     "250,000 new high-paying jobs; raise median wage 30%",
@@ -17,7 +17,7 @@
    ]
   },
   "BN": {
-   "title": "TEKAD BN Johor — 63 pledges, 6 pillars",
+   "title": "TEKAD BN Johor ~ 63 pledges, 6 pillars",
    "source": "https://prnjohor.com/manifesto/",
    "pledges": [
     "200,000 jobs, incl. 100,000 premium-income for Johoreans",
@@ -28,6 +28,46 @@
     "Continue first-home and housing rental assistance",
     "Semarak Isya' programme in every state constituency",
     "Boost SME participation in strategic supply chains"
+   ]
+  },
+  "PN": {
+   "pending": true,
+   "as_of": "5 Jul 2026",
+   "note": "PN said its Johor manifesto is forthcoming but had not released one at this date."
+  },
+  "BERSAMA": {
+   "title": "Aku Janji Khidmat ~ 5 service pledges",
+   "note": "BERSAMA (Rafizi Ramli's new party) contested 15 seats and offered signed service pledges rather than a full manifesto.",
+   "source": "https://www.sinarharian.com.my/article/785814/berita/politik/prn-johor-bersama-umum-lima-aku-janji-khidmat",
+   "sources": [
+    "https://www.sinarharian.com.my/article/785814/berita/politik/prn-johor-bersama-umum-lima-aku-janji-khidmat",
+    "https://www.malaysiakini.com/news/778528",
+    "https://www.bharian.com.my/berita/nasional/2026/06/1580284/prn-johor-bersama-tawar-5-aku-janji-mahu-semak-dan-imbang-yang"
+   ],
+   "pledges": [
+    "Monthly mobile complaint counters, a digital platform and public forums",
+    "Serve as a constructive opposition that proposes solutions, not just criticism",
+    "Defend homeownership and protect traditional and heritage villages from over-development",
+    "Push an integrated bus network with first and last-mile links in JB",
+    "Strengthen checks and balances: watch state finances and curb leakage"
+   ]
+  },
+  "MUDA-PSM": {
+   "title": "Progressive Bloc ~ MUDA & PSM",
+   "note": "MUDA and PSM contested as an alliance with separate platforms, not one combined manifesto.",
+   "source": "https://www.thestar.com.my/news/nation/2026/07/03/johor-polls-psm-reveals-manifesto-focused-on-housing-jobs-and-environment",
+   "sources": [
+    "https://www.thestar.com.my/news/nation/2026/07/03/johor-polls-psm-reveals-manifesto-focused-on-housing-jobs-and-environment",
+    "https://www.freemalaysiatoday.com/category/bahasa/tempatan/2026/06/28/mansuh-undang-undang-lantik-wakil-rakyat-tidak-dipilih-jadi-keutamaan-muda",
+    "https://www.malaymail.com/news/malaysia/2026/06/15/muda-psm-form-progressive-bloc-for-johor-and-n-sembilan-state-polls-says-joint-statement/223856"
+   ],
+   "pledges": [
+    "Abolish the law allowing up to 5 appointed, unelected assembly members",
+    "Affordable housing with rent control pegged to household income",
+    "Transit and starter homes for young families",
+    "Create enough jobs for the roughly 200,000 youths who graduate yearly",
+    "Tighter environmental rules for factories and data centres; keep rivers clean",
+    "Balanced north and south development, with more jobs in northern Johor"
    ]
   }
  }

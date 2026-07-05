@@ -3366,20 +3366,31 @@ function prnSeatCardHTML(seat, entry) {
 
 // coalition manifesto pledges for the coalitions contesting THIS seat — attributed
 // to the coalition (not the individual candidate), each with a link to the manifesto.
+// one coalition's platform block — a real manifesto (title + note + pledges + source)
+// or an honest "not released yet" state for a bloc that is contesting but hasn't
+// published. Returns "" for a coalition we simply have no entry for.
+function pledgeBlockHTML(coal, m, opts = {}) {
+  if (!m) return "";
+  const col = prnCoalColor(coal);
+  const head = `<div class="prn-pledge-h"><span class="pill" style="background:${col.bg};color:${col.fg}">${esc(coal)}</span>${m.title ? ` <span class="muted">${esc(m.title)}</span>` : ""}</div>`;
+  const src = m.source ? `<a class="src-line muted prn-pledge-src" href="${esc(m.source)}" target="_blank" rel="noopener">${esc(t("prn_pledge_src"))}</a>` : "";
+  if (m.pending) {
+    return `<div class="prn-pledge-coal is-pending">${head}
+      <p class="prn-pledge-pending muted">${esc(t("prn_pledge_pending", { d: m.as_of || "" }))}</p></div>`;
+  }
+  if (!m.pledges || !m.pledges.length) return "";
+  const note = m.note ? `<p class="prn-pledge-note muted">${esc(m.note)}</p>` : "";
+  const list = m.pledges.slice(0, opts.max || m.pledges.length);
+  return `<div class="prn-pledge-coal">${head}${note}
+    <ul class="prn-pledge-list">${list.map((pl) => `<li>${esc(pl)}</li>`).join("")}</ul>${src}</div>`;
+}
+
 function prnPledgesHTML(entry) {
   const p = state.johorPledges;
   if (!p || !p.coalitions || !entry) return "";
+  // only the coalitions actually contesting THIS seat, in ballot order
   const coals = [...new Set(entry.candidates.map((c) => c.coalition))];
-  const blocks = coals.map((coal) => {
-    const m = p.coalitions[coal];
-    if (!m || !m.pledges || !m.pledges.length) return "";
-    const col = prnCoalColor(coal);
-    return `<div class="prn-pledge-coal">
-      <div class="prn-pledge-h"><span class="pill" style="background:${col.bg};color:${col.fg}">${esc(coal)}</span>${m.title ? ` <span class="muted">${esc(m.title)}</span>` : ""}</div>
-      <ul class="prn-pledge-list">${m.pledges.map((pl) => `<li>${esc(pl)}</li>`).join("")}</ul>
-      ${m.source ? `<a class="src-line muted prn-pledge-src" href="${esc(m.source)}" target="_blank" rel="noopener">${esc(t("prn_pledge_src"))}</a>` : ""}
-    </div>`;
-  }).filter(Boolean).join("");
+  const blocks = coals.map((coal) => pledgeBlockHTML(coal, p.coalitions[coal])).filter(Boolean).join("");
   if (!blocks) return "";
   return `<div class="state-info-h muted" style="margin-top:14px">${esc(t("prn_pledges"))}</div>
     <div class="prn-pledges">${blocks}</div>`;
@@ -3535,16 +3546,15 @@ function prnStandingsTileHTML() {
 function prnPledgesTileHTML() {
   const p = state.johorPledges;
   if (!p || !p.coalitions) return `<p class="muted">—</p>`;
-  const order = ["PH", "BN", "PN"].filter((c) => p.coalitions[c] && p.coalitions[c].pledges && p.coalitions[c].pledges.length);
-  return order.map((coal) => {
-    const m = p.coalitions[coal];
-    const col = prnCoalColor(coal);
-    return `<div class="bento-pledge-col">
-      <div class="prn-pledge-h"><span class="pill" style="background:${col.bg};color:${col.fg}">${esc(coal)}</span>${m.title ? ` <span class="muted">${esc(m.title)}</span>` : ""}</div>
-      <ul class="prn-pledge-list">${m.pledges.slice(0, 6).map((pl) => `<li>${esc(pl)}</li>`).join("")}</ul>
-      ${m.source ? `<a class="src-line muted prn-pledge-src" href="${esc(m.source)}" target="_blank" rel="noopener">${esc(t("prn_pledge_src"))}</a>` : ""}
-    </div>`;
-  }).join("");
+  // every coalition with a sourced manifesto OR a pending state, biggest blocs first
+  const rank = ["PH", "BN", "PN", "BERSAMA", "MUDA-PSM"];
+  const order = Object.keys(p.coalitions)
+    .filter((c) => { const m = p.coalitions[c]; return m && ((m.pledges && m.pledges.length) || m.pending); })
+    .sort((a, b) => {
+      const ai = rank.indexOf(a), bi = rank.indexOf(b);
+      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    });
+  return order.map((coal) => `<div class="bento-pledge-col">${pledgeBlockHTML(coal, p.coalitions[coal], { max: 5 })}</div>`).join("");
 }
 
 function renderPrnBento() {
