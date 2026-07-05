@@ -2164,3 +2164,7 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
   font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer;
 }
 .pol-modal-seatbtn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* community-sourced (web-searched) socials — visibly distinct from Wikidata-verified */
+.pol-socials-unverified a { border-bottom: 1px dashed var(--ink-faint); }
+.pol-socials-note { font-size: 10.5px; margin: 4px 0 0; }

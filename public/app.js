@@ -249,8 +249,10 @@ function personPhotoHTML(name, photo, cls = "") {
   }
   return `<span class="pol-photo pol-monogram ${cls}" style="background:${monogramColor(name || "")}" aria-hidden="true">${esc(personInitials(name))}</span>`;
 }
-// social links — all sourced from Wikidata's non-deprecated (best-rank) claims.
-function socialLinksHTML(socials) {
+// social links — Wikidata's non-deprecated (best-rank) claims by default; when
+// source === "community" the links were web-searched (not Wikidata-verified) and
+// get a visible "not yet verified" note so they're never passed off as verified.
+function socialLinksHTML(socials, source) {
   if (!socials) return "";
   const s = socials;
   const links = [];
@@ -262,7 +264,9 @@ function socialLinksHTML(socials) {
   if (s.youtube) add("YouTube", `https://youtube.com/channel/${s.youtube}`);
   if (s.telegram) add("Telegram", `https://t.me/${s.telegram}`);
   if (s.web) add(t("pol_website"), /^https?:\/\//.test(s.web) ? s.web : `https://${s.web}`);
-  return links.length ? `<div class="pol-socials">${links.join("")}</div>` : "";
+  if (!links.length) return "";
+  const note = source === "community" ? `<p class="pol-socials-note muted">${esc(t("pol_socials_community"))}</p>` : "";
+  return `<div class="pol-socials${source === "community" ? " pol-socials-unverified" : ""}">${links.join("")}</div>${note}`;
 }
 
 // ---- Politicians directory (browsable roster of all MPs) ----
@@ -399,7 +403,7 @@ function openPoliticianModal(code) {
       ${stats ? `<div class="pol-modal-stats">${stats}</div>` : ""}
       ${bio ? `<p class="pol-modal-bio">${esc(bio.extract)}</p>` : ""}
       ${m.education ? `<dl class="rows pol-modal-edu"><dt>${esc(t("pol_educated"))}</dt><dd>${esc(m.education)}</dd></dl>` : ""}
-      ${socialLinksHTML(m.socials)}
+      ${socialLinksHTML(m.socials, m.socials_source)}
       ${links.length ? `<div class="pol-modal-links">${links.join("")}</div>` : ""}
       ${m.photo_credit ? `<p class="yb-credit muted">${esc(t("pol_photo_by", { credit: m.photo_credit }))}</p>` : ""}
       <button class="pol-modal-seatbtn" type="button" data-pol-seat="${esc(code)}">${esc(t("pol_view_seat"))}</button>
@@ -1212,7 +1216,7 @@ function seatCardHTML(seat, options = {}) {
              </div>
            </div>
            ${bioEntry ? `<div class="yb-bio"><p class="yb-bio-text">${esc(bioEntry.extract)}</p><a class="yb-bio-more" href="${esc(bioEntry.url)}" target="_blank" rel="noopener">Wikipedia →</a></div>` : ""}
-           ${socialLinksHTML(pol.socials)}
+           ${socialLinksHTML(pol.socials, pol.socials_source)}
            ${pol.photo_credit ? `<p class="yb-credit muted">${esc(t("pol_photo_by", { credit: pol.photo_credit }))}</p>` : ""}
          </div>`
       : `<div class="seat-yb-card">

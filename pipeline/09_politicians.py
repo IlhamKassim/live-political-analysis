@@ -36,6 +36,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SEATS = os.path.join(ROOT, "public", "data", "seats-parlimen.json")
 RESULTS = os.path.join(ROOT, "public", "data", "results-ge15.json")
 OUT = os.path.join(ROOT, "public", "data", "politicians.json")
+# hand-curated socials for MPs Wikidata doesn't cover — web-searched + spot-checked,
+# flagged "community" (not Wikidata-verified) so the UI can distinguish them.
+MANUAL_SOCIALS = os.path.join(ROOT, "pipeline", "politicians_socials_manual.json")
 PHOTO_DIR = os.path.join(ROOT, "public", "assets", "politicians")
 CACHE = os.path.join(ROOT, "pipeline", "raw", "politicians")
 CROSSWALK = os.path.join(ROOT, "pipeline", "wikidata_seat_map.json")
@@ -229,6 +232,7 @@ def main():
     os.makedirs(PHOTO_DIR, exist_ok=True)
     seats = json.load(open(SEATS))["seats"]
     results = json.load(open(RESULTS))
+    manual = json.load(open(MANUAL_SOCIALS)) if os.path.exists(MANUAL_SOCIALS) else {}
 
     rows = fetch_sparql()
     mps = merge_people(rows)
@@ -252,6 +256,7 @@ def main():
             "dob": e["dob"][:10] if e["dob"] else None,
             "education": sorted(e["edu"])[0] if e["edu"] else None,
             "socials": {k: e[k] for k in ("fb", "ig", "tw", "tiktok", "youtube", "web", "telegram") if e.get(k)} or None,
+            "socials_source": None,
             "wikidata": f"https://www.wikidata.org/wiki/{e['qid']}",
             "photo": None, "photo_credit": None, "wikipedia": None,
         }
@@ -272,6 +277,14 @@ def main():
         if wiki:
             rec["wikipedia"] = wiki
             bios += 1
+        # fill socials from the hand-curated file where Wikidata has none — kept
+        # separate + flagged "community" so the UI shows it as not-yet-verified.
+        if not rec["socials"] and manual.get(code):
+            man = {k: v for k, v in manual[code].items()
+                   if k in ("fb", "ig", "tw", "tiktok", "youtube", "web", "telegram") and v}
+            if man:
+                rec["socials"] = man
+                rec["socials_source"] = "community"
         out[code] = rec
         if i % 40 == 0:
             print(f"  {i}/222  (photos {photos}, bios {bios})")
