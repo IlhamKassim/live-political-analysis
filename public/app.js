@@ -367,6 +367,7 @@ function renderPoliticiansDirectory() {
 }
 async function openPoliticians() {
   if (!state.politicians) return;
+  if (state.prnMode) closePrnMode();   // leave the election dashboard before the directory takes over
   if (!state.data.parlimen) { try { await loadTier("parlimen"); } catch (_) {} }
   document.body.classList.add("politicians-open");
   renderPoliticiansDirectory();
@@ -3386,6 +3387,7 @@ function prnPledgesHTML(entry) {
 async function openPrnMode() {
   const e = liveElection();
   if (!e || state.prnMode) return;
+  const preSel = state.selected;   // openStateCard clears the selection — keep it for the bento spotlight
   if (state.tier !== e.tier) await setTier(e.tier);   // before the flag — setTier exits PRN mode
   state.prnMode = true;
   document.body.classList.add("prn-mode");
@@ -3393,6 +3395,10 @@ async function openPrnMode() {
   paint();
   syncLiveBadge();
   refreshPrnLive();
+  if (PRN_BENTO_MQ.matches) {
+    if (preSel && state.data.dun && state.data.dun.byCode.has(preSel)) prnBentoSeat = preSel;
+    showPrnBento();   // wide screens get the spatial dashboard
+  }
   writeHash();
 }
 function closePrnMode(options = {}) {
@@ -3400,6 +3406,7 @@ function closePrnMode(options = {}) {
   state.prnMode = false;
   clearTimeout(prnLiveTimer);
   document.body.classList.remove("prn-mode");
+  hidePrnBento();   // single hide point — every PRN exit path routes through here
   if (!options.silent) {
     if (state.openState) {
       STATE_INFO.innerHTML = stateSummaryHTML(state.openState);
@@ -3432,6 +3439,7 @@ async function refreshPrnLive() {
     if (state.prnMode) {
       paint();
       renderPrnSummaryIfOpen();
+      if (document.body.classList.contains("prn-bento-on")) renderPrnBento();
       // the state card's reveal choreography may still be swapping content in —
       // re-assert once it has settled so the LIVE tally can't lose the race
       setTimeout(renderPrnSummaryIfOpen, 800);
@@ -3444,6 +3452,183 @@ function renderPrnSummaryIfOpen() {
     STATE_INFO.innerHTML = stateSummaryHTML(state.openState);
   }
 }
+
+// ============================================================================
+// Wide-screen PRN "bento" dashboard — a spatial dashboard for the live Johor
+// election, shown only on big landscape screens. Purely additive: on narrow
+// screens (or outside PRN mode) it stays hidden and the normal map+panel flow
+// runs untouched. Self-rendered Johor map tile → no reparenting of #map.
+// ============================================================================
+const PRN_BENTO = document.getElementById("prn-bento");
+const PRN_BENTO_MQ = matchMedia("(min-width: 1180px)");
+let prnBentoSeat = null;   // seat code spotlighted in the bento
+
+function prnDaysToPolling(e) {
+  return Math.ceil((new Date(e.polling_day + "T00:00:00+08:00").getTime() - Date.now()) / 86400000);
+}
+
+// live-night colour if we have it, else the 2022 incumbent's coalition colour
+function johorSeatColor(seat) {
+  const lr = state.prnLive && state.prnLive.seats && state.prnLive.seats[seat.code];
+  if (lr && (lr.coalition || lr.party)) return prnCoalColor(lr.coalition || lr.party).bg;
+  const r = johorDunResult(seat);
+  return r ? prnCoalColor(r.coalition).bg : "#39404c";
+}
+
+// a compact, self-contained Johor choropleth built from the DUN seat paths —
+// clicking a seat spotlights it in the bento without touching the national map
+function johorMapTileSVG() {
+  const data = state.data.dun;
+  if (!data) return "";
+  const seats = data.seats.filter((s) => s.state === "Johor" && s.bbox);
+  if (!seats.length) return "";
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const s of seats) {
+    const b = s.bbox;
+    x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y);
+    x1 = Math.max(x1, b.x + b.w); y1 = Math.max(y1, b.y + b.h);
+  }
+  const px = (x1 - x0) * 0.03, py = (y1 - y0) * 0.03;
+  const vb = `${(x0 - px).toFixed(2)} ${(y0 - py).toFixed(2)} ${(x1 - x0 + 2 * px).toFixed(2)} ${(y1 - y0 + 2 * py).toFixed(2)}`;
+  const paths = seats.map((s) =>
+    `<path d="${s.d}" data-code="${esc(s.code)}" class="bento-seat${s.code === prnBentoSeat ? " sel" : ""}" style="fill:${johorSeatColor(s)}"><title>${esc(s.name)}</title></path>`
+  ).join("");
+  return `<svg viewBox="${vb}" preserveAspectRatio="xMidYMid meet" class="bento-map-svg" role="img" aria-label="Johor DUN seats">${paths}</svg>`;
+}
+
+function prnSpotlightHTML() {
+  const data = state.data.dun;
+  const seat = prnBentoSeat && data && data.byCode.get(prnBentoSeat);
+  const entry = seat && state.prn16.seats[seat.code];
+  if (!seat || !entry) {
+    return `<div class="bento-spot-empty"><div class="bento-spot-mark">🗳️</div><p class="muted">${esc(t("prn_bento_pick"))}</p></div>`;
+  }
+  const nameKey = (s) => s.toLowerCase().replace(/\b(bin|binti|a\/l|a\/p|anak)\b/g, " ").replace(/[^a-z]+/g, "");
+  const cands = entry.candidates.map((c) => {
+    const col = prnCoalColor(c.coalition);
+    const alias = c.ballot_name && nameKey(c.ballot_name) !== nameKey(c.name)
+      ? ` <small class="muted">(${esc(c.ballot_name)})</small>` : "";
+    const party = c.party && c.party !== c.coalition ? `${esc(c.coalition)} · ${esc(c.party)}` : esc(c.coalition);
+    return `<div class="prn-cand"><span class="prn-cand-name">${esc(c.name)}${alias}</span>` +
+      `<span class="pill" style="background:${col.bg};color:${col.fg}">${party}</span></div>`;
+  }).join("");
+  const inc = entry.incumbent_2022
+    ? `<p class="bento-spot-inc muted">${esc(t("prn_incumbent"))}: ${esc(entry.incumbent_2022)}${entry.incumbent_party_2022 ? " · " + esc(entry.incumbent_party_2022) : ""}${entry.majority_2022 ? ` (${esc(entry.majority_2022)})` : ""}</p>`
+    : "";
+  const elec = entry.electorate ? `<span class="bento-spot-elec muted">${entry.electorate.toLocaleString()} ${esc(t("prn_electorate"))}</span>` : "";
+  return `<div class="bento-spot-head">
+      <div class="bento-spot-kicker">${esc(entry.ncode)} · ${esc(t("prn_candidates"))} ${entry.candidates.length}</div>
+      <h3>${esc(entry.name)}</h3>${elec}
+    </div>
+    <div class="prn-cands bento-spot-cands">${cands}</div>${inc}`;
+}
+
+function prnStandingsTileHTML() {
+  const p = state.prn16;
+  const total = Object.values(p.contested || {}).reduce((a, b) => a + b, 0) || 1;
+  const order = Object.entries(p.contested || {}).sort((a, b) => b[1] - a[1]);
+  const bar = order.map(([coal, n]) => `<span style="width:${(100 * n / total).toFixed(2)}%;background:${prnCoalColor(coal).bg}"></span>`).join("");
+  const key = order.map(([coal, n]) => `<span class="state-bloc"><span class="sw" style="background:${prnCoalColor(coal).bg}"></span>${esc(coal)} ${n}</span>`).join("");
+  return `<div class="sharebar bento-standings-bar">${bar}</div><div class="sharebar-key">${key}</div>`;
+}
+
+function prnPledgesTileHTML() {
+  const p = state.johorPledges;
+  if (!p || !p.coalitions) return `<p class="muted">—</p>`;
+  const order = ["PH", "BN", "PN"].filter((c) => p.coalitions[c] && p.coalitions[c].pledges && p.coalitions[c].pledges.length);
+  return order.map((coal) => {
+    const m = p.coalitions[coal];
+    const col = prnCoalColor(coal);
+    return `<div class="bento-pledge-col">
+      <div class="prn-pledge-h"><span class="pill" style="background:${col.bg};color:${col.fg}">${esc(coal)}</span>${m.title ? ` <span class="muted">${esc(m.title)}</span>` : ""}</div>
+      <ul class="prn-pledge-list">${m.pledges.slice(0, 6).map((pl) => `<li>${esc(pl)}</li>`).join("")}</ul>
+      ${m.source ? `<a class="src-line muted prn-pledge-src" href="${esc(m.source)}" target="_blank" rel="noopener">${esc(t("prn_pledge_src"))}</a>` : ""}
+    </div>`;
+  }).join("");
+}
+
+function renderPrnBento() {
+  const e = liveElection();
+  if (!e || !state.prn16) return;
+  const days = prnDaysToPolling(e);
+  const liveNow = state.prnLive && (state.prnLive.phase === "live" || state.prnLive.phase === "final");
+  const seatsN = state.prn16.seats ? Object.keys(state.prn16.seats).length : e.total_seats;
+  const dates = [
+    [t("prn_nomination"), fmtDayMonth(e.nomination_day)],
+    [t("prn_early"), fmtDayMonth(e.early_voting)],
+    [t("prn_polling"), fmtDayMonth(e.polling_day)],
+  ].map(([k, v], i) => `<div class="bento-date${i === 2 ? " is-poll" : ""}"><span class="muted">${esc(k)}</span><b>${esc(v)}</b></div>`).join("");
+
+  const countTile = liveNow
+    ? `<div class="bento-tile bento-count is-live"><div class="bento-kicker"><span class="live-dot"></span>${esc(t(state.prnLive.phase === "final" ? "prn_phase_final" : "prn_phase_live"))}</div><div class="bento-count-big">${state.prnLive.declared || 0}<span>/${e.total_seats}</span></div><div class="bento-count-sub muted">${esc(t("prn_polling"))} · ${esc(fmtDayMonth(e.polling_day))}</div></div>`
+    : `<div class="bento-tile bento-count"><div class="bento-kicker">${esc(t("prn_polling"))} · ${esc(fmtDayMonth(e.polling_day))}</div><div class="bento-count-big">${days > 0 ? days : 0}<span>${esc(days === 1 ? t("prn_bento_day") : t("prn_bento_days_unit"))}</span></div><div class="bento-count-sub muted">${esc(t("prn_bento_to_polling"))}</div></div>`;
+
+  PRN_BENTO.innerHTML = `
+    <div class="bento-head">
+      <div class="bento-title"><span class="live-dot"></span>🗳️ ${esc(e.name)}</div>
+      <button id="prn-bento-close" class="prn-close-btn bento-close" type="button">${esc(t("prn_close"))}</button>
+    </div>
+    <div class="bento-grid">
+      ${countTile}
+      <div class="bento-tile bento-map">
+        <div class="bento-kicker">${esc(seatsN)} ${esc(t("tier_dun"))} · ${esc(t("prn_bento_incumbent_map"))}</div>
+        <div class="bento-map-wrap">${johorMapTileSVG()}</div>
+      </div>
+      <div class="bento-tile bento-stand">
+        <div class="bento-kicker">${esc(t("prn_contested"))}</div>
+        ${liveNow ? prnLiveTallyHTML() : prnStandingsTileHTML()}
+        <p class="bento-maj muted">${esc(t("prn_majority", { n: e.majority }))}</p>
+      </div>
+      <div class="bento-tile bento-dates">
+        <div class="bento-kicker">${esc(t("prn_bento_key_dates"))}</div>
+        <div class="bento-dates-row">${dates}</div>
+      </div>
+      <a class="bento-tile bento-reg" href="${esc(e.check_voter_url)}" target="_blank" rel="noopener">
+        <div class="bento-kicker">${esc(t("prn_bento_register_h"))}</div>
+        <p class="bento-reg-b">${esc(t("prn_bento_register_b"))}</p>
+        <span class="bento-reg-cta">${esc(t("prn_check"))}</span>
+      </a>
+      <div class="bento-tile bento-spot" id="bento-spot">
+        <div class="bento-kicker">${esc(t("prn_bento_spotlight"))}</div>
+        <div id="bento-spot-body">${prnSpotlightHTML()}</div>
+      </div>
+      <div class="bento-tile bento-pledge">
+        <div class="bento-kicker">${esc(t("prn_pledges"))}</div>
+        <div class="bento-pledge-cols">${prnPledgesTileHTML()}</div>
+      </div>
+    </div>
+    <p class="bento-foot src-line muted">${esc(t("prn_source"))}</p>`;
+}
+
+function showPrnBento() {
+  if (!liveElection()) return;
+  if (!prnBentoSeat && state.selected && state.data.dun && state.data.dun.byCode.has(state.selected)) prnBentoSeat = state.selected;
+  document.body.classList.add("prn-bento-on");
+  PRN_BENTO.hidden = false;
+  renderPrnBento();
+}
+function hidePrnBento() {
+  document.body.classList.remove("prn-bento-on");
+  PRN_BENTO.hidden = true;
+}
+function updateBentoSpotlight() {
+  const body = document.getElementById("bento-spot-body");
+  if (body) body.innerHTML = prnSpotlightHTML();
+  PRN_BENTO.querySelectorAll(".bento-seat.sel").forEach((p) => p.classList.remove("sel"));
+  const p = prnBentoSeat && PRN_BENTO.querySelector(`.bento-seat[data-code="${CSS.escape(prnBentoSeat)}"]`);
+  if (p) p.classList.add("sel");
+}
+
+PRN_BENTO.addEventListener("click", (ev) => {
+  if (ev.target.closest("#prn-bento-close")) { closePrnMode(); return; }
+  const path = ev.target.closest(".bento-seat");
+  if (path) { prnBentoSeat = path.dataset.code; updateBentoSpotlight(); }
+});
+// keep the bento in sync with the viewport crossing the wide breakpoint
+PRN_BENTO_MQ.addEventListener("change", () => {
+  if (!state.prnMode) return hidePrnBento();
+  PRN_BENTO_MQ.matches ? showPrnBento() : hidePrnBento();
+});
 // overview badge pinned above the contested state, tracking the camera
 function syncLiveBadge() {
   const el = document.getElementById("live-badge");

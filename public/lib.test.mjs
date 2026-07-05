@@ -507,6 +507,7 @@ test("COALITION_COLORS: exact byte-for-byte table (no swatch drift)", () => {
     PH: "#d7263d", PN: "#15387c", BN: "#1f9bd6", GPS: "#b8332e",
     GRS: "#e8772e", WARISAN: "#16a085", KDM: "#8e44ad", PBM: "#6c7a89",
     BEBAS: "#8a97a6",
+    STAR: "#b08a1f", UPKO: "#2e8b57", PSB: "#9b4d8a",
   });
 });
 
@@ -659,18 +660,28 @@ test("tallyCoalitions: GE15 results match the frozen PH82·PN74·BN30·GPS23·GR
   assert.equal(total, 222);
 });
 
-// ---- DUN (PRN) results: the 2023 six-state tally invariant ----
-test("results-dun.json: 2023 six-state PRN tally is PN146·PH80·BN19 = 245 seats", () => {
-  const counts = tallyCoalitions(RESULTS_DUN);
+// ---- DUN (PRN) results: the 2023 six-state tally invariant (now a subset) ----
+test("results-dun.json: 2023 six-state PRN subset tally is PN146·PH80·BN19 = 245", () => {
+  // six-state PRN entries are the ones WITHOUT an `election` label (MECO states carry one)
+  const prn23 = Object.fromEntries(Object.entries(RESULTS_DUN).filter(([, v]) => !v.election));
+  const counts = tallyCoalitions(prn23);
   assert.equal(counts.PN, 146);
   assert.equal(counts.PH, 80);
   assert.equal(counts.BN, 19);
-  const total = Object.values(counts).reduce((a, b) => a + b, 0);
-  assert.equal(total, 245);
-  // covered states only (the other 7 DUN states keep the parent-Parliament fallback)
-  const states = new Set(Object.values(RESULTS_DUN).map((v) => v.state));
+  assert.equal(Object.keys(prn23).length, 245);
+  const states = new Set(Object.values(prn23).map((v) => v.state));
   assert.equal(states.size, 6);
-  // turnout isn't in the PRN source → must be null on every entry (card omits the row)
+});
+
+// ---- DUN (PRN) results: full coverage after the MECO other-states bake ----
+test("results-dun.json: 544/600 seats across 12 states, 299 MECO-labelled, turnout null", () => {
+  assert.equal(Object.keys(RESULTS_DUN).length, 544);
+  const states = new Set(Object.values(RESULTS_DUN).map((v) => v.state));
+  assert.equal(states.size, 12);
+  // MECO states each carry an `election` display label; the six-state PRN entries don't
+  const withElection = Object.values(RESULTS_DUN).filter((v) => v.election).length;
+  assert.equal(withElection, 299);
+  // turnout isn't in either source → must be null on every entry (card omits the row)
   assert.ok(Object.values(RESULTS_DUN).every((v) => v.turnout === null));
 });
 
