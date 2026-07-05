@@ -11,6 +11,8 @@ export const COALITION_COLORS = {
   PH: "#d7263d", PN: "#15387c", BN: "#1f9bd6", GPS: "#b8332e",
   GRS: "#e8772e", WARISAN: "#16a085", KDM: "#8e44ad", PBM: "#6c7a89",
   BEBAS: "#8a97a6",
+  // Sabah/Sarawak parties that win seats running outside a formal coalition
+  STAR: "#b08a1f", UPKO: "#2e8b57", PSB: "#9b4d8a",
 };
 
 // Map a coalition code to its colour, case-insensitively. Unknown / empty /

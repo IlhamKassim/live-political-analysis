@@ -60,7 +60,7 @@ let viewBox = FULL.slice();
 // ---- coalition palette ----
 // COALITION_COLORS + partyColor() now live in lib.js (one tested source of
 // truth for legend/pills/seat-fill/share-card). COALITION_ORDER stays here.
-const COALITION_ORDER = ["PH", "PN", "BN", "GPS", "GRS", "WARISAN", "KDM", "PBM", "BEBAS"];
+const COALITION_ORDER = ["PH", "PN", "BN", "GPS", "GRS", "WARISAN", "KDM", "PBM", "STAR", "UPKO", "PSB", "BEBAS"];
 const SEAT_TABS = ["overview", "results", "candidates", "voting"];
 const isSeatTab = (tab) => SEAT_TABS.includes(tab);
 const LOAD_GATED_SCORES = false;
@@ -1199,7 +1199,14 @@ function seatCardHTML(seat, options = {}) {
   const ownDun = !!ownDunResult(seat);          // a real PRN result (not the parent fallback)?
   const sc = state.scores && state.scores[resultKey(seat, state.tier)];
   const card = r ? formatResultCard(r) : null;
-  const resultSource = r ? `<div class="src-line muted">${esc(t(r._johor2022 ? "src_johor2022" : ownDun ? "src_prn15" : "src_ge15"))}</div>` : "";
+  const resultSource = r
+    ? `<div class="src-line muted">${esc(
+        r._johor2022 ? t("src_johor2022")
+        : r.election ? t(r._byelection ? "src_byelection" : "src_state_election", { e: r.election })
+        : ownDun ? t("src_prn15")
+        : t("src_ge15"),
+      )}</div>`
+    : "";
   const dunNote = (!isP && !ownDun)
     ? `<div class="note">${t("dun_note", { p: `<b>${esc(seat.parlimen)}</b>` })}</div>`
     : "";

@@ -5,13 +5,18 @@ Source: github.com/Thevesh/analysis-election-msia (peer-reviewed, cleaned).
   • candidates_prn15.csv  every state-election candidate: state, parlimen, dun,
                           name, party, acronym, votes, votes_perc, result
 
-Coverage note: Thevesh's `candidates_prn15.csv` is the **2023 six-state PRN**
+Coverage: Thevesh's `candidates_prn15.csv` is the **2023 six-state PRN**
 (Selangor, Kelantan, Pulau Pinang, Kedah, Negeri Sembilan, Terengganu) — 245 of
-the 600 DUN seats. The other 7 DUN states held their state elections on other
-dates (Sarawak '21, Sabah '20, Melaka '21, Johor '22, and Perlis/Perak/Pahang
-concurrent with GE15 '22) and are NOT in this file, so their seats are simply
-absent from the output. The frontend is per-seat data-driven: a DUN seat with no
-entry keeps the existing "state-election results coming soon" note.
+the 600 DUN seats. The other DUN states held their assembly elections on other
+dates and are NOT in that file, so we bake them from the Malaysian Election
+Corpus (github.com/Thevesh/paper-meco-results, peer-reviewed) below — each state's
+MOST RECENT state general election, plus any by-election won since (the true
+current assemblyman). Johor is deliberately excluded here: its assembly is
+dissolved for PRN 11 Jul 2026, so it is served from prn16-johor.json instead.
+
+  Baked from MECO: Sabah (2025), Sarawak (2021), Melaka (2021),
+  Perak/Pahang/Perlis (2022) — the remaining ~299 seats, so results-dun.json now
+  covers ~544 of 600. (Only Johor's 56 stay out, by design.)
 
     python3 pipeline/03_results_dun.py
 
@@ -69,6 +74,128 @@ def dun_code(dun):
     return dun.split(" ", 1)[0]
 
 
+# ---------------------------------------------------------------------------
+# Other DUN states — Malaysian Election Corpus (MECO), Thevesh/paper-meco-results
+# ---------------------------------------------------------------------------
+# consol_ballots.csv is a single coalition-resolved ballot file spanning EVERY
+# Malaysian election, so we bake each remaining state's most recent state general
+# election from it, then overlay any post-election by-election (current holder).
+MECO_BALLOTS = "https://raw.githubusercontent.com/Thevesh/paper-meco-results/main/data/consol_ballots.csv"
+MECO_PARTY = "https://raw.githubusercontent.com/Thevesh/paper-meco-results/main/data/lookup_party.csv"
+
+# state -> (MECO election label, display label). MOST RECENT state general election
+# as of 2026-07: Sabah went again in Nov 2025 (SE-15), so its 2020 assembly is stale.
+MECO_TARGETS = {
+    "Sabah":   ("SE-15", "Sabah 2025"),
+    "Sarawak": ("SE-12", "Sarawak 2021"),
+    "Melaka":  ("SE-15", "Melaka 2021"),
+    "Pahang":  ("SE-15", "Pahang 2022"),
+    "Perak":   ("SE-15", "Perak 2022"),
+    "Perlis":  ("SE-15", "Perlis 2022"),
+}
+# seats whose sitting rep changed at a by-election AFTER that general election →
+# overlay the by-election winner so the card shows who actually holds the seat now.
+MECO_BYELECTION_SEATS = {"Sabah": {"N.58"}, "Sarawak": {"N.67"}, "Pahang": {"N.36"}, "Perak": {"N.48"}}
+
+MECO_COAL_FULL = {
+    "BN": "Barisan Nasional", "PH": "Pakatan Harapan", "PN": "Perikatan Nasional",
+    "GPS": "Gabungan Parti Sarawak", "GRS": "Gabungan Rakyat Sabah", "WARISAN": "Warisan",
+    "KDM": "Parti Kesejahteraan Demokratik Masyarakat", "PSB": "Parti Sarawak Bersatu",
+    "UPKO": "United Progressive Kinabalu Organisation", "STAR": "Homeland Solidarity Party (STAR)",
+    "BEBAS": "Bebas (Independent)",
+}
+
+
+def _meco_load(url, fn):
+    path = os.path.join(RAW, fn)
+    if not os.path.exists(path):
+        os.makedirs(RAW, exist_ok=True)
+        urllib.request.urlretrieve(url, path)
+    with open(path) as f:
+        return list(csv.DictReader(f))
+
+
+def _vint(s):
+    try:
+        return int(float(s))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _meco_bloc(party, coalition):
+    # MECO tags solo runners / independents with coalition 'ALONE' — surface the party
+    # itself as the bloc (WARISAN, PSB, STAR, KDM, BEBAS …) so the choropleth + pill
+    # show something meaningful instead of the null sentinel.
+    return party if coalition in ("ALONE", "BEBAS", "") else coalition
+
+
+def _meco_entry(ballots, party_full, election_display):
+    lst = sorted(ballots, key=lambda b: _vint(b["votes"]), reverse=True)
+    win = next((b for b in lst if b["result"].strip().lower() in ("won", "won_uncontested")), lst[0])
+    runner = next((b for b in lst if b is not win), None)
+    total = sum(_vint(b["votes"]) for b in lst)
+    wv = _vint(win["votes"])
+    contested = len(lst) > 1 and total > 0
+    bloc = _meco_bloc(win["party"], win["coalition"])
+    majority = (wv - _vint(runner["votes"])) if (runner and contested) else None
+    entry = {
+        "state": win["state"],
+        "name": win["name"],
+        "party": win["party"],
+        "party_full": party_full.get(win["party"], win["party"]),
+        "coalition": bloc,
+        "coalition_full": MECO_COAL_FULL.get(bloc, party_full.get(bloc, bloc)),
+        "votes": wv,
+        "vote_pct": round(100 * wv / total, 1) if total else None,
+        "majority": majority,
+        "majority_pct": round(100 * majority / total, 1) if (majority is not None and total) else None,
+        "turnout": None,  # registered-voter counts aren't in consol_ballots
+        "n_candidates": len(lst),
+        "election": election_display,
+    }
+    if runner and contested:
+        entry["runner_up"] = {"name": runner["name"], "party": runner["party"], "votes": _vint(runner["votes"])}
+    return entry
+
+
+def build_meco_states(valid, st2code):
+    """Return {seat_code: entry} for the non-PRN23 DUN states, from MECO."""
+    ballots = _meco_load(MECO_BALLOTS, "meco_consol_ballots.csv")
+    plook = {r["party"]: r["party_name_en"] for r in _meco_load(MECO_PARTY, "meco_lookup_party.csv")}
+    out, added, overlaid, unmatched = {}, {}, [], []
+    for state, (elabel, edisp) in MECO_TARGETS.items():
+        sc = st2code[state]
+        by_seat = {}
+        for b in ballots:
+            if b["state"] == state and b["election"] == elabel and dun_code(b["seat"]).startswith("N."):
+                by_seat.setdefault(dun_code(b["seat"]), []).append(b)
+        for ncode, lst in by_seat.items():
+            key = f"{sc}_{ncode}"
+            if key not in valid:
+                unmatched.append(key)
+                continue
+            out[key] = _meco_entry(lst, plook, edisp)
+        added[state] = len([k for k in by_seat if f"{sc}_{k}" in valid])
+    # by-election overlays — the true current holder supersedes the general result
+    for state, seats_ in MECO_BYELECTION_SEATS.items():
+        sc = st2code[state]
+        for ncode in seats_:
+            # every seat in MECO_BYELECTION_SEATS is verified to have its latest
+            # by-election dated AFTER that state's general election baked above.
+            be = [b for b in ballots if b["state"] == state and b["election"] == "BY-ELECTION"
+                  and dun_code(b["seat"]) == ncode]
+            key = f"{sc}_{ncode}"
+            if not be or key not in valid or key not in out:
+                continue
+            latest = max(b["date"] for b in be)
+            lst = [b for b in be if b["date"] == latest]
+            entry = _meco_entry(lst, plook, f"{state} {ncode} by-election {latest[:4]}")
+            entry["_byelection"] = True
+            out[key] = entry
+            overlaid.append(f"{key} {latest} → {entry['name']} ({entry['coalition']})")
+    return out, added, overlaid, unmatched
+
+
 def main():
     cands = load("candidates_prn15.csv")
 
@@ -121,6 +248,12 @@ def main():
                                   "votes": int(runner["votes"] or 0)}
         out[code] = entry
 
+    prn23 = len(out)
+
+    # add the remaining DUN states from the Malaysian Election Corpus
+    meco, added, overlaid, unmatched = build_meco_states(valid, st2code)
+    out.update(meco)
+
     path = os.path.join(OUT, "results-dun.json")
     with open(path, "w") as f:
         json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
@@ -129,10 +262,17 @@ def main():
     dist = Counter(v["coalition"] for v in out.values())
     states = Counter(v["state"] for v in out.values())
     print(f"  → results-dun.json  ({len(out)} of 600 DUN seats, {os.path.getsize(path)/1024:.0f} KB)")
+    print(f"  PRN-2023 six-state: {prn23} seats | MECO other states: {len(meco)} seats")
+    print(f"  MECO states: " + ", ".join(f"{s} {n}" for s, n in added.items()))
+    print(f"  by-election overlays (current holder): {len(overlaid)}")
+    for o in overlaid:
+        print(f"    · {o}")
     print(f"  states covered ({len(states)}): " + ", ".join(f"{s} {n}" for s, n in states.most_common()))
     print("  seats won by coalition: " + ", ".join(f"{p} {n}" for p, n in dist.most_common()))
     if skipped:
-        print(f"  ⚠ {len(skipped)} seats had no matching boundary code (skipped): {skipped[:5]}")
+        print(f"  ⚠ {len(skipped)} PRN seats had no matching boundary code (skipped): {skipped[:5]}")
+    if unmatched:
+        print(f"  ⚠ {len(unmatched)} MECO seats had no matching boundary code (skipped): {unmatched[:5]}")
 
 
 if __name__ == "__main__":
