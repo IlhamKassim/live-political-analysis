@@ -3327,8 +3327,8 @@ function prnSeatCardHTML(seat, entry) {
   const meta = [];
   if (entry.electorate) meta.push(`<dt>${esc(t("prn_electorate"))}</dt><dd class="mono">${entry.electorate.toLocaleString()}</dd>`);
   if (entry.incumbent_2022) {
-    const maj = entry.majority_2022 ? ` <span class="muted">(${esc(entry.majority_2022)})</span>` : "";
-    meta.push(`<dt>${esc(t("prn_incumbent"))}</dt><dd>${esc(entry.incumbent_2022)}${entry.incumbent_party_2022 ? " · " + esc(entry.incumbent_party_2022) : ""}${maj}</dd>`);
+    const stat = incumbentStatLine(entry);
+    meta.push(`<dt>${esc(t("prn_incumbent"))}</dt><dd>${esc(entry.incumbent_2022)}${entry.incumbent_party_2022 ? " · " + esc(entry.incumbent_party_2022) : ""}${stat ? `<br><span class="muted">${esc(stat)}</span>` : ""}</dd>`);
   }
   // campaign-window headlines per candidate (links only — never paraphrased)
   const seatNews = state.prnNews && state.prnNews[seat.code];
@@ -3507,6 +3507,26 @@ function johorMapTileSVG() {
   return `<svg viewBox="${vb}" preserveAspectRatio="xMidYMid meet" class="bento-map-svg" role="img" aria-label="Johor DUN seats">${paths}</svg>`;
 }
 
+// the seat's CURRENT holder + how they won it (votes, %, majority) — from the most
+// recent completed Johor poll (2022, or a later by-election), baked into prn16-johor.
+function incumbentStatLine(entry) {
+  const bits = [];
+  if (entry.incumbent_votes_2022)
+    bits.push(t("prn_votes_n", { n: entry.incumbent_votes_2022.toLocaleString() }) + (entry.incumbent_pct_2022 ? ` (${entry.incumbent_pct_2022}%)` : ""));
+  if (entry.majority_2022) bits.push(t("prn_majority_n", { n: entry.majority_2022 }));
+  return bits.join(" · ");
+}
+function incumbentBlockHTML(entry) {
+  if (!entry || !entry.incumbent_2022) return "";
+  const party = entry.incumbent_party_2022 ? ` <span class="muted">· ${esc(entry.incumbent_party_2022)}</span>` : "";
+  const stat = incumbentStatLine(entry);
+  return `<div class="prn-inc">
+    <span class="prn-inc-kicker">${esc(t("prn_incumbent"))}</span>
+    <div class="prn-inc-name">${esc(entry.incumbent_2022)}${party}</div>
+    ${stat ? `<div class="prn-inc-stat muted">${esc(stat)}</div>` : ""}
+  </div>`;
+}
+
 function prnSpotlightHTML() {
   const data = state.data.dun;
   const seat = prnBentoSeat && data && data.byCode.get(prnBentoSeat);
@@ -3523,15 +3543,15 @@ function prnSpotlightHTML() {
     return `<div class="prn-cand"><span class="prn-cand-name">${esc(c.name)}${alias}</span>` +
       `<span class="pill" style="background:${col.bg};color:${col.fg}">${party}</span></div>`;
   }).join("");
-  const inc = entry.incumbent_2022
-    ? `<p class="bento-spot-inc muted">${esc(t("prn_incumbent"))}: ${esc(entry.incumbent_2022)}${entry.incumbent_party_2022 ? " · " + esc(entry.incumbent_party_2022) : ""}${entry.majority_2022 ? ` (${esc(entry.majority_2022)})` : ""}</p>`
-    : "";
+  const inc = incumbentBlockHTML(entry);
   const elec = entry.electorate ? `<span class="bento-spot-elec muted">${entry.electorate.toLocaleString()} ${esc(t("prn_electorate"))}</span>` : "";
+  // incumbent right under the seat name (answers "who holds this now?" first),
+  // then the 2026 candidates contesting it
   return `<div class="bento-spot-head">
       <div class="bento-spot-kicker">${esc(entry.ncode)} · ${esc(t("prn_candidates"))} ${entry.candidates.length}</div>
       <h3>${esc(entry.name)}</h3>${elec}
-    </div>
-    <div class="prn-cands bento-spot-cands">${cands}</div>${inc}`;
+    </div>${inc}
+    <div class="prn-cands bento-spot-cands">${cands}</div>`;
 }
 
 function prnStandingsTileHTML() {

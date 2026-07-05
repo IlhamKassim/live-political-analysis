@@ -15,12 +15,77 @@ Output: public/data/prn16-johor.json
 import csv
 import json
 import os
+import re
 from collections import Counter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CSV = os.path.join(ROOT, "pipeline", "prn16_johor_candidates.csv")
 SEATS_DUN = os.path.join(ROOT, "public", "data", "seats-dun.json")
 OUT = os.path.join(ROOT, "public", "data", "prn16-johor.json")
+# Malaysian Election Corpus ballots (cached by 03_results_dun.py) — used to add the
+# CURRENT seat-holder's actual vote count, i.e. the winner of the most recent COMPLETED
+# Johor election (the 2022 SE-15 poll, or a later by-election that superseded it).
+MECO_BALLOTS = os.path.join(ROOT, "pipeline", "raw", "meco_consol_ballots.csv")
+
+_TITLES = {"datuk", "dato", "datin", "dr", "haji", "hj", "tuan", "puan", "ir",
+           "ts", "tan", "sri", "seri", "yb", "prof", "hajah", "ustaz"}
+
+
+def _namekey(s):
+    """Person-name key: drop titles / bin / binti / a-l / a-p / anak and punctuation."""
+    toks = [t for t in re.split(r"[^a-z]+", (s or "").lower()) if t]
+    return "".join(t for t in toks if t not in _TITLES and t not in ("bin", "binti", "al", "ap", "anak"))
+
+
+def enrich_incumbent_votes(seats):
+    """Add incumbent_votes_2022 + incumbent_pct_2022 = the CURRENT holder's votes,
+    from the most recent completed Johor election (SE-15 2022 or a later by-election).
+    Excludes SE-16 (the 2026 poll being held now — no results yet)."""
+    if not os.path.exists(MECO_BALLOTS):
+        print("  (skip incumbent votes: MECO ballots not cached — run 03_results_dun.py first)")
+        return
+    by_seat = {}
+    with open(MECO_BALLOTS) as f:
+        for r in csv.DictReader(f):
+            if r["state"] != "Johor":
+                continue
+            nc = r["seat"].split(" ", 1)[0]
+            if not nc.startswith("N."):
+                continue
+            # only COMPLETED contests: the 2022 general poll + post-2022 by-elections
+            if r["election"] == "SE-15" or (r["election"] == "BY-ELECTION" and "2022-03-12" < r["date"] < "2026-01-01"):
+                by_seat.setdefault(nc, []).append(r)
+    added, warn = 0, []
+    for code, s in seats.items():
+        rows = by_seat.get(s["ncode"], [])
+        if not rows:
+            continue
+        latest = max(r["date"] for r in rows)
+        contest = sorted((r for r in rows if r["date"] == latest),
+                         key=lambda r: int(float(r["votes"] or 0)), reverse=True)
+        win = next((r for r in contest if r["result"].strip().lower() in ("won", "won_uncontested")), contest[0])
+        try:
+            v = int(float(win["votes"] or 0))
+        except ValueError:
+            v = 0
+        if v <= 0:
+            continue
+        s["incumbent_votes_2022"] = v
+        try:
+            pct = round(float(win["votes_perc"] or 0), 1)
+            if pct:
+                s["incumbent_pct_2022"] = pct
+        except ValueError:
+            pass
+        added += 1
+        # cross-check the MECO winner against the curated incumbent name (same person expected)
+        if s.get("incumbent_2022") and _namekey(win["name"]) != _namekey(s["incumbent_2022"]):
+            nk_w, nk_i = _namekey(win["name"]), _namekey(s["incumbent_2022"])
+            if not (nk_w in nk_i or nk_i in nk_w):
+                warn.append(f"{code} {s['ncode']}: curated '{s['incumbent_2022']}' vs MECO winner '{win['name']}' ({latest})")
+    print(f"  incumbent votes enriched: {added}/{len(seats)}")
+    for w in warn:
+        print(f"    ⚠ name check: {w}")
 
 ELECTION = {
     "id": "prn16-johor",
@@ -85,6 +150,8 @@ def main():
     for s in seats.values():
         for c in s["candidates"]:
             contested[c["coalition"]] += 1
+
+    enrich_incumbent_votes(seats)
 
     out = {"election": ELECTION, "contested": dict(contested), "seats": seats}
     with open(OUT, "w") as f:

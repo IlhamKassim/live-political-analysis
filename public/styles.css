@@ -2220,8 +2220,8 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
   body.prn-bento-on #prn-bento {
     display: flex; flex-direction: column; gap: 12px;
     grid-column: 1 / -1; grid-row: 1 / -1;   /* span under the fixed topbar; padding clears it */
-    min-height: 0; overflow: auto;
-    padding: 66px 18px 18px;
+    height: 100%; min-height: 0; overflow: auto;   /* min-height:0 so the 1fr map row can shrink to fit */
+    padding: 62px 18px 16px;
   }
 }
 .bento-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -2229,16 +2229,19 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 .bento-title .live-dot { width: 9px; height: 9px; }
 .bento-close { margin: 0; width: auto; }
 
+/* three rows, filling the height: meta strip · map+spotlight · pledges */
 .bento-grid {
   display: grid; gap: 12px; flex: 1; min-height: 0;
-  grid-template-columns: 1fr 1.5fr 1.5fr 1fr;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* middle row (map + spotlight) gets priority height so the spotlight shows every
+     candidate + the incumbent without scrolling; pledges take the natural remainder */
+  grid-template-rows: auto minmax(340px, 1fr) auto;
   grid-template-areas:
-    "count  map  map  stand"
-    "dates  map  map  stand"
-    "reg    spot spot spot"
+    "count  dates reg   stand"
+    "map    map   spot  spot"
     "pledge pledge pledge pledge";
-  align-content: start;
 }
+.bento-map, .bento-spot, .bento-stand { min-height: 0; }
 .bento-count { grid-area: count; } .bento-map { grid-area: map; } .bento-stand { grid-area: stand; }
 .bento-dates { grid-area: dates; } .bento-reg { grid-area: reg; } .bento-spot { grid-area: spot; } .bento-pledge { grid-area: pledge; }
 
@@ -2257,9 +2260,9 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 .bento-count.is-live { background: linear-gradient(158deg, #10262a, var(--panel)); }
 .bento-count.is-live .bento-count-big { color: var(--accent); }
 
-/* Johor map tile */
-.bento-map-wrap { flex: 1; min-height: 240px; display: grid; place-items: center; }
-.bento-map-svg { width: 100%; height: 100%; max-height: 46vh; }
+/* Johor map tile — fills its grid cell, keeps aspect via preserveAspectRatio */
+.bento-map-wrap { flex: 1; min-height: 0; }
+.bento-map-svg { display: block; width: 100%; height: 100%; }
 .bento-seat { stroke: var(--stroke); stroke-width: .3; cursor: pointer; transition: filter .15s; }
 .bento-seat:hover { filter: brightness(1.3); }
 .bento-seat.sel { stroke: var(--select); stroke-width: 1.2; paint-order: stroke; }
@@ -2301,3 +2304,9 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 .prn-pledge-note { font-size: 11.5px; line-height: 1.45; margin: 4px 0 7px; color: var(--ink-dim); }
 .prn-pledge-pending { font-size: 12.5px; line-height: 1.45; margin: 7px 0 2px; font-style: italic; }
 .prn-pledge-coal.is-pending { opacity: .82; }
+
+/* current-holder block in the seat spotlight (who holds the seat now + their votes) */
+.prn-inc { margin: 2px 0 6px; padding: 9px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.prn-inc-kicker { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-dim); font-weight: 600; }
+.prn-inc-name { font-size: 14px; margin-top: 3px; }
+.prn-inc-stat { font-size: 12px; margin-top: 2px; }
