@@ -845,10 +845,17 @@ function ownDunResult(seat) {
   const own = state.resultsDun && state.resultsDun[seat.code];
   return own || johorDunResult(seat);
 }
-// The result to DISPLAY for a seat: a DUN seat shows its own PRN result where it
-// exists, otherwise falls back to the parent Parliament GE15 result.
+// The result to DISPLAY for a seat. Parliament: the seat's own GE15 winner. DUN: the
+// seat's OWN state-election result only — a covered PRN state (results-dun.json) or
+// Johor's 2022 incumbent (johorDunResult) — and NEVER the parent-Parliament MP.
+// Falling back to the parent MP mislabels a federal MP as the state assemblyman, and
+// since 2-4 DUN seats share one Parliament seat it shows the SAME person on every
+// sibling seat (the "sama YB" bug). The states with no DUN results of their own
+// (Melaka, Pahang, Perak, Perlis, Sabah, Sarawak) therefore degrade to an honest
+// "PRN results not in our dataset yet" empty state instead of a wrong, repeated name.
 function resultFor(seat) {
-  return ownDunResult(seat) || (state.results && state.results[resultKey(seat, state.tier)]);
+  if (state.tier !== "parlimen") return ownDunResult(seat);
+  return state.results && state.results[resultKey(seat, state.tier)];
 }
 
 // State-level rollups must not multiply parent-Parliament fallback rows across DUN
@@ -1284,7 +1291,9 @@ function seatCardHTML(seat, options = {}) {
     `;
   } else {
     repRows += `<dt>${t("rep")}</dt><dd class="placeholder">${t("rep_ph")}</dd>`;
-    overviewHTML = moduleEmptyHTML("overview");
+    // DUN seat in a state with no PRN result of its own → explain the gap rather than
+    // leaving a bare empty state (and never borrow the parent-Parliament MP as the YB).
+    overviewHTML = `${moduleEmptyHTML("overview")}${dunNote}`;
   }
 
   if (sc) {
@@ -1298,7 +1307,7 @@ function seatCardHTML(seat, options = {}) {
   } else if (active === "results") {
     panelHTML = r
       ? `<dl class="rows">${repRows}${resultRows}</dl>${resultSource}${dunNote}`
-      : `${moduleEmptyHTML("results")}${!r && isP ? `<div class="note">${t("score_building")}</div>` : ""}`;
+      : `${moduleEmptyHTML("results")}${isP ? `<div class="note">${t("score_building")}</div>` : dunNote}`;
   } else if (active === "candidates") {
     panelHTML = candidatesHTML(seat);
   } else if (active === "voting") {
