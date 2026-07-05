@@ -183,6 +183,11 @@ async function loadOptional() {
     if (pj.ok) state.prn16 = await pj.json();
   } catch (_) {}
   try {
+    // coalition manifesto pledges for PRN Johor (pipeline/10_johor_pledges.py)
+    const jp = await fetch("data/johor-pledges.json");
+    if (jp.ok) state.johorPledges = await jp.json();
+  } catch (_) {}
+  try {
     // per-state context: MB/KM/Premier + election clock (pipeline/07_state_context.py)
     const sc = await fetch("data/state-context.json");
     if (sc.ok) state.stateCtx = await sc.json();
@@ -3314,9 +3319,31 @@ function prnSeatCardHTML(seat, entry) {
     <div class="state-info-h muted">${esc(t("prn_candidates"))} · ${entry.candidates.length}</div>
     <div class="prn-cands">${cands}</div>
     ${newsHTML}
+    ${prnPledgesHTML(entry)}
     ${meta.length ? `<dl class="rows prn-dates">${meta.join("")}</dl>` : ""}
     <p class="callout prn-note">${esc(t("prn_results_note"))}</p>
     <p class="src-line muted">${esc(t("prn_source"))}</p>`;
+}
+
+// coalition manifesto pledges for the coalitions contesting THIS seat — attributed
+// to the coalition (not the individual candidate), each with a link to the manifesto.
+function prnPledgesHTML(entry) {
+  const p = state.johorPledges;
+  if (!p || !p.coalitions || !entry) return "";
+  const coals = [...new Set(entry.candidates.map((c) => c.coalition))];
+  const blocks = coals.map((coal) => {
+    const m = p.coalitions[coal];
+    if (!m || !m.pledges || !m.pledges.length) return "";
+    const col = prnCoalColor(coal);
+    return `<div class="prn-pledge-coal">
+      <div class="prn-pledge-h"><span class="pill" style="background:${col.bg};color:${col.fg}">${esc(coal)}</span>${m.title ? ` <span class="muted">${esc(m.title)}</span>` : ""}</div>
+      <ul class="prn-pledge-list">${m.pledges.map((pl) => `<li>${esc(pl)}</li>`).join("")}</ul>
+      ${m.source ? `<a class="src-line muted prn-pledge-src" href="${esc(m.source)}" target="_blank" rel="noopener">${esc(t("prn_pledge_src"))}</a>` : ""}
+    </div>`;
+  }).filter(Boolean).join("");
+  if (!blocks) return "";
+  return `<div class="state-info-h muted" style="margin-top:14px">${esc(t("prn_pledges"))}</div>
+    <div class="prn-pledges">${blocks}</div>`;
 }
 async function openPrnMode() {
   const e = liveElection();

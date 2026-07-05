@@ -1,0 +1,34 @@
+{
+ "election": "prn16-johor",
+ "note": "Coalition manifesto pledges for PRN Johor 2026, faithfully summarised from the published manifestos / credible reporting. Attributed to the coalition, not individual candidates.",
+ "coalitions": {
+  "PH": {
+   "title": "Johor Untuk Semua — 10-point manifesto",
+   "source": "https://www.thestar.com.my/news/nation/2026/07/03/johor-polls-pakatan-unveils-10-point-manifesto",
+   "pledges": [
+    "250,000 new high-paying jobs; raise median wage 30%",
+    "80,000 affordable homes in five years",
+    "First-home deposit aid up to RM8,000; rent-to-own scheme",
+    "Johor Health Scheme covering up to RM100,000 yearly",
+    "RM1 billion SME fund; RM500 million Johor Youth Fund",
+    "RM50 monthly transport pass; RM1,000 per newborn",
+    "Gigabit internet and AI labs in all schools by 2030",
+    "Halve Johor–Singapore checkpoint waits via RTS Link"
+   ]
+  },
+  "BN": {
+   "title": "TEKAD BN Johor — 63 pledges, 6 pillars",
+   "source": "https://prnjohor.com/manifesto/",
+   "pledges": [
+    "200,000 jobs, incl. 100,000 premium-income for Johoreans",
+    "RM100 million fund for subsidised home ownership",
+    "RM100 million Johor Youth Education Fund",
+    "Strengthen Bantuan Kasih Johor cash aid, better targeted",
+    "Housing rental deposit scheme for young people",
+    "Continue first-home and housing rental assistance",
+    "Semarak Isya' programme in every state constituency",
+    "Boost SME participation in strategic supply chains"
+   ]
+  }
+ }
+}

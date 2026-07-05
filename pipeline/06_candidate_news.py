@@ -27,7 +27,7 @@ OUT = os.path.join(ROOT, "public", "data", "candidate-news-johor.json")
 API = "https://api.gdeltproject.org/api/v2/doc/doc"
 TIMESPAN = "6weeks"   # campaign window (dissolution was 1 June)
 MAX_PER_CANDIDATE = 3
-THROTTLE = 5.5   # GDELT free tier rate-limits hard (~1 req/5s); 429s otherwise
+THROTTLE = 3.0   # GDELT free tier rate-limits hard (~1 req/5s); 429s otherwise
 
 
 def fetch_news(name):
@@ -38,18 +38,22 @@ def fetch_news(name):
     })
     req = urllib.request.Request(url, headers={"User-Agent": "MyPolitikNews/1.0"})
     body = None
-    for attempt in range(3):
+    for attempt in range(2):
         try:
             with urllib.request.urlopen(req, timeout=20) as r:
                 body = r.read().decode("utf-8", "replace")
             break
         except urllib.error.HTTPError as e:
             if e.code == 429:
-                time.sleep(25 * (attempt + 1))   # back off and retry
-                continue
+                if attempt == 0:
+                    time.sleep(3)   # one quick retry, then leave for a later pass
+                    continue
+                return None         # still 429 → signal skip-without-recording
             raise
+        except Exception:
+            return None
     if body is None:
-        return []
+        return None
     if not body.strip().startswith("{"):
         return []
     arts = json.loads(body).get("articles", [])
@@ -102,13 +106,17 @@ def main():
                 items = fetch_news(c["name"])
             except Exception as e:
                 print(f"  ! {c['name']}: {e}", file=sys.stderr)
-                items = []
+                items = None
+            if items is None:
+                # rate-limited (429) — leave unrecorded so a later pass retries it
+                time.sleep(1.5)
+                continue
             if items:
                 news.setdefault(code, {})[c["name"]] = items
                 hits += 1
-            fetched.add((code, c["name"]))
-            if done % 10 == 0:
-                print(f"  {done}/{total_c} candidates, {hits} with news")
+            fetched.add((code, c["name"]))   # got a real 200 → done (even if 0 news)
+            if len(fetched) % 10 == 0:
+                print(f"  processed {len(fetched)} ok, {hits} with news")
                 news["_done"] = sorted("|".join(x) for x in fetched)
                 with open(OUT, "w") as f:
                     json.dump(news, f, ensure_ascii=False, separators=(",", ":"))

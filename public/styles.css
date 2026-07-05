@@ -2201,3 +2201,11 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 
 /* community-sourced (web-searched) socials — visibly distinct from Wikidata-verified */
 .pol-socials-note { font-size: 10.5px; margin: 4px 0 0; }
+
+/* PRN coalition manifesto pledges on the candidate card */
+.prn-pledges { display: grid; gap: 12px; }
+.prn-pledge-coal { border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px; background: rgba(255,255,255,.02); }
+.prn-pledge-h { display: flex; align-items: center; gap: 8px; font-size: 12.5px; margin-bottom: 8px; }
+.prn-pledge-list { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.prn-pledge-list li { font-size: 12.5px; line-height: 1.45; color: var(--ink-dim); }
+.prn-pledge-src { display: inline-block; margin-top: 8px; }
