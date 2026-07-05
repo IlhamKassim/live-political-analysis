@@ -249,24 +249,39 @@ function personPhotoHTML(name, photo, cls = "") {
   }
   return `<span class="pol-photo pol-monogram ${cls}" style="background:${monogramColor(name || "")}" aria-hidden="true">${esc(personInitials(name))}</span>`;
 }
-// social links — Wikidata's non-deprecated (best-rank) claims by default; when
-// source === "community" the links were web-searched (not Wikidata-verified) and
-// get a visible "not yet verified" note so they're never passed off as verified.
-function socialLinksHTML(socials, source) {
+// brand glyphs (inline SVG, currentColor — theme-safe, no external requests)
+const SOCIAL_ICONS = {
+  fb: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13.4 21v-8h2.7l.4-3.1h-3.1V7.9c0-.9.25-1.5 1.55-1.5h1.65V3.63c-.3-.04-1.3-.13-2.47-.13-2.45 0-4.13 1.5-4.13 4.24V9.9H7.5V13h2.5v8z"/></svg>',
+  ig: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="3.8"/><circle cx="17.1" cy="6.9" r="1" fill="currentColor" stroke="none"/></svg>',
+  tw: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.5 3h3.1l-6.77 7.73L21.75 21H15.5l-4.9-6.4L5 21H1.9l7.24-8.27L2 3h6.4l4.43 5.86zm-1.1 16.14h1.72L7.7 4.77H5.86z"/></svg>',
+  tiktok: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.6 3c.32 2.05 1.46 3.4 3.4 3.55v2.72c-1.13.11-2.2-.26-3.4-.98v5.9c0 3.5-2.5 5.86-5.68 5.86-2.9 0-5.22-2.24-5.22-5.2 0-3.2 2.66-5.55 6.03-4.98v2.94c-.4-.13-.9-.2-1.34-.2-1.28 0-2.2.9-2.2 2.2 0 1.4 1.05 2.3 2.35 2.3 1.4 0 2.4-1 2.4-2.83V3z"/></svg>',
+  youtube: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22 8.2a2.6 2.6 0 0 0-1.82-1.84C18.57 6 12 6 12 6s-6.57 0-8.18.36A2.6 2.6 0 0 0 2 8.2 27 27 0 0 0 1.7 12 27 27 0 0 0 2 15.8a2.6 2.6 0 0 0 1.82 1.84C5.43 18 12 18 12 18s6.57 0 8.18-.36A2.6 2.6 0 0 0 22 15.8 27 27 0 0 0 22.3 12 27 27 0 0 0 22 8.2M10 15V9l5.2 3z"/></svg>',
+  telegram: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21.9 4.35 18.7 19.5c-.24 1.05-.87 1.3-1.76.8l-4.86-3.58-2.34 2.26c-.26.26-.48.48-.98.48l.35-4.94 9-8.13c.4-.35-.08-.54-.6-.2L6.7 13.06l-4.79-1.5c-1.04-.32-1.06-1.04.22-1.54l18.72-7.22c.87-.32 1.63.2 1.35 1.55z"/></svg>',
+  web: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.6 2.6 15.4 0 18M12 3c-2.6 2.6-2.6 15.4 0 18"/></svg>',
+};
+const SOCIAL_META = {
+  fb: ["Facebook", (v) => `https://facebook.com/${v}`],
+  ig: ["Instagram", (v) => `https://instagram.com/${v}`],
+  tw: ["X", (v) => `https://x.com/${v}`],
+  tiktok: ["TikTok", (v) => `https://tiktok.com/@${v}`],
+  youtube: ["YouTube", (v) => `https://youtube.com/channel/${v}`],
+  telegram: ["Telegram", (v) => `https://t.me/${v}`],
+  web: ["Website", (v) => (/^https?:\/\//.test(v) ? v : `https://${v}`)],
+};
+const SOCIAL_ORDER = ["fb", "ig", "tw", "tiktok", "youtube", "telegram", "web"];
+// icon-only social links. opts.compact = tighter (mini cards); opts.source ===
+// "community" → dashed styling (+ a note when not compact) so web-searched
+// accounts are never passed off as Wikidata-verified.
+function socialLinksHTML(socials, source, opts = {}) {
   if (!socials) return "";
-  const s = socials;
-  const links = [];
-  const add = (label, url) => links.push(`<a href="${esc(url)}" target="_blank" rel="noopener" aria-label="${esc(label)}">${esc(label)}</a>`);
-  if (s.fb) add("Facebook", `https://facebook.com/${s.fb}`);
-  if (s.ig) add("Instagram", `https://instagram.com/${s.ig}`);
-  if (s.tw) add("X", `https://x.com/${s.tw}`);
-  if (s.tiktok) add("TikTok", `https://tiktok.com/@${s.tiktok}`);
-  if (s.youtube) add("YouTube", `https://youtube.com/channel/${s.youtube}`);
-  if (s.telegram) add("Telegram", `https://t.me/${s.telegram}`);
-  if (s.web) add(t("pol_website"), /^https?:\/\//.test(s.web) ? s.web : `https://${s.web}`);
-  if (!links.length) return "";
-  const note = source === "community" ? `<p class="pol-socials-note muted">${esc(t("pol_socials_community"))}</p>` : "";
-  return `<div class="pol-socials${source === "community" ? " pol-socials-unverified" : ""}">${links.join("")}</div>${note}`;
+  const items = SOCIAL_ORDER.filter((k) => socials[k]).map((k) => {
+    const [label, toUrl] = SOCIAL_META[k];
+    return `<a class="pol-soc-icon" href="${esc(toUrl(socials[k]))}" target="_blank" rel="noopener" aria-label="${esc(label)}" title="${esc(label)}">${SOCIAL_ICONS[k]}</a>`;
+  });
+  if (!items.length) return "";
+  const cls = "pol-socials" + (opts.compact ? " pol-socials-compact" : "") + (source === "community" ? " pol-socials-unverified" : "");
+  const note = (!opts.compact && source === "community") ? `<p class="pol-socials-note muted">${esc(t("pol_socials_community"))}</p>` : "";
+  return `<div class="${cls}">${items.join("")}</div>${note}`;
 }
 
 // ---- Politicians directory (browsable roster of all MPs) ----
@@ -277,6 +292,7 @@ function politicianList() {
   return Object.entries(mps).map(([code, m]) => {
     const seat = pd && pd.byCode.get(code);
     return { code, name: m.name, party: m.party, coalition: m.coalition, photo: m.photo,
+             socials: m.socials, socials_source: m.socials_source,
              seatName: (seat && seat.name) || code, state: (seat && seat.state) || "" };
   }).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
 }
@@ -294,14 +310,15 @@ function renderPoliticianGrid() {
   if (countEl) countEl.textContent = t("pol_count", { n: items.length });
   grid.innerHTML = items.length
     ? items.map((p) => `
-        <button class="pol-card" type="button" data-pol-code="${esc(p.code)}">
+        <div class="pol-card" tabindex="0" role="button" data-pol-code="${esc(p.code)}" aria-label="${esc(p.name)}, ${esc(p.seatName)}">
           ${personPhotoHTML(p.name, p.photo)}
           <div class="pol-card-name">${esc(p.name)}</div>
           <div class="pol-card-seat">${esc(p.code)} · ${esc(p.seatName)}</div>
           <div class="pol-card-foot">
             <span class="pill" style="background:${partyColor(p.coalition || p.party)};color:#fff">${esc(p.party || p.coalition || "")}</span>
           </div>
-        </button>`).join("")
+          ${socialLinksHTML(p.socials, p.socials_source, { compact: true })}
+        </div>`).join("")
     : `<p class="pol-dir-empty">${esc(t("pol_no_match"))}</p>`;
 }
 function norm(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9]/g, ""); }
@@ -2494,8 +2511,14 @@ document.getElementById("top-info")?.addEventListener("click", showInfo);
 document.getElementById("top-share")?.addEventListener("click", shareApp);
 document.getElementById("top-politicians")?.addEventListener("click", () => openPoliticians());
 POL_VIEW?.addEventListener("click", (e) => {
+  if (e.target.closest("a")) return;   // a social-icon link — let it open, don't pop the profile
   const card = e.target.closest("[data-pol-code]");
   if (card) openPoliticianModal(card.dataset.polCode);   // full-profile pop-up, not the map
+});
+POL_VIEW?.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const card = e.target.closest(".pol-card");
+  if (card && e.target === card) { e.preventDefault(); openPoliticianModal(card.dataset.polCode); }
 });
 // browser back closes the directory (it pushed a #politicians history entry)
 window.addEventListener("popstate", () => {

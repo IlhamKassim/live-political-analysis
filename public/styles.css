@@ -2087,7 +2087,19 @@ body.searching .results {
   display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
 }
 .yb-bio-more { font-size: 12px; white-space: nowrap; }
-.pol-socials { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; }
+.pol-socials { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pol-soc-icon {
+  display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 9px;
+  border: 1px solid var(--line); background: var(--bg-2); color: var(--ink-dim);
+  transition: color .12s, border-color .12s;
+}
+.pol-soc-icon:hover { color: var(--ink); border-color: var(--line-2); }
+.pol-soc-icon:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pol-soc-icon svg { width: 17px; height: 17px; display: block; }
+.pol-socials-compact { gap: 5px; margin-top: 8px; }
+.pol-socials-compact .pol-soc-icon { width: 26px; height: 26px; border-radius: 7px; }
+.pol-socials-compact .pol-soc-icon svg { width: 14px; height: 14px; }
+.pol-socials-unverified .pol-soc-icon { border-style: dashed; }
 .yb-credit { font-size: 10.5px; margin: 0; }
 
 /* ===== Politicians directory ===== */
@@ -2156,7 +2168,7 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 .pol-stat small { color: var(--ink-faint); font-size: 11px; }
 .pol-modal-bio { font-size: 13.5px; line-height: 1.6; color: var(--ink-dim); margin: 16px 0 0; }
 .pol-modal-edu { margin-top: 14px; }
-.pol-modal .pol-socials { margin-top: 14px; font-size: 13px; }
+.pol-modal .pol-socials { margin-top: 14px; }
 .pol-modal-links { display: flex; gap: 16px; margin-top: 12px; font-size: 13px; }
 .pol-modal-seatbtn {
   margin-top: 18px; width: 100%; min-height: 46px; border-radius: 12px;
@@ -2166,5 +2178,4 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 .pol-modal-seatbtn:hover { border-color: var(--accent); color: var(--accent); }
 
 /* community-sourced (web-searched) socials — visibly distinct from Wikidata-verified */
-.pol-socials-unverified a { border-bottom: 1px dashed var(--ink-faint); }
 .pol-socials-note { font-size: 10.5px; margin: 4px 0 0; }
