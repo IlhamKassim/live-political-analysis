@@ -820,8 +820,30 @@ async function render(tier) {
 
 // A DUN seat's OWN state-election (PRN) result, when we have one (the states in
 // results-dun.json). Undefined for parlimen tier or an uncovered DUN seat.
+// Johor has no PRN result in results-dun.json (only the 2023 six-state PRN is there),
+// so without this a Johor DUN seat falls back to its PARENT-Parliament MP — making
+// every pair of sibling DUN seats show the same person. Use the per-seat 2022 state
+// assemblyman from the PRN dataset instead. (Assembly dissolved for PRN 11 Jul 2026.)
+function johorDunResult(seat) {
+  if (state.tier !== "dun" || !state.prn16 || !state.prn16.seats) return undefined;
+  const e = state.prn16.seats[seat.code];
+  if (!e || !e.incumbent_2022) return undefined;
+  const parts = String(e.incumbent_party_2022 || "").split("-");
+  const coalition = (parts[0] || "").trim();
+  const party = (parts[1] || parts[0] || "").trim();
+  const maj = e.majority_2022 ? Number(String(e.majority_2022).replace(/[^0-9]/g, "")) : NaN;
+  return {
+    name: e.incumbent_2022,
+    coalition: coalition || party,
+    party: party || coalition,
+    majority: Number.isFinite(maj) && maj > 0 ? maj : undefined,
+    _johor2022: true,
+  };
+}
 function ownDunResult(seat) {
-  return state.tier !== "parlimen" && state.resultsDun ? state.resultsDun[seat.code] : undefined;
+  if (state.tier === "parlimen") return undefined;
+  const own = state.resultsDun && state.resultsDun[seat.code];
+  return own || johorDunResult(seat);
 }
 // The result to DISPLAY for a seat: a DUN seat shows its own PRN result where it
 // exists, otherwise falls back to the parent Parliament GE15 result.
@@ -1170,7 +1192,7 @@ function seatCardHTML(seat, options = {}) {
   const ownDun = !!ownDunResult(seat);          // a real PRN result (not the parent fallback)?
   const sc = state.scores && state.scores[resultKey(seat, state.tier)];
   const card = r ? formatResultCard(r) : null;
-  const resultSource = r ? `<div class="src-line muted">${esc(t(ownDun ? "src_prn15" : "src_ge15"))}</div>` : "";
+  const resultSource = r ? `<div class="src-line muted">${esc(t(r._johor2022 ? "src_johor2022" : ownDun ? "src_prn15" : "src_ge15"))}</div>` : "";
   const dunNote = (!isP && !ownDun)
     ? `<div class="note">${t("dun_note", { p: `<b>${esc(seat.parlimen)}</b>` })}</div>`
     : "";
