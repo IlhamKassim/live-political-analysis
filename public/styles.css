@@ -2142,9 +2142,22 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
   line-height: 1.5; padding: 2px 8px; white-space: nowrap;
   box-shadow: 0 1px 6px rgba(0,0,0,.45);
 }
-.pol-card-name { font-family: var(--font-display); font-weight: 700; font-size: 15px; line-height: 1.15; color: var(--ink); margin-top: 2px; }
-.pol-card-seat { font-size: 11px; color: var(--ink-dim); font-family: var(--mono); }
-.pol-card .pol-socials-compact { margin-top: 2px; }
+/* uniform card height: reserve a fixed 2-line name, 1-line seat, 1-line socials */
+.pol-card-name {
+  font-family: var(--font-display); font-weight: 700; font-size: 15px; line-height: 1.2;
+  color: var(--ink); margin-top: 2px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  min-height: 2.4em;
+}
+.pol-card-seat { font-size: 11px; color: var(--ink-dim); font-family: var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pol-card .pol-socials-compact { margin-top: 2px; min-height: 26px; flex-wrap: nowrap; overflow: hidden; }
+/* the socials row is always present (even for the 3 MPs with none) so heights match */
+.pol-card-socials-spacer { min-height: 26px; margin-top: 2px; }
+.pol-soc-more {
+  display: inline-grid; place-items: center; min-width: 26px; height: 26px; padding: 0 5px;
+  border-radius: 7px; border: 1px dashed var(--line); color: var(--ink-faint);
+  font-family: var(--mono); font-size: 11px; flex: 0 0 auto;
+}
 .pol-dir-src { max-width: 1100px; margin: 20px auto 0; color: var(--ink-faint); font-size: 11px; line-height: 1.5; }
 .pol-dir-empty { max-width: 1100px; margin: 30px auto; color: var(--ink-dim); text-align: center; }
 

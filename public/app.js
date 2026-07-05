@@ -274,14 +274,19 @@ const SOCIAL_ORDER = ["fb", "ig", "tw", "tiktok", "youtube", "telegram", "web"];
 // accounts are never passed off as Wikidata-verified.
 function socialLinksHTML(socials, source, opts = {}) {
   if (!socials) return "";
-  const items = SOCIAL_ORDER.filter((k) => socials[k]).map((k) => {
+  let keys = SOCIAL_ORDER.filter((k) => socials[k]);
+  // mini cards: cap to one line (opts.max) — the rest show in the profile pop-up
+  let extra = 0;
+  if (opts.max && keys.length > opts.max) { extra = keys.length - opts.max; keys = keys.slice(0, opts.max); }
+  const items = keys.map((k) => {
     const [label, toUrl] = SOCIAL_META[k];
     return `<a class="pol-soc-icon" href="${esc(toUrl(socials[k]))}" target="_blank" rel="noopener" aria-label="${esc(label)}" title="${esc(label)}">${SOCIAL_ICONS[k]}</a>`;
   });
   if (!items.length) return "";
+  const more = extra ? `<span class="pol-soc-more" aria-hidden="true">+${extra}</span>` : "";
   const cls = "pol-socials" + (opts.compact ? " pol-socials-compact" : "") + (source === "community" ? " pol-socials-unverified" : "");
   const note = (!opts.compact && source === "community") ? `<p class="pol-socials-note muted">${esc(t("pol_socials_community"))}</p>` : "";
-  return `<div class="${cls}">${items.join("")}</div>${note}`;
+  return `<div class="${cls}">${items.join("")}${more}</div>${note}`;
 }
 
 // ---- Politicians directory (browsable roster of all MPs) ----
@@ -317,7 +322,7 @@ function renderPoliticianGrid() {
           </div>
           <div class="pol-card-name">${esc(p.name)}</div>
           <div class="pol-card-seat">${esc(p.code)} · ${esc(p.seatName)}</div>
-          ${socialLinksHTML(p.socials, p.socials_source, { compact: true })}
+          ${p.socials ? socialLinksHTML(p.socials, p.socials_source, { compact: true, max: 4 }) : '<div class="pol-card-socials-spacer"></div>'}
         </div>`).join("")
     : `<p class="pol-dir-empty">${esc(t("pol_no_match"))}</p>`;
 }
