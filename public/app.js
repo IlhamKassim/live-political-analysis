@@ -3471,7 +3471,7 @@ function renderPrnSummaryIfOpen() {
 // runs untouched. Self-rendered Johor map tile → no reparenting of #map.
 // ============================================================================
 const PRN_BENTO = document.getElementById("prn-bento");
-const PRN_BENTO_MQ = matchMedia("(min-width: 1180px)");
+const PRN_BENTO_MQ = matchMedia("(min-width: 1000px)");   // landscape tablets & up (kept in sync with styles.css)
 let prnBentoSeat = null;   // seat code spotlighted in the bento
 
 function prnDaysToPolling(e) {

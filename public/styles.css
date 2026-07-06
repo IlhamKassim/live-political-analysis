@@ -2211,17 +2211,19 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 .prn-pledge-src { display: inline-block; margin-top: 8px; }
 
 /* ============================================================================
-   Wide-screen PRN "bento" dashboard (Johor election) — additive, min-width 1180
+   PRN "bento" dashboard (Johor election) — additive, landscape tablets & up
+   (min-width 1000px catches iPad landscape 1024/1180/1366; phones & portrait
+   tablets keep the map+panel flow). Kept in sync with PRN_BENTO_MQ in app.js.
    ============================================================================ */
 #prn-bento { display: none; }
-@media (min-width: 1180px) {
+@media (min-width: 1000px) {
   body.prn-bento-on #stage,
   body.prn-bento-on #panel { display: none; }
   body.prn-bento-on #prn-bento {
     display: flex; flex-direction: column; gap: 12px;
     grid-column: 1 / -1; grid-row: 1 / -1;   /* span under the fixed topbar; padding clears it */
     height: 100%; min-height: 0; overflow: auto;   /* min-height:0 so the 1fr map row can shrink to fit */
-    padding: 62px 18px 16px;
+    padding: 62px 16px 14px;
   }
 }
 .bento-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -2229,9 +2231,12 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 .bento-title .live-dot { width: 9px; height: 9px; }
 .bento-close { margin: 0; width: auto; }
 
-/* three rows, filling the height: meta strip · map+spotlight · pledges */
+/* three rows, filling the height: meta strip · map+spotlight · pledges.
+   flex:1 (NOT min-height:0) → grows to fill tall screens but never shrinks below its
+   content, so on short (iPad-landscape) heights the whole #prn-bento scrolls cleanly
+   instead of the grid spilling over the source footer. */
 .bento-grid {
-  display: grid; gap: 12px; flex: 1; min-height: 0;
+  display: grid; gap: 12px; flex: 1;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   /* middle row (map + spotlight) gets priority height so the spotlight shows every
      candidate + the incumbent without scrolling; pledges take the natural remainder */
@@ -2242,6 +2247,12 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
     "pledge pledge pledge pledge";
 }
 .bento-map, .bento-spot, .bento-stand { min-height: 0; }
+/* short landscape (iPad 768/834 tall): tighten so it fits with minimal scroll */
+@media (min-width: 1000px) and (max-height: 840px) {
+  .bento-grid { gap: 10px; grid-template-rows: auto minmax(270px, 1fr) auto; }
+  .bento-tile { padding: 12px 14px; gap: 7px; }
+  .bento-count-big { font-size: clamp(32px, 3.6vw, 48px); }
+}
 .bento-count { grid-area: count; } .bento-map { grid-area: map; } .bento-stand { grid-area: stand; }
 .bento-dates { grid-area: dates; } .bento-reg { grid-area: reg; } .bento-spot { grid-area: spot; } .bento-pledge { grid-area: pledge; }
 
