@@ -3579,18 +3579,30 @@ function prnStandingsTileHTML() {
   return `<div class="sharebar bento-standings-bar">${bar}</div><div class="sharebar-key">${key}</div>`;
 }
 
-function prnPledgesTileHTML() {
+// coalitions with a manifesto OR a pending state, biggest blocs first
+function prnPledgeOrder() {
   const p = state.johorPledges;
-  if (!p || !p.coalitions) return `<p class="muted">—</p>`;
-  // every coalition with a sourced manifesto OR a pending state, biggest blocs first
+  if (!p || !p.coalitions) return [];
   const rank = ["PH", "BN", "PN", "BERSAMA", "MUDA-PSM"];
-  const order = Object.keys(p.coalitions)
+  return Object.keys(p.coalitions)
     .filter((c) => { const m = p.coalitions[c]; return m && ((m.pledges && m.pledges.length) || m.pending); })
-    .sort((a, b) => {
-      const ai = rank.indexOf(a), bi = rank.indexOf(b);
-      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
-    });
-  return order.map((coal) => `<div class="bento-pledge-col">${pledgeBlockHTML(coal, p.coalitions[coal], { max: 5 })}</div>`).join("");
+    .sort((a, b) => { const ai = rank.indexOf(a), bi = rank.indexOf(b); return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi); });
+}
+let prnPledgeTab = null;   // active manifesto tab (coalition code) in the bento pledges tile
+// Tabbed manifestos: one coalition at a time (clearer than 5 uneven columns). A tab
+// per contesting bloc; the panel shows that bloc's pledges (or its pending state).
+function prnPledgeTabsHTML() {
+  const p = state.johorPledges;
+  const order = prnPledgeOrder();
+  if (!order.length) return `<p class="muted">—</p>`;
+  if (!prnPledgeTab || !order.includes(prnPledgeTab)) prnPledgeTab = order[0];
+  const tabs = order.map((coal) => {
+    const col = prnCoalColor(coal);
+    const on = coal === prnPledgeTab;
+    return `<button type="button" role="tab" aria-selected="${on}" class="prn-pl-tab${on ? " on" : ""}" data-pledge-tab="${esc(coal)}" style="--cc:${col.bg}">${esc(coal)}</button>`;
+  }).join("");
+  return `<div class="prn-pl-tabs" role="tablist">${tabs}</div>
+    <div class="prn-pl-panel">${pledgeBlockHTML(prnPledgeTab, p.coalitions[prnPledgeTab])}</div>`;
 }
 
 function renderPrnBento() {
@@ -3640,7 +3652,7 @@ function renderPrnBento() {
       </div>
       <div class="bento-tile bento-pledge">
         <div class="bento-kicker">${esc(t("prn_pledges"))}</div>
-        <div class="bento-pledge-cols">${prnPledgesTileHTML()}</div>
+        <div id="bento-pledge-body">${prnPledgeTabsHTML()}</div>
       </div>
     </div>
     <p class="bento-foot src-line muted">${esc(t("prn_source"))}</p>`;
@@ -3667,6 +3679,13 @@ function updateBentoSpotlight() {
 
 PRN_BENTO.addEventListener("click", (ev) => {
   if (ev.target.closest("#prn-bento-close")) { closePrnMode(); return; }
+  const tab = ev.target.closest(".prn-pl-tab");
+  if (tab) {
+    prnPledgeTab = tab.dataset.pledgeTab;
+    const host = document.getElementById("bento-pledge-body");
+    if (host) host.innerHTML = prnPledgeTabsHTML();
+    return;
+  }
   const path = ev.target.closest(".bento-seat");
   if (path) { prnBentoSeat = path.dataset.code; updateBentoSpotlight(); }
 });

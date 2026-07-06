@@ -2324,3 +2324,13 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 .prn-cc-news { display: flex; flex-direction: column; gap: 4px; }
 .prn-cc-newslink { display: flex; flex-direction: column; font-size: 11px; line-height: 1.3; gap: 1px; }
 .prn-cc-newst { color: var(--ink); }
+
+/* tabbed manifestos in the bento pledges tile (one coalition at a time) */
+.prn-pl-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.prn-pl-tab { font: inherit; font-size: 12px; font-weight: 600; line-height: 1; padding: 8px 13px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg-2); color: var(--ink-dim); cursor: pointer; display: inline-flex; align-items: center; gap: 7px; transition: color .12s, border-color .12s, background .12s; }
+.prn-pl-tab::before { content: ""; width: 8px; height: 8px; border-radius: 999px; background: var(--cc, var(--line-2)); flex: 0 0 auto; }
+.prn-pl-tab:hover { color: var(--ink); border-color: var(--line-2); }
+.prn-pl-tab.on { color: var(--ink); border-color: var(--cc); background: color-mix(in oklab, var(--cc) 22%, var(--bg-2)); }
+.prn-pl-panel .prn-pledge-coal { border: 0; padding: 0; background: none; }
+.prn-pl-panel .prn-pledge-h { font-size: 13px; margin-bottom: 6px; }
+.prn-pl-panel .prn-pledge-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 4px 28px; }
