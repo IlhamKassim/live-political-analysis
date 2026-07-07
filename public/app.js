@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=11";
-import { I18N } from "./i18n.js?v=11";
+  competitivenessFromMajorityPct } from "./lib.js?v=12";
+import { I18N } from "./i18n.js?v=12";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -321,6 +321,47 @@ function politicianList() {
              seatName: (seat && seat.name) || code, state: (seat && seat.state) || "" };
   }).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
 }
+// official results names are ALL CAPS for the PRN-2023 states — title-case them for
+// display, keeping name particles (bin/binti/a/l/a/p) lowercased
+function titleCaseName(s) {
+  if (!s || s !== s.toUpperCase()) return s || "";
+  return s.toLowerCase().replace(/[^\s/]+/g, (w) =>
+    ["bin", "binti", "binte", "bt", "al", "ap", "a/l", "a/p", "anak"].includes(w) ? w : w.charAt(0).toUpperCase() + w.slice(1));
+}
+// the sitting rep of a DUN seat for the directory — tier-independent (the map may
+// be on the parliament layer): the seat's own state-election result, or Johor's
+// 2022 incumbent. Photo + pretty name from aduns.json where we matched one.
+function adunEntryFor(code) {
+  const own = state.resultsDun && state.resultsDun[code];
+  if (own && own.name) return { name: own.name, party: own.party, coalition: own.coalition };
+  const e = state.prn16 && state.prn16.seats && state.prn16.seats[code];
+  if (e && e.incumbent_2022) {
+    const parts = String(e.incumbent_party_2022 || "").split("-");
+    return { name: e.incumbent_2022, coalition: (parts[0] || "").trim(), party: (parts[1] || parts[0] || "").trim() };
+  }
+  return null;
+}
+function adunList() {
+  const dd = state.data.dun;
+  if (!dd) return [];
+  const out = [];
+  for (const seat of dd.seats) {
+    const r = adunEntryFor(seat.code);
+    if (!r) continue;
+    const ad = state.aduns && state.aduns[seat.code];
+    out.push({
+      code: seat.code, dunCode: seat.dun_code,
+      name: (ad && ad.name) || titleCaseName(r.name),
+      party: r.party, coalition: r.coalition,
+      photo: ad && ad.photo,
+      seatName: seat.name, state: seat.state,
+    });
+  }
+  return out.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+}
+// which roster tab the directory is showing (parlimen = MPs, dun = ADUNs)
+let polTier = "parlimen";
+function polList() { return polTier === "dun" ? adunList() : politicianList(); }
 function renderPoliticianGrid() {
   const grid = document.getElementById("pol-grid");
   const countEl = document.getElementById("pol-count");
@@ -328,7 +369,7 @@ function renderPoliticianGrid() {
   const q = norm((document.getElementById("pol-search") || {}).value || "");
   const stateF = (document.getElementById("pol-state") || {}).value || "";
   const coalF = (document.getElementById("pol-coal") || {}).value || "";
-  const items = politicianList().filter((p) =>
+  const items = polList().filter((p) =>
     (!stateF || p.state === stateF) &&
     (!coalF || p.coalition === coalF) &&
     (!q || norm(p.name).includes(q) || norm(p.seatName).includes(q) || norm(p.code).includes(q)));
@@ -341,26 +382,34 @@ function renderPoliticianGrid() {
             <span class="pol-card-badge pill" style="background:${partyColor(p.coalition || p.party)};color:#fff">${esc(p.party || p.coalition || "")}</span>
           </div>
           <div class="pol-card-name">${esc(p.name)}</div>
-          <div class="pol-card-seat">${esc(p.code)} · ${esc(p.seatName)}</div>
+          <div class="pol-card-seat">${esc(p.dunCode || p.code)} · ${esc(p.seatName)}</div>
           ${p.socials ? socialLinksHTML(p.socials, p.socials_source, { compact: true, max: 4 }) : '<div class="pol-card-socials-spacer"></div>'}
         </div>`).join("")
     : `<p class="pol-dir-empty">${esc(t("pol_no_match"))}</p>`;
 }
 function norm(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9]/g, ""); }
-function renderPoliticiansDirectory() {
+function renderPoliticiansDirectory(keepQuery = "") {
   if (!POL_VIEW || !state.politicians) return;
-  const states = [...new Set(politicianList().map((p) => p.state))].filter(Boolean).sort();
-  const coals = [...new Set(politicianList().map((p) => p.coalition).filter(Boolean))]
-    .sort((a, b) => COALITION_ORDER.indexOf(a) - COALITION_ORDER.indexOf(b));
+  const list = polList();
+  const states = [...new Set(list.map((p) => p.state))].filter(Boolean).sort();
+  const coals = [...new Set(list.map((p) => p.coalition).filter(Boolean))]
+    .sort((a, b) => {
+      const ai = COALITION_ORDER.indexOf(a), bi = COALITION_ORDER.indexOf(b);
+      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    });
   POL_VIEW.innerHTML = `
     <div class="pol-dir">
       <div class="pol-dir-head">
         <h1>${esc(t("pol_dir_title"))}</h1>
         <p class="pol-dir-sub">${esc(t("pol_dir_sub"))}</p>
       </div>
+      <div class="seg chip pol-dir-tabs" role="tablist">
+        <button type="button" role="tab" data-pol-tier="parlimen" aria-selected="${polTier === "parlimen"}" class="${polTier === "parlimen" ? "on" : ""}">${esc(t("pol_tab_mp"))}</button>
+        <button type="button" role="tab" data-pol-tier="dun" aria-selected="${polTier === "dun"}" class="${polTier === "dun" ? "on" : ""}">${esc(t("pol_tab_adun"))}</button>
+      </div>
       <div class="pol-dir-controls">
         <input id="pol-search" class="pol-dir-search" type="search" autocomplete="off" spellcheck="false"
-          aria-label="${esc(t("pol_search"))}" placeholder="${esc(t("pol_search"))}">
+          aria-label="${esc(t("pol_search"))}" placeholder="${esc(t("pol_search"))}" value="${esc(keepQuery)}">
         <select id="pol-state" aria-label="${esc(t("pol_all_states"))}">
           <option value="">${esc(t("pol_all_states"))}</option>
           ${states.map((s) => `<option value="${esc(s)}">${esc(s)}</option>`).join("")}
@@ -379,6 +428,13 @@ function renderPoliticiansDirectory() {
   s && s.addEventListener("input", renderPoliticianGrid);
   document.getElementById("pol-state").addEventListener("change", renderPoliticianGrid);
   document.getElementById("pol-coal").addEventListener("change", renderPoliticianGrid);
+  POL_VIEW.querySelectorAll("[data-pol-tier]").forEach((b) => b.addEventListener("click", async () => {
+    if (b.dataset.polTier === polTier) return;
+    polTier = b.dataset.polTier;
+    if (polTier === "dun" && !state.data.dun) { try { await loadTier("dun"); } catch (_) {} }
+    // rebuild the shell (filter options differ per roster) but keep the query
+    renderPoliticiansDirectory((document.getElementById("pol-search") || {}).value || "");
+  }));
 }
 async function openPoliticians() {
   if (!state.politicians) return;
@@ -397,14 +453,63 @@ function closePoliticians(options = {}) {
 }
 function openSeatFromPolitician(code) {
   closePoliticians({ silent: true });
-  const go = () => { const d = state.data.parlimen; if (d && d.byCode.has(code)) select(code); };
-  if (state.tier !== "parlimen") setTier("parlimen").then(go); else go();
+  const tier = code.startsWith("P.") ? "parlimen" : "dun";   // ADUN cards carry DUN codes
+  const go = () => { const d = state.data[tier]; if (d && d.byCode.has(code)) select(code); };
+  if (state.tier !== tier) setTier(tier).then(go); else go();
 }
 
 // full-profile pop-up for one politician (opened from a directory card — does NOT
 // navigate the map; a footer button offers that path explicitly).
 const POL_MODAL = document.getElementById("pol-modal");
+// slimmer profile pop-up for a state assemblyman (directory ADUN tab): photo or
+// monogram, party, seat, last-result numbers + source, wikidata link where matched
+function openAdunModal(code) {
+  const seat = state.data.dun && state.data.dun.byCode.get(code);
+  const r = adunEntryFor(code);
+  if (!seat || !r || !POL_MODAL) return;
+  const ad = state.aduns && state.aduns[code];
+  const display = (ad && ad.name) || titleCaseName(r.name);
+  const official = namekeyLoose(display) !== namekeyLoose(r.name) ? titleCaseName(r.name) : "";
+  const own = state.resultsDun && state.resultsDun[code];
+  const card = formatResultCard(own) || {};
+  const pill = r.coalition || r.party
+    ? `<span class="pill" style="background:${partyColor(r.coalition || r.party)};color:#fff">${esc(r.coalition || r.party)}</span>`
+    : "";
+  const partyLabel = r.party && r.party !== r.coalition ? `${esc(r.party)} · ` : "";
+  const stat = (label, value, note) => value != null && value !== ""
+    ? `<div class="pol-stat"><span>${esc(label)}</span><b>${value}</b>${note ? `<small>${esc(note)}</small>` : ""}</div>` : "";
+  const stats = [
+    card.majority != null ? stat(t("majority_prn"), card.majority.toLocaleString(), card.majorityPct != null ? `${card.majorityPct}%` : "") : "",
+    card.votes != null ? stat(t("win_votes"), card.votes.toLocaleString(), card.votePct != null ? `${card.votePct}%` : "") : "",
+  ].filter(Boolean).join("");
+  const src = own ? resultSourceLine(own, true) : `<div class="src-line muted">${esc(t("src_johor2022"))}</div>`;
+  POL_MODAL.innerHTML = `
+    <div class="pol-modal-shell">
+      <button class="pol-modal-close" type="button" aria-label="${esc(t("card_preview_close"))}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><line x1="6" x2="18" y1="6" y2="18"/><line x1="6" x2="18" y1="18" y2="6"/></svg>
+      </button>
+      <div class="pol-modal-head">
+        ${personPhotoHTML(display, ad && ad.photo, "pol-modal-photo")}
+        <div class="pol-modal-id">
+          <span class="yb-kicker">${esc(t("kicker_dun"))} · ${esc(seat.dun_code)}</span>
+          <h2>${esc(display)}</h2>
+          ${official ? `<span class="yb-ballot muted">${esc(official)}</span>` : ""}
+          <p class="pol-modal-party">${partyLabel}${pill}</p>
+          <p class="pol-modal-seat muted">${esc(seat.name)} · ${esc(seat.state)}</p>
+        </div>
+      </div>
+      ${stats ? `<div class="pol-modal-stats">${stats}</div>` : ""}
+      ${src}
+      ${ad && ad.wikidata ? `<div class="pol-modal-links"><a href="https://www.wikidata.org/wiki/${esc(ad.wikidata)}" target="_blank" rel="noopener">Wikidata</a></div>` : ""}
+      ${ad && ad.photo_credit ? `<p class="yb-credit muted">${esc(t("pol_photo_by", { credit: ad.photo_credit }))}</p>` : ""}
+      <button class="pol-modal-seatbtn" type="button" data-pol-seat="${esc(code)}">${esc(t("pol_view_seat"))}</button>
+    </div>`;
+  if (typeof POL_MODAL.showModal === "function") POL_MODAL.showModal();
+  else POL_MODAL.setAttribute("open", "");
+  POL_MODAL.querySelector(".pol-modal-close").focus();
+}
 function openPoliticianModal(code) {
+  if (code.includes("_N.")) return openAdunModal(code);   // ADUN cards carry DUN seat codes
   const mps = state.politicians && state.politicians.mps;
   const m = mps && mps[code];
   if (!m || !POL_MODAL) return;
