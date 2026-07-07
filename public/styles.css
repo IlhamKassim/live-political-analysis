@@ -2501,3 +2501,12 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 }
 body.bento-on #topbar { justify-content: flex-start; }
 body.bento-on #topbar .top-controls { margin-inline: auto; }
+
+/* wide screens: the nav is a solid black strip (pills sit ON it), content passes under */
+@media (min-width: 1000px) {
+  #topbar {
+    background: rgba(9, 11, 15, .94);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+}
