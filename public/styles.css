@@ -2341,6 +2341,83 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
   font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer;
 }
 .pol-modal-seatbtn:hover { border-color: var(--accent); color: var(--accent); }
+.pol-modal-close:focus-visible, .pol-modal-seatbtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* ===== PRN candidate full bento pop-up ===== */
+.candidate-modal {
+  width: min(1080px, calc(100vw - 28px));
+  max-height: min(92dvh, 900px);
+  border-radius: 22px;
+}
+.cand-modal-shell {
+  position: relative;
+  max-height: inherit;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px;
+}
+.cand-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(280px, .85fr);
+  gap: 12px;
+}
+.cand-tile {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--bg-2);
+  padding: 14px;
+}
+.cand-hero {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  padding-right: 58px;
+  background: linear-gradient(135deg, color-mix(in oklab, var(--cc) 22%, var(--bg-2)), var(--bg-2) 58%);
+}
+.cand-modal-photo { width: 92px; height: 92px; border-radius: 18px; object-fit: cover; border: 1px solid rgba(255,255,255,.12); }
+.cand-modal-photo.pol-monogram { font-size: 30px; }
+.cand-hero-id { min-width: 0; display: grid; gap: 7px; }
+.cand-hero h2 { margin: 0; font-family: var(--font-display); font-size: clamp(24px, 3.4vw, 40px); line-height: 1; letter-spacing: 0; }
+.cand-seat { margin: 0; font-size: 13px; line-height: 1.35; }
+.cand-pill-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cand-kicker {
+  color: var(--ink-faint);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+.cand-role-text, .cand-summary p, .cand-tile > p { margin: 8px 0 0; color: var(--ink-dim); font-size: 13px; line-height: 1.55; }
+.cand-role-text { color: var(--ink); font-weight: 650; }
+.cand-facts-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 9px; }
+.cand-fact { display: grid; gap: 4px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.025); }
+.cand-fact span { color: var(--ink-faint); font-family: var(--mono); font-size: 9.5px; letter-spacing: .05em; text-transform: uppercase; }
+.cand-fact b { min-width: 0; color: var(--ink); font-size: 14px; line-height: 1.2; overflow-wrap: anywhere; }
+.cand-fact small { color: var(--ink-faint); font-size: 11px; }
+.cand-list { margin: 10px 0 0; padding-left: 18px; color: var(--ink-dim); display: grid; gap: 6px; font-size: 13px; line-height: 1.45; }
+.cand-party .cand-list { list-style: none; padding-left: 0; display: flex; flex-wrap: wrap; gap: 7px; }
+.cand-party .cand-list li { border: 1px solid var(--line); background: rgba(255,255,255,.045); color: var(--ink); border-radius: 999px; padding: 6px 9px; font-weight: 650; line-height: 1.2; }
+.cand-source-links, .cand-news-list { display: grid; gap: 8px; margin-top: 10px; }
+.cand-source-links a, .cand-news-list a { color: var(--ink); text-decoration: none; border: 1px solid var(--line); border-radius: 12px; padding: 9px 10px; background: rgba(255,255,255,.025); }
+.cand-source-links a:hover, .cand-news-list a:hover { border-color: var(--line-2); }
+.cand-news-list a { display: grid; gap: 3px; }
+.cand-news-list small, .cand-source-note { color: var(--ink-faint); font-size: 11.5px; line-height: 1.4; }
+.cand-seatbtn { margin-top: 12px; }
+@media (max-width: 760px) {
+  .candidate-modal { width: min(100vw - 16px, 620px); max-height: 94dvh; border-radius: 18px; }
+  .cand-modal-shell { padding: 12px; }
+  .cand-grid { grid-template-columns: 1fr; }
+  .cand-hero { padding-right: 48px; grid-template-columns: 72px minmax(0, 1fr); }
+  .cand-modal-photo { width: 72px; height: 72px; border-radius: 14px; }
+  .cand-facts-grid { grid-template-columns: 1fr; }
+}
 
 /* community-sourced (web-searched) socials — visibly distinct from Wikidata-verified */
 .pol-socials-note { font-size: 10.5px; margin: 4px 0 0; }
@@ -2483,6 +2560,10 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 .bento-cand-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; align-content: start; }
 .bento-cand-grid:has(.prn-cc.has-profile) { grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); }
 .prn-cc { background: var(--bg-2); border: 1px solid var(--line); border-radius: 11px; padding: 11px 13px; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.prn-cc[role="button"] { cursor: pointer; transition: border-color .12s ease, background .12s ease, transform .08s ease; }
+.prn-cc[role="button"]:hover { border-color: var(--line-2); background: color-mix(in oklab, var(--bg-2) 88%, var(--ink) 12%); }
+.prn-cc[role="button"]:active { transform: translateY(1px); }
+.prn-cc[role="button"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .prn-cc.is-inc { border-color: var(--line-2); }   /* the INCUMBENT chip carries the emphasis — no accent edging */
 .prn-cc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .prn-cc-id { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -2512,6 +2593,7 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 .prn-profile-partyhist b { font-size: 11px; line-height: 1.2; font-weight: 650; color: var(--ink); background: rgba(255,255,255,.06); border: 1px solid var(--line); border-radius: 999px; padding: 4px 8px; }
 .prn-profile-sources a { color: var(--ink-dim); text-transform: none; letter-spacing: 0; font-weight: 650; text-decoration: none; border-bottom: 1px solid var(--line-2); }
 .prn-profile-sources a:hover { color: var(--ink); border-bottom-color: var(--ink); }
+.prn-cc-open { align-self: flex-start; margin-top: 1px; font-size: 10.5px; font-weight: 700; color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 4px 8px; background: rgba(255,255,255,.045); }
 
 /* tabbed manifestos in the bento pledges tile (one coalition at a time) */
 .prn-pl-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }

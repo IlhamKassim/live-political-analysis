@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=31";
-import { I18N } from "./i18n.js?v=31";
+  competitivenessFromMajorityPct } from "./lib.js?v=32";
+import { I18N } from "./i18n.js?v=32";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -529,6 +529,8 @@ function openSeatFromPolitician(code) {
 // full-profile pop-up for one politician (opened from a directory card — does NOT
 // navigate the map; a footer button offers that path explicitly).
 const POL_MODAL = document.getElementById("pol-modal");
+const CAND_MODAL = document.getElementById("candidate-modal");
+let candidateModalReturnTo = null;
 // slimmer profile pop-up for a state assemblyman (directory ADUN tab): photo or
 // monogram, party, seat, last-result numbers + source, wikidata link where matched
 function openAdunModal(code) {
@@ -2150,9 +2152,11 @@ async function shareCard(trigger) {
 }
 // PANEL_SEAT.innerHTML is rebuilt on every render, so delegate rather than re-bind.
 PANEL_SEAT.addEventListener("click", (e) => {
+  if (handleCandidateCardClick(e)) return;
   if (e.target.closest("#share-link, [data-share-link]")) shareLink();
   else if (e.target.closest("#share-card, [data-share-card]")) shareCard(e.target);
 });
+PANEL_SEAT.addEventListener("keydown", handleCandidateCardKeydown);
 CARD_PREVIEW_DOWNLOAD?.addEventListener("click", downloadCardPreview);
 CARD_PREVIEW_CLOSE?.addEventListener("click", closeCardPreview);
 CARD_PREVIEW?.addEventListener("click", (e) => {
@@ -2779,6 +2783,24 @@ PLEDGES_MODAL?.addEventListener("click", (ev) => {
     const host = document.getElementById("pledges-modal-body");
     if (host) host.innerHTML = prnPledgeTabsHTML();
   }
+});
+CAND_MODAL?.addEventListener("click", (ev) => {
+  if (ev.target.closest(".pol-modal-close") || ev.target === CAND_MODAL) {
+    closeCandidateModal();
+    return;
+  }
+  const seatBtn = ev.target.closest("[data-candidate-seat]");
+  if (seatBtn) {
+    const code = seatBtn.dataset.candidateSeat;
+    closeCandidateModal();
+    openSeatFromPolitician(code);
+  }
+});
+CAND_MODAL?.addEventListener("close", () => {
+  CAND_MODAL.innerHTML = "";
+  const returnTo = candidateModalReturnTo;
+  candidateModalReturnTo = null;
+  if (returnTo && document.contains(returnTo)) returnTo.focus({ preventScroll: true });
 });
 
 // ---- sidebar (wide screens): brand · nav · states list · lang ----
@@ -4315,6 +4337,141 @@ function candidateProfileHTML(profile) {
     ${profileSourcesHTML(profile)}
   </div>`;
 }
+function prnCandidateForSeat(seatCode, candidateName) {
+  const entry = state.prn16 && state.prn16.seats && state.prn16.seats[seatCode];
+  if (!entry || !candidateName) return null;
+  const target = namekeyLoose(candidateName);
+  const candidate = entry.candidates.find((c) => namekeyLoose(c.name) === target);
+  return candidate ? { entry, candidate } : null;
+}
+function candidateModalTileHTML(cls, label, body) {
+  if (!body) return "";
+  return `<section class="cand-tile ${cls}">
+    <div class="cand-kicker">${esc(label)}</div>
+    ${body}
+  </section>`;
+}
+function candidateModalListHTML(items, ordered = false) {
+  const xs = Array.isArray(items) ? items.map(profileRecordText).filter(Boolean) : [];
+  if (!xs.length) return "";
+  const tag = ordered ? "ol" : "ul";
+  return `<${tag} class="cand-list">${xs.map((x) => `<li>${esc(x)}</li>`).join("")}</${tag}>`;
+}
+function candidateModalSourcesHTML(profile, election) {
+  const sources = Array.isArray(profile && profile.sources) ? profile.sources.map(normalProfileSource).filter(Boolean) : [];
+  const links = sources.length ? `<div class="cand-source-links">${sources.map((s) =>
+    `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.label)}</a>`).join("")}</div>` : "";
+  const src = election && election.source ? `<p class="cand-source-note muted">${esc(t("candidate_source", { source: election.source }))}</p>` : "";
+  return links || src ? `${links}${src}` : "";
+}
+function candidateModalNewsHTML(seatCode, name) {
+  const items = state.prnNews && state.prnNews[seatCode] && state.prnNews[seatCode][name];
+  if (!items || !items.length) return "";
+  return `<div class="cand-news-list">${items.slice(0, 4).map((n) =>
+    `<a href="${esc(n.u)}" target="_blank" rel="noopener"><span>${esc(n.t)}</span><small>${esc(n.s)}${n.d ? " · " + esc(fmtDayMonth(n.d)) : ""}</small></a>`).join("")}</div>`;
+}
+function candidateModalHTML(seat, entry, candidate, profile) {
+  const election = (state.prn16 && state.prn16.election) || liveElection();
+  const col = prnCoalColor(candidate.coalition);
+  const name = candidate.name;
+  const party = candidate.party && candidate.party !== candidate.coalition ? `${esc(candidate.coalition)} · ${esc(candidate.party)}` : esc(candidate.coalition);
+  const isInc = namekeyLoose(name) === namekeyLoose(entry.incumbent_2022 || "");
+  const summary = (profile && (profile.summary || profile.biography_summary)) || "";
+  const role = (profile && profile.current_role) || t("candidate_profile_pending");
+  const meta = [
+    `${esc(entry.ncode || seat.dun_code)} · ${esc(entry.name || seat.name)}`,
+    seat.parlimen ? `${esc(t("parlimen_label"))} ${esc(parlimenContext(seat))}` : "",
+    election && election.name ? esc(election.name) : "",
+  ].filter(Boolean).join(" · ");
+  const fact = (label, value, note) => value != null && value !== ""
+    ? `<div class="cand-fact"><span>${esc(label)}</span><b>${esc(value)}</b>${note ? `<small>${esc(note)}</small>` : ""}</div>` : "";
+  const facts = [
+    fact(t("party_bloc"), candidate.party || candidate.coalition || "", candidate.coalition || ""),
+    fact(t("prn_electorate"), entry.electorate ? entry.electorate.toLocaleString() : ""),
+    fact(t("prn_incumbent"), entry.incumbent_2022 || "", entry.incumbent_party_2022 || ""),
+    candidate.symbol ? fact(t("candidate_symbol"), candidate.symbol) : "",
+  ].filter(Boolean).join("");
+  const partyHistory = candidateModalListHTML(profile && profile.party_history, false);
+  const track = candidateModalListHTML(profile && profile.track_record, true);
+  const experience = candidateModalListHTML(profile && profile.career_highlights, false);
+  const education = candidateModalListHTML(profile && profile.education, false);
+  const electionHistory = candidateModalListHTML(profile && profile.election_history, false);
+  const news = candidateModalNewsHTML(seat.code, name);
+  return `<div class="cand-modal-shell">
+    <button class="pol-modal-close" type="button" aria-label="${esc(t("card_preview_close"))}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><line x1="6" x2="18" y1="6" y2="18"/><line x1="6" x2="18" y1="18" y2="6"/></svg>
+    </button>
+    <div class="cand-grid">
+      <section class="cand-hero cand-tile" style="--cc:${col.bg};--ccfg:${col.fg}">
+        ${personPhotoHTML(name, profile && profile.photo_url, "cand-modal-photo")}
+        <div class="cand-hero-id">
+          <div class="cand-kicker">${esc(t("candidate_bento_title"))}</div>
+          <h2>${esc(name)}</h2>
+          <p class="cand-seat muted">${meta}</p>
+          <div class="cand-pill-row">
+            <span class="pill" style="background:${col.bg};color:${col.fg}">${party}</span>
+            ${isInc ? `<span class="prn-cc-inc">${esc(t("prn_cc_incumbent"))}</span>` : ""}
+          </div>
+        </div>
+      </section>
+      ${candidateModalTileHTML("cand-role", t("candidate_bento_current_role"), `<p class="cand-role-text">${esc(role)}</p>`)}
+      ${candidateModalTileHTML("cand-facts", t("candidate_bento_context"), `<div class="cand-facts-grid">${facts}</div>`)}
+      ${candidateModalTileHTML("cand-summary", t("profile_background"), summary ? `<p>${esc(summary)}</p>` : `<p class="muted">${esc(t("candidate_profile_pending"))}</p>`)}
+      ${candidateModalTileHTML("cand-party", t("profile_party_history"), partyHistory || `<p class="muted">${esc(t("candidate_profile_pending"))}</p>`)}
+      ${candidateModalTileHTML("cand-track", t("profile_track_record"), track || experience || `<p class="muted">${esc(t("candidate_profile_pending"))}</p>`)}
+      ${candidateModalTileHTML("cand-election", t("profile_election_history"), electionHistory || `<p class="muted">${esc(t("candidate_profile_pending"))}</p>`)}
+      ${education ? candidateModalTileHTML("cand-education", t("profile_education"), education) : ""}
+      ${news ? candidateModalTileHTML("cand-news", t("prn_news"), news) : ""}
+      ${candidateModalTileHTML("cand-sources", t("profile_sources"), candidateModalSourcesHTML(profile, election))}
+    </div>
+    <button class="pol-modal-seatbtn cand-seatbtn" type="button" data-candidate-seat="${esc(seat.code)}">${esc(t("pol_view_seat"))}</button>
+  </div>`;
+}
+function closeCandidateModal() {
+  if (!CAND_MODAL) return;
+  if (CAND_MODAL.open && typeof CAND_MODAL.close === "function") CAND_MODAL.close();
+  else {
+    CAND_MODAL.removeAttribute("open");
+    CAND_MODAL.innerHTML = "";
+    const returnTo = candidateModalReturnTo;
+    candidateModalReturnTo = null;
+    if (returnTo && document.contains(returnTo)) returnTo.focus({ preventScroll: true });
+  }
+}
+function openCandidateModal(seatCode, candidateName, returnTo = null) {
+  if (!CAND_MODAL) return;
+  const seat = state.data.dun && state.data.dun.byCode.get(seatCode);
+  const found = prnCandidateForSeat(seatCode, candidateName);
+  if (!seat || !found) return;
+  candidateModalReturnTo = returnTo;
+  const profile = profileForCandidate(seatCode, found.candidate.name);
+  CAND_MODAL.innerHTML = candidateModalHTML(seat, found.entry, found.candidate, profile);
+  if (typeof CAND_MODAL.showModal === "function") CAND_MODAL.showModal();
+  else CAND_MODAL.setAttribute("open", "");
+  CAND_MODAL.querySelector(".pol-modal-close")?.focus();
+}
+function candidateCardFromEvent(e) {
+  const card = e.target.closest(".prn-cc[data-prn-candidate]");
+  if (!card || e.target.closest("a")) return null;
+  return card;
+}
+function openCandidateCard(card) {
+  openCandidateModal(card.dataset.prnSeat, card.dataset.prnCandidate, card);
+}
+function handleCandidateCardClick(e) {
+  const card = candidateCardFromEvent(e);
+  if (!card) return false;
+  e.preventDefault();
+  openCandidateCard(card);
+  return true;
+}
+function handleCandidateCardKeydown(e) {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const card = candidateCardFromEvent(e);
+  if (!card) return;
+  e.preventDefault();
+  openCandidateCard(card);
+}
 
 // per-candidate cards for the bento spotlight — coalition-accented, with the ballot
 // name, party badge, ballot symbol and any campaign-window headlines we have.
@@ -4338,12 +4495,12 @@ function prnCandidateCardsHTML(entry, seatCode) {
     const extra = sym || news ? `<div class="prn-cc-extra">${sym}${news}</div>` : "";
     const incChip = isInc ? ` <span class="prn-cc-inc">${esc(t("prn_cc_incumbent"))}</span>` : "";
     const photo = profile ? personPhotoHTML(c.name, profile.photo_url, "prn-profile-photo") : "";
-    return `<div class="prn-cc${isInc ? " is-inc" : ""}${profile ? " has-profile" : ""}" style="--cc:${col.bg}">
+    return `<div class="prn-cc${isInc ? " is-inc" : ""}${profile ? " has-profile" : ""}" style="--cc:${col.bg}" role="button" tabindex="0" aria-haspopup="dialog" aria-label="${esc(t("candidate_open_profile_aria", { name: c.name }))}" data-prn-seat="${esc(seatCode)}" data-prn-candidate="${esc(c.name)}">
       <div class="prn-cc-head">
         ${photo}
         <div class="prn-cc-id"><span class="prn-cc-name"><span>${esc(c.name)}</span>${incChip}</span>${alias}</div>
         <span class="pill" style="background:${col.bg};color:${col.fg}">${party}</span>
-      </div>${candidateProfileHTML(profile)}${extra}</div>`;
+      </div>${candidateProfileHTML(profile)}${extra}<span class="prn-cc-open">${esc(t("candidate_open_profile"))}</span></div>`;
   }).join("");
 }
 
@@ -4772,6 +4929,7 @@ document.getElementById("topbar")?.addEventListener("click", (ev) => {
   if (ev.target.closest("#bento-prn-toggle")) toggleBentoPrn();
 });
 BENTO.addEventListener("click", (ev) => {
+  if (handleCandidateCardClick(ev)) return;
   if (ev.target.closest("#bento-close-btn")) { backToControls(); return; }   // leave the state entirely
   const prnToggle = ev.target.closest("#bento-prn-toggle");
   if (prnToggle) { toggleBentoPrn(); return; }
@@ -4795,6 +4953,7 @@ BENTO.addEventListener("click", (ev) => {
   const path = ev.target.closest(".bento-seat");
   if (path) { bentoSeat = path.dataset.code; updateBentoSpotlight(); }
 });
+BENTO.addEventListener("keydown", handleCandidateCardKeydown);
 BENTO.addEventListener("input", (ev) => {
   if (ev.target.id !== "bento-q") return;
   const box = document.getElementById("bento-results");
