@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=8";
-import { I18N } from "./i18n.js?v=8";
+  competitivenessFromMajorityPct } from "./lib.js?v=9";
+import { I18N } from "./i18n.js?v=9";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -197,6 +197,11 @@ async function loadOptional() {
     // per-state economy report card, DOSM via data.gov.my (pipeline/08_state_econ.py)
     const se = await fetch("data/state-econ.json");
     if (se.ok) state.stateEcon = await se.json();
+  } catch (_) {}
+  try {
+    // MB/KM/Premier portraits, Wikimedia Commons (pipeline/10_gov_photos.py)
+    const gp = await fetch("data/gov-photos.json");
+    if (gp.ok) state.govPhotos = await gp.json();
   } catch (_) {}
   try {
     // campaign-window headlines per PRN candidate (pipeline/06_candidate_news.py)
@@ -3236,6 +3241,27 @@ function addDays(iso, n) {
 }
 // gov + election-clock rows (dt/dd fragments) — shared by the panel context block
 // and the bento government tile. Pure extraction; fragments unchanged.
+// the "next election" dt/dd row (or "" when a live election supersedes the clock) —
+// shared by the panel context block, stateGovRows, and the bento government tile
+function stateClockRow(name) {
+  const ctx = state.stateCtx;
+  const st = ctx && ctx.states && ctx.states[name];
+  const clock = st && st.clock;
+  if (!clock || prnActiveForState(name)) return "";
+  let v = "";
+  if (clock.federal) {
+    v = `${t("ctx_federal")} · ${t("ctx_due_by", { d: fmtDMY(addDays(ctx.parlimen.dissolve_by, 60)) })}`;
+  } else if (clock.next) {
+    v = `${fmtDMY(clock.next)} · ${t("ctx_in_days", { n: daysUntil(clock.next) })}`;
+  } else if (clock.dissolve_by) {
+    const due = addDays(clock.dissolve_by, 60);   // dissolution deadline + 60-day window
+    v = t("ctx_due_by", { d: fmtDMY(due) });
+    if (clock.expected) v += ` · ${t("ctx_expected", { y: clock.expected })}`;
+    v += ` · ${t("ctx_in_days", { n: daysUntil(due) })}`;
+  }
+  return v ? `<dt>${esc(t("ctx_next_election"))}</dt><dd>${esc(v)}</dd>` : "";
+}
+
 function stateGovRows(name) {
   const ctx = state.stateCtx;
   const st = ctx && ctx.states && ctx.states[name];
@@ -3247,21 +3273,8 @@ function stateGovRows(name) {
     const care = g.caretaker ? ` <span class="muted">(${esc(t("ctx_caretaker"))})</span>` : "";
     rows.push(`<dt>${esc(title)}</dt><dd>${esc(g.name)} · ${esc(g.party)} (${esc(g.coalition)})${care}</dd>`);
   }
-  const clock = st.clock;
-  if (clock && !prnActiveForState(name)) {
-    let v = "";
-    if (clock.federal) {
-      v = `${t("ctx_federal")} · ${t("ctx_due_by", { d: fmtDMY(addDays(ctx.parlimen.dissolve_by, 60)) })}`;
-    } else if (clock.next) {
-      v = `${fmtDMY(clock.next)} · ${t("ctx_in_days", { n: daysUntil(clock.next) })}`;
-    } else if (clock.dissolve_by) {
-      const due = addDays(clock.dissolve_by, 60);   // dissolution deadline + 60-day window
-      v = t("ctx_due_by", { d: fmtDMY(due) });
-      if (clock.expected) v += ` · ${t("ctx_expected", { y: clock.expected })}`;
-      v += ` · ${t("ctx_in_days", { n: daysUntil(due) })}`;
-    }
-    if (v) rows.push(`<dt>${esc(t("ctx_next_election"))}</dt><dd>${esc(v)}</dd>`);
-  }
+  const clock = stateClockRow(name);
+  if (clock) rows.push(clock);
   return rows;
 }
 
@@ -3964,17 +3977,47 @@ function bentoElectionTilesHTML() {
     <p class="bento-foot src-line muted">${esc(t("prn_source"))}</p>`;
 }
 
+// the government tile: MB/KM/Premier as a profile (Commons portrait or monogram)
+// + the election-clock row. W.P. territories have no state government → just the
+// federal clock row.
+function bentoGovTileHTML(name) {
+  const ctx = state.stateCtx;
+  const st = ctx && ctx.states && ctx.states[name];
+  if (!st) return "";
+  const g = st.gov;
+  const clock = stateClockRow(name);
+  if (!g) {
+    return clock
+      ? `<div class="bento-tile bento-gov">
+           <div class="bento-kicker">${esc(t("bento_gov"))}</div>
+           <dl class="rows state-ctx bento-ctx">${clock}</dl>
+         </div>`
+      : "";
+  }
+  const gp = state.govPhotos && state.govPhotos[name];
+  const title = g.title === "MB" ? "Menteri Besar" : g.title === "KM" ? "Ketua Menteri" : g.title;
+  const care = g.caretaker ? ` <span class="muted">(${esc(t("ctx_caretaker"))})</span>` : "";
+  const since = g.since ? ` <span class="muted">· ${esc(t("bento_gov_since", { y: g.since }))}</span>` : "";
+  return `<div class="bento-tile bento-gov">
+    <div class="bento-kicker">${esc(t("bento_gov"))}</div>
+    <div class="bento-gov-head">
+      ${personPhotoHTML(g.name, gp && gp.photo, "bento-gov-photo")}
+      <div class="bento-gov-id">
+        <span class="bento-gov-title muted">${esc(title)}${care}</span>
+        <strong>${esc(g.name)}</strong>
+        <p>${esc(g.party)} <span class="pill" style="background:${partyColor(g.coalition)};color:#fff">${esc(g.coalition)}</span>${since}</p>
+      </div>
+    </div>
+    ${clock ? `<dl class="rows state-ctx bento-ctx">${clock}</dl>` : ""}
+    ${gp && gp.credit ? `<p class="yb-credit muted">${esc(t("pol_photo_by", { credit: gp.credit }))}</p>` : ""}
+  </div>`;
+}
+
 // generic state tiles — gov · clock · makeup · map · spotlight · econ · records
 function bentoStateTilesHTML(name) {
   const st = stateStats(name);
-  const govRows = stateGovRows(name);
   const econ = stateEconRows(name);
-  const govTile = govRows.length
-    ? `<div class="bento-tile bento-gov">
-         <div class="bento-kicker">${esc(t("bento_gov"))}</div>
-         <dl class="rows state-ctx bento-ctx">${govRows.join("")}</dl>
-       </div>`
-    : "";
+  const govTile = bentoGovTileHTML(name);
   const econTile = econ.rows.length
     ? `<div class="bento-tile bento-econ">
          <div class="bento-kicker">${esc(t("bento_econ"))}</div>
