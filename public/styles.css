@@ -2532,4 +2532,4 @@ body.bento-on #topbar .top-controls { margin-inline: auto; }
 
 /* very large screens: cap the dashboard's width and centre it — cards shouldn't
    stretch across an ultrawide */
-.bento-grid, .bento-foot { width: 100%; max-width: 1720px; margin-inline: auto; }
+.bento-grid, .bento-foot { width: 100%; max-width: 1000px; margin-inline: auto; }
