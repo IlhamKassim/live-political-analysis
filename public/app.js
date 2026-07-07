@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=25";
-import { I18N } from "./i18n.js?v=25";
+  competitivenessFromMajorityPct } from "./lib.js?v=26";
+import { I18N } from "./i18n.js?v=26";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -502,6 +502,7 @@ async function openPoliticians() {
   if (polTier !== "parlimen" && !state.data.dun) { try { await loadTier("dun"); } catch (_) {} }
   document.body.classList.add("politicians-open");
   renderPoliticiansDirectory();
+  syncSidebar();
   if (location.hash !== "#politicians") history.pushState(null, "", "#politicians");
   POL_VIEW.querySelector(".pol-dir").scrollTop = 0;
 }
@@ -509,6 +510,7 @@ function closePoliticians(options = {}) {
   if (!document.body.classList.contains("politicians-open")) return;
   document.body.classList.remove("politicians-open");
   if (POL_VIEW) POL_VIEW.innerHTML = "";
+  syncSidebar();
   if (!options.silent) writeHash();
 }
 function openSeatFromPolitician(code) {
@@ -2743,6 +2745,62 @@ document.addEventListener("keydown", (e) => {
 });
 RESET.addEventListener("click", deselect);
 
+// ---- sidebar (wide screens): brand · nav · states list · lang ----
+function renderSidebarStates() {
+  const host = document.getElementById("sb-states");
+  const d = state.data.parlimen || state.data.dun;
+  if (!host || !d) return;
+  const names = [...new Set(d.seats.map((s) => s.state))]
+    .sort((a, b) => (a.startsWith("W.P.") - b.startsWith("W.P.")) || a.localeCompare(b));
+  host.innerHTML = names.map((n) =>
+    `<button type="button" class="sb-item sb-state" data-sb-state="${esc(n)}">${esc(n)}</button>`).join("");
+}
+function syncSidebar() {
+  const sb = document.getElementById("sidebar");
+  if (!sb) return;
+  const pol = document.body.classList.contains("politicians-open");
+  sb.querySelector("#sb-map")?.classList.toggle("on", !state.openState && !pol);
+  sb.querySelector("#sb-politicians")?.classList.toggle("on", pol);
+  const e = liveElection();
+  const prnBtn = sb.querySelector("#sb-prn");
+  if (prnBtn) {
+    prnBtn.hidden = !e;
+    if (e) { const l = sb.querySelector("#sb-prn-label"); if (l) l.textContent = e.name; }
+    prnBtn.classList.toggle("on", !!state.prnMode && !pol);
+  }
+  sb.querySelectorAll("[data-sb-state]").forEach((b) =>
+    b.classList.toggle("on", !pol && state.openState === b.dataset.sbState));
+  sb.querySelectorAll("[data-sb-lang]").forEach((b) =>
+    b.classList.toggle("on", b.dataset.sbLang === lang));
+}
+// a state picked from the sidebar — W.P. territories only exist on the parliament
+// layer, so switch tiers when the current layer has no seats for it
+async function sidebarOpenState(name) {
+  closePoliticians({ silent: true });
+  hideInfo();
+  const has = () => state.data[state.tier] && state.data[state.tier].seats.some((sd) => sd.state === name);
+  if (!has()) await setTier(state.tier === "dun" ? "parlimen" : "dun");
+  if (state.openState !== name) openStateCard(name);
+  syncSidebar();
+}
+document.getElementById("sidebar")?.addEventListener("click", (ev) => {
+  const langBtn = ev.target.closest("[data-sb-lang]");
+  if (langBtn) {
+    document.querySelector(`#lang button[data-lang="${langBtn.dataset.sbLang}"]`)?.click();
+    syncSidebar();
+    return;
+  }
+  if (ev.target.closest("#sb-brand") || ev.target.closest("#sb-map")) {
+    closePoliticians({ silent: true }); hideInfo(); backToControls(); syncSidebar(); return;
+  }
+  if (ev.target.closest("#sb-politicians")) { hideInfo(); openPoliticians(); setTimeout(syncSidebar, 60); return; }
+  if (ev.target.closest("#sb-prn")) { closePoliticians({ silent: true }); hideInfo(); openPrnMode(); setTimeout(syncSidebar, 60); return; }
+  if (ev.target.closest("#sb-about")) { showInfo(); return; }
+  if (ev.target.closest("#sb-share")) { shareApp(); return; }
+  const st = ev.target.closest("[data-sb-state]");
+  if (st) sidebarOpenState(st.dataset.sbState);
+});
+
 // ---- boot ----
 (async function init() {
   document.querySelectorAll("#lang button").forEach((x) => setOn(x, x.dataset.lang === lang));
@@ -2760,6 +2818,8 @@ RESET.addEventListener("click", deselect);
   }
   renderSummary();
   await loadOptional();           // results/scores ready → modes can be restored
+  renderSidebarStates();
+  syncSidebar();                  // PRN entry + lang state need the loaded data
   if (h && h.mode === "negeri") setMode("negeri");
   else if (h && h.mode === "skor") setMode("parti");
   else setMode("parti");
@@ -4629,6 +4689,7 @@ function openStateCard(name) {
     if (e && !state.prnMode && !prnOptOut && state.tier === e.tier && prnUpcomingOrLive(e)) enterPrnMode();
     showStateBento(name);
   }
+  syncSidebar();
   writeHash();
 }
 let revealTimer = null, settleTimer = null, stateExitTimer = null;
@@ -4739,6 +4800,7 @@ function backToControls() {
       highlightState(null);
       SEATS.classList.remove("isolated", "returning");
       syncLiveBadge();
+      syncSidebar();   // openState clears HERE on the animated exit — re-mark "Map" active
       writeHash();
     }, STATE_EXIT_MS + 80);
   } else {
@@ -4748,6 +4810,7 @@ function backToControls() {
   }
   clearMatches();
   setFindStatus(null);
+  syncSidebar();
   writeHash();
 }
 

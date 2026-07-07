@@ -21,9 +21,29 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=25" />
+<link rel="stylesheet" href="styles.css?v=26" />
 </head>
 <body>
+<aside id="sidebar" aria-label="Navigation">
+  <button id="sb-brand" class="sb-brand" type="button" data-i18n-aria="home_aria" aria-label="Show the whole map">
+    <span class="brand-symbol">◧</span> <span class="brand-word">My<b>Politik</b></span>
+  </button>
+  <nav class="sb-nav">
+    <button id="sb-map" class="sb-item" type="button"><span class="sb-ic">🗺</span><span data-i18n="nav_map">Map</span></button>
+    <button id="sb-politicians" class="sb-item" type="button"><span class="sb-ic">👥</span><span data-i18n="nav_politicians">Politicians</span></button>
+    <button id="sb-prn" class="sb-item sb-live" type="button" hidden><span class="live-dot"></span><span id="sb-prn-label">PRN</span></button>
+  </nav>
+  <div class="sb-section" data-i18n="sidebar_states">States</div>
+  <nav id="sb-states" class="sb-states"></nav>
+  <div class="sb-foot">
+    <button id="sb-about" class="sb-item sb-small" type="button"><span data-i18n="nav_about">About</span></button>
+    <button id="sb-share" class="sb-item sb-small" type="button"><span data-i18n="nav_share">Share</span></button>
+    <div class="seg lang-seg sb-lang" role="group" aria-label="Language">
+      <button data-sb-lang="en">EN</button>
+      <button data-sb-lang="ms">BM</button>
+    </div>
+  </div>
+</aside>
 <div id="app">
   <header id="topbar">
     <button id="brand-home" class="brand brand-home" type="button" data-i18n-aria="home_aria" aria-label="Show the whole map" data-i18n-title="home_aria" title="Show the whole map">
@@ -178,6 +198,6 @@
   </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 </div>
-<script type="module" src="app.js?v=25"></script>
+<script type="module" src="app.js?v=26"></script>
 </body>
 </html>

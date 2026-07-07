@@ -2533,3 +2533,55 @@ body.bento-on #topbar .top-controls { margin-inline: auto; }
 /* very large screens: cap the dashboard's width and centre it — cards shouldn't
    stretch across an ultrawide */
 .bento-grid, .bento-foot { width: 100%; max-width: 1000px; margin-inline: auto; }
+
+/* ============================================================================
+   Navigation sidebar — wide screens (≥1240px so the rail never squeezes the
+   dashboard below its design width). Narrower keeps the topbar-only layout.
+   ============================================================================ */
+#sidebar { display: none; }
+@media (min-width: 1240px) {
+  #sidebar {
+    position: fixed; inset: 0 auto 0 0; width: 232px; z-index: 60;
+    display: flex; flex-direction: column; gap: 2px;
+    padding: 14px 12px 12px;
+    background: rgba(9, 11, 15, .94); backdrop-filter: blur(10px);
+    border-right: 1px solid var(--line);
+  }
+  #app { margin-left: 232px; }
+  #topbar { left: 232px; }
+  /* the sidebar owns brand / nav / language — the topbar keeps only context */
+  #topbar .brand-home, #topbar #top-map, #topbar #top-politicians,
+  #topbar #top-info, #topbar #top-share, #topbar #lang { display: none; }
+  body.politicians-open #politicians-view { left: 232px; }
+}
+.sb-brand {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--font-display); font-size: 19px; font-weight: 700; color: var(--ink);
+  background: none; border: 0; cursor: pointer; padding: 6px 10px 14px; text-align: left;
+}
+.sb-brand .brand-word b { font-weight: 800; }
+.sb-nav { display: flex; flex-direction: column; gap: 2px; }
+.sb-item {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 9px 10px; border-radius: 9px; border: 0; background: none;
+  font: inherit; font-size: 13.5px; color: var(--ink-dim); text-align: left; cursor: pointer;
+  transition: background .12s, color .12s;
+}
+.sb-item:hover { background: #171c24; color: var(--ink); }
+.sb-item.on { background: #20242b; color: var(--ink); font-weight: 600; }
+.sb-ic { width: 18px; text-align: center; flex: 0 0 auto; }
+.sb-live .live-dot { width: 8px; height: 8px; margin-right: 2px; }
+.sb-section {
+  font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--ink-faint); margin: 16px 10px 6px;
+}
+.sb-states { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; }
+.sb-state { font-size: 13px; padding: 7px 10px; }
+.sb-foot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 2px; }
+.sb-small { width: auto; font-size: 12.5px; padding: 7px 9px; }
+.sb-lang { margin-left: auto; }
+.sb-lang button {
+  font: inherit; font-size: 11px; font-weight: 600; padding: 6px 9px; min-width: 36px;
+  border: 0; background: none; color: var(--ink-faint); border-radius: 8px; cursor: pointer;
+}
+.sb-lang button.on { background: #20242b; color: var(--ink); }
