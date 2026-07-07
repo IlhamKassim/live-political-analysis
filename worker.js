@@ -30,6 +30,16 @@ export default {
         headers: { "cache-control": "public, max-age=45" },
       });
     }
-    return env.ASSETS.fetch(request);
+    // Never let the edge/browser serve a stale HTML entry: the document is tiny and
+    // carries the versioned (?v=N) asset URLs, so keeping it fresh means a deploy is
+    // always picked up on the next load (fixes "it hasn't changed" after a deploy).
+    // Versioned JS/CSS keep their default cacheability — the ?v= bump busts those.
+    const resp = await env.ASSETS.fetch(request);
+    if ((resp.headers.get("content-type") || "").includes("text/html")) {
+      const headers = new Headers(resp.headers);
+      headers.set("cache-control", "no-store");
+      return new Response(resp.body, { status: resp.status, statusText: resp.statusText, headers });
+    }
+    return resp;
   },
 };
