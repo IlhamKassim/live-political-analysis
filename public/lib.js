@@ -41,6 +41,9 @@ export function scoreColor(score) {
 export function encodeHash(state) {
   const parts = [state.tier, state.mode];
   if (state.selected) parts.push(state.selected);
+  // a state dashboard open WITHOUT a selected seat → "s:StateName" token (a selected
+  // seat already implies its state, so `selected` wins and the token is omitted)
+  else if (state.openState) parts.push("s:" + state.openState);
   if (state.prnMode) parts.push("prn");   // live-election view (e.g. PRN Johor 2026)
   return "#" + parts.map(encodeURIComponent).join("/");
 }
@@ -54,8 +57,23 @@ export function decodeHash(hash) {
     prn = true;
     toks.pop();
   }
-  const [tier, mode, code] = toks;
-  return { tier, mode, code, prn };
+  const [tier, mode, third] = toks;
+  // third slot: either a seat code or the "s:StateName" open-state token — never both
+  const isState = typeof third === "string" && third.startsWith("s:");
+  return {
+    tier, mode,
+    code: isState ? undefined : third,
+    stateName: isState ? third.slice(2) : undefined,
+    prn,
+  };
+}
+
+// ---- seat competitiveness ----
+// Classify how contested a seat is from the last margin (majority as % of the vote):
+// under 5% = marginal, under 15% = leaning, else safe. Pure; non-finite/absent → null.
+export function competitivenessFromMajorityPct(mp) {
+  if (!Number.isFinite(mp) || mp < 0) return null;
+  return { key: mp < 5 ? "marginal" : mp < 15 ? "leaning" : "safe", pct: mp };
 }
 
 // ---- initial language pick ----

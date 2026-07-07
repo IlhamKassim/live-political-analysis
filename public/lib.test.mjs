@@ -11,6 +11,7 @@ import {
   formatParty, candidateCount, formatRunnerUp, formatResultCard, fitBox,
   partyColor, COALITION_COLORS, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
+  competitivenessFromMajorityPct,
 } from "./lib.js";
 import { I18N } from "./i18n.js";
 
@@ -61,9 +62,9 @@ test("encodeHash: prnMode appends a trailing /prn token", () => {
 });
 
 test("decodeHash: trailing prn token sets prn and never leaks into code", () => {
-  assert.deepEqual(decodeHash("#dun/parti/prn"), { tier: "dun", mode: "parti", code: undefined, prn: true });
-  assert.deepEqual(decodeHash("#dun/parti/1_N.01/prn"), { tier: "dun", mode: "parti", code: "1_N.01", prn: true });
-  assert.deepEqual(decodeHash("#dun/parti/1_N.01"), { tier: "dun", mode: "parti", code: "1_N.01", prn: false });
+  assert.deepEqual(decodeHash("#dun/parti/prn"), { tier: "dun", mode: "parti", code: undefined, stateName: undefined, prn: true });
+  assert.deepEqual(decodeHash("#dun/parti/1_N.01/prn"), { tier: "dun", mode: "parti", code: "1_N.01", stateName: undefined, prn: true });
+  assert.deepEqual(decodeHash("#dun/parti/1_N.01"), { tier: "dun", mode: "parti", code: "1_N.01", stateName: undefined, prn: false });
 });
 
 test("decodeHash: empty hash returns null", () => {
@@ -78,20 +79,21 @@ test("decodeHash: full hash with leading #", () => {
     tier: "parlimen",
     mode: "parti",
     code: "P.001",
+    stateName: undefined,
     prn: false,
   });
 });
 
 test("decodeHash: works without leading #", () => {
-  assert.deepEqual(decodeHash("dun/skor"), { tier: "dun", mode: "skor", code: undefined, prn: false });
+  assert.deepEqual(decodeHash("dun/skor"), { tier: "dun", mode: "skor", code: undefined, stateName: undefined, prn: false });
 });
 
 test("decodeHash: absent trailing segments are undefined (faithful to old parseHash)", () => {
-  assert.deepEqual(decodeHash("#parlimen"), { tier: "parlimen", mode: undefined, code: undefined, prn: false });
+  assert.deepEqual(decodeHash("#parlimen"), { tier: "parlimen", mode: undefined, code: undefined, stateName: undefined, prn: false });
 });
 
 test("decodeHash: extra path segments are ignored", () => {
-  assert.deepEqual(decodeHash("#a/b/c/d/e"), { tier: "a", mode: "b", code: "c", prn: false });
+  assert.deepEqual(decodeHash("#a/b/c/d/e"), { tier: "a", mode: "b", code: "c", stateName: undefined, prn: false });
 });
 
 test("decodeHash: percent-decodes each segment", () => {
@@ -99,8 +101,66 @@ test("decodeHash: percent-decodes each segment", () => {
     tier: "parlimen",
     mode: "parti",
     code: "a b/c",
+    stateName: undefined,
     prn: false,
   });
+});
+
+// ---- open-state token (s:StateName) ----
+test("encodeHash: openState without selected emits an s: token", () => {
+  assert.equal(
+    encodeHash({ tier: "dun", mode: "parti", openState: "Selangor" }),
+    "#dun/parti/s%3ASelangor"
+  );
+  // state names with spaces are percent-encoded whole
+  assert.equal(
+    encodeHash({ tier: "dun", mode: "parti", openState: "Negeri Sembilan" }),
+    "#dun/parti/s%3ANegeri%20Sembilan"
+  );
+});
+
+test("encodeHash: selected seat wins over openState (code implies its state)", () => {
+  assert.equal(
+    encodeHash({ tier: "dun", mode: "parti", selected: "10_N.01", openState: "Selangor" }),
+    "#dun/parti/10_N.01"
+  );
+});
+
+test("encodeHash: s: token composes with /prn", () => {
+  assert.equal(
+    encodeHash({ tier: "dun", mode: "parti", openState: "Johor", prnMode: true }),
+    "#dun/parti/s%3AJohor/prn"
+  );
+});
+
+test("decodeHash: s: token yields stateName, never leaks into code", () => {
+  assert.deepEqual(decodeHash("#dun/parti/s%3ANegeri%20Sembilan"), {
+    tier: "dun", mode: "parti", code: undefined, stateName: "Negeri Sembilan", prn: false,
+  });
+  assert.deepEqual(decodeHash("#dun/parti/s%3AJohor/prn"), {
+    tier: "dun", mode: "parti", code: undefined, stateName: "Johor", prn: true,
+  });
+});
+
+test("decodeHash round-trip: openState survives encode → decode", () => {
+  const d = decodeHash(encodeHash({ tier: "parlimen", mode: "parti", openState: "Pulau Pinang" }));
+  assert.equal(d.stateName, "Pulau Pinang");
+  assert.equal(d.code, undefined);
+});
+
+// ---- competitiveness classifier ----
+test("competitivenessFromMajorityPct: thresholds and guards", () => {
+  assert.deepEqual(competitivenessFromMajorityPct(2.3), { key: "marginal", pct: 2.3 });
+  assert.deepEqual(competitivenessFromMajorityPct(4.99), { key: "marginal", pct: 4.99 });
+  assert.deepEqual(competitivenessFromMajorityPct(5), { key: "leaning", pct: 5 });
+  assert.deepEqual(competitivenessFromMajorityPct(14.9), { key: "leaning", pct: 14.9 });
+  assert.deepEqual(competitivenessFromMajorityPct(15), { key: "safe", pct: 15 });
+  assert.deepEqual(competitivenessFromMajorityPct(60), { key: "safe", pct: 60 });
+  // 0 is a valid (dead-heat) margin, not a missing one
+  assert.deepEqual(competitivenessFromMajorityPct(0), { key: "marginal", pct: 0 });
+  for (const bad of [null, undefined, NaN, Infinity, -1, "5"]) {
+    assert.equal(competitivenessFromMajorityPct(bad), null, `bad input: ${bad}`);
+  }
 });
 
 test("round-trip: encode → decode preserves tier/mode/selected", () => {

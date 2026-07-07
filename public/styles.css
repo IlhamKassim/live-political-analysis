@@ -2227,11 +2227,11 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
    (min-width 1000px catches iPad landscape 1024/1180/1366; phones & portrait
    tablets keep the map+panel flow). Kept in sync with PRN_BENTO_MQ in app.js.
    ============================================================================ */
-#prn-bento { display: none; }
+#state-bento { display: none; }
 @media (min-width: 1000px) {
-  body.prn-bento-on #stage,
-  body.prn-bento-on #panel { display: none; }
-  body.prn-bento-on #prn-bento {
+  body.bento-on #stage,
+  body.bento-on #panel { display: none; }
+  body.bento-on #state-bento {
     display: flex; flex-direction: column; gap: 12px;
     grid-column: 1 / -1; grid-row: 1 / -1;   /* span under the fixed topbar; padding clears it */
     height: 100%; min-height: 0; overflow: auto;   /* min-height:0 so the 1fr map row can shrink to fit */
@@ -2245,7 +2245,7 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 
 /* three rows, filling the height: meta strip · map+spotlight · pledges.
    flex:1 (NOT min-height:0) → grows to fill tall screens but never shrinks below its
-   content, so on short (iPad-landscape) heights the whole #prn-bento scrolls cleanly
+   content, so on short (iPad-landscape) heights the whole #state-bento scrolls cleanly
    instead of the grid spilling over the source footer. */
 .bento-grid {
   display: grid; gap: 12px; flex: 1;
@@ -2283,9 +2283,11 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 .bento-count.is-live { background: linear-gradient(158deg, #10262a, var(--panel)); }
 .bento-count.is-live .bento-count-big { color: var(--accent); }
 
-/* Johor map tile — fills its grid cell, keeps aspect via preserveAspectRatio */
-.bento-map-wrap { flex: 1; min-height: 0; }
-.bento-map-svg { display: block; width: 100%; height: 100%; }
+/* state map tile — fills its grid cell, keeps aspect via preserveAspectRatio.
+   The SVG is absolutely positioned so a portrait-shaped state (Selangor, Perak…)
+   can never inflate the grid row through intrinsic aspect-ratio sizing. */
+.bento-map-wrap { position: relative; flex: 1; min-height: 220px; }
+.bento-map-svg { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
 .bento-seat { stroke: var(--stroke); stroke-width: .3; cursor: pointer; transition: filter .15s; }
 .bento-seat:hover { filter: brightness(1.3); }
 .bento-seat.sel { stroke: var(--select); stroke-width: 1.2; paint-order: stroke; }
@@ -2392,3 +2394,41 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 .prn-last-bar { height: 8px; border-radius: 999px; background: rgba(255,255,255,.06); overflow: hidden; }
 .prn-last-bar span { display: block; height: 100%; border-radius: 999px; }
 .prn-last-pct { font-size: 11.5px; color: var(--ink-dim); min-width: 36px; text-align: right; }
+
+/* ============================================================================
+   Generic state-dashboard tiles (bento mode = state) + header chips
+   ============================================================================ */
+.bento-head-actions { display: flex; align-items: center; gap: 10px; }
+.bento-prn-toggle {
+  display: inline-flex; align-items: center; gap: 7px;
+  font: inherit; font-size: 12.5px; font-weight: 600; line-height: 1;
+  padding: 9px 14px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--line-2); background: var(--bg-2); color: var(--ink-dim);
+  transition: color .12s, border-color .12s, background .12s;
+}
+.bento-prn-toggle .live-dot { width: 7px; height: 7px; }
+.bento-prn-toggle:hover { color: var(--ink); border-color: var(--accent); }
+.bento-prn-toggle.on { color: var(--ink); border-color: var(--accent); background: color-mix(in oklab, var(--accent) 16%, var(--bg-2)); }
+
+/* state-mode grid: gov+makeup strip · map+spotlight · econ+records */
+.bento-grid.is-state {
+  grid-template-areas:
+    "gov  gov   stand stand"
+    "map  map   spot  spot"
+    "econ econ  records records";
+  grid-template-rows: auto minmax(340px, 1fr) auto;
+}
+.bento-gov { grid-area: gov; } .bento-econ { grid-area: econ; } .bento-records { grid-area: records; }
+
+/* dl rows inside tiles: reuse the panel's .state-ctx typography, tile-tightened */
+.bento-ctx { margin: 0; }
+.bento-ctx dt, .bento-ctx dd { padding: 8px 2px; font-size: 12.5px; }
+.bento-stats { margin-top: 8px; }
+.bento-records-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin-top: 2px; }
+.bento-spot-runner { font-size: 12px; margin-top: 4px; }
+.bento-spot-result { margin-top: 10px; }
+
+/* the politicians directory overlay covers the dashboard; it returns on close */
+@media (min-width: 1000px) {
+  body.politicians-open #state-bento { display: none; }
+}
