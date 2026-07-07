@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=14";
-import { I18N } from "./i18n.js?v=14";
+  competitivenessFromMajorityPct } from "./lib.js?v=15";
+import { I18N } from "./i18n.js?v=15";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -1008,9 +1008,11 @@ async function render(tier) {
 // so without this a Johor DUN seat falls back to its PARENT-Parliament MP — making
 // every pair of sibling DUN seats show the same person. Use the per-seat 2022 state
 // assemblyman from the PRN dataset instead. (Assembly dissolved for PRN 11 Jul 2026.)
-function johorDunResult(seat) {
-  if (state.tier !== "dun" || !state.prn16 || !state.prn16.seats) return undefined;
-  const e = state.prn16.seats[seat.code];
+// tier-independent core: build the synthetic 2022-incumbent result for a Johor DUN
+// seat code (assembly dissolved for the PRN — prn16 holds the sitting rep)
+function johorDunResultRaw(code) {
+  if (!state.prn16 || !state.prn16.seats) return undefined;
+  const e = state.prn16.seats[code];
   if (!e || !e.incumbent_2022) return undefined;
   const parts = String(e.incumbent_party_2022 || "").split("-");
   const coalition = (parts[0] || "").trim();
@@ -1024,10 +1026,32 @@ function johorDunResult(seat) {
     _johor2022: true,
   };
 }
+function johorDunResult(seat) {
+  if (state.tier !== "dun") return undefined;
+  return johorDunResultRaw(seat.code);
+}
 function ownDunResult(seat) {
   if (state.tier === "parlimen") return undefined;
   const own = state.resultsDun && state.resultsDun[seat.code];
   return own || johorDunResult(seat);
+}
+// the tier a seat CODE belongs to — parliament codes are P.xxx, DUN codes {sc}_N.xx
+function seatTierOf(code) {
+  return typeof code === "string" && code.startsWith("P.") ? "parlimen" : "dun";
+}
+// tier-EXPLICIT result lookup (the bento spotlight can show a seat from either
+// layer regardless of which one the map is on)
+function seatResultOf(seat, tier) {
+  if (tier === "parlimen") return state.results && state.results[seat.code];
+  const own = state.resultsDun && state.resultsDun[seat.code];
+  return own || johorDunResultRaw(seat.code);
+}
+// tier-EXPLICIT politician/ADUN record lookup (politicianFor reads state.tier)
+function politicianOf(seat, tier) {
+  if (tier === "parlimen") {
+    return (state.politicians && state.politicians.mps && state.politicians.mps[seat.code]) || null;
+  }
+  return (state.aduns && state.aduns[seat.code]) || null;
 }
 // The result to DISPLAY for a seat. Parliament: the seat's own GE15 winner. DUN: the
 // seat's OWN state-election result only — a covered PRN state (results-dun.json) or
@@ -1411,8 +1435,8 @@ function resultSourceLine(r, ownDun) {
 // spotlight. Pure extraction from seatCardHTML; markup unchanged.
 // The politician record's common name (e.g. "Hannah Yeoh") is more recognisable
 // than the ballot name; keep the ballot name as a subtitle when they differ.
-function ybCardHTML(seat, r, partyLabel, blocUnit) {
-  const pol = politicianFor(seat);
+function ybCardHTML(seat, r, partyLabel, blocUnit, polOverride) {
+  const pol = polOverride !== undefined ? polOverride : politicianFor(seat);
   const ybName = pol && pol.name ? pol.name : r.name;
   const ybBallot = pol && pol.ballot_name && namekeyLoose(pol.ballot_name) !== namekeyLoose(ybName) ? pol.ballot_name : "";
   const age = pol && politicianAge(pol.dob);
@@ -3937,12 +3961,15 @@ function bentoSpotlightHTML() {
 // from the seat's own state-election result. Johor DUN (assembly dissolved):
 // the 2022 incumbent block + "how it voted" recap from the PRN dataset.
 function stateSpotlightHTML() {
-  const data = state.data[state.tier];
+  // the spotlighted seat may come from EITHER layer (the search box surfaces both
+  // parliament and DUN seats of the open state) — resolve tier from the code
+  const spotTier = bentoSeat ? seatTierOf(bentoSeat) : state.tier;
+  const data = state.data[spotTier];
   const seat = bentoSeat && data && data.byCode.get(bentoSeat);
   if (!seat) {
     return `<div class="bento-spot-empty"><div class="bento-spot-mark">🗺️</div><p class="muted">${esc(t("bento_pick"))}</p></div>`;
   }
-  const isP = state.tier === "parlimen";
+  const isP = spotTier === "parlimen";
   const kicker = isP ? seat.code : `DUN · ${esc(seat.dun_code)}`;
   const meta = [];
   if (!isP && seat.parlimen) meta.push(`${esc(t("parlimen_label"))} ${esc(parlimenContext(seat))}`);
@@ -3961,7 +3988,7 @@ function stateSpotlightHTML() {
     return `${head(em)}${incumbentBlockHTML(prnEntry, seat.code)}${lastResultHTML(prnEntry)}
       <div class="src-line muted">${esc(t("src_johor2022"))}</div>`;
   }
-  const r = resultFor(seat);
+  const r = seatResultOf(seat, spotTier);
   if (!r) {
     return `${head()}<div class="bento-spot-empty"><div class="bento-spot-mark">🗳️</div><p class="muted">${esc(t("rep_ph"))}</p></div>`;
   }
@@ -3969,7 +3996,7 @@ function stateSpotlightHTML() {
   const blocPill = `<span class="pill" style="background:${partyColor(r.coalition)};color:#fff">${esc(r.coalition)}</span>`;
   const partyLabel = card.party && card.party.label && card.party.label !== r.coalition ? esc(card.party.label) : "";
   const blocUnit = `<span class="bloc-unit">${partyLabel ? "· " : ""}${blocPill}</span>`;
-  const yb = ybCardHTML(seat, r, partyLabel, blocUnit);
+  const yb = ybCardHTML(seat, r, partyLabel, blocUnit, politicianOf(seat, spotTier));
   // last-result block: coalition margin bar + competitiveness badge + the numbers
   const col = partyColor(r.coalition);
   const bar = Number.isFinite(card.votePct)
@@ -3991,7 +4018,7 @@ function stateSpotlightHTML() {
       ${bits.length ? `<div class="prn-inc-stat muted">${esc(bits.join(" · "))}</div>` : ""}
       ${runner}
     </div>
-    ${resultSourceLine(r, state.tier !== "parlimen" && !!ownDunResult(seat))}`;
+    ${resultSourceLine(r, !isP && !!(state.resultsDun && state.resultsDun[seat.code]))}`;
 }
 
 // "how this seat voted last time" — the previous contest's top candidates as a
@@ -4261,6 +4288,9 @@ function renderStateBento() {
 let bentoState = null;   // which state's dashboard is showing (resets the spotlight on change)
 function showStateBento(name) {
   if (!name || !BENTO_MQ.matches) return;
+  // the explore card searches BOTH layers — fetch the other one in the background
+  const other = state.tier === "parlimen" ? "dun" : "parlimen";
+  if (!state.data[other]) loadTier(other).catch(() => {});
   if (bentoState !== name) { bentoSeat = null; bentoState = name; }   // fresh state → fresh spotlight
   const d = state.data[state.tier];
   if (!bentoSeat && state.selected && d && d.byCode.has(state.selected)) bentoSeat = state.selected;
@@ -4286,33 +4316,58 @@ function bentoSeats() {
   return (d && state.openState && d.seats.filter((s) => s.state === state.openState)) || [];
 }
 // the searchable people attached to a seat: in election mode the 2026 candidates
-// (incl. ballot aliases) + the incumbent; otherwise the sitting rep
+// (incl. ballot aliases) + the incumbent; otherwise the sitting rep of that tier
+function seatPersonOf(seat, tier) {
+  const pol = politicianOf(seat, tier);
+  if (pol && pol.name) return pol.name;
+  const r = seatResultOf(seat, tier);
+  return (r && r.name) || "";
+}
 function bentoSeatPersons(seat) {
-  if (bentoElectionMode()) {
-    const entry = state.prn16 && state.prn16.seats && state.prn16.seats[seat.code];
-    if (!entry) return [];
-    const names = entry.candidates.flatMap((c) => [c.name, c.ballot_name].filter(Boolean));
-    if (entry.incumbent_2022) names.push(entry.incumbent_2022);
-    return names;
-  }
-  const rep = repNameForSeat(seat);
-  return rep ? [rep] : [];
+  const entry = state.prn16 && state.prn16.seats && state.prn16.seats[seat.code];
+  if (!entry) return [];
+  const names = entry.candidates.flatMap((c) => [c.name, c.ballot_name].filter(Boolean));
+  if (entry.incumbent_2022) names.push(entry.incumbent_2022);
+  return names;
+}
+function bentoResultRow({ seat, tier, who }) {
+  return `<button type="button" role="option" class="bento-result" data-code="${esc(seat.code)}"><b>${esc(displayCode(seat, tier) || seat.code)}</b> ${esc(seat.name)}${who ? ` <span class="muted">· ${esc(who)}</span>` : ""}</button>`;
 }
 function bentoResultsHTML(query) {
   const q = (typeof query === "string" ? query : "").trim().toLowerCase();
   if (!q) return "";
-  const seats = bentoSeats();
-  const base = searchSeats(seats, q, state.tier);            // place / code matches
-  const seen = new Set(base.map((s) => s.code));
-  const person = [];                                          // people matches (YB / candidate)
-  for (const s of seats) {
-    if (seen.has(s.code)) continue;
-    const hit = bentoSeatPersons(s).find((n) => n.toLowerCase().includes(q));
-    if (hit) person.push({ seat: s, who: hit });
+  if (bentoElectionMode()) {
+    // election view: the 2026 candidates + incumbents of the contested (DUN) tier
+    const seats = bentoSeats();
+    const base = searchSeats(seats, q, state.tier);
+    const seen = new Set(base.map((s) => s.code));
+    const person = [];
+    for (const s of seats) {
+      if (seen.has(s.code)) continue;
+      const hit = bentoSeatPersons(s).find((n) => n.toLowerCase().includes(q));
+      if (hit) person.push({ seat: s, tier: state.tier, who: hit });
+    }
+    const rows = base.map((s) => ({ seat: s, tier: state.tier, who: bentoSeatPersons(s)[0] || "" })).concat(person);
+    return rows.slice(0, 8).map(bentoResultRow).join("");
   }
-  const rows = base.map((s) => ({ seat: s, who: bentoSeatPersons(s)[0] || "" })).concat(person);
-  return rows.slice(0, 8).map(({ seat: s, who }) =>
-    `<button type="button" role="option" class="bento-result" data-code="${esc(s.code)}"><b>${esc(displayCode(s, state.tier) || s.code)}</b> ${esc(s.name)}${who ? ` <span class="muted">· ${esc(who)}</span>` : ""}</button>`).join("");
+  // state dashboard: BOTH layers of the open state are searchable (MPs and ADUNs),
+  // the map's current tier listed first
+  const tiers = state.tier === "parlimen" ? ["parlimen", "dun"] : ["dun", "parlimen"];
+  const rows = [];
+  for (const tier of tiers) {
+    const d = state.data[tier];
+    if (!d || !state.openState) continue;
+    const seats = d.seats.filter((sd) => sd.state === state.openState);
+    const base = searchSeats(seats, q, tier);
+    const seen = new Set(base.map((sd) => sd.code));
+    for (const sd of base) rows.push({ seat: sd, tier, who: seatPersonOf(sd, tier) });
+    for (const sd of seats) {
+      if (seen.has(sd.code)) continue;
+      const who = seatPersonOf(sd, tier);
+      if (who && who.toLowerCase().includes(q)) rows.push({ seat: sd, tier, who });
+    }
+  }
+  return rows.slice(0, 8).map(bentoResultRow).join("");
 }
 function bentoSearchClose() {
   const box = document.getElementById("bento-results");
