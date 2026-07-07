@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=22";
-import { I18N } from "./i18n.js?v=22";
+  competitivenessFromMajorityPct } from "./lib.js?v=23";
+import { I18N } from "./i18n.js?v=23";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -4261,6 +4261,42 @@ function bentoGovTileHTML(name) {
 }
 
 // generic state tiles — gov · clock · makeup · map · spotlight · econ · records
+// seats-by-coalition donut: ring segments in fixed party colours (2px surface gaps),
+// total in the centre, identity + counts carried by the text legend beside it
+// (never colour-alone — GPS/PH reds are close, the legend is the identity channel)
+function donutHTML(ents, total) {
+  if (!ents.length || !total) return "";
+  const R = 46, C = 2 * Math.PI * R;
+  const gap = ents.length > 1 ? 2.5 : 0;
+  let acc = 0;
+  const segs = ents.map(([coal, n]) => {
+    const len = C * n / total;
+    const draw = Math.max(len - gap, 0.75);
+    const seg = `<circle r="${R}" cx="60" cy="60" fill="none" stroke="${partyColor(coal)}" stroke-width="15" stroke-linecap="butt"
+      stroke-dasharray="${draw.toFixed(2)} ${(C - draw).toFixed(2)}" stroke-dashoffset="${(-acc).toFixed(2)}"><title>${esc(coal)} ${n}</title></circle>`;
+    acc += len;
+    return seg;
+  }).join("");
+  return `<svg viewBox="0 0 120 120" class="bento-donut-svg" role="img" aria-label="${esc(t("state_makeup"))}">
+    <g transform="rotate(-90 60 60)">${segs}</g>
+    <text x="60" y="58" text-anchor="middle" class="bento-donut-total">${total}</text>
+    <text x="60" y="76" text-anchor="middle" class="bento-donut-sub">${esc(t("bento_donut_seats"))}</text>
+  </svg>`;
+}
+function donutLegendHTML(ents, total) {
+  const max = Math.max(...ents.map(([, n]) => n));
+  return ents.map(([coal, n]) => {
+    const lead = n === max;
+    const pct = Math.round((n / total) * 100);
+    return `<div class="bento-donut-row${lead ? " is-lead" : ""}">
+      <span class="sw" style="background:${partyColor(coal)}"></span>
+      <span class="bento-donut-name">${esc(coal)}</span>
+      <b class="mono">${n}</b>
+      ${lead ? `<span class="muted">· ${pct}% · ${esc(t("state_leading_bloc"))}</span>` : ""}
+    </div>`;
+  }).join("");
+}
+
 // FOUR cards: government (top-left) · seats by coalition (top-right) ·
 // one explore section holding BOTH the map and the seat spotlight · key numbers
 // + economy merged into one stats card.
@@ -4268,12 +4304,14 @@ function bentoStateTilesHTML(name) {
   const st = stateStats(name, bentoMapTier());
   const econ = stateEconRows(name);
   const govTile = bentoGovTileHTML(name);
+  const totalSeats = st ? st.seats.length : 0;
   const makeupTile = st
     ? `<div class="bento-tile bento-stand">
          <div class="bento-kicker">${esc(t("state_makeup"))}</div>
-         <div class="sharebar bento-standings-bar">${st.bar}</div>
-         <div class="sharebar-key">${st.key}</div>
-         ${st.leaderStat ? `<div class="state-stats bento-stats">${st.leaderStat}</div>` : ""}
+         <div class="bento-donut">
+           ${donutHTML(st.ents, totalSeats)}
+           <div class="bento-donut-legend">${donutLegendHTML(st.ents, totalSeats)}</div>
+         </div>
        </div>`
     : "";
   const exploreTile = `<div class="bento-tile bento-explore">

@@ -2517,3 +2517,15 @@ body.bento-on #topbar .top-controls { margin-inline: auto; }
 @media (min-width: 1000px) {
   body.bento-on #top-controls { display: none; }
 }
+
+/* seats-by-coalition donut + legend */
+.bento-donut { flex: 1; min-height: 0; display: flex; align-items: center; gap: 22px; }
+.bento-donut-svg { width: 132px; height: 132px; flex: 0 0 auto; }
+.bento-donut-total { font-family: var(--mono); font-size: 26px; font-weight: 600; fill: var(--ink); }
+.bento-donut-sub { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; fill: var(--ink-dim); }
+.bento-donut-legend { min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.bento-donut-row { display: flex; align-items: baseline; gap: 8px; font-size: 13px; color: var(--ink-dim); }
+.bento-donut-row .sw { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; align-self: center; }
+.bento-donut-row .bento-donut-name { color: var(--ink); font-weight: 600; }
+.bento-donut-row b { font-size: 14px; color: var(--ink); }
+.bento-donut-row.is-lead .bento-donut-name { font-weight: 700; }
