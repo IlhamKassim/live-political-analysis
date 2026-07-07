@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=16";
-import { I18N } from "./i18n.js?v=16";
+  competitivenessFromMajorityPct } from "./lib.js?v=17";
+import { I18N } from "./i18n.js?v=17";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -4310,6 +4310,33 @@ function renderStateBento() {
     (bentoElectionMode() ? bentoElectionTilesHTML() : bentoStateTilesHTML(state.openState));
 }
 
+// the seat held by the state's head of government — the DEFAULT spotlight when the
+// dashboard opens (a selected seat / deep link still wins). Name-matched within the
+// state's own DUN roster; one curated override where the official ballot name is too
+// far from the common name to match.
+const GOV_SEAT_OVERRIDE = { "Sarawak": "13_N.26" };   // Abang Johari (official: Abang Abdul Rahman Zohari…)
+function govSeatOf(name) {
+  if (GOV_SEAT_OVERRIDE[name]) return GOV_SEAT_OVERRIDE[name];
+  const ctx = state.stateCtx;
+  const g = ctx && ctx.states && ctx.states[name] && ctx.states[name].gov;
+  if (!g || !g.name) return null;
+  const gk = namekeyLoose(g.name);
+  if (gk.length < 8) return null;
+  const d = state.data.dun;
+  if (!d) return null;
+  for (const seat of d.seats) {
+    if (seat.state !== name) continue;
+    const r = seatResultOf(seat, "dun");
+    const ad = state.aduns && state.aduns[seat.code];
+    for (const n of [r && r.name, ad && ad.name]) {
+      if (!n) continue;
+      const rk = namekeyLoose(n);
+      if (rk.length >= 8 && (rk === gk || rk.includes(gk) || gk.includes(rk))) return seat.code;
+    }
+  }
+  return null;
+}
+
 let bentoState = null;   // which state's dashboard is showing (resets the spotlight on change)
 function showStateBento(name) {
   if (!name || !BENTO_MQ.matches) return;
@@ -4319,6 +4346,19 @@ function showStateBento(name) {
   if (bentoState !== name) { bentoSeat = null; bentoTier = null; bentoState = name; }   // fresh state → fresh spotlight + layer
   const d = state.data[state.tier];
   if (!bentoSeat && state.selected && d && d.byCode.has(state.selected)) bentoSeat = state.selected;
+  // no seat chosen → spotlight the head of government's own seat by default
+  if (!bentoSeat) {
+    bentoSeat = govSeatOf(name);
+    if (!bentoSeat && !state.data.dun) {
+      // DUN roster still loading (opened on the parliament layer) — backfill once it lands
+      loadTier("dun").then(() => {
+        if (!bentoSeat && bentoState === name && document.body.classList.contains("bento-on")) {
+          bentoSeat = govSeatOf(name);
+          if (bentoSeat) updateBentoSpotlight();
+        }
+      }).catch(() => {});
+    }
+  }
   document.body.classList.add("bento-on");
   BENTO.hidden = false;
   renderStateBento();
