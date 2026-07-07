@@ -2782,8 +2782,14 @@ function renderSidebarStates() {
   if (!host || !d) return;
   const names = [...new Set(d.seats.map((s) => s.state))]
     .sort((a, b) => (a.startsWith("W.P.") - b.startsWith("W.P.")) || a.localeCompare(b));
-  host.innerHTML = names.map((n) =>
-    `<button type="button" class="sb-item sb-state" data-sb-state="${esc(n)}">${esc(n)}</button>`).join("");
+  const e = liveElection();
+  host.innerHTML = names.map((n) => {
+    const isElection = !!(e && e.state === n);
+    return `<button type="button" class="sb-item sb-state${isElection ? " is-election" : ""}" data-sb-state="${esc(n)}">
+      <span class="sb-state-name">${esc(n)}</span>
+      ${isElection ? `<span class="sb-state-badge">${esc(t("prn_kicker"))}</span>` : ""}
+    </button>`;
+  }).join("");
 }
 function syncSidebar() {
   const sb = document.getElementById("sidebar");
@@ -3515,6 +3521,70 @@ function stateStats(name, tier = state.tier) {
   return { seats, ents, bar, key, leaderStat, turnoutStat, closestStat, largestStat, votesStat, candidatesStat };
 }
 
+function stateSeatCountText(tier, n) {
+  const key = "state_count_" + (tier === "parlimen" ? "parlimen" : "dun") + (n === 1 ? "_one" : "");
+  return t(key, { n });
+}
+
+function stateGovBrief(name) {
+  const st = state.stateCtx && state.stateCtx.states && state.stateCtx.states[name];
+  const g = st && st.gov;
+  if (!g) return null;
+  const title = g.title === "MB" ? "Menteri Besar" : g.title === "KM" ? "Ketua Menteri" : g.title;
+  return { title, name: g.name, coalition: g.coalition };
+}
+
+function prnContestTotal(p = state.prn16) {
+  return Object.values((p && p.contested) || {}).reduce((a, b) => a + b, 0);
+}
+
+function stateBriefHTML(name, st) {
+  const e = prnActiveForState(name);
+  if (e) {
+    const cd = prnCountdownLabel(e);
+    const total = prnContestTotal();
+    const chips = [
+      `<span class="state-brief-chip"><b>${esc(t("state_status_polling", { d: fmtDayMonth(e.polling_day) }))}</b></span>`,
+      cd ? `<span class="state-brief-chip">${esc(t("state_status_countdown", { v: cd }))}</span>` : "",
+      total ? `<span class="state-brief-chip">${esc(t("prn_candidates_filed", { n: total }))}</span>` : "",
+      `<span class="state-brief-chip">${esc(t("state_status_majority", { n: e.majority }))}</span>`,
+    ].filter(Boolean).join("");
+    return `<section class="state-brief is-election">
+      <div>
+        <div class="state-brief-kicker"><span class="live-dot" aria-hidden="true"></span>${esc(t("prn_kicker"))}</div>
+        <h3>${esc(e.name)}</h3>
+        <p>${esc(t("state_brief_election_body"))}</p>
+      </div>
+      <div class="state-brief-chips">${chips}</div>
+      <button id="prn-open" class="prn-open-btn" type="button">${esc(t("prn_open"))} →</button>
+    </section>`;
+  }
+
+  const leader = st.ents[0];
+  const gov = stateGovBrief(name);
+  const clock = stateClockText(name);
+  const leadChip = leader
+    ? `<span class="state-brief-chip"><span class="sw" style="background:${partyColor(leader[0])}"></span><b>${esc(leader[0])}</b> ${leader[1]}/${st.seats.length}</span>`
+    : "";
+  const chips = [
+    `<span class="state-brief-chip">${esc(stateSeatCountText(state.tier, st.seats.length))}</span>`,
+    leadChip,
+    gov ? `<span class="state-brief-chip">${esc(t("state_status_gov", { title: gov.title, name: gov.name }))}</span>` : "",
+    clock ? `<span class="state-brief-chip">${esc(t("state_status_clock", { v: clock }))}</span>` : "",
+  ].filter(Boolean).join("");
+  const body = leader
+    ? t("state_brief_lead", { coalition: leader[0], count: leader[1], total: st.seats.length }) + " " + t("state_brief_select")
+    : t("state_brief_select");
+  return `<section class="state-brief">
+    <div>
+      <div class="state-brief-kicker">${esc(t("state_brief_kicker"))}</div>
+      <h3>${esc(name)}</h3>
+      <p>${esc(body)}</p>
+    </div>
+    <div class="state-brief-chips">${chips}</div>
+  </section>`;
+}
+
 function stateSummaryHTML(name) {
   if (state.prnMode && prnActiveForState(name)) return prnSummaryHTML();
   const st = stateStats(name);
@@ -3527,16 +3597,19 @@ function stateSummaryHTML(name) {
   // (you opened the state to drill into a district) and must be visible without
   // scrolling past the stats + economy. On mobile the tray already has one.
   const desktopFinder = !MOBILE_MAP_INSPECT_MQ.matches
-    ? `<div class="state-info-h muted">${esc(t("find_district"))}</div>
+    ? `<div class="state-section state-find-section">
+       <div class="state-info-h muted">${esc(t("find_district"))}</div>
        <div class="state-district-find state-district-find-top">${districtSwitchRowHTML(state.selected || "", false)}</div>`
+       + `</div>`
     : "";
   return (
-    prnBannerHTML(name) +
+    stateBriefHTML(name, st) +
     desktopFinder +
-    '<div class="state-info-h muted"' + (desktopFinder ? ' style="margin-top:16px"' : "") + ">" + esc(t("state_makeup")) + "</div>" +
+    '<div class="state-section"><div class="state-info-h muted">' + esc(t("state_makeup")) + "</div>" +
     '<div class="sharebar">' + bar + "</div>" +
     '<div class="sharebar-key">' + key + "</div>" +
     (stats.length ? '<div class="state-stats">' + stats.join("") + "</div>" : "") +
+    "</div>" +
     stateContextHTML(name) +
     (desktopFinder ? "" : '<p class="state-tap-hint muted">' + esc(t("tap_district")) + "</p>")
   );
@@ -3555,26 +3628,32 @@ function addDays(iso, n) {
   d.setDate(d.getDate() + n);
   return d.toISOString().slice(0, 10);
 }
+function stateClockText(name) {
+  const ctx = state.stateCtx;
+  const st = ctx && ctx.states && ctx.states[name];
+  const clock = st && st.clock;
+  if (!clock || prnActiveForState(name)) return "";
+  if (clock.federal) {
+    return `${t("ctx_federal")} · ${t("ctx_due_by", { d: fmtDMY(addDays(ctx.parlimen.dissolve_by, 60)) })}`;
+  }
+  if (clock.next) {
+    return `${fmtDMY(clock.next)} · ${t("ctx_in_days", { n: daysUntil(clock.next) })}`;
+  }
+  if (clock.dissolve_by) {
+    const due = addDays(clock.dissolve_by, 60);   // dissolution deadline + 60-day window
+    let v = t("ctx_due_by", { d: fmtDMY(due) });
+    if (clock.expected) v += ` · ${t("ctx_expected", { y: clock.expected })}`;
+    v += ` · ${t("ctx_in_days", { n: daysUntil(due) })}`;
+    return v;
+  }
+  return "";
+}
 // gov + election-clock rows (dt/dd fragments) — shared by the panel context block
 // and the bento government tile. Pure extraction; fragments unchanged.
 // the "next election" dt/dd row (or "" when a live election supersedes the clock) —
 // shared by the panel context block, stateGovRows, and the bento government tile
 function stateClockRow(name) {
-  const ctx = state.stateCtx;
-  const st = ctx && ctx.states && ctx.states[name];
-  const clock = st && st.clock;
-  if (!clock || prnActiveForState(name)) return "";
-  let v = "";
-  if (clock.federal) {
-    v = `${t("ctx_federal")} · ${t("ctx_due_by", { d: fmtDMY(addDays(ctx.parlimen.dissolve_by, 60)) })}`;
-  } else if (clock.next) {
-    v = `${fmtDMY(clock.next)} · ${t("ctx_in_days", { n: daysUntil(clock.next) })}`;
-  } else if (clock.dissolve_by) {
-    const due = addDays(clock.dissolve_by, 60);   // dissolution deadline + 60-day window
-    v = t("ctx_due_by", { d: fmtDMY(due) });
-    if (clock.expected) v += ` · ${t("ctx_expected", { y: clock.expected })}`;
-    v += ` · ${t("ctx_in_days", { n: daysUntil(due) })}`;
-  }
+  const v = stateClockText(name);
   return v ? `<dt>${esc(t("ctx_next_election"))}</dt><dd>${esc(v)}</dd>` : "";
 }
 
@@ -3707,7 +3786,7 @@ function prnSummaryHTML() {
   if (!e || !p) return "";
   const liveNow = state.prnLive && (state.prnLive.phase === "live" || state.prnLive.phase === "final");
   const cd = liveNow ? null : prnCountdownLabel(e);
-  const total = Object.values(p.contested || {}).reduce((a, b) => a + b, 0);
+  const total = prnContestTotal(p);
   const order = Object.entries(p.contested || {}).sort((a, b) => b[1] - a[1]);
   const bar = order.map(([coal, n]) => {
     const c = prnCoalColor(coal);
@@ -3734,72 +3813,70 @@ function prnSummaryHTML() {
     </div>`;
   }
   const prnFinder = !MOBILE_MAP_INSPECT_MQ.matches
-    ? `<div class="state-info-h muted" style="margin-top:14px">${esc(t("find_district"))}</div><div class="state-district-find state-district-find-top">${districtSwitchRowHTML(state.selected || "", false)}</div>`
+    ? `<div class="state-section state-find-section"><div class="state-info-h muted">${esc(t("find_district"))}</div><div class="state-district-find state-district-find-top">${districtSwitchRowHTML(state.selected || "", false)}</div></div>`
     : "";
   return `<div class="prn-summary">
-    ${head}
-    ${cd ? `<div class="prn-countdown">${esc(cd)}</div>` : ""}
+    <section class="state-brief is-election prn-brief">
+      <div>
+        <div class="state-brief-kicker"><span class="live-dot" aria-hidden="true"></span>${esc(t("prn_kicker"))}</div>
+        <h3>${esc(e.name)}</h3>
+        <p>${esc(t("prn_panel_compare"))}</p>
+      </div>
+      <div class="state-brief-chips">
+        <span class="state-brief-chip"><b>${esc(t("state_status_polling", { d: fmtDayMonth(e.polling_day) }))}</b></span>
+        ${cd ? `<span class="state-brief-chip">${esc(t("state_status_countdown", { v: cd }))}</span>` : ""}
+        <span class="state-brief-chip">${esc(t("prn_candidates_filed", { n: total }))}</span>
+        <span class="state-brief-chip">${esc(t("state_status_majority", { n: e.majority }))}</span>
+      </div>
+    </section>
     ${prnFinder}
-    <dl class="rows prn-dates"${prnFinder ? ' style="margin-top:14px"' : ""}>${rows}</dl>
-    <div class="state-info-h muted" style="margin-top:14px">${esc(t("prn_contested"))} · ${total}</div>
-    <div class="sharebar">${bar}</div>
-    <div class="sharebar-key">${key}</div>
-    <p class="prn-majority muted">${esc(t("prn_majority", { n: e.majority }))}</p>
+    <div class="prn-panel-grid">
+      <section class="prn-panel-card">
+        <div class="state-info-h muted">${esc(t("prn_bento_key_dates"))}</div>
+        <dl class="rows prn-dates">${rows}</dl>
+      </section>
+      <section class="prn-panel-card">
+        <div class="state-info-h muted">${esc(t("prn_contested"))} · ${total}</div>
+        <div class="sharebar">${bar}</div>
+        <div class="sharebar-key">${key}</div>
+        <p class="prn-majority muted">${esc(t("prn_majority", { n: e.majority }))}</p>
+      </section>
+    </div>
     ${prnFinder ? "" : `<p class="state-tap-hint muted">${esc(t("prn_tap_hint"))}</p>`}
     <a class="prn-check" href="${esc(e.check_voter_url)}" target="_blank" rel="noopener">${esc(t("prn_check"))}</a>
     <p class="src-line muted">${esc(t("prn_source"))}</p>
     <button id="prn-close" class="prn-close-btn" type="button">${esc(t("prn_close"))}</button>
   </div>`;
 }
+function prnRaceFactsHTML(seat, entry) {
+  const facts = [];
+  if (entry.electorate) facts.push([t("prn_electorate"), entry.electorate.toLocaleString()]);
+  facts.push([t("prn_candidates"), entry.candidates.length]);
+  if (seat.parlimen) facts.push([t("parlimen_label"), parlimenContext(seat)]);
+  const comp = competitiveness(entry);
+  if (comp) facts.push([t("bento_last_result"), t("prn_comp_" + comp.key)]);
+  return `<div class="prn-race-facts">${facts.map(([k, v]) =>
+    `<div class="prn-race-fact"><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join("")}</div>`;
+}
 // per-seat candidate card (replaces the GE15-fallback seat card inside PRN view)
 function prnSeatCardHTML(seat, entry) {
   const e = liveElection();
-  const nameKey = (s) => s.toLowerCase().replace(/\b(bin|binti|a\/l|a\/p|anak)\b/g, " ").replace(/[^a-z]+/g, "");
-  const cands = entry.candidates.map((c) => {
-    const col = prnCoalColor(c.coalition);
-    const alias = c.ballot_name && nameKey(c.ballot_name) !== nameKey(c.name)
-      ? ` <small class="muted">(${esc(c.ballot_name)})</small>` : "";
-    const sym = c.symbol ? ` <small class="muted">· ${esc(c.symbol)}</small>` : "";
-    const party = c.party && c.party !== c.coalition ? `${esc(c.coalition)} · ${esc(c.party)}` : esc(c.coalition);
-    return `<div class="prn-cand"><span class="prn-cand-name">${esc(c.name)}${alias}${sym}</span>` +
-      `<span class="pill" style="background:${col.bg};color:${col.fg}">${party}</span></div>`;
-  }).join("");
-  const meta = [];
-  if (entry.electorate) meta.push(`<dt>${esc(t("prn_electorate"))}</dt><dd class="mono">${entry.electorate.toLocaleString()}</dd>`);
-  if (entry.incumbent_2022) {
-    const stat = incumbentStatLine(entry);
-    meta.push(`<dt>${esc(t("prn_incumbent"))}</dt><dd>${esc(entry.incumbent_2022)}${entry.incumbent_party_2022 ? " · " + esc(entry.incumbent_party_2022) : ""}${stat ? `<br><span class="muted">${esc(stat)}</span>` : ""}</dd>`);
-  }
-  // campaign-window headlines per candidate (links only — never paraphrased)
   const seatNews = state.prnNews && state.prnNews[seat.code];
-  let newsHTML = "";
-  if (seatNews) {
-    const blocks = entry.candidates.map((c) => {
-      const items = seatNews[c.name];
-      if (!items || !items.length) return "";
-      const links = items.map((n) =>
-        `<a class="prn-news-item" href="${esc(n.u)}" target="_blank" rel="noopener">
-          <span class="prn-news-t">${esc(n.t)}</span>
-          <span class="prn-news-s muted">${esc(n.s)}${n.d ? " · " + esc(fmtDayMonth(n.d)) : ""}</span></a>`).join("");
-      return `<div class="prn-news-cand"><div class="prn-news-name muted">${esc(c.name)}</div>${links}</div>`;
-    }).filter(Boolean).join("");
-    if (blocks) {
-      newsHTML = `<div class="state-info-h muted" style="margin-top:14px">${esc(t("prn_news"))}</div>
-        <div class="prn-news">${blocks}</div>
-        <p class="src-line muted">${esc(t("prn_news_note"))}</p>`;
-    }
-  }
+  const hasNews = !!(seatNews && entry.candidates.some((c) => seatNews[c.name] && seatNews[c.name].length));
   return `<div class="seat-head prn-seat-head">
       <div class="kicker">🗳️ ${esc(e.name)} · ${esc(entry.ncode)}</div>
       <h2>${esc(entry.name)}</h2>
       ${seat.parlimen ? `<div class="where">${esc(t("parlimen_label"))} <b>${esc(parlimenContext(seat))}</b></div>` : ""}
     </div>
     ${seatDetailActionsHTML()}
-    <div class="state-info-h muted">${esc(t("prn_candidates"))} · ${entry.candidates.length}</div>
-    <div class="prn-cands">${cands}</div>
-    ${newsHTML}
+    <div class="state-info-h muted">${esc(t("prn_race_facts"))}</div>
+    ${prnRaceFactsHTML(seat, entry)}
+    ${incumbentBlockHTML(entry, seat.code)}
+    <div class="state-info-h muted">${esc(t("prn_candidate_compare"))} · ${entry.candidates.length}</div>
+    <div class="prn-cands prn-cands-compare">${prnCandidateCardsHTML(entry, seat.code)}</div>
+    ${hasNews ? `<p class="src-line muted">${esc(t("prn_news_note"))}</p>` : ""}
+    ${lastResultHTML(entry)}
     ${prnPledgesHTML(entry)}
-    ${meta.length ? `<dl class="rows prn-dates">${meta.join("")}</dl>` : ""}
     <p class="callout prn-note">${esc(t("prn_results_note"))}</p>
     <p class="src-line muted">${esc(t("prn_source"))}</p>`;
 }
@@ -4177,10 +4254,10 @@ function prnCandidateCardsHTML(entry, seatCode) {
           `<a class="prn-cc-newslink" href="${esc(n.u)}" target="_blank" rel="noopener"><span class="prn-cc-newst">${esc(n.t)}</span><span class="muted">${esc(n.s)}${n.d ? " · " + esc(fmtDayMonth(n.d)) : ""}</span></a>`).join("")}</div>`
       : "";
     const extra = sym || news ? `<div class="prn-cc-extra">${sym}${news}</div>` : "";
-    const incChip = isInc ? `<span class="prn-cc-inc">${esc(t("prn_cc_incumbent"))}</span>` : "";
+    const incChip = isInc ? ` <span class="prn-cc-inc">${esc(t("prn_cc_incumbent"))}</span>` : "";
     return `<div class="prn-cc${isInc ? " is-inc" : ""}" style="--cc:${col.bg}">
       <div class="prn-cc-head">
-        <div class="prn-cc-id"><span class="prn-cc-name">${esc(c.name)}${incChip}</span>${alias}</div>
+        <div class="prn-cc-id"><span class="prn-cc-name"><span>${esc(c.name)}</span>${incChip}</span>${alias}</div>
         <span class="pill" style="background:${col.bg};color:${col.fg}">${party}</span>
       </div>${extra}</div>`;
   }).join("");

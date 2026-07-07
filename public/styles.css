@@ -707,6 +707,75 @@ body.state-open #map { overflow: visible; }
 /* info under the state map: coalition make-up by default, the tapped district's detail when chosen */
 #state-info { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 14px; }
 .state-info-h { font-size: 12px; margin: 0 0 8px; }
+.state-section {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.state-section:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.state-brief {
+  display: grid;
+  gap: 12px;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012));
+}
+.state-brief.is-election {
+  border-color: rgba(255,120,120,.38);
+  background: linear-gradient(180deg, rgba(255,90,90,.11), rgba(255,90,90,.025));
+}
+.state-brief-kicker {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.state-brief h3 {
+  margin: 4px 0 0;
+  font-size: 20px;
+  line-height: 1.08;
+}
+.state-brief p {
+  margin: 6px 0 0;
+  color: var(--ink-dim);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.state-brief-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.state-brief-chip {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255,255,255,.025);
+  color: var(--ink-dim);
+  font-size: 11.5px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.state-brief-chip b { color: var(--ink); font-weight: 700; }
+.state-brief-chip .sw {
+  width: 8px;
+  height: 8px;
+  border-radius: 3px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(231,237,244,.22);
+}
+.state-brief .prn-open-btn { margin-top: 0; }
 .state-tap-hint { font-size: 12px; margin: 12px 0 0; text-align: center; }
 .state-turnout { font-size: 12px; margin-top: 8px; }
 .state-stats {
@@ -1943,9 +2012,24 @@ button.map-inspect-overview:focus-visible { outline: 2px solid var(--accent); ou
 .prn-open-btn:hover { background: #cc3a43; }
 .prn-open-btn:focus-visible { outline: 2px solid #ff9a9a; outline-offset: 2px; }
 .prn-open-compact { margin: 0 0 8px; }
+.prn-summary { display: grid; gap: 14px; }
+.prn-brief { margin-bottom: 0; }
 .prn-countdown { font-family: var(--mono); font-size: 13px; color: #ff9a9a; margin-top: 6px; }
 .prn-dates { margin-top: 10px; }
 .prn-majority { font-size: 12px; margin: 8px 0 0; }
+.prn-panel-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.prn-panel-card {
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255,255,255,.02);
+}
+.prn-panel-card .sharebar { margin-top: 10px; }
 .prn-check { display: inline-block; margin-top: 12px; font-size: 13px; color: var(--accent); text-decoration: none; }
 .prn-check:hover { text-decoration: underline; }
 .prn-mobile-summary {
@@ -1992,8 +2076,51 @@ button.map-inspect-overview:focus-visible { outline: 2px solid var(--accent); ou
 }
 .prn-cand-name { font-size: 13.5px; color: var(--ink); min-width: 0; overflow-wrap: anywhere; }
 .prn-cand .pill { flex: 0 0 auto; }
+.prn-cands-compare {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+.prn-cands-compare .prn-cc { min-height: 112px; }
+.prn-race-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 8px 0 10px;
+}
+.prn-race-fact {
+  min-width: 0;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255,255,255,.02);
+}
+.prn-race-fact span {
+  display: block;
+  color: var(--ink-dim);
+  font-size: 10.5px;
+  line-height: 1.25;
+}
+.prn-race-fact b {
+  display: block;
+  margin-top: 3px;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
 .prn-note { margin-top: 12px; }
 .prn-seat-head { border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 12px; }
+
+@media (max-width: 560px) {
+  .prn-panel-grid,
+  .prn-race-facts {
+    grid-template-columns: 1fr;
+  }
+  .state-brief h3 {
+    font-size: 18px;
+  }
+}
 
 
 /* ===== app-feel on touch: no page zoom, keyboard-aware bottom panel ===== */
@@ -2079,6 +2206,7 @@ body.searching .results {
 /* the district finder sits near the top of the desktop state card — a subtle divider
    under it separates the primary action from the summary content below */
 .state-district-find-top { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.state-find-section .state-district-find-top { margin-bottom: 0; padding-bottom: 0; border-bottom: 0; }
 
 /* ===== MP profile (photo + bio) on the Current YB block & directory ===== */
 .pol-photo {
@@ -2576,6 +2704,29 @@ body.bento-on #topbar .top-controls { margin-inline: auto; }
 }
 .sb-states { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; }
 .sb-state { font-size: 13px; padding: 7px 10px; }
+.sb-state-name {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sb-state-badge {
+  flex: 0 0 auto;
+  min-height: 20px;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 6px;
+  border-radius: 6px;
+  background: rgba(255,90,90,.14);
+  color: #ffb3b3;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+.sb-state.is-election { color: var(--ink); }
 .sb-foot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 2px; }
 .sb-small { width: auto; font-size: 12.5px; padding: 7px 9px; }
 .sb-lang { margin-left: auto; }
