@@ -4,8 +4,8 @@
 
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
-  resultKey, displayCode, tallyCoalitions, stateHues } from "./lib.js?v=5";
-import { I18N } from "./i18n.js?v=5";
+  resultKey, displayCode, tallyCoalitions, stateHues } from "./lib.js?v=6";
+import { I18N } from "./i18n.js?v=6";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -863,6 +863,26 @@ function resultFor(seat) {
 // seats. Parliament uses GE15 rows; DUN aggregates only use real DUN result rows.
 function stateSummaryResultFor(seat) {
   return state.tier === "parlimen" ? resultFor(seat) : ownDunResult(seat);
+}
+
+// the seat's current representative (YB / MP) name — the politician's common name
+// where we have one, else the election winner. Used so search matches people, not
+// just place names, and so a result row can show who holds the seat.
+function repNameForSeat(seat) {
+  if (!seat) return "";
+  const pol = politicianFor(seat);   // parlimen only; common name preferred
+  if (pol && pol.name) return pol.name;
+  const r = resultFor(seat);
+  return (r && r.name) || "";
+}
+// search seats by place AND by representative name (so "rafizi" finds Pandan)
+function searchSeatsAndReps(seats, q, tier) {
+  const base = searchSeats(seats, q, tier);
+  const ql = (typeof q === "string" ? q : "").trim().toLowerCase();
+  if (!ql) return base;
+  const seen = new Set(base.map((s) => s.code));
+  const extra = seats.filter((s) => !seen.has(s.code) && repNameForSeat(s).toLowerCase().includes(ql));
+  return base.concat(extra);
 }
 
 function seatValueColor(seat) {
@@ -2241,7 +2261,7 @@ Q.addEventListener("input", () => {
   if (!q) return;
   const data = state.data[state.tier];
   if (!data) return;   // boundary layer unavailable (init bailed) — keep search inert, don't throw
-  const hits = searchSeats(data.seats, q, state.tier);
+  const hits = searchSeatsAndReps(data.seats, q, state.tier);
   if (!hits.length) return;
   for (const p of state.paths.values()) p.classList.add("dim");
   for (const s of hits.slice(0, 60)) {
@@ -2250,7 +2270,9 @@ Q.addEventListener("input", () => {
   }
   RESULTS.innerHTML = hits.slice(0, 8).map((s, i) => {
     const code = displayCode(s, state.tier);
-    return `<button id="result-opt-${i}" role="option" aria-selected="false" data-code="${esc(s.code)}"><span>${esc(s.name)} <span class="muted" style="font-size:11px">${esc(s.state)}</span></span><span class="code">${esc(code)}</span></button>`;
+    const rep = repNameForSeat(s);           // show the YB so a name match is obvious
+    const sub = rep ? `${esc(rep)} <span style="opacity:.6">· ${esc(s.state)}</span>` : esc(s.state);
+    return `<button id="result-opt-${i}" role="option" aria-selected="false" data-code="${esc(s.code)}"><span>${esc(s.name)} <span class="muted" style="font-size:11px">${sub}</span></span><span class="code">${esc(code)}</span></button>`;
   }).join("");
   setActiveResult(-1);            // fresh list: nothing highlighted yet
   RESULTS.hidden = false;
@@ -2638,20 +2660,29 @@ function districtSelectHTML(selectedCode = "") {
         <i class="map-inspect-select-caret" aria-hidden="true"></i>
       </button>
       <div id="map-inspect-district-list" class="map-inspect-select-list" role="listbox" aria-label="${label}" hidden>
+        <div class="map-inspect-search-wrap">
+          <input id="map-inspect-search" class="map-inspect-search" type="search" autocomplete="off" spellcheck="false"
+            placeholder="${esc(t("find_district_search"))}" aria-label="${esc(t("find_district_search"))}" />
+        </div>
+        <div class="map-inspect-options">
         ${seats.map((seat) => {
           const code = displayCode(seat, state.tier) || seat.code;
           const isSelected = seat.code === selectedCode;
+          const rep = repNameForSeat(seat);
           return `
             <button
               class="map-inspect-option"
               type="button"
               role="option"
               aria-selected="${isSelected ? "true" : "false"}"
-              data-map-inspect-district="${esc(seat.code)}">
-              ${esc(code)} · ${esc(seat.name)}
+              data-map-inspect-district="${esc(seat.code)}"
+              data-search="${esc(`${code} ${seat.name} ${rep}`.toLowerCase())}">
+              ${esc(code)} · ${esc(seat.name)}${rep ? ` <span class="map-inspect-option-yb muted">· ${esc(rep)}</span>` : ""}
             </button>
           `;
         }).join("")}
+        <div class="map-inspect-noresult muted" hidden>${esc(t("map_inspect_no_match"))}</div>
+        </div>
       </div>
     </div>
   `;
@@ -2694,10 +2725,26 @@ function setDistrictPickerOpen(open, focusOption = false) {
   picker.classList.toggle("open", next);
   toggle.setAttribute("aria-expanded", next ? "true" : "false");
   list.hidden = !next;
-  if (next && focusOption) {
-    const target = list.querySelector('[aria-selected="true"]') || list.querySelector(".map-inspect-option");
-    target?.focus({ preventScroll: true });
+  if (next) {
+    // opening: reset any prior filter, then put the cursor in the search box so the
+    // user can type straight away (arrow-down hops into the options list).
+    const search = list.querySelector("#map-inspect-search");
+    if (search) { search.value = ""; filterDistrictOptions(list, ""); }
+    if (focusOption) (search || list.querySelector(".map-inspect-option"))?.focus({ preventScroll: true });
   }
+}
+
+// show only options whose code / name / YB matches the query; toggle the empty state
+function filterDistrictOptions(list, q) {
+  const ql = (q || "").trim().toLowerCase();
+  let any = false;
+  list.querySelectorAll(".map-inspect-option").forEach((opt) => {
+    const match = !ql || (opt.dataset.search || "").includes(ql);
+    opt.hidden = !match;
+    if (match) any = true;
+  });
+  const empty = list.querySelector(".map-inspect-noresult");
+  if (empty) empty.hidden = any;
 }
 
 function districtPickerOpen() {
@@ -2708,7 +2755,7 @@ function districtPickerOpen() {
 function focusDistrictPickerOption(current, key) {
   const list = document.getElementById("map-inspect-district-list");
   if (!list) return;
-  const options = [...list.querySelectorAll(".map-inspect-option")];
+  const options = [...list.querySelectorAll(".map-inspect-option:not([hidden])")];
   if (!options.length) return;
   const currentIndex = Math.max(0, options.indexOf(current));
   let nextIndex = currentIndex;
@@ -2730,6 +2777,24 @@ function chooseMapInspectDistrict(code, focusToggle = false) {
     });
   }
 }
+
+// district-picker search box (lives inside PANEL_STATE or PANEL_SEAT, so bind once
+// at the document): filter as you type; Enter picks the first visible, ArrowDown
+// hops into the list, Escape closes.
+document.addEventListener("input", (e) => {
+  if (e.target.id !== "map-inspect-search") return;
+  const list = e.target.closest(".map-inspect-select-list");
+  if (list) filterDistrictOptions(list, e.target.value);
+});
+document.addEventListener("keydown", (e) => {
+  if (e.target.id !== "map-inspect-search") return;
+  const list = e.target.closest(".map-inspect-select-list");
+  if (!list) return;
+  const first = () => list.querySelector(".map-inspect-option:not([hidden])");
+  if (e.key === "Enter") { e.preventDefault(); chooseMapInspectDistrict(first()?.dataset.mapInspectDistrict, true); }
+  else if (e.key === "ArrowDown") { e.preventDefault(); first()?.focus(); }
+  else if (e.key === "Escape") { e.preventDefault(); setDistrictPickerOpen(false); }
+});
 
 function mapInspectOverviewHTML(seat) {
   if (!seat) return "";
