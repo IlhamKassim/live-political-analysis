@@ -2410,15 +2410,27 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 .bento-prn-toggle:hover { color: var(--ink); border-color: var(--accent); }
 .bento-prn-toggle.on { color: var(--ink); border-color: var(--accent); background: color-mix(in oklab, var(--accent) 16%, var(--bg-2)); }
 
-/* state-mode grid: gov+makeup strip · map+spotlight · econ+records */
+/* state-mode grid, FOUR cards: gov · makeup on top; one explore card (map +
+   spotlight together — one section); one stats card (key numbers + economy) */
 .bento-grid.is-state {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-areas:
-    "gov  gov   stand stand"
-    "map  map   spot  spot"
-    "econ econ  records records";
-  grid-template-rows: auto minmax(340px, 1fr) auto;
+    "gov     stand"
+    "explore explore"
+    "stats   stats";
+  grid-template-rows: auto minmax(380px, 1fr) auto;
 }
-.bento-gov { grid-area: gov; } .bento-econ { grid-area: econ; } .bento-records { grid-area: records; }
+.bento-gov { grid-area: gov; } .bento-explore { grid-area: explore; } .bento-statsrow { grid-area: stats; }
+.bento-explore { min-height: 0; }
+.bento-explore-inner { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 20px; }
+.bento-explore-map { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 9px; }
+.bento-explore-map .bento-map-wrap { min-height: 240px; }
+.bento-explore-spot { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 9px; border-left: 1px solid var(--line); padding-left: 20px; }
+.bento-explore-spot #bento-spot-body { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+/* stats card: key numbers + economy side by side */
+.bento-stats-inner { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 22px; }
+.bento-stats-inner .bento-econ { border-left: 1px solid var(--line); padding-left: 22px; }
+.bento-stats-inner .bento-kicker { margin-bottom: 8px; }
 
 /* dl rows inside tiles: reuse the panel's .state-ctx typography, tile-tightened */
 .bento-ctx { margin: 0; }

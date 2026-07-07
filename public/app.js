@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=13";
-import { I18N } from "./i18n.js?v=13";
+  competitivenessFromMajorityPct } from "./lib.js?v=14";
+import { I18N } from "./i18n.js?v=14";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -4079,20 +4079,23 @@ function prnPledgeTabsHTML() {
 }
 
 // shared map tile (both modes): choropleth + seat search for the open state
-function bentoMapTileHTML(name) {
+// the map section (kicker + search + choropleth), tile-agnostic: the election grid
+// wraps it in its own tile; the state grid embeds it beside the spotlight
+function bentoMapSectionHTML(name) {
   const d = state.data[state.tier];
   const n = d ? d.seats.filter((s) => s.state === name).length : 0;
   const colourNote = bentoElectionMode() ? t("prn_bento_incumbent_map") : t("bento_map_winner");
-  return `<div class="bento-tile bento-map">
-    <div class="bento-map-topbar">
+  return `<div class="bento-map-topbar">
       <div class="bento-kicker">${esc(n)} ${esc(t(state.tier === "parlimen" ? "tier_parlimen" : "tier_dun"))} · ${esc(colourNote)}</div>
       <div class="bento-search">
         <input id="bento-q" class="bento-q" type="search" autocomplete="off" spellcheck="false" placeholder="${esc(t("search_ph"))}" aria-label="${esc(t("search_ph"))}" />
         <div id="bento-results" class="bento-results" role="listbox" hidden></div>
       </div>
     </div>
-    <div class="bento-map-wrap">${stateMapTileSVG(name)}</div>
-  </div>`;
+    <div class="bento-map-wrap">${stateMapTileSVG(name)}</div>`;
+}
+function bentoMapTileHTML(name) {
+  return `<div class="bento-tile bento-map">${bentoMapSectionHTML(name)}</div>`;
 }
 
 // header shared by both modes: state/election title + PRN toggle chip (only where a
@@ -4200,17 +4203,13 @@ function bentoGovTileHTML(name) {
 }
 
 // generic state tiles — gov · clock · makeup · map · spotlight · econ · records
+// FOUR cards: government (top-left) · seats by coalition (top-right) ·
+// one explore section holding BOTH the map and the seat spotlight · key numbers
+// + economy merged into one stats card.
 function bentoStateTilesHTML(name) {
   const st = stateStats(name);
   const econ = stateEconRows(name);
   const govTile = bentoGovTileHTML(name);
-  const econTile = econ.rows.length
-    ? `<div class="bento-tile bento-econ">
-         <div class="bento-kicker">${esc(t("bento_econ"))}</div>
-         <dl class="rows state-ctx bento-ctx">${econ.rows.join("")}</dl>
-         ${econ.src}
-       </div>`
-    : "";
   const makeupTile = st
     ? `<div class="bento-tile bento-stand">
          <div class="bento-kicker">${esc(t("state_makeup"))}</div>
@@ -4219,23 +4218,36 @@ function bentoStateTilesHTML(name) {
          ${st.leaderStat ? `<div class="state-stats bento-stats">${st.leaderStat}</div>` : ""}
        </div>`
     : "";
+  const exploreTile = `<div class="bento-tile bento-explore">
+      <div class="bento-explore-inner">
+        <div class="bento-explore-map">${bentoMapSectionHTML(name)}</div>
+        <div class="bento-explore-spot">
+          <div class="bento-kicker">${esc(t("prn_bento_spotlight"))}</div>
+          <div id="bento-spot-body">${bentoSpotlightHTML()}</div>
+        </div>
+      </div>
+    </div>`;
   const records = st ? [st.closestStat, st.largestStat, st.turnoutStat, st.candidatesStat].filter(Boolean) : [];
-  const recordsTile = records.length
-    ? `<div class="bento-tile bento-records">
-         <div class="bento-kicker">${esc(t("bento_records"))}</div>
-         <div class="state-stats bento-stats bento-records-grid">${records.join("")}</div>
-       </div>`
+  const statsTile = (records.length || econ.rows.length)
+    ? `<div class="bento-tile bento-statsrow">
+        <div class="bento-stats-inner">
+          ${records.length ? `<div class="bento-records">
+            <div class="bento-kicker">${esc(t("bento_records"))}</div>
+            <div class="state-stats bento-stats bento-records-grid">${records.join("")}</div>
+          </div>` : ""}
+          ${econ.rows.length ? `<div class="bento-econ">
+            <div class="bento-kicker">${esc(t("bento_econ"))}</div>
+            <dl class="rows state-ctx bento-ctx">${econ.rows.join("")}</dl>
+            ${econ.src}
+          </div>` : ""}
+        </div>
+      </div>`
     : "";
   return `<div class="bento-grid is-state">
       ${govTile}
       ${makeupTile}
-      ${bentoMapTileHTML(name)}
-      <div class="bento-tile bento-spot" id="bento-spot">
-        <div class="bento-kicker">${esc(t("prn_bento_spotlight"))}</div>
-        <div id="bento-spot-body">${bentoSpotlightHTML()}</div>
-      </div>
-      ${econTile}
-      ${recordsTile}
+      ${exploreTile}
+      ${statsTile}
     </div>
     <p class="bento-foot src-line muted">${esc(t("bento_foot_src"))}</p>`;
 }
