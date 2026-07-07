@@ -4,8 +4,8 @@
 
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
-  resultKey, displayCode, tallyCoalitions, stateHues } from "./lib.js?v=4";
-import { I18N } from "./i18n.js?v=4";
+  resultKey, displayCode, tallyCoalitions, stateHues } from "./lib.js?v=5";
+import { I18N } from "./i18n.js?v=5";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -3629,7 +3629,13 @@ function renderPrnBento() {
     <div class="bento-grid">
       ${countTile}
       <div class="bento-tile bento-map">
-        <div class="bento-kicker">${esc(seatsN)} ${esc(t("tier_dun"))} · ${esc(t("prn_bento_incumbent_map"))}</div>
+        <div class="bento-map-topbar">
+          <div class="bento-kicker">${esc(seatsN)} ${esc(t("tier_dun"))} · ${esc(t("prn_bento_incumbent_map"))}</div>
+          <div class="bento-search">
+            <input id="bento-q" class="bento-q" type="search" autocomplete="off" spellcheck="false" placeholder="${esc(t("search_ph"))}" aria-label="${esc(t("search_ph"))}" />
+            <div id="bento-results" class="bento-results" role="listbox" hidden></div>
+          </div>
+        </div>
         <div class="bento-map-wrap">${johorMapTileSVG()}</div>
       </div>
       <div class="bento-tile bento-stand">
@@ -3677,8 +3683,30 @@ function updateBentoSpotlight() {
   if (p) p.classList.add("sel");
 }
 
+// bento seat search — type a Johor DUN seat name/code, pick it to spotlight it
+function johorPrnSeats() {
+  return (state.data.dun && state.data.dun.seats.filter((s) => s.state === "Johor")) || [];
+}
+function bentoResultsHTML(query) {
+  return searchSeats(johorPrnSeats(), query, "dun").slice(0, 8)
+    .map((s) => `<button type="button" role="option" class="bento-result" data-code="${esc(s.code)}"><b>${esc(s.dun_code)}</b> ${esc(s.name)}</button>`).join("");
+}
+function bentoSearchClose() {
+  const box = document.getElementById("bento-results");
+  if (box) { box.hidden = true; box.innerHTML = ""; }
+}
+function bentoSearchPick(code) {
+  prnBentoSeat = code;
+  updateBentoSpotlight();
+  const q = document.getElementById("bento-q");
+  if (q) { q.value = ""; q.blur(); }
+  bentoSearchClose();
+}
+
 PRN_BENTO.addEventListener("click", (ev) => {
   if (ev.target.closest("#prn-bento-close")) { closePrnMode(); return; }
+  const res = ev.target.closest(".bento-result");
+  if (res) { bentoSearchPick(res.dataset.code); return; }
   const tab = ev.target.closest(".prn-pl-tab");
   if (tab) {
     prnPledgeTab = tab.dataset.pledgeTab;
@@ -3688,6 +3716,28 @@ PRN_BENTO.addEventListener("click", (ev) => {
   }
   const path = ev.target.closest(".bento-seat");
   if (path) { prnBentoSeat = path.dataset.code; updateBentoSpotlight(); }
+});
+PRN_BENTO.addEventListener("input", (ev) => {
+  if (ev.target.id !== "bento-q") return;
+  const box = document.getElementById("bento-results");
+  if (!box) return;
+  const html = bentoResultsHTML(ev.target.value);
+  box.innerHTML = html;
+  box.hidden = !html;
+});
+PRN_BENTO.addEventListener("keydown", (ev) => {
+  if (ev.target.id !== "bento-q") return;
+  if (ev.key === "Enter") {
+    const first = document.querySelector("#bento-results .bento-result");
+    if (first) { ev.preventDefault(); bentoSearchPick(first.dataset.code); }
+  } else if (ev.key === "Escape") {
+    ev.target.value = "";
+    bentoSearchClose();
+  }
+});
+// let a click register before hiding the dropdown on blur
+PRN_BENTO.addEventListener("focusout", (ev) => {
+  if (ev.target.id === "bento-q") setTimeout(bentoSearchClose, 150);
 });
 // keep the bento in sync with the viewport crossing the wide breakpoint
 PRN_BENTO_MQ.addEventListener("change", () => {
