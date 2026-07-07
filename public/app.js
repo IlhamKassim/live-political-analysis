@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=10";
-import { I18N } from "./i18n.js?v=10";
+  competitivenessFromMajorityPct } from "./lib.js?v=11";
+import { I18N } from "./i18n.js?v=11";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -204,6 +204,11 @@ async function loadOptional() {
     if (gp.ok) state.govPhotos = await gp.json();
   } catch (_) {}
   try {
+    // ADUN portraits keyed by DUN seat code (pipeline/11_aduns.py)
+    const ad = await fetch("data/aduns.json");
+    if (ad.ok) state.aduns = await ad.json();
+  } catch (_) {}
+  try {
     // campaign-window headlines per PRN candidate (pipeline/06_candidate_news.py)
     const cn = await fetch("data/candidate-news-johor.json");
     if (cn.ok) state.prnNews = await cn.json();
@@ -216,12 +221,16 @@ async function loadOptional() {
   return state;
 }
 
-// ---- politician profiles (federal MPs; DUN reps arrive in a later phase) ----
+// ---- politician profiles (federal MPs + ADUN portrait records) ----
 function politicianFor(seat) {
-  // records are keyed by parliament code P.xxx = the current MP. Deliberately NOT
-  // applied to DUN seats — the parent MP is a different person than the ADUN.
-  if (!state.politicians || !seat || state.tier !== "parlimen") return null;
-  return (state.politicians.mps && state.politicians.mps[seat.code]) || null;
+  if (!seat) return null;
+  // parliament: the full MP roster (P.xxx). DUN: the slimmer ADUN portrait records
+  // from aduns.json ({name, photo, photo_credit, ballot_name?, wikidata}) — never
+  // the parent MP, who is a different person than the ADUN.
+  if (state.tier === "parlimen") {
+    return (state.politicians && state.politicians.mps && state.politicians.mps[seat.code]) || null;
+  }
+  return (state.aduns && state.aduns[seat.code]) || null;
 }
 // loose person-name key (drops bin/binti/a-l/a-p/titles) — to tell whether the
 // ballot name differs meaningfully from the common name
@@ -3694,7 +3703,7 @@ function competitiveness(entry) {
 // "currently held by" — richer: a coalition-coloured 2022 margin bar + a
 // competitiveness badge (Marginal/Leaning/Safe) so a voter can see at a glance how
 // contested their seat is, and by how much the incumbent won last time.
-function incumbentBlockHTML(entry) {
+function incumbentBlockHTML(entry, seatCode) {
   if (!entry || !entry.incumbent_2022) return "";
   const col = prnCoalColor(incumbentCoalition(entry)).bg;
   const party = entry.incumbent_party_2022 ? ` <span class="muted">· ${esc(entry.incumbent_party_2022)}</span>` : "";
@@ -3709,11 +3718,20 @@ function incumbentBlockHTML(entry) {
     const mp = majorityPct2022(entry);
     bits.push(t("prn_won_by", { n: entry.majority_2022 }) + (mp != null ? ` (${mp}%)` : ""));
   }
-  return `<div class="prn-inc">
+  // the incumbent's ADUN portrait where we have one (aduns.json keyed by seat code)
+  const adun = seatCode && state.aduns && state.aduns[seatCode];
+  const photo = adun && adun.photo ? personPhotoHTML(entry.incumbent_2022, adun.photo, "prn-inc-photo") : "";
+  return `<div class="prn-inc${photo ? " has-photo" : ""}">
     <div class="prn-inc-top"><span class="prn-inc-kicker">${esc(t("prn_incumbent"))}</span>${badge}</div>
-    <div class="prn-inc-name">${esc(entry.incumbent_2022)}${party}</div>
-    ${bar}
-    ${bits.length ? `<div class="prn-inc-stat muted">${esc(bits.join(" · "))}</div>` : ""}
+    <div class="prn-inc-row">
+      ${photo}
+      <div class="prn-inc-main">
+        <div class="prn-inc-name">${esc(entry.incumbent_2022)}${party}</div>
+        ${bar}
+        ${bits.length ? `<div class="prn-inc-stat muted">${esc(bits.join(" · "))}</div>` : ""}
+      </div>
+    </div>
+    ${photo && adun.photo_credit ? `<p class="yb-credit muted">${esc(t("pol_photo_by", { credit: adun.photo_credit }))}</p>` : ""}
   </div>`;
 }
 
@@ -3724,7 +3742,7 @@ function prnSpotlightHTML() {
   if (!seat || !entry) {
     return `<div class="bento-spot-empty"><div class="bento-spot-mark">🗳️</div><p class="muted">${esc(t("prn_bento_pick"))}</p></div>`;
   }
-  const inc = incumbentBlockHTML(entry);
+  const inc = incumbentBlockHTML(entry, seat.code);
   const meta = [];
   if (entry.electorate) meta.push(`${entry.electorate.toLocaleString()} ${esc(t("prn_electorate"))}`);
   if (seat.parlimen) meta.push(`${esc(t("parlimen_label"))} ${esc(parlimenContext(seat))}`);
@@ -3772,7 +3790,7 @@ function stateSpotlightHTML() {
   const prnEntry = !isP && state.prn16 && state.prn16.seats && state.prn16.seats[seat.code];
   if (prnEntry && prnEntry.incumbent_2022) {
     const em = prnEntry.electorate ? [`${prnEntry.electorate.toLocaleString()} ${esc(t("prn_electorate"))}`] : [];
-    return `${head(em)}${incumbentBlockHTML(prnEntry)}${lastResultHTML(prnEntry)}
+    return `${head(em)}${incumbentBlockHTML(prnEntry, seat.code)}${lastResultHTML(prnEntry)}
       <div class="src-line muted">${esc(t("src_johor2022"))}</div>`;
   }
   const r = resultFor(seat);
