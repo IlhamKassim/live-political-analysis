@@ -2463,3 +2463,15 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 
 /* politicians directory: Parliament/DUN roster tabs */
 .pol-dir-tabs { margin: 0 0 14px; display: inline-flex; }
+
+/* explore-card layer chips: both tiers visible, tap to flip the choropleth */
+.bento-map-tiers { display: flex; align-items: center; gap: 6px; text-transform: none; letter-spacing: normal; }
+.bento-tier-chip {
+  font: inherit; font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em;
+  padding: 5px 10px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--bg-2); color: var(--ink-faint);
+  transition: color .12s, border-color .12s, background .12s;
+}
+.bento-tier-chip:hover { color: var(--ink); border-color: var(--line-2); }
+.bento-tier-chip.on { color: var(--ink); border-color: var(--accent); background: color-mix(in oklab, var(--accent) 14%, var(--bg-2)); }
+.bento-map-note { font-size: 10.5px; text-transform: uppercase; letter-spacing: .09em; color: var(--ink-dim); font-weight: 600; }

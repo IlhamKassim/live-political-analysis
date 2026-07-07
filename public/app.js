@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=15";
-import { I18N } from "./i18n.js?v=15";
+  competitivenessFromMajorityPct } from "./lib.js?v=16";
+import { I18N } from "./i18n.js?v=16";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -695,6 +695,14 @@ function setPanelView(view) {
   PANEL.classList.toggle("state-summary", view === "state");
   PANEL.classList.toggle("seat-detail", view === "seat");
   PANEL_EMPTY.hidden = view !== "overview";
+  if (view === "overview") {
+    // structural guard: minimizeCard holds the empty card at opacity 0 with a
+    // fill:forwards animation — ANY route back to the overview must release it,
+    // or the search bar comes back invisible (belt-and-braces for paths that
+    // don't go through backToControls, and for animations paused mid-flight in
+    // a backgrounded tab).
+    PANEL_EMPTY.getAnimations().forEach((a) => a.cancel());
+  }
   PANEL_STATE.hidden = view === "overview";
   PANEL_SEAT.hidden = true;
   if (STATE_ACTIONS) STATE_ACTIONS.hidden = view !== "seat";
@@ -3322,8 +3330,9 @@ function highlightState(name) {
 // BOTH the panel summary and the bento tiles. Pure extraction of stateSummaryHTML's
 // former inline computation — fragments are byte-identical. Returns null when the
 // state has no result rows (caller shows the tap hint / empty state).
-function stateStats(name) {
-  const d = state.data[state.tier];
+function stateStats(name, tier = state.tier) {
+  const d = state.data[tier];
+  if (!d) return null;
   const seats = d.seats.filter((s) => s.state === name);
   const tally = {};
   const rows = [];
@@ -3335,7 +3344,7 @@ function stateStats(name) {
     return (Number.isInteger(v) ? String(v) : v.toFixed(1)) + "%";
   };
   const seatLabel = (row) => {
-    const code = displayCode(row.seat, state.tier) || row.seat.code;
+    const code = displayCode(row.seat, tier) || row.seat.code;
     return [code, row.seat.name].filter(Boolean).join(" · ");
   };
   const marginHTML = (row) => {
@@ -3345,7 +3354,7 @@ function stateStats(name) {
     return `<span class="mono">${majority}</span>${pct}`;
   };
   for (const s of seats) {
-    const card = formatResultCard(stateSummaryResultFor(s));
+    const card = formatResultCard(seatResultOf(s, tier));
     if (!card) continue;
     rows.push({ seat: s, card });
     if (card.coalition) tally[card.coalition] = (tally[card.coalition] || 0) + 1;
@@ -3820,6 +3829,8 @@ function renderPrnSummaryIfOpen() {
 const BENTO = document.getElementById("state-bento");
 const BENTO_MQ = matchMedia("(min-width: 1000px)");   // landscape tablets & up (kept in sync with styles.css)
 let bentoSeat = null;   // seat code spotlighted in the bento
+let bentoTier = null;   // explore-card map layer override (null → follow the app tier)
+function bentoMapTier() { return bentoElectionMode() ? "dun" : (bentoTier || state.tier); }
 
 // the bento shows election tiles when the open state's live election is toggled on
 // (state.prnMode IS the toggle — reusing it keeps the hash /prn token, polling-night
@@ -3842,15 +3853,14 @@ function bentoSeatColor(seat) {
     const r = johorDunResult(seat);
     return r ? prnCoalColor(r.coalition).bg : "#39404c";
   }
-  // stateSummaryResultFor already falls through to johorDunResult for DUN seats
-  const r = stateSummaryResultFor(seat);
+  const r = seatResultOf(seat, bentoMapTier());
   return r ? partyColor(r.coalition) : "#39404c";
 }
 
 // a compact, self-contained state choropleth built from the seat paths of the open
 // tier — clicking a seat spotlights it in the bento without touching the national map
 function stateMapTileSVG(name) {
-  const data = state.data[state.tier];
+  const data = state.data[bentoMapTier()];
   if (!data || !name) return "";
   const seats = data.seats.filter((s) => s.state === name && s.bbox);
   if (!seats.length) return "";
@@ -4109,11 +4119,26 @@ function prnPledgeTabsHTML() {
 // the map section (kicker + search + choropleth), tile-agnostic: the election grid
 // wraps it in its own tile; the state grid embeds it beside the spotlight
 function bentoMapSectionHTML(name) {
-  const d = state.data[state.tier];
-  const n = d ? d.seats.filter((s) => s.state === name).length : 0;
-  const colourNote = bentoElectionMode() ? t("prn_bento_incumbent_map") : t("bento_map_winner");
+  const tier = bentoMapTier();
+  const count = (tr) => {
+    const d = state.data[tr];
+    return d ? d.seats.filter((s) => s.state === name).length : 0;
+  };
+  let kicker;
+  if (bentoElectionMode()) {
+    kicker = `<div class="bento-kicker">${esc(count("dun"))} ${esc(t("tier_dun"))} · ${esc(t("prn_bento_incumbent_map"))}</div>`;
+  } else {
+    // both layers, as chips — tapping one flips the choropleth (search already spans both)
+    const chip = (tr, label) => {
+      const n = count(tr);
+      return n
+        ? `<button type="button" class="bento-tier-chip${tier === tr ? " on" : ""}" data-bento-tier="${tr}" aria-pressed="${tier === tr}">${n} ${esc(label)}</button>`
+        : "";
+    };
+    kicker = `<div class="bento-kicker bento-map-tiers">${chip("parlimen", t("tier_parlimen"))}${chip("dun", t("tier_dun"))}<span class="bento-map-note">· ${esc(t("bento_map_winner"))}</span></div>`;
+  }
   return `<div class="bento-map-topbar">
-      <div class="bento-kicker">${esc(n)} ${esc(t(state.tier === "parlimen" ? "tier_parlimen" : "tier_dun"))} · ${esc(colourNote)}</div>
+      ${kicker}
       <div class="bento-search">
         <input id="bento-q" class="bento-q" type="search" autocomplete="off" spellcheck="false" placeholder="${esc(t("search_ph"))}" aria-label="${esc(t("search_ph"))}" />
         <div id="bento-results" class="bento-results" role="listbox" hidden></div>
@@ -4234,7 +4259,7 @@ function bentoGovTileHTML(name) {
 // one explore section holding BOTH the map and the seat spotlight · key numbers
 // + economy merged into one stats card.
 function bentoStateTilesHTML(name) {
-  const st = stateStats(name);
+  const st = stateStats(name, bentoMapTier());
   const econ = stateEconRows(name);
   const govTile = bentoGovTileHTML(name);
   const makeupTile = st
@@ -4291,7 +4316,7 @@ function showStateBento(name) {
   // the explore card searches BOTH layers — fetch the other one in the background
   const other = state.tier === "parlimen" ? "dun" : "parlimen";
   if (!state.data[other]) loadTier(other).catch(() => {});
-  if (bentoState !== name) { bentoSeat = null; bentoState = name; }   // fresh state → fresh spotlight
+  if (bentoState !== name) { bentoSeat = null; bentoTier = null; bentoState = name; }   // fresh state → fresh spotlight + layer
   const d = state.data[state.tier];
   if (!bentoSeat && state.selected && d && d.byCode.has(state.selected)) bentoSeat = state.selected;
   document.body.classList.add("bento-on");
@@ -4404,6 +4429,14 @@ BENTO.addEventListener("click", (ev) => {
     prnPledgeTab = tab.dataset.pledgeTab;
     const host = document.getElementById("bento-pledge-body");
     if (host) host.innerHTML = prnPledgeTabsHTML();
+    return;
+  }
+  const tierChip = ev.target.closest("[data-bento-tier]");
+  if (tierChip) {
+    if (tierChip.dataset.bentoTier !== bentoMapTier()) {
+      bentoTier = tierChip.dataset.bentoTier;
+      renderStateBento();   // map + makeup + key numbers follow the chosen layer
+    }
     return;
   }
   const path = ev.target.closest(".bento-seat");
