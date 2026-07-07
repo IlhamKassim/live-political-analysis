@@ -2771,3 +2771,86 @@ body.bento-on #topbar .top-controls { margin-inline: auto; }
 .pledges-modal { width: min(720px, calc(100vw - 40px)); }
 .pledges-modal-h { margin: 0 0 12px; font-size: 17px; }
 .pledges-modal .prn-pl-panel { min-height: 180px; }
+
+/* ============================================================================
+   SNOW SKIN — SnowUI-inspired look for the wide-screen chrome (sidebar, header,
+   dashboard). Borderless surfaces separated by contrast, 16-20px radii, soft
+   pills, colored card titles, accent KPI cards. Party colours stay untouched
+   (they're data); mobile keeps the classic look (everything here is scoped to
+   the sidebar/topbar/bento which only exist on wide screens).
+   ============================================================================ */
+:root {
+  --snow-page: #16181c;
+  --snow-card: #212429;
+  --snow-inner: #2a2d33;
+  --snow-inner-hi: #33373e;
+  --snow-blue: #8AB4F8;
+  --snow-peri: #C6C7F8;
+  --snow-green: #A1E3CB;
+  --snow-red: #F8877F;
+  --snow-dark-ink: #14161A;
+}
+/* tiles: borderless, rounder, airier */
+.bento-tile { background: var(--snow-card); border: 0; border-radius: 20px; padding: 18px 20px; }
+.bento-grid { gap: 16px; }
+/* card titles: sentence case, coloured per card (SnowUI-style) */
+.bento-kicker { text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 600; color: var(--ink); }
+.bento-gov > .bento-kicker { color: var(--snow-blue); }
+.bento-stand > .bento-kicker { color: var(--snow-peri); }
+.bento-records > .bento-kicker { color: var(--snow-green); }
+.bento-econ > .bento-kicker { color: var(--snow-red); }
+.bento-spot .bento-kicker, .bento-explore-spot > .bento-kicker { color: var(--snow-peri); }
+/* inner boxes: soft surfaces, no borders — .prn-cc/.prn-inc are shared with the
+   mobile panel, so those pieces are scoped to wide screens only */
+.bento-date, .bento-records-grid .state-stat, .bento-ctx dt { border: 0; }
+.bento-date { background: var(--snow-inner); border-radius: 12px; }
+.bento-records-grid .state-stat { background: var(--snow-inner); border-radius: 14px; padding: 12px 14px; }
+@media (min-width: 1000px) {
+  #state-bento .prn-cc, #pledges-modal .prn-cc { border: 0; background: var(--snow-inner); border-left: 3px solid var(--cc, var(--snow-inner-hi)); border-radius: 12px; }
+  #state-bento .prn-inc, #state-bento .bento-spot-result { border-color: var(--snow-inner-hi); }
+}
+/* election KPI cards: two accents like SnowUI's stat row */
+.bento-count { background: var(--snow-blue); }
+.bento-count .bento-kicker, .bento-count .bento-count-sub { color: var(--snow-dark-ink); }
+.bento-count .bento-count-big { color: var(--snow-dark-ink); }
+.bento-count .bento-count-big span { color: rgba(20,22,26,.65); }
+.bento-count.is-live { background: var(--snow-green); }
+.bento-count.is-live .bento-count-big { color: var(--snow-dark-ink); }
+.bento-reg { background: var(--snow-peri); border: 0; }
+.bento-reg .bento-kicker, .bento-reg .bento-reg-b { color: var(--snow-dark-ink); }
+.bento-reg .bento-reg-b { color: rgba(20,22,26,.75); }
+.bento-reg .bento-reg-cta { color: var(--snow-dark-ink); font-weight: 700; }
+.bento-reg:hover { border: 0; filter: brightness(1.04); transform: translateY(-1px); }
+/* controls: soft gray pills, no borders (.prn-close-btn/.prn-pl-tab shared with the
+   mobile panel — scope to the wide chrome + the pledges dialog) */
+.bento-tier-chip, .bento-q, .bento-prn-toggle, .sb-collapse,
+#state-bento .prn-pl-tab, #pledges-modal .prn-pl-tab,
+.topbar-actions .prn-close-btn {
+  border: 0; background: var(--snow-inner); color: var(--ink-dim);
+}
+.bento-tier-chip.on { background: var(--snow-inner-hi); color: var(--ink); }
+.bento-prn-toggle.on { background: color-mix(in oklab, var(--snow-blue) 26%, var(--snow-inner)); color: var(--ink); }
+.bento-q:focus { outline: 2px solid var(--snow-blue); border: 0; }
+.bento-results { border: 0; background: var(--snow-inner); }
+.bento-result:hover { background: var(--snow-inner-hi); }
+/* topbar: flat header, plain-bold context title (breadcrumb feel) */
+@media (min-width: 1000px) {
+  #topbar { background: var(--snow-page); border-bottom: 0; }
+  .topbar-context .bento-title { background: none; border: 0; padding: 0 4px; font-size: 17px; backdrop-filter: none; }
+  .topbar-actions .prn-close-btn { background: var(--snow-inner); border: 0; backdrop-filter: none; }
+  body.bento-on #state-bento { background: var(--snow-page); }
+}
+/* sidebar: flat, borderless, pill active */
+@media (min-width: 1240px) {
+  #sidebar { background: var(--snow-page); border-right: 0; }
+  #topbar { left: 232px; }
+  .sb-item { border-radius: 12px; }
+  .sb-item:hover { background: var(--snow-inner); }
+  .sb-item.on { background: var(--snow-inner-hi); }
+  .sb-foot { border-top: 1px solid var(--snow-inner); }
+  .sb-lang button.on { background: var(--snow-inner-hi); }
+}
+/* explore card internals */
+.bento-explore-spot { border-left-color: var(--snow-inner-hi); }
+.bento-stats-inner .bento-econ { border-left-color: var(--snow-inner-hi); }
+.bento-ctx dt, .bento-ctx dd { border-bottom-color: var(--snow-inner); }
