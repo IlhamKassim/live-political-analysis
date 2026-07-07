@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=18";
-import { I18N } from "./i18n.js?v=18";
+  competitivenessFromMajorityPct } from "./lib.js?v=19";
+import { I18N } from "./i18n.js?v=19";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -4150,27 +4150,33 @@ function bentoMapTileHTML(name) {
   return `<div class="bento-tile bento-map">${bentoMapSectionHTML(name)}</div>`;
 }
 
-// header shared by both modes: state/election title + PRN toggle chip (only where a
-// live election exists for the open state) + close
-function bentoHeaderHTML() {
+// dashboard chrome lives IN THE NAV BAR on wide screens: the state/election title
+// joins the brand on the left, the PRN toggle + close join the icon cluster on the
+// right — one full-width bar instead of a sparse nav plus a second header row.
+function renderBentoChrome() {
+  const ctxEl = document.getElementById("topbar-context");
+  const actEl = document.getElementById("topbar-actions");
+  if (!ctxEl || !actEl) return;
   const name = state.openState || "";
   const e = prnActiveForState(name);
   const election = bentoElectionMode();
-  const title = election
-    ? `<span class="live-dot"></span>🗳️ ${esc(e.name)}`
-    : esc(name);
+  ctxEl.innerHTML = election
+    ? `<span class="bento-title"><span class="live-dot"></span>🗳️ ${esc(e.name)}</span>`
+    : `<span class="bento-title">${esc(name)}</span>`;
   const toggle = e
     ? `<button id="bento-prn-toggle" class="bento-prn-toggle${election ? " on" : ""}" type="button" aria-pressed="${election}">
          <span class="live-dot"></span>🗳️ ${esc(e.name)}
        </button>`
     : "";
-  return `<div class="bento-head">
-    <div class="bento-title">${title}</div>
-    <div class="bento-head-actions">
-      ${toggle}
-      <button id="bento-close-btn" class="prn-close-btn bento-close" type="button">${esc(t("bento_close"))}</button>
-    </div>
-  </div>`;
+  actEl.innerHTML = `${toggle}<button id="bento-close-btn" class="prn-close-btn bento-close" type="button">${esc(t("bento_close"))}</button>`;
+  ctxEl.hidden = false;
+  actEl.hidden = false;
+}
+function hideBentoChrome() {
+  const ctxEl = document.getElementById("topbar-context");
+  const actEl = document.getElementById("topbar-actions");
+  if (ctxEl) { ctxEl.hidden = true; ctxEl.innerHTML = ""; }
+  if (actEl) { actEl.hidden = true; actEl.innerHTML = ""; }
 }
 
 // election tiles — the original PRN dashboard body (unchanged content)
@@ -4306,8 +4312,8 @@ function bentoStateTilesHTML(name) {
 
 function renderStateBento() {
   if (!state.openState) return;
-  BENTO.innerHTML = bentoHeaderHTML() +
-    (bentoElectionMode() ? bentoElectionTilesHTML() : bentoStateTilesHTML(state.openState));
+  renderBentoChrome();
+  BENTO.innerHTML = bentoElectionMode() ? bentoElectionTilesHTML() : bentoStateTilesHTML(state.openState);
 }
 
 // the seat held by the state's head of government — the DEFAULT spotlight when the
@@ -4366,6 +4372,7 @@ function showStateBento(name) {
 function hideStateBento() {
   document.body.classList.remove("bento-on");
   BENTO.hidden = true;
+  hideBentoChrome();
 }
 function updateBentoSpotlight() {
   const body = document.getElementById("bento-spot-body");
@@ -4446,22 +4453,27 @@ function bentoSearchPick(code) {
   bentoSearchClose();
 }
 
+function toggleBentoPrn() {
+  const e = prnActiveForState(state.openState);
+  if (!e) return;
+  if (state.prnMode) {
+    prnOptOut = true;          // user said "state view, please" — respect it this visit
+    closePrnMode();            // reconciles to the generic dashboard
+  } else {
+    prnOptOut = false;
+    if (state.tier !== e.tier) { openPrnMode(); }   // needs a tier switch — full path
+    else { enterPrnMode(); renderStateBento(); writeHash(); }
+  }
+}
+// the dashboard's title/toggle/close live in the fixed topbar
+document.getElementById("topbar")?.addEventListener("click", (ev) => {
+  if (ev.target.closest("#bento-close-btn")) { backToControls(); return; }
+  if (ev.target.closest("#bento-prn-toggle")) toggleBentoPrn();
+});
 BENTO.addEventListener("click", (ev) => {
   if (ev.target.closest("#bento-close-btn")) { backToControls(); return; }   // leave the state entirely
   const prnToggle = ev.target.closest("#bento-prn-toggle");
-  if (prnToggle) {
-    const e = prnActiveForState(state.openState);
-    if (!e) return;
-    if (state.prnMode) {
-      prnOptOut = true;          // user said "state view, please" — respect it this visit
-      closePrnMode();            // reconciles to the generic dashboard
-    } else {
-      prnOptOut = false;
-      if (state.tier !== e.tier) { openPrnMode(); }   // needs a tier switch — full path
-      else { enterPrnMode(); renderStateBento(); writeHash(); }
-    }
-    return;
-  }
+  if (prnToggle) { toggleBentoPrn(); return; }
   const res = ev.target.closest(".bento-result");
   if (res) { bentoSearchPick(res.dataset.code); return; }
   const tab = ev.target.closest(".prn-pl-tab");

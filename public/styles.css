@@ -2478,3 +2478,26 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 .bento-tier-chip:hover { color: var(--ink); border-color: var(--line-2); }
 .bento-tier-chip.on { color: var(--ink); border-color: var(--accent); background: color-mix(in oklab, var(--accent) 14%, var(--bg-2)); }
 .bento-map-note { font-size: 10.5px; text-transform: uppercase; letter-spacing: .09em; color: var(--ink-dim); font-weight: 600; }
+
+/* ---- dashboard chrome in the nav bar (wide screens, bento open) ----
+   title pill next to the brand; PRN toggle + close join the icon cluster.
+   The centre pills keep centring via auto margins while the bar fills out. */
+.topbar-context[hidden], .topbar-actions[hidden] { display: none; }
+.topbar-context {
+  display: flex; align-items: center; min-width: 0;
+}
+.topbar-context .bento-title {
+  display: inline-flex; align-items: center; gap: 9px;
+  min-height: 44px; padding: 0 16px;
+  font-size: 16px; font-weight: 700; white-space: nowrap;
+  background: rgba(20,22,26,.72); border: 1px solid var(--line); border-radius: 999px;
+  backdrop-filter: blur(8px);
+}
+.topbar-context .bento-title .live-dot { width: 8px; height: 8px; }
+.topbar-actions { display: inline-flex; align-items: center; gap: 8px; }
+.topbar-actions .prn-close-btn {
+  margin: 0; width: auto; border-radius: 999px; padding: 0 16px;
+  background: rgba(20,22,26,.72); backdrop-filter: blur(8px); border-color: var(--line);
+}
+body.bento-on #topbar { justify-content: flex-start; }
+body.bento-on #topbar .top-controls { margin-inline: auto; }
