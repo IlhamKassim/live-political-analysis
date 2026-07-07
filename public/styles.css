@@ -2255,11 +2255,10 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
   grid-template-columns: repeat(4, minmax(0, 1fr));
   /* middle row (map + spotlight) gets priority height so the spotlight shows every
      candidate + the incumbent without scrolling; pledges take the natural remainder */
-  grid-template-rows: auto minmax(340px, 1fr) auto;
+  grid-template-rows: auto minmax(340px, 1fr);
   grid-template-areas:
     "count  dates reg   stand"
-    "map    map   spot  spot"
-    "pledge pledge pledge pledge";
+    "map    map   spot  spot";
 }
 .bento-map, .bento-spot, .bento-stand { min-height: 0; }
 /* short landscape (iPad 768/834 tall): tighten so it fits with minimal scroll */
@@ -2616,3 +2615,8 @@ body.bento-on #topbar .top-controls { margin-inline: auto; }
 }
 .sb-collapse svg { width: 18px; height: 18px; }
 .sb-collapse:hover { background: #171c24; color: var(--ink); }
+
+/* manifesto pledges dialog (opened from the sidebar) */
+.pledges-modal { width: min(720px, calc(100vw - 40px)); }
+.pledges-modal-h { margin: 0 0 12px; font-size: 17px; }
+.pledges-modal .prn-pl-panel { min-height: 180px; }

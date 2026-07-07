@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=27";
-import { I18N } from "./i18n.js?v=27";
+  competitivenessFromMajorityPct } from "./lib.js?v=28";
+import { I18N } from "./i18n.js?v=28";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -2745,6 +2745,36 @@ document.addEventListener("keydown", (e) => {
 });
 RESET.addEventListener("click", deselect);
 
+// ---- manifesto pledges dialog (opened from the sidebar; same tabs everywhere) ----
+const PLEDGES_MODAL = document.getElementById("pledges-modal");
+function openPledgesModal() {
+  if (!PLEDGES_MODAL || !state.johorPledges) return;
+  PLEDGES_MODAL.innerHTML = `
+    <div class="pol-modal-shell">
+      <button class="pol-modal-close" type="button" aria-label="${esc(t("card_preview_close"))}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><line x1="6" x2="18" y1="6" y2="18"/><line x1="6" x2="18" y1="18" y2="6"/></svg>
+      </button>
+      <h2 class="pledges-modal-h">${esc(t("prn_pledges"))}</h2>
+      <div id="pledges-modal-body">${prnPledgeTabsHTML()}</div>
+      <p class="src-line muted">${esc(t("prn_source"))}</p>
+    </div>`;
+  if (typeof PLEDGES_MODAL.showModal === "function") PLEDGES_MODAL.showModal();
+  else PLEDGES_MODAL.setAttribute("open", "");
+}
+PLEDGES_MODAL?.addEventListener("click", (ev) => {
+  if (ev.target.closest(".pol-modal-close") || ev.target === PLEDGES_MODAL) {
+    if (PLEDGES_MODAL.open) PLEDGES_MODAL.close();
+    PLEDGES_MODAL.innerHTML = "";
+    return;
+  }
+  const tab = ev.target.closest(".prn-pl-tab");
+  if (tab) {
+    prnPledgeTab = tab.dataset.pledgeTab;
+    const host = document.getElementById("pledges-modal-body");
+    if (host) host.innerHTML = prnPledgeTabsHTML();
+  }
+});
+
 // ---- sidebar (wide screens): brand · nav · states list · lang ----
 function renderSidebarStates() {
   const host = document.getElementById("sb-states");
@@ -2768,6 +2798,8 @@ function syncSidebar() {
     if (e) { const l = sb.querySelector("#sb-prn-label"); if (l) l.textContent = e.name; }
     prnBtn.classList.toggle("on", !!state.prnMode && !pol);
   }
+  const plBtn = sb.querySelector("#sb-pledges");
+  if (plBtn) plBtn.hidden = !e || !state.johorPledges;
   sb.querySelectorAll("[data-sb-state]").forEach((b) =>
     b.classList.toggle("on", !pol && state.openState === b.dataset.sbState));
   sb.querySelectorAll("[data-sb-lang]").forEach((b) =>
@@ -2808,6 +2840,7 @@ document.getElementById("sidebar")?.addEventListener("click", (ev) => {
   }
   if (ev.target.closest("#sb-politicians")) { hideInfo(); openPoliticians(); setTimeout(syncSidebar, 60); return; }
   if (ev.target.closest("#sb-prn")) { closePoliticians({ silent: true }); hideInfo(); openPrnMode(); setTimeout(syncSidebar, 60); return; }
+  if (ev.target.closest("#sb-pledges")) { openPledgesModal(); return; }
   if (ev.target.closest("#sb-about")) { showInfo(); return; }
   if (ev.target.closest("#sb-share")) { shareApp(); return; }
   const st = ev.target.closest("[data-sb-state]");
@@ -4288,10 +4321,6 @@ function bentoElectionTilesHTML() {
       <div class="bento-tile bento-spot" id="bento-spot">
         <div class="bento-kicker">${esc(t("prn_bento_spotlight"))}</div>
         <div id="bento-spot-body">${bentoSpotlightHTML()}</div>
-      </div>
-      <div class="bento-tile bento-pledge">
-        <div class="bento-kicker">${esc(t("prn_pledges"))}</div>
-        <div id="bento-pledge-body">${prnPledgeTabsHTML()}</div>
       </div>
     </div>
     <p class="bento-foot src-line muted">${esc(t("prn_source"))}</p>`;
