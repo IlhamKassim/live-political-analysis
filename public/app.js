@@ -4,8 +4,8 @@
 
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
-  resultKey, displayCode, tallyCoalitions, stateHues } from "./lib.js?v=6";
-import { I18N } from "./i18n.js?v=6";
+  resultKey, displayCode, tallyCoalitions, stateHues } from "./lib.js?v=7";
+import { I18N } from "./i18n.js?v=7";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -3581,14 +3581,46 @@ function incumbentStatLine(entry) {
   if (entry.majority_2022) bits.push(t("prn_majority_n", { n: entry.majority_2022 }));
   return bits.join(" · ");
 }
+// coalition the sitting rep won under (from "BN-MCA" → "BN")
+function incumbentCoalition(entry) {
+  return (String(entry.incumbent_party_2022 || "").split("-")[0] || "").trim();
+}
+// last win's majority as a % of the vote → how competitive the seat is
+function majorityPct2022(entry) {
+  const v = entry.incumbent_votes_2022, pct = entry.incumbent_pct_2022;
+  const maj = entry.majority_2022 ? Number(String(entry.majority_2022).replace(/[^0-9]/g, "")) : NaN;
+  if (!v || !pct || !Number.isFinite(maj) || maj <= 0) return null;
+  const total = v / (pct / 100);
+  return total > 0 ? Math.round((maj / total) * 1000) / 10 : null;
+}
+function competitiveness(entry) {
+  const mp = majorityPct2022(entry);
+  if (mp == null) return null;
+  return { key: mp < 5 ? "marginal" : mp < 15 ? "leaning" : "safe", pct: mp };
+}
+// "currently held by" — richer: a coalition-coloured 2022 margin bar + a
+// competitiveness badge (Marginal/Leaning/Safe) so a voter can see at a glance how
+// contested their seat is, and by how much the incumbent won last time.
 function incumbentBlockHTML(entry) {
   if (!entry || !entry.incumbent_2022) return "";
+  const col = prnCoalColor(incumbentCoalition(entry)).bg;
   const party = entry.incumbent_party_2022 ? ` <span class="muted">· ${esc(entry.incumbent_party_2022)}</span>` : "";
-  const stat = incumbentStatLine(entry);
+  const pct = Number(entry.incumbent_pct_2022) || 0;
+  const bar = pct ? `<div class="prn-margin-bar"><span style="width:${Math.min(100, pct)}%;background:${col}"></span></div>` : "";
+  const comp = competitiveness(entry);
+  const badge = comp ? `<span class="prn-comp prn-comp-${comp.key}" title="${esc(t("prn_comp_title", { n: comp.pct }))}">${esc(t("prn_comp_" + comp.key))}</span>` : "";
+  const bits = [];
+  if (entry.incumbent_votes_2022)
+    bits.push(t("prn_votes_n", { n: entry.incumbent_votes_2022.toLocaleString() }) + (pct ? ` (${pct}%)` : ""));
+  if (entry.majority_2022) {
+    const mp = majorityPct2022(entry);
+    bits.push(t("prn_won_by", { n: entry.majority_2022 }) + (mp != null ? ` (${mp}%)` : ""));
+  }
   return `<div class="prn-inc">
-    <span class="prn-inc-kicker">${esc(t("prn_incumbent"))}</span>
+    <div class="prn-inc-top"><span class="prn-inc-kicker">${esc(t("prn_incumbent"))}</span>${badge}</div>
     <div class="prn-inc-name">${esc(entry.incumbent_2022)}${party}</div>
-    ${stat ? `<div class="prn-inc-stat muted">${esc(stat)}</div>` : ""}
+    ${bar}
+    ${bits.length ? `<div class="prn-inc-stat muted">${esc(bits.join(" · "))}</div>` : ""}
   </div>`;
 }
 
@@ -3600,23 +3632,51 @@ function prnSpotlightHTML() {
     return `<div class="bento-spot-empty"><div class="bento-spot-mark">🗳️</div><p class="muted">${esc(t("prn_bento_pick"))}</p></div>`;
   }
   const inc = incumbentBlockHTML(entry);
-  const elec = entry.electorate ? `<span class="bento-spot-elec muted">${entry.electorate.toLocaleString()} ${esc(t("prn_electorate"))}</span>` : "";
+  const meta = [];
+  if (entry.electorate) meta.push(`${entry.electorate.toLocaleString()} ${esc(t("prn_electorate"))}`);
+  if (seat.parlimen) meta.push(`${esc(t("parlimen_label"))} ${esc(parlimenContext(seat))}`);
+  const metaLine = meta.length ? `<span class="bento-spot-meta muted">${meta.join(" · ")}</span>` : "";
   // incumbent right under the seat name (answers "who holds this now?" first),
   // then the 2026 candidates as cards laid out beside the map
   return `<div class="bento-spot-head">
       <div class="bento-spot-kicker">${esc(entry.ncode)} · ${esc(t("prn_candidates"))} ${entry.candidates.length}</div>
-      <h3>${esc(entry.name)}</h3>${elec}
+      <h3>${esc(entry.name)}</h3>${metaLine}
     </div>${inc}
-    <div class="bento-cand-grid">${prnCandidateCardsHTML(entry, seat.code)}</div>`;
+    <div class="bento-cand-label muted">${esc(t("prn_bento_running"))}</div>
+    <div class="bento-cand-grid">${prnCandidateCardsHTML(entry, seat.code)}</div>
+    ${lastResultHTML(entry)}`;
+}
+
+// "how this seat voted last time" — the previous contest's top candidates as a
+// coalition-coloured bar chart. Real context that fills the spotlight usefully.
+function lastResultHTML(entry) {
+  const field = entry.last_field;
+  if (!field || !field.length) return "";
+  const rows = field.map((f) => {
+    const col = prnCoalColor(f.coalition).bg;
+    const pct = Number(f.pct) || 0;
+    const party = f.party && f.party !== f.coalition ? `${esc(f.coalition)} · ${esc(f.party)}` : esc(f.coalition);
+    return `<div class="prn-last-row">
+      <div class="prn-last-lbl"><span class="prn-last-name">${esc(f.name)}</span><span class="prn-last-party muted">${party}</span></div>
+      <div class="prn-last-bar"><span style="width:${Math.min(100, pct)}%;background:${col}"></span></div>
+      <div class="prn-last-pct mono">${pct ? pct + "%" : ""}</div>
+    </div>`;
+  }).join("");
+  return `<div class="prn-last">
+    <div class="prn-last-h muted">${esc(t("prn_last_result", { y: entry.last_field_year || "" }))}</div>
+    ${rows}
+  </div>`;
 }
 
 // per-candidate cards for the bento spotlight — coalition-accented, with the ballot
 // name, party badge, ballot symbol and any campaign-window headlines we have.
 function prnCandidateCardsHTML(entry, seatCode) {
   const nameKey = (s) => s.toLowerCase().replace(/\b(bin|binti|a\/l|a\/p|anak)\b/g, " ").replace(/[^a-z]+/g, "");
+  const incKey = nameKey(entry.incumbent_2022 || "");
   const seatNews = state.prnNews && state.prnNews[seatCode];
   return entry.candidates.map((c) => {
     const col = prnCoalColor(c.coalition);
+    const isInc = incKey && nameKey(c.name) === incKey;   // the sitting rep, re-contesting
     const alias = c.ballot_name && nameKey(c.ballot_name) !== nameKey(c.name)
       ? `<span class="prn-cc-alias muted">${esc(c.ballot_name)}</span>` : "";
     const party = c.party && c.party !== c.coalition ? `${esc(c.coalition)} · ${esc(c.party)}` : esc(c.coalition);
@@ -3627,9 +3687,10 @@ function prnCandidateCardsHTML(entry, seatCode) {
           `<a class="prn-cc-newslink" href="${esc(n.u)}" target="_blank" rel="noopener"><span class="prn-cc-newst">${esc(n.t)}</span><span class="muted">${esc(n.s)}${n.d ? " · " + esc(fmtDayMonth(n.d)) : ""}</span></a>`).join("")}</div>`
       : "";
     const extra = sym || news ? `<div class="prn-cc-extra">${sym}${news}</div>` : "";
-    return `<div class="prn-cc" style="--cc:${col.bg}">
+    const incChip = isInc ? `<span class="prn-cc-inc">${esc(t("prn_cc_incumbent"))}</span>` : "";
+    return `<div class="prn-cc${isInc ? " is-inc" : ""}" style="--cc:${col.bg}">
       <div class="prn-cc-head">
-        <div class="prn-cc-id"><span class="prn-cc-name">${esc(c.name)}</span>${alias}</div>
+        <div class="prn-cc-id"><span class="prn-cc-name">${esc(c.name)}${incChip}</span>${alias}</div>
         <span class="pill" style="background:${col.bg};color:${col.fg}">${party}</span>
       </div>${extra}</div>`;
   }).join("");

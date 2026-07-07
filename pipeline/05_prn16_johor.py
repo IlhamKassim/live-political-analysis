@@ -77,6 +77,19 @@ def enrich_incumbent_votes(seats):
                 s["incumbent_pct_2022"] = pct
         except ValueError:
             pass
+        # the full last contest (top 3) → "how this seat voted last time" recap
+        total = sum(int(float(r["votes"] or 0)) for r in contest)
+        field = []
+        for r in contest[:3]:
+            rv = int(float(r["votes"] or 0))
+            coal = r["coalition"] if r["coalition"] not in ("ALONE", "BEBAS", "") else r["party"]
+            field.append({
+                "name": r["name"], "party": r["party"], "coalition": coal, "votes": rv,
+                "pct": round(100 * rv / total, 1) if total else None,
+            })
+        if field:
+            s["last_field"] = field
+            s["last_field_year"] = latest[:4]
         added += 1
         # cross-check the MECO winner against the curated incumbent name (same person expected)
         if s.get("incumbent_2022") and _namekey(win["name"]) != _namekey(s["incumbent_2022"]):

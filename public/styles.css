@@ -2329,17 +2329,29 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 .prn-pledge-coal.is-pending { opacity: .82; }
 
 /* current-holder block in the seat spotlight (who holds the seat now + their votes) */
-.prn-inc { margin: 2px 0 6px; padding: 9px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.prn-inc { margin: 2px 0 8px; padding: 10px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.prn-inc-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .prn-inc-kicker { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-dim); font-weight: 600; }
-.prn-inc-name { font-size: 14px; margin-top: 3px; }
-.prn-inc-stat { font-size: 12px; margin-top: 2px; }
+.prn-inc-name { font-size: 15px; font-weight: 600; margin-top: 4px; }
+.prn-inc-stat { font-size: 12px; margin-top: 1px; }
+/* 2022 margin bar — coalition-coloured share of the vote the incumbent won */
+.prn-margin-bar { height: 6px; border-radius: 999px; background: rgba(255,255,255,.07); overflow: hidden; margin: 8px 0 6px; }
+.prn-margin-bar span { display: block; height: 100%; border-radius: 999px; }
+/* competitiveness badge */
+.prn-comp { flex: 0 0 auto; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--ink-dim); white-space: nowrap; }
+.prn-comp-marginal { background: color-mix(in oklab, var(--accent-2) 20%, var(--bg-2)); border-color: color-mix(in oklab, var(--accent-2) 45%, transparent); color: var(--accent-2); }
+.prn-comp-leaning { color: var(--ink-dim); }
+.prn-comp-safe { color: var(--ink-faint); border-color: var(--line); }
+.bento-spot-meta { display: block; font-size: 11.5px; margin-top: 3px; line-height: 1.4; }
 
 /* candidate cards in the bento spotlight (beside the map) */
 .bento-cand-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; align-content: start; }
-.prn-cc { background: var(--bg-2); border: 1px solid var(--line); border-left: 3px solid var(--cc, var(--line-2)); border-radius: 10px; padding: 9px 11px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.prn-cc { background: color-mix(in oklab, var(--cc, var(--bg-2)) 9%, var(--bg-2)); border: 1px solid var(--line); border-left: 3px solid var(--cc, var(--line-2)); border-radius: 11px; padding: 11px 13px; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.prn-cc.is-inc { border-color: color-mix(in oklab, var(--cc) 40%, var(--line)); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--cc) 22%, transparent); }
 .prn-cc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-.prn-cc-id { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-.prn-cc-name { font-size: 13px; font-weight: 600; line-height: 1.25; }
+.prn-cc-id { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.prn-cc-name { font-size: 13.5px; font-weight: 600; line-height: 1.3; display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: 6px; }
+.prn-cc-inc { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 2px 6px; border-radius: 5px; background: color-mix(in oklab, var(--cc) 30%, transparent); color: var(--ink); }
 .prn-cc-alias { font-size: 11px; }
 .prn-cc-head .pill { flex: 0 0 auto; align-self: flex-start; }
 .prn-cc-extra { display: flex; flex-direction: column; gap: 5px; }
@@ -2368,3 +2380,15 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 .bento-result { display: block; width: 100%; text-align: left; font: inherit; font-size: 12.5px; padding: 9px 13px; background: none; border: 0; color: var(--ink); cursor: pointer; }
 .bento-result b { color: var(--accent); font-weight: 600; margin-right: 7px; }
 .bento-result:hover { background: var(--bg-2); }
+
+/* spotlight: "Standing in 2026" section label + the last-result bar chart */
+.bento-cand-label { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; font-weight: 600; margin: 2px 0 7px; }
+.prn-last { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.prn-last-h { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; font-weight: 600; margin-bottom: 9px; }
+.prn-last-row { display: grid; grid-template-columns: minmax(110px, 1.1fr) 2fr auto; align-items: center; gap: 12px; margin-bottom: 8px; }
+.prn-last-lbl { min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+.prn-last-name { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prn-last-party { font-size: 10.5px; }
+.prn-last-bar { height: 8px; border-radius: 999px; background: rgba(255,255,255,.06); overflow: hidden; }
+.prn-last-bar span { display: block; height: 100%; border-radius: 999px; }
+.prn-last-pct { font-size: 11.5px; color: var(--ink-dim); min-width: 36px; text-align: right; }
