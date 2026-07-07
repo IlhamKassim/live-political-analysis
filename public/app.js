@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=9";
-import { I18N } from "./i18n.js?v=9";
+  competitivenessFromMajorityPct } from "./lib.js?v=10";
+import { I18N } from "./i18n.js?v=10";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -4087,9 +4087,34 @@ function bentoSeats() {
   const d = state.data[state.tier];
   return (d && state.openState && d.seats.filter((s) => s.state === state.openState)) || [];
 }
+// the searchable people attached to a seat: in election mode the 2026 candidates
+// (incl. ballot aliases) + the incumbent; otherwise the sitting rep
+function bentoSeatPersons(seat) {
+  if (bentoElectionMode()) {
+    const entry = state.prn16 && state.prn16.seats && state.prn16.seats[seat.code];
+    if (!entry) return [];
+    const names = entry.candidates.flatMap((c) => [c.name, c.ballot_name].filter(Boolean));
+    if (entry.incumbent_2022) names.push(entry.incumbent_2022);
+    return names;
+  }
+  const rep = repNameForSeat(seat);
+  return rep ? [rep] : [];
+}
 function bentoResultsHTML(query) {
-  return searchSeatsAndReps(bentoSeats(), query, state.tier).slice(0, 8)
-    .map((s) => `<button type="button" role="option" class="bento-result" data-code="${esc(s.code)}"><b>${esc(displayCode(s, state.tier) || s.code)}</b> ${esc(s.name)}</button>`).join("");
+  const q = (typeof query === "string" ? query : "").trim().toLowerCase();
+  if (!q) return "";
+  const seats = bentoSeats();
+  const base = searchSeats(seats, q, state.tier);            // place / code matches
+  const seen = new Set(base.map((s) => s.code));
+  const person = [];                                          // people matches (YB / candidate)
+  for (const s of seats) {
+    if (seen.has(s.code)) continue;
+    const hit = bentoSeatPersons(s).find((n) => n.toLowerCase().includes(q));
+    if (hit) person.push({ seat: s, who: hit });
+  }
+  const rows = base.map((s) => ({ seat: s, who: bentoSeatPersons(s)[0] || "" })).concat(person);
+  return rows.slice(0, 8).map(({ seat: s, who }) =>
+    `<button type="button" role="option" class="bento-result" data-code="${esc(s.code)}"><b>${esc(displayCode(s, state.tier) || s.code)}</b> ${esc(s.name)}${who ? ` <span class="muted">· ${esc(who)}</span>` : ""}</button>`).join("");
 }
 function bentoSearchClose() {
   const box = document.getElementById("bento-results");
