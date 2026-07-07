@@ -2244,11 +2244,13 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 .bento-close { margin: 0; width: auto; }
 
 /* three rows, filling the height: meta strip · map+spotlight · pledges.
-   flex:1 (NOT min-height:0) → grows to fill tall screens but never shrinks below its
-   content, so on short (iPad-landscape) heights the whole #state-bento scrolls cleanly
-   instead of the grid spilling over the source footer. */
+   flex:1 + min-height:0 → the grid sizes to the VIEWPORT, not to its content: card
+   heights stay fixed while the spotlight/panels scroll INSIDE their cards. Rows keep
+   minmax() floors, so on short (iPad-landscape) heights the grid bottoms out at its
+   minimums and #state-bento scrolls the overflow cleanly (SVGs are absolutely
+   positioned, so they can never inflate a track). */
 .bento-grid {
-  display: grid; gap: 12px; flex: 1;
+  display: grid; gap: 12px; flex: 1; min-height: 0;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   /* middle row (map + spotlight) gets priority height so the spotlight shows every
      candidate + the incumbent without scrolling; pledges take the natural remainder */
@@ -2368,6 +2370,7 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 .prn-pl-tab::before { content: ""; width: 8px; height: 8px; border-radius: 999px; background: var(--cc, var(--line-2)); flex: 0 0 auto; }
 .prn-pl-tab:hover { color: var(--ink); border-color: var(--line-2); }
 .prn-pl-tab.on { color: var(--ink); border-color: var(--cc); background: color-mix(in oklab, var(--cc) 22%, var(--bg-2)); }
+.prn-pl-panel { min-height: 150px; }   /* PH's 8 pledges vs PN's pending note — no row jump on tab switch */
 .prn-pl-panel .prn-pledge-coal { border: 0; padding: 0; background: none; }
 .prn-pl-panel .prn-pledge-h { font-size: 13px; margin-bottom: 6px; }
 .prn-pl-panel .prn-pledge-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 4px 28px; }
