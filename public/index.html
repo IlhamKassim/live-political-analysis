@@ -21,17 +21,22 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=26" />
+<link rel="stylesheet" href="styles.css?v=27" />
 </head>
 <body>
 <aside id="sidebar" aria-label="Navigation">
-  <button id="sb-brand" class="sb-brand" type="button" data-i18n-aria="home_aria" aria-label="Show the whole map">
-    <span class="brand-symbol">◧</span> <span class="brand-word">My<b>Politik</b></span>
-  </button>
+  <div class="sb-top">
+    <button id="sb-brand" class="sb-brand" type="button" data-i18n-aria="home_aria" aria-label="Show the whole map">
+      <span class="brand-symbol">◧</span> <span class="brand-word">My<b>Politik</b></span>
+    </button>
+    <button id="sb-collapse" class="sb-collapse" type="button" aria-label="Toggle sidebar" title="Toggle sidebar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/></svg>
+    </button>
+  </div>
   <nav class="sb-nav">
-    <button id="sb-map" class="sb-item" type="button"><span class="sb-ic">🗺</span><span data-i18n="nav_map">Map</span></button>
-    <button id="sb-politicians" class="sb-item" type="button"><span class="sb-ic">👥</span><span data-i18n="nav_politicians">Politicians</span></button>
-    <button id="sb-prn" class="sb-item sb-live" type="button" hidden><span class="live-dot"></span><span id="sb-prn-label">PRN</span></button>
+    <button id="sb-map" class="sb-item" type="button" data-i18n-title="nav_map"><span class="sb-ic">🗺</span><span class="sb-label" data-i18n="nav_map">Map</span></button>
+    <button id="sb-politicians" class="sb-item" type="button" data-i18n-title="nav_politicians"><span class="sb-ic">👥</span><span class="sb-label" data-i18n="nav_politicians">Politicians</span></button>
+    <button id="sb-prn" class="sb-item sb-live" type="button" hidden><span class="live-dot"></span><span class="sb-label" id="sb-prn-label">PRN</span></button>
   </nav>
   <div class="sb-section" data-i18n="sidebar_states">States</div>
   <nav id="sb-states" class="sb-states"></nav>
@@ -198,6 +203,6 @@
   </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 </div>
-<script type="module" src="app.js?v=26"></script>
+<script type="module" src="app.js?v=27"></script>
 </body>
 </html>

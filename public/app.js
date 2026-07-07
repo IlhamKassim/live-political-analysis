@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=26";
-import { I18N } from "./i18n.js?v=26";
+  competitivenessFromMajorityPct } from "./lib.js?v=27";
+import { I18N } from "./i18n.js?v=27";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -2783,7 +2783,20 @@ async function sidebarOpenState(name) {
   if (state.openState !== name) openStateCard(name);
   syncSidebar();
 }
+// collapse ⇄ expand: the rail shrinks to an icon strip and the content reflows
+// beside it (the sidebar never overlays the map or the dashboard)
+function setSidebarCollapsed(v) {
+  document.body.classList.toggle("sb-collapsed", !!v);
+  try { localStorage.setItem("mp-sb-collapsed", v ? "1" : "0"); } catch (_) {}
+  requestAnimationFrame(syncMapToCard);          // map band re-measures at the new width
+  setTimeout(syncLiveBadge, 220);                // badge re-pins after the transition
+}
+try { if (localStorage.getItem("mp-sb-collapsed") === "1") document.body.classList.add("sb-collapsed"); } catch (_) {}
 document.getElementById("sidebar")?.addEventListener("click", (ev) => {
+  if (ev.target.closest("#sb-collapse")) {
+    setSidebarCollapsed(!document.body.classList.contains("sb-collapsed"));
+    return;
+  }
   const langBtn = ev.target.closest("[data-sb-lang]");
   if (langBtn) {
     document.querySelector(`#lang button[data-lang="${langBtn.dataset.sbLang}"]`)?.click();

@@ -2585,3 +2585,34 @@ body.bento-on #topbar .top-controls { margin-inline: auto; }
   border: 0; background: none; color: var(--ink-faint); border-radius: 8px; cursor: pointer;
 }
 .sb-lang button.on { background: #20242b; color: var(--ink); }
+
+/* ---- collapsible rail: 232px ⇄ 60px icon strip; content reflows beside it ---- */
+@media (min-width: 1240px) {
+  #sidebar { transition: width .18s ease, padding .18s ease; }
+  #app { transition: margin-left .18s ease; }
+  #topbar { transition: left .18s ease; }
+  /* the map stage and the bottom panel are FIXED full-bleed layers — offset them
+     beside the rail too, so the sidebar never covers the map */
+  #stage { left: 232px; transition: left .18s ease; }
+  #panel { left: 232px; transition: left .18s ease; }
+  body.sb-collapsed #stage, body.sb-collapsed #panel { left: 60px; }
+  body.sb-collapsed #sidebar { width: 60px; padding: 14px 8px 12px; }
+  body.sb-collapsed #app { margin-left: 60px; }
+  body.sb-collapsed #topbar { left: 60px; }
+  body.sb-collapsed.politicians-open #politicians-view { left: 60px; }
+  body.sb-collapsed .sb-brand,
+  body.sb-collapsed .sb-label,
+  body.sb-collapsed .sb-section,
+  body.sb-collapsed .sb-states,
+  body.sb-collapsed .sb-foot { display: none; }
+  body.sb-collapsed .sb-top { justify-content: center; padding-bottom: 10px; }
+  body.sb-collapsed .sb-item { justify-content: center; padding: 10px 0; }
+  body.sb-collapsed .sb-live .live-dot { margin: 0; }
+}
+.sb-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding-bottom: 8px; }
+.sb-collapse {
+  flex: 0 0 auto; width: 34px; height: 34px; display: grid; place-items: center;
+  border: 0; border-radius: 8px; background: none; color: var(--ink-faint); cursor: pointer;
+}
+.sb-collapse svg { width: 18px; height: 18px; }
+.sb-collapse:hover { background: #171c24; color: var(--ink); }
