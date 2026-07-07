@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-07-08T01:30:00+08:00",
-  "method": "Firecrawl proof scrape, curated into display-safe profile fields. Empty arrays mean the field was not found in the scraped sources.",
+  "generated_at": "2026-07-08T02:12:00+08:00",
+  "method": "Firecrawl proof scrape, curated into display-safe profile fields. Empty arrays mean the field was not found in the scraped sources. The sources array is intentionally shown in the candidate bento.",
   "profiles": {
     "1_N.01": {
       "Noraziah Mohd Razit": {
@@ -57,14 +57,20 @@
         "seat_name": "Buloh Kasap",
         "state": "Johor",
         "photo_url": "https://dewannegeri.johor.gov.my/wp-content/uploads/2022/04/YB-DATO-ZAHARI.jpg",
-        "current_role": "Johor executive councillor for agriculture, agro-based industry and rural development",
-        "summary": "Zahari Sarip is listed by Sinar Harian PRU as the Barisan Nasional candidate and incumbent for N.01 Buloh Kasap. The Johor assembly page lists his state executive councillor portfolio and official contact details.",
+        "current_role": "Johor executive councillor for agriculture, agro-based industry and rural development; ADUN Buloh Kasap",
+        "summary": "Zahari Sarip is listed by Sinar Harian PRU as the Barisan Nasional candidate and incumbent for N.01 Buloh Kasap. The Johor assembly page lists his state executive councillor portfolio and official contact details. ElectionData.MY lists him as W2 L0 across Buloh Kasap contests in 2018 and 2022, with the 2026 contest marked upcoming.",
         "party_history": [
           {
             "period": "2018-kini",
             "party": "UMNO",
             "coalition": "BN",
-            "note": "ADUN Buloh Kasap"
+            "note": "Faction represented in Johor State Legislative Assembly"
+          },
+          {
+            "period": "2017-2020",
+            "party": "UMNO",
+            "coalition": "BN",
+            "note": "Faction represented in Dewan Negara"
           }
         ],
         "track_record": [
@@ -75,11 +81,14 @@
             "coalition": "BN"
           },
           {
+            "period": "2022-kini",
             "title": "Johor executive councillor",
             "note": "Agriculture, agro-based industry and rural development"
           },
           {
-            "title": "Senator"
+            "period": "2017-2020",
+            "title": "Senator",
+            "coalition": "BN"
           },
           {
             "title": "Former special officer to the Minister of Health"
@@ -97,9 +106,9 @@
           "Sarjana Eksekutif dalam bidang Pengurusan"
         ],
         "election_history": [
-          "PRU14 - P140 Segamat N.01 Buloh Kasap",
-          "PRN DUN Johor - P140 Segamat N.01 Buloh Kasap",
-          "PRN DUN Johor 16 - P140 Segamat N.01 Buloh Kasap"
+          "SE-16 2026 - N.01 Buloh Kasap - UMNO (BN) - upcoming",
+          "SE-15 2022 - N.01 Buloh Kasap - UMNO (BN) - 8,956 votes (57.0%) - won",
+          "SE-14 2018 - N.01 Buloh Kasap - UMNO (BN) - 9,186 votes (52.5%) - won"
         ],
         "official_contact": {
           "address": "Aras 3, Bangunan Dato' Jaafar Muhammad, Kota Iskandar, 79555 Iskandar Puteri",
@@ -119,9 +128,17 @@
           {
             "label": "Dewan Negeri Johor",
             "url": "https://dewannegeri.johor.gov.my/ahli/n01/"
+          },
+          {
+            "label": "ElectionData.MY",
+            "url": "https://electiondata.my/candidates/5W8DG"
+          },
+          {
+            "label": "Wikipedia profile",
+            "url": "https://en.wikipedia.org/wiki/Zahari_Sarip"
           }
         ],
-        "source_quality": "profile + official"
+        "source_quality": "profile + official + election data"
       }
     },
     "1_N.26": {
@@ -134,13 +151,27 @@
         "state": "Johor",
         "photo_url": "https://kasi.asia/wp-content/uploads/2023/06/Datuk-Onn-Hafiz-aspect-ratio-300-300.jpg",
         "current_role": "Menteri Besar Johor",
-        "summary": "Onn Hafiz Ghazi is profiled by KSI as a Johor leader with experience in politics, business and community development. The profile notes his service as ADUN for Layang-Layang from 2018 to 2022 and as the current ADUN for Machap.",
+        "summary": "Onn Hafiz Ghazi is profiled by KSI as a Johor leader with experience in politics, business and community development. Wikipedia lists him as Menteri Besar of Johor and ADUN for Machap since March 2022, after serving as ADUN for Layang-Layang from 2018 to 2022.",
         "party_history": [
           {
             "period": "since 2006",
             "party": "UMNO",
             "coalition": "BN",
             "note": "Party affiliation listed in profile sources"
+          },
+          {
+            "period": "2024-kini",
+            "title": "State Chairman of Barisan Nasional Johor"
+          },
+          {
+            "period": "2023-kini",
+            "title": "State Chairman of UMNO Johor"
+          },
+          {
+            "period": "2018-kini",
+            "party": "UMNO",
+            "coalition": "BN",
+            "note": "Faction represented in Johor State Legislative Assembly"
           }
         ],
         "track_record": [
@@ -156,6 +187,11 @@
             "coalition": "BN"
           },
           {
+            "period": "2020-2022",
+            "title": "Johor State Executive Councillor",
+            "note": "Tourism, Youth and Sports"
+          },
+          {
             "period": "2013-2018",
             "title": "Political Secretary to the Minister of Defence"
           },
@@ -165,16 +201,21 @@
           }
         ],
         "career_highlights": [
-          "Johor State Executive Councillor for Tourism, Youth and Sports from 2019 to 2022",
+          "Johor State Executive Councillor for Tourism, Youth and Sports before becoming Menteri Besar",
           "Former Political Secretary to the Minister of Defence from 2013 to 2018",
           "Vice Chief Division of UMNO Simpang Renggam",
           "Director of Chin Well Holdings Berhad from 2005 to 2013",
-          "Chief Executive Officer of KMB Sdn. Bhd. from 2005 to 2013"
+          "Chief Executive Officer of KMB Sdn. Bhd. from 2005 to 2013",
+          "KSI profile credits him with establishing Southern Volunteers and digital entrepreneurship programmes"
         ],
-        "education": [],
+        "education": [
+          "Royal Military College",
+          "BA Accounting, University of Hertfordshire"
+        ],
         "election_history": [
-          "ADUN Layang-Layang (2018 to 2022)",
-          "ADUN Machap (2022-kini)"
+          "SE-16 2026 - N.26 Machap - UMNO (BN) - upcoming",
+          "SE-15 2022 - N.26 Machap - UMNO (BN) - 11,029 votes (56.64%) - won by 6,543",
+          "GE14 2018 - N.27 Layang-Layang - UMNO (BN) - 7,449 votes (46.93%) - won by 364"
         ],
         "official_contact": {
           "address": "",
