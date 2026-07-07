@@ -2510,3 +2510,9 @@ body.bento-on #topbar .top-controls { margin-inline: auto; }
     border-bottom: 1px solid var(--line);
   }
 }
+
+/* dashboard open: the centre tier/mode pills are redundant — the explore card has
+   its own layer chips, and colour mode doesn't apply to the bento */
+@media (min-width: 1000px) {
+  body.bento-on #top-controls { display: none; }
+}
