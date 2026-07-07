@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=30";
-import { I18N } from "./i18n.js?v=30";
+  competitivenessFromMajorityPct } from "./lib.js?v=31";
+import { I18N } from "./i18n.js?v=31";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -49,6 +49,7 @@ const state = {
   candidatesDun: null,// code_state_dun -> candidate rows from candidates_prn15.csv
   votingGuide: null,
   politicians: null,// {mps: {P.xxx -> {name, photo, bio, socials, ...}}} federal MP roster
+  polProfiles: null,// source-linked candidate/person profile cards keyed by DUN seat
   selected: null,
   seatTab: "overview",
   mapInspect: false,
@@ -212,6 +213,11 @@ async function loadOptional() {
     // campaign-window headlines per PRN candidate (pipeline/06_candidate_news.py)
     const cn = await fetch("data/candidate-news-johor.json");
     if (cn.ok) state.prnNews = await cn.json();
+  } catch (_) {}
+  try {
+    // Source-linked politician/candidate profile cards from curated scrape jobs.
+    const pp = await fetch("data/politician-profiles-johor.json");
+    if (pp.ok) state.polProfiles = await pp.json();
   } catch (_) {}
   try {
     // federal MP roster: photo + bio + socials per P.xxx (pipeline/09_politicians.py)
@@ -4235,6 +4241,81 @@ function lastResultHTML(entry) {
   </div>`;
 }
 
+function profileSourceHost(url) {
+  try { return new URL(url).hostname.replace(/^www\./, ""); }
+  catch (_) { return t("profile_source"); }
+}
+function profileQualityLabel(profile) {
+  const q = String((profile && profile.source_quality) || "").toLowerCase();
+  return q.includes("official") ? t("profile_quality_official") : t("profile_quality_profile");
+}
+function normalProfileSource(src) {
+  if (!src) return null;
+  if (typeof src === "string") return { label: profileSourceHost(src), url: src };
+  const url = src.url || src.href || "";
+  if (!url) return null;
+  return { label: src.label || profileSourceHost(url), url };
+}
+function profileSourcesHTML(profile) {
+  const sources = Array.isArray(profile && profile.sources) ? profile.sources.map(normalProfileSource).filter(Boolean).slice(0, 3) : [];
+  if (!sources.length) return "";
+  return `<div class="prn-profile-sources"><span>${esc(t("profile_sources"))}</span>${sources.map((s) =>
+    `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.label)}</a>`).join("")}</div>`;
+}
+function profileListHTML(labelKey, items, max = 3) {
+  const xs = Array.isArray(items) ? items.filter(Boolean).slice(0, max) : [];
+  if (!xs.length) return "";
+  return `<div class="prn-profile-list"><span>${esc(t(labelKey))}</span><ul>${xs.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>`;
+}
+function profileRecordText(item) {
+  if (!item) return "";
+  if (typeof item === "string") return item;
+  const head = [item.period, item.title || item.role || item.party].filter(Boolean).join(" - ");
+  const tail = [item.seat, item.coalition, item.note, item.result].filter(Boolean).join(" · ");
+  return [head, tail].filter(Boolean).join(" · ");
+}
+function profileTimelineHTML(labelKey, items, max = 4) {
+  const xs = Array.isArray(items) ? items.map(profileRecordText).filter(Boolean).slice(0, max) : [];
+  if (!xs.length) return "";
+  return `<div class="prn-profile-timeline"><span>${esc(t(labelKey))}</span><ol>${xs.map((x) => `<li>${esc(x)}</li>`).join("")}</ol></div>`;
+}
+function profilePartyHistoryHTML(items) {
+  const xs = Array.isArray(items) ? items.map(profileRecordText).filter(Boolean).slice(0, 4) : [];
+  if (!xs.length) return "";
+  return `<div class="prn-profile-partyhist"><span>${esc(t("profile_party_history"))}</span>${xs.map((x) => `<b>${esc(x)}</b>`).join("")}</div>`;
+}
+function profileForCandidate(seatCode, candidateName) {
+  const bySeat = state.polProfiles && state.polProfiles.profiles && state.polProfiles.profiles[seatCode];
+  if (!bySeat || !candidateName) return null;
+  if (bySeat[candidateName]) return bySeat[candidateName];
+  const target = namekeyLoose(candidateName);
+  const match = Object.entries(bySeat).find(([name]) => {
+    const k = namekeyLoose(name);
+    return k === target || (k.length >= 8 && target.includes(k)) || (target.length >= 8 && k.includes(target));
+  });
+  return match ? match[1] : null;
+}
+function candidateProfileHTML(profile) {
+  if (!profile) return "";
+  const summary = profile.summary || profile.biography_summary || "";
+  const role = profile.current_role ? `<div class="prn-profile-role">${esc(profile.current_role)}</div>` : "";
+  const quality = `<span class="prn-profile-quality">${esc(profileQualityLabel(profile))}</span>`;
+  const lists = [
+    profilePartyHistoryHTML(profile.party_history),
+    profileTimelineHTML("profile_track_record", profile.track_record, 4),
+    profileListHTML("profile_experience", profile.career_highlights, 3),
+    profileListHTML("profile_education", profile.education, 2),
+    profileListHTML("profile_election_history", profile.election_history, 2),
+  ].join("");
+  return `<div class="prn-profile">
+    <div class="prn-profile-meta"><span>${esc(t("profile_background"))}</span>${quality}</div>
+    ${role}
+    ${summary ? `<p class="prn-profile-summary">${esc(summary)}</p>` : ""}
+    ${lists}
+    ${profileSourcesHTML(profile)}
+  </div>`;
+}
+
 // per-candidate cards for the bento spotlight — coalition-accented, with the ballot
 // name, party badge, ballot symbol and any campaign-window headlines we have.
 function prnCandidateCardsHTML(entry, seatCode) {
@@ -4243,6 +4324,7 @@ function prnCandidateCardsHTML(entry, seatCode) {
   const seatNews = state.prnNews && state.prnNews[seatCode];
   return entry.candidates.map((c) => {
     const col = prnCoalColor(c.coalition);
+    const profile = profileForCandidate(seatCode, c.name);
     const isInc = incKey && nameKey(c.name) === incKey;   // the sitting rep, re-contesting
     const alias = c.ballot_name && nameKey(c.ballot_name) !== nameKey(c.name)
       ? `<span class="prn-cc-alias muted">${esc(c.ballot_name)}</span>` : "";
@@ -4255,11 +4337,13 @@ function prnCandidateCardsHTML(entry, seatCode) {
       : "";
     const extra = sym || news ? `<div class="prn-cc-extra">${sym}${news}</div>` : "";
     const incChip = isInc ? ` <span class="prn-cc-inc">${esc(t("prn_cc_incumbent"))}</span>` : "";
-    return `<div class="prn-cc${isInc ? " is-inc" : ""}" style="--cc:${col.bg}">
+    const photo = profile ? personPhotoHTML(c.name, profile.photo_url, "prn-profile-photo") : "";
+    return `<div class="prn-cc${isInc ? " is-inc" : ""}${profile ? " has-profile" : ""}" style="--cc:${col.bg}">
       <div class="prn-cc-head">
+        ${photo}
         <div class="prn-cc-id"><span class="prn-cc-name"><span>${esc(c.name)}</span>${incChip}</span>${alias}</div>
         <span class="pill" style="background:${col.bg};color:${col.fg}">${party}</span>
-      </div>${extra}</div>`;
+      </div>${candidateProfileHTML(profile)}${extra}</div>`;
   }).join("");
 }
 

@@ -1,0 +1,200 @@
+{
+  "generated_at": "2026-07-08T01:30:00+08:00",
+  "method": "Firecrawl proof scrape, curated into display-safe profile fields. Empty arrays mean the field was not found in the scraped sources.",
+  "profiles": {
+    "1_N.01": {
+      "Noraziah Mohd Razit": {
+        "name": "Noraziah Mohd Razit",
+        "party": "PKR",
+        "coalition": "PH",
+        "seat_code": "1_N.01",
+        "seat_name": "Buloh Kasap",
+        "state": "Johor",
+        "photo_url": "https://pru.sinarharian.com.my/img/calon/9341_noraziah-mohd-razit.jpg",
+        "current_role": "Pakatan Harapan candidate for N.01 Buloh Kasap",
+        "summary": "Noraziah Mohd Razit, also known as Rozy Razit, is listed by Sinar Harian PRU as the Pakatan Harapan candidate from Parti Keadilan Rakyat for N.01 Buloh Kasap in the Johor state election.",
+        "party_history": [
+          {
+            "period": "2026",
+            "party": "PKR",
+            "coalition": "PH",
+            "note": "Candidate for N.01 Buloh Kasap"
+          }
+        ],
+        "track_record": [
+          {
+            "period": "2026",
+            "title": "State-election candidate",
+            "seat": "N.01 Buloh Kasap",
+            "coalition": "PH"
+          }
+        ],
+        "career_highlights": [],
+        "education": [],
+        "election_history": [
+          "PRN DUN Johor 16 - P140 Segamat N.01 Buloh Kasap"
+        ],
+        "official_contact": {
+          "address": "",
+          "phone": "",
+          "fax": "",
+          "email": ""
+        },
+        "social_links": [],
+        "sources": [
+          {
+            "label": "Sinar PRU profile",
+            "url": "https://pru.sinarharian.com.my/calon/9342/noraziah-mohd-razit"
+          }
+        ],
+        "source_quality": "profile"
+      },
+      "Datuk Zahari Sarip": {
+        "name": "Datuk Zahari Sarip",
+        "party": "UMNO",
+        "coalition": "BN",
+        "seat_code": "1_N.01",
+        "seat_name": "Buloh Kasap",
+        "state": "Johor",
+        "photo_url": "https://dewannegeri.johor.gov.my/wp-content/uploads/2022/04/YB-DATO-ZAHARI.jpg",
+        "current_role": "Johor executive councillor for agriculture, agro-based industry and rural development",
+        "summary": "Zahari Sarip is listed by Sinar Harian PRU as the Barisan Nasional candidate and incumbent for N.01 Buloh Kasap. The Johor assembly page lists his state executive councillor portfolio and official contact details.",
+        "party_history": [
+          {
+            "period": "2018-kini",
+            "party": "UMNO",
+            "coalition": "BN",
+            "note": "ADUN Buloh Kasap"
+          }
+        ],
+        "track_record": [
+          {
+            "period": "2018-kini",
+            "title": "ADUN Buloh Kasap",
+            "seat": "N.01 Buloh Kasap",
+            "coalition": "BN"
+          },
+          {
+            "title": "Johor executive councillor",
+            "note": "Agriculture, agro-based industry and rural development"
+          },
+          {
+            "title": "Senator"
+          },
+          {
+            "title": "Former special officer to the Minister of Health"
+          }
+        ],
+        "career_highlights": [
+          "Teacher",
+          "ADUN Buloh Kasap (2018-kini)",
+          "Politician",
+          "Senator",
+          "Former special officer to the Minister of Health"
+        ],
+        "education": [
+          "Diploma Perguruan",
+          "Sarjana Eksekutif dalam bidang Pengurusan"
+        ],
+        "election_history": [
+          "PRU14 - P140 Segamat N.01 Buloh Kasap",
+          "PRN DUN Johor - P140 Segamat N.01 Buloh Kasap",
+          "PRN DUN Johor 16 - P140 Segamat N.01 Buloh Kasap"
+        ],
+        "official_contact": {
+          "address": "Aras 3, Bangunan Dato' Jaafar Muhammad, Kota Iskandar, 79555 Iskandar Puteri",
+          "phone": "07-2666029 / 07-2666028",
+          "fax": "07-2661187",
+          "email": "exco.pklbjohor@gmail.com"
+        },
+        "social_links": [
+          "https://www.instagram.com/zaharisarip/?hl=en",
+          "https://www.facebook.com/JDNJOHOR/"
+        ],
+        "sources": [
+          {
+            "label": "Sinar PRU profile",
+            "url": "https://pru.sinarharian.com.my/calon/6462/zahari-sarip"
+          },
+          {
+            "label": "Dewan Negeri Johor",
+            "url": "https://dewannegeri.johor.gov.my/ahli/n01/"
+          }
+        ],
+        "source_quality": "profile + official"
+      }
+    },
+    "1_N.26": {
+      "Datuk Onn Hafiz Ghazi": {
+        "name": "Datuk Onn Hafiz Ghazi",
+        "party": "UMNO",
+        "coalition": "BN",
+        "seat_code": "1_N.26",
+        "seat_name": "Machap",
+        "state": "Johor",
+        "photo_url": "https://kasi.asia/wp-content/uploads/2023/06/Datuk-Onn-Hafiz-aspect-ratio-300-300.jpg",
+        "current_role": "Menteri Besar Johor",
+        "summary": "Onn Hafiz Ghazi is profiled by KSI as a Johor leader with experience in politics, business and community development. The profile notes his service as ADUN for Layang-Layang from 2018 to 2022 and as the current ADUN for Machap.",
+        "party_history": [
+          {
+            "period": "since 2006",
+            "party": "UMNO",
+            "coalition": "BN",
+            "note": "Party affiliation listed in profile sources"
+          }
+        ],
+        "track_record": [
+          {
+            "period": "2022-kini",
+            "title": "Menteri Besar Johor",
+            "seat": "N.26 Machap",
+            "coalition": "BN"
+          },
+          {
+            "period": "2018-2022",
+            "title": "ADUN Layang-Layang",
+            "coalition": "BN"
+          },
+          {
+            "period": "2013-2018",
+            "title": "Political Secretary to the Minister of Defence"
+          },
+          {
+            "period": "2005-2013",
+            "title": "CEO, KMB Sdn. Bhd."
+          }
+        ],
+        "career_highlights": [
+          "Johor State Executive Councillor for Tourism, Youth and Sports from 2019 to 2022",
+          "Former Political Secretary to the Minister of Defence from 2013 to 2018",
+          "Vice Chief Division of UMNO Simpang Renggam",
+          "Director of Chin Well Holdings Berhad from 2005 to 2013",
+          "Chief Executive Officer of KMB Sdn. Bhd. from 2005 to 2013"
+        ],
+        "education": [],
+        "election_history": [
+          "ADUN Layang-Layang (2018 to 2022)",
+          "ADUN Machap (2022-kini)"
+        ],
+        "official_contact": {
+          "address": "",
+          "phone": "",
+          "fax": "",
+          "email": ""
+        },
+        "social_links": [],
+        "sources": [
+          {
+            "label": "KSI profile",
+            "url": "https://kasi.asia/speakers/yab-dato-onn-hafiz-ghazi/"
+          },
+          {
+            "label": "Wikipedia profile",
+            "url": "https://en.wikipedia.org/wiki/Onn_Hafiz_Ghazi"
+          }
+        ],
+        "source_quality": "profile + encyclopedia"
+      }
+    }
+  }
+}

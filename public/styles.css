@@ -2081,6 +2081,9 @@ button.map-inspect-overview:focus-visible { outline: 2px solid var(--accent); ou
   gap: 8px;
   margin-top: 8px;
 }
+.prn-cands-compare:has(.prn-cc.has-profile) {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr));
+}
 .prn-cands-compare .prn-cc { min-height: 112px; }
 .prn-race-facts {
   display: grid;
@@ -2478,6 +2481,7 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 
 /* candidate cards in the bento spotlight (beside the map) */
 .bento-cand-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; align-content: start; }
+.bento-cand-grid:has(.prn-cc.has-profile) { grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); }
 .prn-cc { background: var(--bg-2); border: 1px solid var(--line); border-radius: 11px; padding: 11px 13px; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
 .prn-cc.is-inc { border-color: var(--line-2); }   /* the INCUMBENT chip carries the emphasis — no accent edging */
 .prn-cc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
@@ -2491,6 +2495,23 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 .prn-cc-news { display: flex; flex-direction: column; gap: 4px; }
 .prn-cc-newslink { display: flex; flex-direction: column; font-size: 11px; line-height: 1.3; gap: 1px; }
 .prn-cc-newst { color: var(--ink); }
+.prn-cc.has-profile { gap: 10px; }
+.prn-cc.has-profile .prn-cc-head { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: start; }
+.prn-cc.has-profile .prn-cc-id { min-height: 44px; justify-content: center; }
+.prn-cc.has-profile .prn-cc-head .pill { max-width: 112px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prn-profile-photo { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; border: 1px solid var(--line); }
+.prn-profile { border-top: 1px solid var(--line); padding-top: 9px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.prn-profile-meta, .prn-profile-sources { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); }
+.prn-profile-quality { letter-spacing: 0; text-transform: none; font-size: 10.5px; font-weight: 600; color: var(--ink-dim); border: 1px solid var(--line); border-radius: 999px; padding: 2px 7px; }
+.prn-profile-role { font-size: 12px; font-weight: 650; line-height: 1.3; color: var(--ink); }
+.prn-profile-summary { margin: 0; color: var(--ink-dim); font-size: 11.5px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.prn-profile-list, .prn-profile-timeline { display: grid; gap: 4px; font-size: 11.5px; line-height: 1.35; color: var(--ink-dim); }
+.prn-profile-list > span, .prn-profile-timeline > span, .prn-profile-partyhist > span { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); }
+.prn-profile-list ul, .prn-profile-timeline ol { margin: 0; padding-left: 16px; display: grid; gap: 3px; }
+.prn-profile-partyhist { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.prn-profile-partyhist b { font-size: 11px; line-height: 1.2; font-weight: 650; color: var(--ink); background: rgba(255,255,255,.06); border: 1px solid var(--line); border-radius: 999px; padding: 4px 8px; }
+.prn-profile-sources a { color: var(--ink-dim); text-transform: none; letter-spacing: 0; font-weight: 650; text-decoration: none; border-bottom: 1px solid var(--line-2); }
+.prn-profile-sources a:hover { color: var(--ink); border-bottom-color: var(--ink); }
 
 /* tabbed manifestos in the bento pledges tile (one coalition at a time) */
 .prn-pl-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
