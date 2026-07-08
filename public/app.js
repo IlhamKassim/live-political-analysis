@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=35";
-import { I18N } from "./i18n.js?v=35";
+  competitivenessFromMajorityPct } from "./lib.js?v=36";
+import { I18N } from "./i18n.js?v=36";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -50,6 +50,7 @@ const state = {
   votingGuide: null,
   politicians: null,// {mps: {P.xxx -> {name, photo, bio, socials, ...}}} federal MP roster
   polProfiles: null,// source-linked candidate/person profile cards keyed by DUN seat
+  stateEmblems: null,// state/federal territory coat-of-arms/seal assets + source manifest
   selected: null,
   seatTab: "overview",
   mapInspect: false,
@@ -195,6 +196,11 @@ async function loadOptional() {
     if (sc.ok) state.stateCtx = await sc.json();
   } catch (_) {}
   try {
+    // state/federal territory crests and seals, locally stored with source metadata
+    const se = await fetch("data/state-emblems.json");
+    if (se.ok) state.stateEmblems = await se.json();
+  } catch (_) {}
+  try {
     // per-state economy report card, DOSM via data.gov.my (pipeline/08_state_econ.py)
     const se = await fetch("data/state-econ.json");
     if (se.ok) state.stateEcon = await se.json();
@@ -275,6 +281,21 @@ function personPhotoHTML(name, photo, cls = "") {
   }
   return `<span class="pol-photo pol-monogram ${cls}" style="background:${monogramColor(name || "")}" aria-hidden="true">${esc(personInitials(name))}</span>`;
 }
+// Hotlinked candidate/person portraits (Sinar Harian, state-gov sites) can 404 or
+// block hotlinking — swap any broken .pol-photo <img> for the SAME monogram it would
+// have had with no photo, so a broken-image glyph never shows. Capture phase because
+// <img> 'error' does not bubble.
+document.addEventListener("error", (e) => {
+  const img = e.target;
+  if (!(img instanceof HTMLImageElement) || !img.classList.contains("pol-photo")) return;
+  const name = img.getAttribute("alt") || "";
+  const span = document.createElement("span");
+  span.className = ["pol-photo", "pol-monogram", ...[...img.classList].filter((c) => c !== "pol-photo")].join(" ");
+  span.style.background = monogramColor(name);
+  span.setAttribute("aria-hidden", "true");
+  span.textContent = personInitials(name);
+  img.replaceWith(span);
+}, true);
 // brand glyphs (inline SVG, currentColor — theme-safe, no external requests)
 const SOCIAL_ICONS = {
   fb: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13.4 21v-8h2.7l.4-3.1h-3.1V7.9c0-.9.25-1.5 1.55-1.5h1.65V3.63c-.3-.04-1.3-.13-2.47-.13-2.45 0-4.13 1.5-4.13 4.24V9.9H7.5V13h2.5v8z"/></svg>',
@@ -2826,6 +2847,7 @@ function renderSidebarStates() {
   host.innerHTML = names.map((n) => {
     const isElection = !!(e && e.state === n);
     return `<button type="button" class="sb-item sb-state${isElection ? " is-election" : ""}" data-sb-state="${esc(n)}">
+      ${stateEmblemHTML(n, "sb-state-emblem")}
       <span class="sb-state-name">${esc(n)}</span>
       ${isElection ? `<span class="sb-state-badge">${esc(t("prn_kicker"))}</span>` : ""}
     </button>`;
@@ -4219,9 +4241,8 @@ function prnSpotlightHTML() {
       <div class="bento-spot-kicker">${esc(entry.ncode)} · ${esc(t("prn_candidates"))} ${entry.candidates.length}</div>
       <h3>${esc(entry.name)}</h3>${metaLine}
     </div>${inc}
-    <div class="bento-cand-label muted">${esc(t("prn_bento_running"))}</div>
-    <div class="bento-cand-grid">${prnCandidateCardsHTML(entry, seat.code, true)}</div>
-    ${lastResultHTML(entry)}`;
+    <div class="bento-cand-label muted">${esc(t("prn_candidates"))}</div>
+    <div class="bento-cand-grid bento-cand-row">${prnCandidateCardsHTML(entry, seat.code, true)}</div>`;
 }
 
 // spotlight dispatcher: election tiles need the candidate roster; the generic state
@@ -4635,15 +4656,25 @@ function bentoMapTileHTML(name) {
 function stateInitials(name) {
   return personInitials(String(name || "").replace(/^W\.P\.\s*/i, ""));
 }
-// A small state-colour roundel beside the dashboard title. Zero licensing risk —
-// Malaysian state arms (jata negeri) are restricted, so we ship a neutral monogram
-// (real crest art is a later pass). Colour = the state's own map hue, so the crest
-// reads as "this state"; falls back to a deterministic hash if hues aren't loaded.
-function stateCrestHTML(name) {
+// Sourced emblem art when the manifest is loaded; deterministic monogram fallback
+// when the optional file fails or a new state key is missing.
+function stateEmblemFor(name) {
+  return state.stateEmblems && state.stateEmblems.states && state.stateEmblems.states[name];
+}
+function stateEmblemHTML(name, cls = "") {
   if (!name) return "";
+  const em = stateEmblemFor(name);
+  const classes = ["state-emblem", cls].filter(Boolean).join(" ");
+  if (em && em.asset) {
+    const title = em.title || `${name} emblem`;
+    return `<span class="${esc(classes)}" title="${esc(title)}" aria-hidden="true"><img src="${esc(em.asset)}" alt="" loading="lazy" decoding="async"></span>`;
+  }
   const d = state.data[bentoMapTier()] || state.data.parlimen || state.data.dun;
   const hue = (d && d.hues && d.hues[name]) || monogramColor(name);
-  return `<span class="bento-crest" style="background:${hue}" aria-hidden="true">${esc(stateInitials(name))}</span>`;
+  return `<span class="${esc(classes)} state-emblem-fallback" style="background:${hue}" aria-hidden="true">${esc(stateInitials(name))}</span>`;
+}
+function stateCrestHTML(name) {
+  return stateEmblemHTML(name, "bento-crest");
 }
 
 // dashboard chrome lives IN THE NAV BAR on wide screens: the state/election title
@@ -4657,7 +4688,7 @@ function renderBentoChrome() {
   const e = prnActiveForState(name);
   const election = bentoElectionMode();
   ctxEl.innerHTML = election
-    ? `<span class="bento-title"><span class="live-dot"></span>🗳️ ${esc(e.name)}</span>`
+    ? `<span class="bento-title">${stateCrestHTML(e && e.state ? e.state : name)}<span class="live-dot"></span>🗳️ ${esc(e.name)}</span>`
     : `<span class="bento-title">${stateCrestHTML(name)}${esc(name)}</span>`;
   const toggle = e
     ? `<button id="bento-prn-toggle" class="bento-prn-toggle${election ? " on" : ""}" type="button" aria-pressed="${election}">
