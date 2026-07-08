@@ -2484,6 +2484,16 @@ body.politicians-open #topbar { display: none; }
 .pol-socials-note { font-size: 10.5px; margin: 4px 0 0; }
 
 /* PRN coalition manifesto pledges on the candidate card */
+/* mobile seat card: a compact link to the manifesto modal instead of the full pledges */
+.prn-pledges-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; min-height: 46px; margin-top: 14px; padding: 12px 16px; cursor: pointer;
+  font: inherit; font-size: 14px; font-weight: 600; color: var(--ink);
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius, 12px);
+  transition: border-color .12s ease, background .12s ease;
+}
+.prn-pledges-btn:hover { border-color: var(--line-2); background: color-mix(in oklab, var(--bg-2) 85%, var(--ink) 15%); }
+.prn-pledges-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .prn-pledges { display: grid; gap: 12px; }
 .prn-pledge-coal { border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px; background: rgba(255,255,255,.02); }
 .prn-pledge-h { display: flex; align-items: center; gap: 8px; font-size: 12.5px; margin-bottom: 8px; }
@@ -2681,15 +2691,22 @@ body.politicians-open #topbar { display: none; }
    clip their party pill; when there are more candidates than fit, it scrolls sideways */
 .bento-cand-row { display: flex; flex: 0 0 auto; gap: 8px; align-items: stretch; overflow-x: auto; overflow-y: hidden; padding-bottom: 2px; scrollbar-width: thin; }
 .bento-cand-row .prn-cc { flex: 1 0 128px; min-width: 128px; }   /* fill when few, scroll sideways when many */
-.prn-cc.is-compact { align-items: center; text-align: center; gap: 4px; padding: 7px 8px; }
-.prn-cc.is-compact .prn-cc-head { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 6px; width: 100%; }
-.prn-cc.is-compact .prn-cc-id { min-height: 0; align-items: center; text-align: center; gap: 4px; }
-.prn-cc.is-compact .prn-cc-name { justify-content: center; font-size: 12px; line-height: 1.2;
+/* desktop seat-spotlight row: compact cards become VERTICAL minis (photo on top) so
+   they tile across the fixed-height tile. Scoped to the row — elsewhere a compact card
+   keeps its natural horizontal head. */
+.bento-cand-row .prn-cc.is-compact { align-items: center; text-align: center; gap: 4px; padding: 7px 8px; }
+.bento-cand-row .prn-cc.is-compact .prn-cc-head { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 6px; width: 100%; }
+.bento-cand-row .prn-cc.is-compact .prn-cc-id { min-height: 0; align-items: center; text-align: center; gap: 4px; }
+.bento-cand-row .prn-cc.is-compact .prn-cc-name { justify-content: center; font-size: 12px; line-height: 1.2;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.prn-cc.is-compact .prn-cc-head .pill { align-self: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; padding: 3px 8px; }
-.prn-cc.is-compact .pol-photo.prn-profile-photo { width: 32px; height: 32px; }
+.bento-cand-row .prn-cc.is-compact .prn-cc-head .pill { align-self: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; padding: 3px 8px; }
+.bento-cand-row .prn-cc.is-compact .pol-photo.prn-profile-photo { width: 32px; height: 32px; }
+.bento-cand-row .prn-cc.is-compact .prn-cc-inc { font-size: 8px; padding: 1px 4px; }
+/* shared: a compact card is just photo + name + party — drop the profile-only bits */
 .prn-cc.is-compact .prn-cc-open, .prn-cc.is-compact .prn-cc-alias { display: none; }
-.prn-cc.is-compact .prn-cc-inc { font-size: 8px; padding: 1px 4px; }
+.prn-cc.is-compact { min-height: 0; }
+/* mobile seat-card compare list: the compact cards keep a natural short height */
+.prn-cands-compare .prn-cc.is-compact { min-height: 0; gap: 6px; }
 /* tighten the head + "currently held by" block so the whole spotlight fits without
    the body scrolling (Danial: the card must not scroll) */
 #bento-spot .bento-spot-head h3 { font-size: 15px; margin: 1px 0 0; }

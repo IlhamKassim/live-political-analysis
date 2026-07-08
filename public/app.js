@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=39";
-import { I18N } from "./i18n.js?v=39";
+  competitivenessFromMajorityPct } from "./lib.js?v=40";
+import { I18N } from "./i18n.js?v=40";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -2921,6 +2921,10 @@ PLEDGES_MODAL?.addEventListener("click", (ev) => {
     if (host) host.innerHTML = prnPledgeTabsHTML();
   }
 });
+// the mobile seat card links out to the manifesto rather than dumping every pledge inline
+document.addEventListener("click", (ev) => {
+  if (ev.target.closest("[data-open-pledges]")) { ev.preventDefault(); openPledgesModal(); }
+});
 CAND_MODAL?.addEventListener("click", (ev) => {
   if (ev.target.closest(".pol-modal-close") || ev.target === CAND_MODAL) {
     closeCandidateModal();
@@ -4049,10 +4053,10 @@ function prnSeatCardHTML(seat, entry) {
     ${prnRaceFactsHTML(seat, entry)}
     ${incumbentBlockHTML(entry, seat.code)}
     <div class="state-info-h muted">${esc(t("prn_candidate_compare"))} · ${entry.candidates.length}</div>
-    <div class="prn-cands prn-cands-compare">${prnCandidateCardsHTML(entry, seat.code)}</div>
+    <div class="prn-cands prn-cands-compare">${prnCandidateCardsHTML(entry, seat.code, true)}</div>
     ${hasNews ? `<p class="src-line muted">${esc(t("prn_news_note"))}</p>` : ""}
     ${lastResultHTML(entry)}
-    ${prnPledgesHTML(entry)}
+    ${state.johorPledges && prnPledgesHTML(entry) ? `<button type="button" class="prn-pledges-btn" data-open-pledges>📜 ${esc(t("prn_pledges"))} →</button>` : ""}
     <p class="callout prn-note">${esc(t("prn_results_note"))}</p>
     <p class="src-line muted">${esc(t("prn_source"))}</p>`;
 }
