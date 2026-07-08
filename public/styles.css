@@ -656,6 +656,14 @@ body.state-open #map { overflow: visible; }
 #panel.empty #panel-seat, #panel.empty #panel-state { display: none; }
 #panel:not(.empty) #panel-empty { display: none; }
 #panel-empty[hidden], #panel-seat[hidden], #panel-state[hidden] { display: none; }
+/* belt-and-braces: the overview search/controls card must NEVER be stranded invisible
+   by a leftover minimize animation. minimizeCard() fades #panel-empty with fill:forwards
+   (opacity→0) when a state opens, and a backgrounded tab can freeze that fill so the JS
+   cancel() misses it — the search bar then "disappears". When #panel-empty IS the shown
+   overview card (class empty, not hidden), force it fully visible; !important beats the
+   stray WAAPI fill. Safe: no OTHER animation ever targets this card (minimize runs while
+   the class is NOT .empty). */
+#panel.empty #panel-empty:not([hidden]) { opacity: 1 !important; transform: none !important; }
 
 /* ---- state card: header + a mini-map of that state's districts ---- */
 .state-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
