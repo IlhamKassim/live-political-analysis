@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=33";
-import { I18N } from "./i18n.js?v=33";
+  competitivenessFromMajorityPct } from "./lib.js?v=34";
+import { I18N } from "./i18n.js?v=34";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -4759,12 +4759,22 @@ function bentoElectionTilesHTML() {
     [t("prn_polling"), fmtDayMonth(e.polling_day)],
   ].map(([k, v], i) => `<div class="bento-date${i === 2 ? " is-poll" : ""}"><span class="muted">${esc(k)}</span><b>${esc(v)}</b></div>`).join("");
 
-  const countTile = liveNow
-    ? `<div class="bento-tile bento-count is-live"><div class="bento-kicker"><span class="live-dot"></span>${esc(t(state.prnLive.phase === "final" ? "prn_phase_final" : "prn_phase_live"))}</div><div class="bento-count-big">${state.prnLive.declared || 0}<span>/${e.total_seats}</span></div><div class="bento-count-sub muted">${esc(t("prn_polling"))} · ${esc(fmtDayMonth(e.polling_day))}</div></div>`
-    : `<div class="bento-tile bento-count"><div class="bento-kicker">${esc(t("prn_polling"))} · ${esc(fmtDayMonth(e.polling_day))}</div><div class="bento-count-big">${days > 0 ? days : 0}<span>${esc(days === 1 ? t("prn_bento_day") : t("prn_bento_days_unit"))}</span></div><div class="bento-count-sub muted">${esc(t("prn_bento_to_polling"))}</div></div>`;
+  // countdown + "are you registered?" share ONE box: countdown hero on the left,
+  // the SPR voter-check CTA on the right (two accent halves, one rounded tile)
+  const countInner = liveNow
+    ? `<div class="bento-kicker"><span class="live-dot"></span>${esc(t(state.prnLive.phase === "final" ? "prn_phase_final" : "prn_phase_live"))}</div><div class="bento-count-big">${state.prnLive.declared || 0}<span>/${e.total_seats}</span></div><div class="bento-count-sub muted">${esc(t("prn_polling"))} · ${esc(fmtDayMonth(e.polling_day))}</div>`
+    : `<div class="bento-kicker">${esc(t("prn_polling"))} · ${esc(fmtDayMonth(e.polling_day))}</div><div class="bento-count-big">${days > 0 ? days : 0}<span>${esc(days === 1 ? t("prn_bento_day") : t("prn_bento_days_unit"))}</span></div><div class="bento-count-sub muted">${esc(t("prn_bento_to_polling"))}</div>`;
+  const countRegTile = `<div class="bento-tile bento-countreg${liveNow ? " is-live" : ""}">
+      <div class="bento-cr-count">${countInner}</div>
+      <a class="bento-cr-reg" href="${esc(e.check_voter_url)}" target="_blank" rel="noopener">
+        <div class="bento-kicker">${esc(t("prn_bento_register_h"))}</div>
+        <p class="bento-reg-b">${esc(t("prn_bento_register_b"))}</p>
+        <span class="bento-reg-cta">${esc(t("prn_check"))}</span>
+      </a>
+    </div>`;
 
   return `<div class="bento-grid is-prn">
-      ${countTile}
+      ${countRegTile}
       ${bentoMapTileHTML(e.state)}
       <div class="bento-tile bento-stand">
         <div class="bento-kicker">${esc(t("prn_contested"))}</div>
@@ -4775,11 +4785,6 @@ function bentoElectionTilesHTML() {
         <div class="bento-kicker">${esc(t("prn_bento_key_dates"))}</div>
         <div class="bento-dates-row">${dates}</div>
       </div>
-      <a class="bento-tile bento-reg" href="${esc(e.check_voter_url)}" target="_blank" rel="noopener">
-        <div class="bento-kicker">${esc(t("prn_bento_register_h"))}</div>
-        <p class="bento-reg-b">${esc(t("prn_bento_register_b"))}</p>
-        <span class="bento-reg-cta">${esc(t("prn_check"))}</span>
-      </a>
       <div class="bento-tile bento-spot" id="bento-spot">
         <div class="bento-kicker">${esc(t("prn_bento_spotlight"))}</div>
         <div id="bento-spot-body">${bentoSpotlightHTML()}</div>

@@ -2471,7 +2471,7 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
      candidate + the incumbent without scrolling; pledges take the natural remainder */
   grid-template-rows: auto minmax(340px, 1fr);
   grid-template-areas:
-    "count  dates reg   stand"
+    "creg   creg  dates stand"
     "map    map   spot  spot";
 }
 .bento-map, .bento-spot, .bento-stand { min-height: 0; }
@@ -2481,7 +2481,7 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
   .bento-tile { padding: 12px 14px; gap: 7px; }
   .bento-count-big { font-size: clamp(32px, 3.6vw, 48px); }
 }
-.bento-count { grid-area: count; } .bento-map { grid-area: map; } .bento-stand { grid-area: stand; }
+.bento-count { grid-area: count; } .bento-countreg { grid-area: creg; } .bento-map { grid-area: map; } .bento-stand { grid-area: stand; }
 .bento-dates { grid-area: dates; } .bento-reg { grid-area: reg; } .bento-spot { grid-area: spot; } .bento-pledge { grid-area: pledge; }
 
 .bento-tile {
@@ -2525,6 +2525,23 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 .bento-reg:hover { border-color: var(--accent); transform: translateY(-1px); }
 .bento-reg-b { font-size: 13px; line-height: 1.5; color: var(--ink-dim); margin: 0; flex: 1; }
 .bento-reg-cta { font-size: 13px; font-weight: 600; color: var(--accent); }
+
+/* combined countdown + voter-registration tile: two halves in one rounded box
+   (placed AFTER .bento-tile so flex-direction:row wins the same-specificity cascade) */
+.bento-countreg { flex-direction: row; gap: 0; padding: 0; overflow: hidden; }
+.bento-cr-count {
+  flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 6px;
+  padding: 15px 16px; background: linear-gradient(158deg, #13212c, var(--panel));
+}
+.bento-countreg.is-live .bento-cr-count { background: linear-gradient(158deg, #10262a, var(--panel)); }
+.bento-countreg.is-live .bento-count-big { color: var(--accent); }
+.bento-cr-reg {
+  flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 9px;
+  padding: 15px 16px; border-left: 1px solid var(--line);
+  text-decoration: none; color: var(--ink); transition: background .15s;
+}
+.bento-cr-reg:hover { background: color-mix(in oklab, var(--accent) 7%, transparent); }
+.bento-cr-reg .bento-reg-b { flex: 1; }
 
 /* seat spotlight */
 .bento-spot { overflow: hidden; }
@@ -2978,6 +2995,17 @@ body.bento-on #topbar .top-controls { margin-inline: auto; }
 .bento-reg .bento-reg-b { color: rgba(20,22,26,.75); }
 .bento-reg .bento-reg-cta { color: var(--snow-dark-ink); font-weight: 700; }
 .bento-reg:hover { border: 0; filter: brightness(1.04); transform: translateY(-1px); }
+/* merged countdown+register tile: two SnowUI accent halves in one rounded box */
+.bento-countreg { background: transparent; padding: 0; overflow: hidden; }
+.bento-cr-count { background: var(--snow-blue); padding: 18px 20px; }
+.bento-cr-count .bento-kicker, .bento-cr-count .bento-count-sub, .bento-cr-count .bento-count-big { color: var(--snow-dark-ink); }
+.bento-cr-count .bento-count-big span { color: rgba(20,22,26,.65); }
+.bento-countreg.is-live .bento-cr-count { background: var(--snow-green); }
+.bento-cr-reg { background: var(--snow-peri); border-left: 0; padding: 18px 20px; }
+.bento-cr-reg .bento-kicker, .bento-cr-reg .bento-reg-b, .bento-cr-reg .bento-reg-cta { color: var(--snow-dark-ink); }
+.bento-cr-reg .bento-reg-b { color: rgba(20,22,26,.75); }
+.bento-cr-reg .bento-reg-cta { font-weight: 700; }
+.bento-cr-reg:hover { background: var(--snow-peri); filter: brightness(1.03); }
 /* controls: soft gray pills, no borders (.prn-close-btn/.prn-pl-tab shared with the
    mobile panel — scope to the wide chrome + the pledges dialog) */
 .bento-tier-chip, .bento-q, .bento-prn-toggle, .sb-collapse,
