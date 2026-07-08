@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=36";
-import { I18N } from "./i18n.js?v=36";
+  competitivenessFromMajorityPct } from "./lib.js?v=37";
+import { I18N } from "./i18n.js?v=37";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -441,6 +441,56 @@ function polList() {
   return merged.concat(adunList().filter((a) => !matchedDun.has(a.code)))
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
 }
+function partyDisplayName(p) {
+  return String((p && (p.party || p.coalition)) || "").trim() || "UNKNOWN";
+}
+function topPartyCoalition(counts, fallback) {
+  const xs = [...counts.entries()].filter(([k]) => k);
+  if (!xs.length) return fallback || "";
+  xs.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  return xs[0][0];
+}
+function partyStatsList() {
+  const byParty = new Map();
+  const add = (p, tier) => {
+    const party = partyDisplayName(p);
+    const rec = byParty.get(party) || {
+      party,
+      coalitionCounts: new Map(),
+      parliament: 0,
+      dun: 0,
+      states: new Map(),
+      reps: [],
+    };
+    if (tier === "parlimen") rec.parliament += 1;
+    else rec.dun += 1;
+    if (p.coalition) rec.coalitionCounts.set(p.coalition, (rec.coalitionCounts.get(p.coalition) || 0) + 1);
+    if (p.state) rec.states.set(p.state, (rec.states.get(p.state) || 0) + 1);
+    rec.reps.push({
+      name: p.name,
+      state: p.state || "",
+      seat: p.dunCode ? `${p.dunCode} · ${p.seatName}` : `${p.code} · ${p.seatName}`,
+      tier,
+    });
+    byParty.set(party, rec);
+  };
+  politicianList().forEach((p) => add(p, "parlimen"));
+  adunList().forEach((p) => add(p, "dun"));
+  return [...byParty.values()].map((p) => {
+    const coalition = topPartyCoalition(p.coalitionCounts, p.party);
+    const topStates = [...p.states.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 3);
+    return {
+      ...p,
+      coalition,
+      total: p.parliament + p.dun,
+      topStates,
+      samples: p.reps.slice().sort((a, b) => {
+        if (a.tier !== b.tier) return a.tier === "parlimen" ? -1 : 1;
+        return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+      }).slice(0, 3),
+    };
+  }).sort((a, b) => b.total - a.total || a.party.localeCompare(b.party));
+}
 function renderPoliticianGrid() {
   const grid = document.getElementById("pol-grid");
   const countEl = document.getElementById("pol-count");
@@ -452,8 +502,10 @@ function renderPoliticianGrid() {
     (!stateF || p.state === stateF) &&
     (!coalF || p.coalition === coalF) &&
     (!q || norm(p.name).includes(q) || norm(p.seatName).includes(q) || norm(p.code).includes(q) ||
+      norm(p.party).includes(q) || norm(p.coalition).includes(q) ||
       (p.alsoDun && (norm(p.alsoDun.seatName).includes(q) || norm(p.alsoDun.dunCode).includes(q)))));
   if (countEl) countEl.textContent = t("pol_count", { n: items.length });
+  grid.className = "pol-grid";
   grid.innerHTML = items.length
     ? items.map((p) => {
         const seatLine = p.alsoDun
@@ -472,11 +524,55 @@ function renderPoliticianGrid() {
       }).join("")
     : `<p class="pol-dir-empty">${esc(t("pol_no_match"))}</p>`;
 }
+function renderPartyGrid() {
+  const grid = document.getElementById("pol-grid");
+  const countEl = document.getElementById("pol-count");
+  if (!grid) return;
+  const q = norm((document.getElementById("pol-search") || {}).value || "");
+  const stateF = (document.getElementById("pol-state") || {}).value || "";
+  const coalF = (document.getElementById("pol-coal") || {}).value || "";
+  const items = partyStatsList().filter((p) =>
+    (!stateF || p.states.has(stateF)) &&
+    (!coalF || p.coalition === coalF) &&
+    (!q || norm(p.party).includes(q) || norm(p.coalition).includes(q) ||
+      p.samples.some((r) => norm(r.name).includes(q) || norm(r.seat).includes(q))));
+  if (countEl) countEl.textContent = t("pol_party_count", { n: items.length });
+  grid.className = "pol-party-grid";
+  grid.innerHTML = items.length
+    ? items.map((p) => {
+        const stateLine = p.topStates.length
+          ? p.topStates.map(([s, n]) => `${s} ${n}`).join(" · ")
+          : t("pol_party_state_none");
+        const samples = p.samples.map((r) => `<li><b>${esc(r.name)}</b><span>${esc(r.seat)}</span></li>`).join("");
+        return `<button type="button" class="pol-party-card" data-pol-party="${esc(p.party)}" aria-label="${esc(t("pol_party_open_aria", { party: p.party }))}">
+          <div class="pol-party-top">
+            <span class="pol-party-mark" style="background:${partyColor(p.coalition || p.party)}">${esc(p.party)}</span>
+            ${p.coalition && p.coalition !== p.party ? `<span class="pill" style="background:${partyColor(p.coalition)};color:#fff">${esc(p.coalition)}</span>` : ""}
+          </div>
+          <div class="pol-party-stats">
+            <span><small>${esc(t("pol_party_total"))}</small><b>${p.total}</b></span>
+            <span><small>${esc(t("pol_party_parliament"))}</small><b>${p.parliament}</b></span>
+            <span><small>${esc(t("pol_party_state"))}</small><b>${p.dun}</b></span>
+          </div>
+          <div class="pol-party-meta"><span>${esc(t("pol_party_top_states"))}</span><b>${esc(stateLine)}</b></div>
+          <ul class="pol-party-samples">${samples}</ul>
+          <span class="pol-party-open">${esc(t("pol_party_open"))}</span>
+        </button>`;
+      }).join("")
+    : `<p class="pol-dir-empty">${esc(t("pol_party_no_match"))}</p>`;
+}
+function renderPoliticiansBody() {
+  if (polTier === "parties") renderPartyGrid();
+  else renderPoliticianGrid();
+}
 function norm(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9]/g, ""); }
 function renderPoliticiansDirectory(keepQuery = "") {
   if (!POL_VIEW || !state.politicians) return;
-  const list = polList();
-  const states = [...new Set(list.map((p) => p.state))].filter(Boolean).sort();
+  const partyMode = polTier === "parties";
+  const list = partyMode ? partyStatsList() : polList();
+  const states = partyMode
+    ? [...new Set(list.flatMap((p) => [...p.states.keys()]))].filter(Boolean).sort()
+    : [...new Set(list.map((p) => p.state))].filter(Boolean).sort();
   const coals = [...new Set(list.map((p) => p.coalition).filter(Boolean))]
     .sort((a, b) => {
       const ai = COALITION_ORDER.indexOf(a), bi = COALITION_ORDER.indexOf(b);
@@ -485,6 +581,10 @@ function renderPoliticiansDirectory(keepQuery = "") {
   POL_VIEW.innerHTML = `
     <div class="pol-dir">
       <div class="pol-dir-head">
+        <button id="pol-back" class="pol-back" type="button">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+          <span>${esc(t("pol_back"))}</span>
+        </button>
         <h1>${esc(t("pol_dir_title"))}</h1>
         <p class="pol-dir-sub">${esc(t("pol_dir_sub"))}</p>
       </div>
@@ -492,10 +592,11 @@ function renderPoliticiansDirectory(keepQuery = "") {
         <button type="button" role="tab" data-pol-tier="all" aria-selected="${polTier === "all"}" class="${polTier === "all" ? "on" : ""}">${esc(t("pol_tab_all"))}</button>
         <button type="button" role="tab" data-pol-tier="parlimen" aria-selected="${polTier === "parlimen"}" class="${polTier === "parlimen" ? "on" : ""}">${esc(t("pol_tab_mp"))}</button>
         <button type="button" role="tab" data-pol-tier="dun" aria-selected="${polTier === "dun"}" class="${polTier === "dun" ? "on" : ""}">${esc(t("pol_tab_adun"))}</button>
+        <button type="button" role="tab" data-pol-tier="parties" aria-selected="${polTier === "parties"}" class="${polTier === "parties" ? "on" : ""}">${esc(t("pol_tab_parties"))}</button>
       </div>
       <div class="pol-dir-controls">
         <input id="pol-search" class="pol-dir-search" type="search" autocomplete="off" spellcheck="false"
-          aria-label="${esc(t("pol_search"))}" placeholder="${esc(t("pol_search"))}" value="${esc(keepQuery)}">
+          aria-label="${esc(t(partyMode ? "pol_party_search" : "pol_search"))}" placeholder="${esc(t(partyMode ? "pol_party_search" : "pol_search"))}" value="${esc(keepQuery)}">
         <select id="pol-state" aria-label="${esc(t("pol_all_states"))}">
           <option value="">${esc(t("pol_all_states"))}</option>
           ${states.map((s) => `<option value="${esc(s)}">${esc(s)}</option>`).join("")}
@@ -506,14 +607,15 @@ function renderPoliticiansDirectory(keepQuery = "") {
         </select>
       </div>
       <div id="pol-count" class="pol-dir-count"></div>
-      <div id="pol-grid" class="pol-grid"></div>
-      <p class="pol-dir-src">${esc(t("pol_sources"))}</p>
+      <div id="pol-grid" class="${partyMode ? "pol-party-grid" : "pol-grid"}"></div>
+      <p class="pol-dir-src">${esc(t(partyMode ? "pol_party_sources" : "pol_sources"))}</p>
     </div>`;
-  renderPoliticianGrid();
+  renderPoliticiansBody();
+  document.getElementById("pol-back")?.addEventListener("click", () => { closePoliticians({ silent: true }); hideInfo(); backToControls(); syncSidebar(); });
   const s = document.getElementById("pol-search");
-  s && s.addEventListener("input", renderPoliticianGrid);
-  document.getElementById("pol-state").addEventListener("change", renderPoliticianGrid);
-  document.getElementById("pol-coal").addEventListener("change", renderPoliticianGrid);
+  s && s.addEventListener("input", renderPoliticiansBody);
+  document.getElementById("pol-state").addEventListener("change", renderPoliticiansBody);
+  document.getElementById("pol-coal").addEventListener("change", renderPoliticiansBody);
   POL_VIEW.querySelectorAll("[data-pol-tier]").forEach((b) => b.addEventListener("click", async () => {
     if (b.dataset.polTier === polTier) return;
     polTier = b.dataset.polTier;
@@ -2992,6 +3094,12 @@ document.getElementById("top-share")?.addEventListener("click", shareApp);
 document.getElementById("top-politicians")?.addEventListener("click", () => openPoliticians());
 POL_VIEW?.addEventListener("click", (e) => {
   if (e.target.closest("a")) return;   // a social-icon link — let it open, don't pop the profile
+  const party = e.target.closest("[data-pol-party]");
+  if (party) {
+    polTier = "all";
+    renderPoliticiansDirectory(party.dataset.polParty || "");
+    return;
+  }
   const card = e.target.closest("[data-pol-code]");
   if (card) openPoliticianModal(card.dataset.polCode);   // full-profile pop-up, not the map
 });
@@ -5168,24 +5276,12 @@ BENTO_MQ.addEventListener("change", () => {
   else hideStateBento();
 });
 // overview badge pinned above the contested state, tracking the camera
+// the live-election badge is pinned to the TOP-RIGHT of the map (fixed, via CSS) —
+// a stable "jump to the election" button, no longer camera-tracked over the state.
 function syncLiveBadge() {
   const el = document.getElementById("live-badge");
   if (!el) return;
-  const e = liveElection();
-  const show = !!e && !state.openState;
-  el.hidden = !show;
-  if (!show) return;
-  let b;
-  try { b = stateBBox(e.state); } catch (_) { el.hidden = true; return; }
-  if (!b || !Number.isFinite(b.x)) { el.hidden = true; return; }
-  const r = SVG.getBoundingClientRect();
-  const [vx, vy, vw, vh] = viewBox;
-  if (!(vw > 0) || !(r.width > 0)) return;
-  const k = Math.min(r.width / vw, r.height / vh);
-  const ox = r.left + (r.width - vw * k) / 2;
-  const oy = r.top + (r.height - vh * k) / 2;
-  el.style.left = `${ox + (b.x + b.w / 2 - vx) * k}px`;
-  el.style.top = `${Math.max(oy + (b.y - vy) * k - 10, 64)}px`;
+  el.hidden = !(liveElection() && !state.openState);
 }
 
 function openStateCard(name) {
