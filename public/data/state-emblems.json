@@ -1,0 +1,128 @@
+{
+  "generated_at": "2026-07-08T23:12:00+08:00",
+  "method": "Wikimedia Commons SVG assets resolved from Wikipedia's states/federal-territories table and armorial references. Assets are stored locally under public/assets/state-emblems so the app does not hotlink.",
+  "sources": [
+    {
+      "label": "States and federal territories of Malaysia",
+      "url": "https://en.wikipedia.org/wiki/States_and_federal_territories_of_Malaysia"
+    },
+    {
+      "label": "Armorial of Malaysia",
+      "url": "https://en.wikipedia.org/wiki/Armorial_of_Malaysia"
+    }
+  ],
+  "states": {
+    "Johor": {
+      "title": "Coat of arms of Johor",
+      "asset": "assets/state-emblems/johor.svg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Coat_of_arms_of_Johor.svg",
+      "credit": "The State Government of Johor",
+      "license": "Public domain"
+    },
+    "Kedah": {
+      "title": "Coat of arms of Kedah",
+      "asset": "assets/state-emblems/kedah.svg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Coat_of_arms_of_Kedah.svg",
+      "credit": "The State Government of Kedah",
+      "license": "Public domain"
+    },
+    "Kelantan": {
+      "title": "Coat of arms of Kelantan",
+      "asset": "assets/state-emblems/kelantan.svg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Coat_of_arms_of_Kelantan.svg",
+      "credit": "The State Government of Kelantan",
+      "license": "Public domain"
+    },
+    "Melaka": {
+      "title": "Coat of arms of Melaka",
+      "asset": "assets/state-emblems/melaka.svg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Coat_of_arms_of_Malacca_New.svg",
+      "credit": "Kerajaan Negeri Melaka",
+      "license": "CC0"
+    },
+    "Negeri Sembilan": {
+      "title": "Coat of arms of Negeri Sembilan",
+      "asset": "assets/state-emblems/negeri-sembilan.svg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Coat_of_arms_of_Negeri_Sembilan.svg",
+      "credit": "The State Government of Negeri Sembilan",
+      "license": "Public domain"
+    },
+    "Pahang": {
+      "title": "Coat of arms of Pahang",
+      "asset": "assets/state-emblems/pahang.svg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Coat_of_arms_of_Pahang.svg",
+      "credit": "The State Government of Pahang",
+      "license": "Public domain"
+    },
+    "Perak": {
+      "title": "Coat of arms of Perak",
+      "asset": "assets/state-emblems/perak.svg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Coat_of_arms_of_Perak.svg",
+      "credit": "The State Government of Perak",
+      "license": "Public domain"
+    },
+    "Perlis": {
+      "title": "Coat of arms of Perlis",
+      "asset": "assets/state-emblems/perlis.svg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Coat_of_arms_of_Perlis.svg",
+      "credit": "The State Government of Perlis",
+      "license": "Public domain"
+    },
+    "Pulau Pinang": {
+      "title": "Coat of arms of Penang",
+      "asset": "assets/state-emblems/pulau-pinang.svg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Coat_of_arms_of_Penang.svg",
+      "credit": "Ranking Update",
+      "license": "Public domain"
+    },
+    "Sabah": {
+      "title": "Coat of arms of Sabah",
+      "asset": "assets/state-emblems/sabah.svg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Coat_of_arms_of_Sabah.svg",
+      "credit": "Wikimedia Commons contributors",
+      "license": "Public domain"
+    },
+    "Sarawak": {
+      "title": "Coat of arms of Sarawak",
+      "asset": "assets/state-emblems/sarawak.svg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Coat_of_arms_of_Sarawak.svg",
+      "credit": "Ranking Update",
+      "license": "Public domain"
+    },
+    "Selangor": {
+      "title": "Coat of arms of Selangor",
+      "asset": "assets/state-emblems/selangor.svg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Coat_of_arms_of_Selangor.svg",
+      "credit": "Mdzafri",
+      "license": "Public domain"
+    },
+    "Terengganu": {
+      "title": "Coat of arms of Terengganu",
+      "asset": "assets/state-emblems/terengganu.svg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Coat_of_arms_of_Terengganu.svg",
+      "credit": "Arteyu",
+      "license": "Public domain"
+    },
+    "W.P. Kuala Lumpur": {
+      "title": "Coat of arms of Kuala Lumpur",
+      "asset": "assets/state-emblems/wp-kuala-lumpur.svg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Coat_of_Arms_of_Kuala_Lumpur.svg",
+      "credit": "Kuala Lumpur City Hall",
+      "license": "Public domain"
+    },
+    "W.P. Labuan": {
+      "title": "Seal of Labuan",
+      "asset": "assets/state-emblems/wp-labuan.svg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Seal_of_Labuan.svg",
+      "credit": "Ranking Update",
+      "license": "Public domain"
+    },
+    "W.P. Putrajaya": {
+      "title": "Coat of arms of Putrajaya",
+      "asset": "assets/state-emblems/wp-putrajaya.svg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Coat_of_arms_of_Putrajaya.svg",
+      "credit": "Apisznasdin",
+      "license": "CC BY-SA 3.0"
+    }
+  }
+}
