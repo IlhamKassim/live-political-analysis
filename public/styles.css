@@ -613,12 +613,6 @@ body.state-open #map { overflow: visible; }
   background: none; border: 0; overflow: visible;
   padding: 0 12px calc(12px + env(safe-area-inset-bottom));
 }
-/* desktop: dock the card to the LEFT so it doesn't sit in the middle blocking the map
-   (mobile keeps the centered full-width bottom sheet). The ≥1240 sidebar offset for
-   #panel is already handled below, so flex-start lands just right of the sidebar. */
-@media (min-width: 900px) {
-  #panel { justify-content: flex-start; }
-}
 #panel-empty {
   transform-origin: bottom center;   /* the minimize collapse grows/shrinks from the bottom */
   max-height: var(--panel-card-max-h, none);

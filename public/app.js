@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=37";
-import { I18N } from "./i18n.js?v=37";
+  competitivenessFromMajorityPct } from "./lib.js?v=38";
+import { I18N } from "./i18n.js?v=38";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
