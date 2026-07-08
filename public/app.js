@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=38";
-import { I18N } from "./i18n.js?v=38";
+  competitivenessFromMajorityPct } from "./lib.js?v=39";
+import { I18N } from "./i18n.js?v=39";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -588,11 +588,13 @@ function renderPoliticiansDirectory(keepQuery = "") {
         <h1>${esc(t("pol_dir_title"))}</h1>
         <p class="pol-dir-sub">${esc(t("pol_dir_sub"))}</p>
       </div>
-      <div class="seg chip pol-dir-tabs" role="tablist">
-        <button type="button" role="tab" data-pol-tier="all" aria-selected="${polTier === "all"}" class="${polTier === "all" ? "on" : ""}">${esc(t("pol_tab_all"))}</button>
-        <button type="button" role="tab" data-pol-tier="parlimen" aria-selected="${polTier === "parlimen"}" class="${polTier === "parlimen" ? "on" : ""}">${esc(t("pol_tab_mp"))}</button>
-        <button type="button" role="tab" data-pol-tier="dun" aria-selected="${polTier === "dun"}" class="${polTier === "dun" ? "on" : ""}">${esc(t("pol_tab_adun"))}</button>
-        <button type="button" role="tab" data-pol-tier="parties" aria-selected="${polTier === "parties"}" class="${polTier === "parties" ? "on" : ""}">${esc(t("pol_tab_parties"))}</button>
+      <div class="pol-dir-tabs-wrap">
+        <div class="seg chip pol-dir-tabs" role="tablist">
+          <button type="button" role="tab" data-pol-tier="all" aria-selected="${polTier === "all"}" class="${polTier === "all" ? "on" : ""}">${esc(t("pol_tab_all"))}</button>
+          <button type="button" role="tab" data-pol-tier="parlimen" aria-selected="${polTier === "parlimen"}" class="${polTier === "parlimen" ? "on" : ""}">${esc(t("pol_tab_mp"))}</button>
+          <button type="button" role="tab" data-pol-tier="dun" aria-selected="${polTier === "dun"}" class="${polTier === "dun" ? "on" : ""}">${esc(t("pol_tab_adun"))}</button>
+          <button type="button" role="tab" data-pol-tier="parties" aria-selected="${polTier === "parties"}" class="${polTier === "parties" ? "on" : ""}">${esc(t("pol_tab_parties"))}</button>
+        </div>
       </div>
       <div class="pol-dir-controls">
         <input id="pol-search" class="pol-dir-search" type="search" autocomplete="off" spellcheck="false"
