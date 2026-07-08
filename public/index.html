@@ -21,7 +21,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=40" />
+<link rel="stylesheet" href="styles.css?v=41" />
 </head>
 <body>
 <aside id="sidebar" aria-label="Navigation">
@@ -61,16 +61,6 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M5 7h14"/><path d="M5 12h14"/><path d="M5 17h14"/></svg>
     </button>
     <div id="mobile-menu" class="mobile-menu">
-      <div id="top-controls" class="top-controls" role="group" data-i18n-aria="view_controls_aria" aria-label="View controls">
-        <div class="seg chip" id="tier" role="tablist" data-i18n-aria="aria_tier" aria-label="Seat layer">
-          <button data-tier="parlimen" class="on" role="tab" aria-selected="true" data-i18n="tier_parlimen">Parliament</button>
-          <button data-tier="dun" role="tab" aria-selected="false" data-i18n="tier_dun">DUN</button>
-        </div>
-        <div class="seg chip" id="mode" role="tablist" data-i18n-aria="aria_mode" aria-label="Colour mode">
-          <button data-mode="negeri" role="tab" aria-selected="false" data-i18n="mode_negeri">State</button>
-          <button data-mode="parti" class="on" role="tab" aria-selected="true" disabled data-i18n="mode_parti" data-i18n-title="mode_parti_need" title="Needs GE15 data">Party</button>
-        </div>
-      </div>
       <div class="topicons" role="group" data-i18n-aria="actions_aria" aria-label="Map actions">
         <button id="top-map" class="iconbtn top-map-btn" type="button" data-i18n-aria="home_aria" aria-label="Show the whole map" data-i18n-title="home_aria" title="Show the whole map">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.6 12 3.2l9 7.4"/><path d="M5.2 9.4V20.8h13.6V9.4"/></svg>
@@ -148,6 +138,14 @@
           <button id="loc-btn" class="loc-fab" type="button" data-i18n-title="find_loc" title="Use my location" aria-label="Use my location">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="2" x2="5" y1="12" y2="12"/><line x1="19" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="5"/><line x1="12" x2="12" y1="19" y2="22"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>
           </button>
+          <div class="seg chip" id="tier" role="tablist" data-i18n-aria="aria_tier" aria-label="Seat layer">
+            <button data-tier="parlimen" class="on" role="tab" aria-selected="true" data-i18n="tier_parlimen">Parliament</button>
+            <button data-tier="dun" role="tab" aria-selected="false" data-i18n="tier_dun">DUN</button>
+          </div>
+          <div class="seg chip" id="mode" role="tablist" data-i18n-aria="aria_mode" aria-label="Colour mode">
+            <button data-mode="negeri" role="tab" aria-selected="false" data-i18n="mode_negeri">State</button>
+            <button data-mode="parti" class="on" role="tab" aria-selected="true" disabled data-i18n="mode_parti" data-i18n-title="mode_parti_need" title="Needs GE15 data">Party</button>
+          </div>
         </div>
       </div>
       <p id="find-status" class="find-status" role="status" aria-live="polite" hidden></p>
@@ -208,6 +206,6 @@
   </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 </div>
-<script type="module" src="app.js?v=40"></script>
+<script type="module" src="app.js?v=41"></script>
 </body>
 </html>
