@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=34";
-import { I18N } from "./i18n.js?v=34";
+  competitivenessFromMajorityPct } from "./lib.js?v=35";
+import { I18N } from "./i18n.js?v=35";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -4220,7 +4220,7 @@ function prnSpotlightHTML() {
       <h3>${esc(entry.name)}</h3>${metaLine}
     </div>${inc}
     <div class="bento-cand-label muted">${esc(t("prn_bento_running"))}</div>
-    <div class="bento-cand-grid">${prnCandidateCardsHTML(entry, seat.code)}</div>
+    <div class="bento-cand-grid">${prnCandidateCardsHTML(entry, seat.code, true)}</div>
     ${lastResultHTML(entry)}`;
 }
 
@@ -4528,7 +4528,9 @@ function handleCandidateCardKeydown(e) {
 
 // per-candidate cards for the bento spotlight — coalition-accented, with the ballot
 // name, party badge, ballot symbol and any campaign-window headlines we have.
-function prnCandidateCardsHTML(entry, seatCode) {
+// compact=true → photo + name + party only (the bento spotlight, so it never scrolls);
+// the full background/sources/news live in the click-to-open candidate modal.
+function prnCandidateCardsHTML(entry, seatCode, compact) {
   const nameKey = (s) => s.toLowerCase().replace(/\b(bin|binti|a\/l|a\/p|anak)\b/g, " ").replace(/[^a-z]+/g, "");
   const incKey = nameKey(entry.incumbent_2022 || "");
   const seatNews = state.prnNews && state.prnNews[seatCode];
@@ -4548,12 +4550,13 @@ function prnCandidateCardsHTML(entry, seatCode) {
     const extra = sym || news ? `<div class="prn-cc-extra">${sym}${news}</div>` : "";
     const incChip = isInc ? ` <span class="prn-cc-inc">${esc(t("prn_cc_incumbent"))}</span>` : "";
     const photo = profile ? personPhotoHTML(c.name, profile.photo_url, "prn-profile-photo") : "";
-    return `<div class="prn-cc${isInc ? " is-inc" : ""}${profile ? " has-profile" : ""}" style="--cc:${col.bg}" role="button" tabindex="0" aria-haspopup="dialog" aria-label="${esc(t("candidate_open_profile_aria", { name: c.name }))}" data-prn-seat="${esc(seatCode)}" data-prn-candidate="${esc(c.name)}">
+    const body = compact ? "" : `${candidateProfileHTML(profile)}${extra}`;
+    return `<div class="prn-cc${isInc ? " is-inc" : ""}${profile ? " has-profile" : ""}${compact ? " is-compact" : ""}" style="--cc:${col.bg}" role="button" tabindex="0" aria-haspopup="dialog" aria-label="${esc(t("candidate_open_profile_aria", { name: c.name }))}" data-prn-seat="${esc(seatCode)}" data-prn-candidate="${esc(c.name)}">
       <div class="prn-cc-head">
         ${photo}
         <div class="prn-cc-id"><span class="prn-cc-name"><span>${esc(c.name)}</span>${incChip}</span>${alias}</div>
         <span class="pill" style="background:${col.bg};color:${col.fg}">${party}</span>
-      </div>${candidateProfileHTML(profile)}${extra}<span class="prn-cc-open">${esc(t("candidate_open_profile"))}</span></div>`;
+      </div>${body}<span class="prn-cc-open">${esc(t("candidate_open_profile"))}</span></div>`;
   }).join("");
 }
 
