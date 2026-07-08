@@ -86,13 +86,21 @@ instead of being swallowed by the SPA asset fallback.
 
 ## Status
 
+- ✅ **PROD LIVE** — [mypolitik.xyz](https://mypolitik.xyz) + mypolitik.krackeddevs.com
+  (staging: staging.mypolitik.krackeddevs.com). Prod deploy = `npm run deploy` (wrangler; no git-based deploy).
 - ✅ Boundaries (parlimen + DUN), interactive map (hover/click/zoom/select/search/reset)
 - ✅ GE15 results layer: winner, party/bloc choropleth, majority, turnout, runner-up
+- ✅ **State dashboard (bento)** on wide screens: government/economy/key-numbers + seat spotlight
+- ✅ **Politicians directory** (`#politicians`) — 222 MPs + ADUNs, searchable/filterable, Wikidata photos + bios
+- ✅ **PRN Johor 2026 election mode** — countdown, candidates by coalition, per-seat candidate cards,
+  manifesto pledges, live-results seam (`/api/live/johor` + KV); N9 reuses the same rig
+- ✅ **News** — a Johor-election news strip + a "News" nav entry + a see-all modal (owned static pipeline)
+- ✅ **Controls** (Parliament/DUN · State/Party) live beside the search on desktop and in the
+  mobile menu; **wide-screen sidebar** nav (Map / Politicians / News / PRN / Manifesto pledges / States)
 - ✅ Polish: golden-angle state palette, shareable URL hash, coalition share-bar
 - ✅ i18n: **English default + Bahasa Melayu toggle** (EN/BM, persisted in localStorage).
-  Strings live in `I18N` in `app.js`; static markup uses `data-i18n` / `data-i18n-ph` / `data-i18n-title`.
-- ✅ **Staging live** — staging.mypolitik.krackeddevs.com
+  Strings live in `I18N` in `public/i18n.js`; static markup uses `data-i18n` / `data-i18n-ph` / `data-i18n-title`.
+  `public/lib.test.mjs` asserts EN/MS key-set parity.
 - ✅ DUN (PRN) results — 2023 six-state election (245/600 seats); other states fall back to
-  the parent Parliament result with a "coming soon" note
-- ⏳ Performance scoring from Hansard (own, transparent method)
-- ⏳ DUN for the remaining 7 states · prod promote · mobile pass
+  the parent Parliament result
+- ⏳ Performance scoring from Hansard (own, transparent method) · DUN for the remaining 7 states

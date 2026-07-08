@@ -2,6 +2,8 @@
 .wrangler/
 node_modules/
 .DS_Store
+.firecrawl/
+/*.png          # root-level verification screenshots (public/assets keeps its own)
 
 # raw third-party source files (Thevesh GPL CSVs, etc.) — regenerable via the
 # pipeline, and NOT redistributed in this repo. Only the baked outputs in

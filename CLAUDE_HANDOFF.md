@@ -1,23 +1,46 @@
 # MyPolitik Claude Handoff
 
-Date: 2026-07-02
+Date: 2026-07-02 (last updated 2026-07-09)
 Project path: `/Users/danialalias/Desktop/Experiments/mypolitik`
 Local URL: `http://localhost:4178/#parlimen/parti`
+GitHub: `enonforetsam/mypolitik` (private). Prod deploy is `npm run deploy` (wrangler) — **not** git-based.
+See `AGENT_LOG.md` for the detailed, dated change log.
+
+## Recent changes (2026-07-09)
+
+Reviewer-feedback + polish wave ahead of the PRN Johor launch (11 Jul):
+
+- **News** — a Johor-election news strip on the PRN dashboard + a "News" sidebar entry + a
+  see-all modal, from the owned static pipeline (`pipeline/06_candidate_news.py`).
+- **Seat spotlight** never scrolls: compact "currently held by" + a horizontal candidate row
+  (photo/name/party; full profile on tap). Broken hotlinked portraits fall back to a monogram.
+- **Mobile PRN seat card** shortened — manifesto is a button to the modal, candidate cards compact.
+- **Merged** the countdown + voter-registration bento tiles into one.
+- **Map controls** (Parliament/DUN · State/Party) moved out of the fixed top-centre overlay:
+  beside the search on desktop, into the **mobile menu** on mobile (reachable when a state is
+  isolated). One element set, relocated by viewport (`placeMapControls`).
+- PRN badge pinned **top-right** of the map; politicians directory got a **"Back to map"** button;
+  the empty **top strip** was removed; header title aligns to the grid + a state-colour crest.
+- Fixed the **search bar disappearing** (a stranded minimize animation left it invisible).
 
 ## What This App Is
 
 MyPolitik is a static/Workers web app showing Malaysian parliamentary and DUN seats on an SVG map. The main user flow is:
 
 1. Start on the national map.
-2. Toggle `Parliament`/`DUN` and `State`/`Party` from the top controls.
-3. Tap a state/seat to isolate the state.
+2. Toggle `Parliament`/`DUN` and `State`/`Party` (the map controls). These live **beside the
+   search** in the bottom card on desktop, and in the **mobile menu** on mobile (relocated by
+   viewport via `placeMapControls`), so they stay reachable when a state is isolated.
+3. Tap a state/seat to isolate the state. Wide screens open a **bento dashboard**; a live
+   election (PRN Johor) defaults to election mode until polling day.
 4. On mobile, the isolated state becomes the main map. The bottom card becomes the interaction surface for selecting districts and opening details.
 
 The current design direction is a dark, dense, map-first product UI:
 
-- Top-left: MyPolitik logo.
-- Top-right: app icons/menu; on mobile controls are moved into a burger menu.
-- Bottom: floating card with search, locate, state inspect controls, or district detail.
+- Top-left: MyPolitik logo. **Wide screens (≥1240px): a left sidebar** owns nav
+  (Map / Politicians / News / PRN / Manifesto pledges / States).
+- Top-right of the map: a floating live-election badge (PRN Johor); the topbar has no solid strip.
+- Bottom: floating **centered** card with search + locate + the map controls, or state/district detail.
 - Party mode is the default.
 - State name is shown above the isolated map, so the card should avoid repeating unnecessary state information.
 
