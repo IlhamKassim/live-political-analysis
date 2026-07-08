@@ -464,6 +464,9 @@ body.state-open #map { overflow: visible; }
 .mobile-menu {
   display: contents;
 }
+/* the map-controls menu slot is only populated on mobile (JS relocates tier/mode there);
+   empty on desktop, where the controls live in the search card */
+.menu-map-controls:empty { display: none; }
 .mobile-menu-btn {
   display: none;
   margin-left: auto;
@@ -543,7 +546,8 @@ body.state-open #map { overflow: visible; }
   body.mobile-menu-open .mobile-menu {
     display: grid;
   }
-  .mobile-menu .top-controls {
+  .mobile-menu .top-controls,
+  .mobile-menu .menu-map-controls {
     position: static;
     left: auto;
     top: auto;
@@ -553,10 +557,12 @@ body.state-open #map { overflow: visible; }
     gap: 8px;
     transform: none;
   }
-  .mobile-menu .top-controls .seg.chip {
+  .mobile-menu .top-controls .seg.chip,
+  .mobile-menu .menu-map-controls .seg.chip {
     width: 100%;
   }
-  .mobile-menu .top-controls .seg.chip button {
+  .mobile-menu .top-controls .seg.chip button,
+  .mobile-menu .menu-map-controls .seg.chip button {
     flex: 1 1 0;
     min-width: 0;
   }
@@ -582,11 +588,13 @@ body.state-open #map { overflow: visible; }
   .brand-home { padding-inline: 10px; }
   #topbar .brand .mark { font-size: 16px; }
   .mobile-menu .topicons { gap: 6px; }
-  .mobile-menu .top-controls {
+  .mobile-menu .top-controls,
+  .mobile-menu .menu-map-controls {
     width: 100%;
     gap: 6px;
   }
-  .mobile-menu .top-controls .seg.chip button {
+  .mobile-menu .top-controls .seg.chip button,
+  .mobile-menu .menu-map-controls .seg.chip button {
     padding: 8px 10px;
     font-size: 11px;
   }
@@ -3154,9 +3162,10 @@ body.politicians-open #top-controls { display: none; }
 .bento-q:focus { outline: 2px solid var(--snow-blue); border: 0; }
 .bento-results { border: 0; background: var(--snow-inner); }
 .bento-result:hover { background: var(--snow-inner-hi); }
-/* topbar: flat header, plain-bold context title (breadcrumb feel) */
+/* topbar: no solid strip — it's empty on the overview and the map should reach the top;
+   the bento title/close carry their own styling, and the dashboard bg sits under it */
 @media (min-width: 1000px) {
-  #topbar { background: var(--snow-page); border-bottom: 0; }
+  #topbar { background: transparent; border-bottom: 0; backdrop-filter: none; }
   .topbar-context .bento-title { background: none; border: 0; padding: 0 4px; font-size: 17px; backdrop-filter: none; }
   .topbar-actions .prn-close-btn { background: var(--snow-inner); border: 0; backdrop-filter: none; }
   body.bento-on #state-bento { background: var(--snow-page); }

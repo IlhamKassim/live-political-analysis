@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=41";
-import { I18N } from "./i18n.js?v=41";
+  competitivenessFromMajorityPct } from "./lib.js?v=42";
+import { I18N } from "./i18n.js?v=42";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -2866,6 +2866,22 @@ document.getElementById("tier").addEventListener("click", (e) => {
 document.getElementById("mode").addEventListener("click", (e) => {
   const b = e.target.closest("button"); if (b && !b.disabled) setMode(b.dataset.mode);
 });
+// The map layer/colour controls sit beside the search on wide screens; on mobile they
+// move into the menu so they stay reachable when a state is isolated (the search card is
+// hidden then). One set of elements, relocated by viewport — handlers bind by id, so
+// they keep working wherever the nodes land.
+const MAPCTRL_MQ = matchMedia("(min-width: 1000px)");
+function placeMapControls() {
+  const tier = document.getElementById("tier"), mode = document.getElementById("mode");
+  const target = MAPCTRL_MQ.matches
+    ? document.querySelector("#panel-empty .find-actions")
+    : document.getElementById("menu-map-controls");
+  if (!tier || !mode || !target) return;
+  target.appendChild(tier);            // append keeps [location] then [tier][mode] on desktop
+  target.appendChild(mode);
+}
+MAPCTRL_MQ.addEventListener ? MAPCTRL_MQ.addEventListener("change", placeMapControls) : MAPCTRL_MQ.addListener(placeMapControls);
+placeMapControls();
 document.getElementById("lang").addEventListener("click", (e) => {
   const b = e.target.closest("button"); if (b) setLang(b.dataset.lang);
 });
