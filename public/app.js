@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=32";
-import { I18N } from "./i18n.js?v=32";
+  competitivenessFromMajorityPct } from "./lib.js?v=33";
+import { I18N } from "./i18n.js?v=33";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -2500,19 +2500,29 @@ Q.addEventListener("input", () => {
   if (!q) return;
   const data = state.data[state.tier];
   if (!data) return;   // boundary layer unavailable (init bailed) — keep search inert, don't throw
-  const hits = searchSeatsAndReps(data.seats, q, state.tier);
-  if (!hits.length) return;
+  const seatHits = searchSeatsAndReps(data.seats, q, state.tier);
+  // direct state matches — jump straight to a state's dashboard by name, so users
+  // don't have to recognise it on the map (the sidebar state list is desktop-only).
+  const stateHits = [...new Set(data.seats.map((s) => s.state))]
+    .filter((st) => st && st.toLowerCase().includes(q))
+    .sort();
+  if (!seatHits.length && !stateHits.length) return;
   for (const p of state.paths.values()) p.classList.add("dim");
-  for (const s of hits.slice(0, 60)) {
-    const p = state.paths.get(s.code);
-    if (p) { p.classList.remove("dim"); p.classList.add("match"); }
-  }
-  RESULTS.innerHTML = hits.slice(0, 8).map((s, i) => {
+  const lit = (code) => { const p = state.paths.get(code); if (p) { p.classList.remove("dim"); p.classList.add("match"); } };
+  for (const s of seatHits.slice(0, 60)) lit(s.code);
+  if (stateHits.length) for (const s of data.seats) if (stateHits.includes(s.state)) lit(s.code);
+  let i = -1;
+  const stateRows = stateHits.slice(0, 4).map((st) => {
+    const n = data.seats.filter((s) => s.state === st).length;
+    return `<button id="result-opt-${++i}" role="option" aria-selected="false" data-state="${esc(st)}" class="result-state"><span>${esc(st)} <span class="muted" style="font-size:11px">${n} ${esc(t("bento_donut_seats"))}</span></span><span class="code">${esc(t("search_state"))}</span></button>`;
+  });
+  const seatRows = seatHits.slice(0, Math.max(4, 8 - stateRows.length)).map((s) => {
     const code = displayCode(s, state.tier);
     const rep = repNameForSeat(s);           // show the YB so a name match is obvious
     const sub = rep ? `${esc(rep)} <span style="opacity:.6">· ${esc(s.state)}</span>` : esc(s.state);
-    return `<button id="result-opt-${i}" role="option" aria-selected="false" data-code="${esc(s.code)}"><span>${esc(s.name)} <span class="muted" style="font-size:11px">${sub}</span></span><span class="code">${esc(code)}</span></button>`;
-  }).join("");
+    return `<button id="result-opt-${++i}" role="option" aria-selected="false" data-code="${esc(s.code)}"><span>${esc(s.name)} <span class="muted" style="font-size:11px">${sub}</span></span><span class="code">${esc(code)}</span></button>`;
+  });
+  RESULTS.innerHTML = stateRows.concat(seatRows).join("");
   setActiveResult(-1);            // fresh list: nothing highlighted yet
   RESULTS.hidden = false;
   Q.setAttribute("aria-expanded", "true");
@@ -2523,7 +2533,8 @@ RESULTS.addEventListener("click", (e) => {
   hideResults();
   Q.value = "";
   clearMatches();
-  select(b.dataset.code);
+  if (b.dataset.state) openStateCard(b.dataset.state);
+  else select(b.dataset.code);
 });
 Q.addEventListener("keydown", (e) => {
   if (e.key === "ArrowDown") {
@@ -2757,6 +2768,7 @@ RESET.addEventListener("click", deselect);
 
 // ---- manifesto pledges dialog (opened from the sidebar; same tabs everywhere) ----
 const PLEDGES_MODAL = document.getElementById("pledges-modal");
+const NEWS_MODAL = document.getElementById("news-modal");
 function openPledgesModal() {
   if (!PLEDGES_MODAL || !state.johorPledges) return;
   PLEDGES_MODAL.innerHTML = `
@@ -2825,6 +2837,8 @@ function syncSidebar() {
   const pol = document.body.classList.contains("politicians-open");
   sb.querySelector("#sb-map")?.classList.toggle("on", !state.openState && !pol);
   sb.querySelector("#sb-politicians")?.classList.toggle("on", pol);
+  const newsBtn = sb.querySelector("#sb-news");
+  if (newsBtn) newsBtn.hidden = johorNewsItems().length === 0;   // only when there's real coverage
   const e = liveElection();
   const prnBtn = sb.querySelector("#sb-prn");
   if (prnBtn) {
@@ -2874,6 +2888,7 @@ document.getElementById("sidebar")?.addEventListener("click", (ev) => {
   }
   if (ev.target.closest("#sb-politicians")) { hideInfo(); openPoliticians(); setTimeout(syncSidebar, 60); return; }
   if (ev.target.closest("#sb-prn")) { closePoliticians({ silent: true }); hideInfo(); openPrnMode(); setTimeout(syncSidebar, 60); return; }
+  if (ev.target.closest("#sb-news")) { openNewsModal(); return; }
   if (ev.target.closest("#sb-pledges")) { openPledgesModal(); return; }
   if (ev.target.closest("#sb-about")) { showInfo(); return; }
   if (ev.target.closest("#sb-share")) { shareApp(); return; }
@@ -3870,6 +3885,7 @@ function prnSummaryHTML() {
         <p class="prn-majority muted">${esc(t("prn_majority", { n: e.majority }))}</p>
       </section>
     </div>
+    ${newsStripHTML()}
     ${prnFinder ? "" : `<p class="state-tap-hint muted">${esc(t("prn_tap_hint"))}</p>`}
     <a class="prn-check" href="${esc(e.check_voter_url)}" target="_blank" rel="noopener">${esc(t("prn_check"))}</a>
     <p class="src-line muted">${esc(t("prn_source"))}</p>
@@ -4082,11 +4098,48 @@ function stateMapTileSVG(name) {
     x1 = Math.max(x1, b.x + b.w); y1 = Math.max(y1, b.y + b.h);
   }
   const px = (x1 - x0) * 0.03, py = (y1 - y0) * 0.03;
-  const vb = `${(x0 - px).toFixed(2)} ${(y0 - py).toFixed(2)} ${(x1 - x0 + 2 * px).toFixed(2)} ${(y1 - y0 + 2 * py).toFixed(2)}`;
+  // padded bounding box of the state's own seats. The FINAL viewBox is aspect-matched
+  // to the rendered tile in fitBentoMapTiles() so small / odd-shaped federal territories
+  // (W.P. Kuala Lumpur, Labuan, Putrajaya) frame consistently instead of letterboxing.
+  // The krackedmaps projection is FROZEN — only this framing viewBox changes.
+  const bx = x0 - px, by = y0 - py, bw = (x1 - x0) + 2 * px, bh = (y1 - y0) + 2 * py;
+  const vb = `${bx.toFixed(2)} ${by.toFixed(2)} ${bw.toFixed(2)} ${bh.toFixed(2)}`;
   const paths = seats.map((s) =>
     `<path d="${s.d}" data-code="${esc(s.code)}" class="bento-seat${s.code === bentoSeat ? " sel" : ""}" style="fill:${bentoSeatColor(s)}"><title>${esc(s.name)}</title></path>`
   ).join("");
-  return `<svg viewBox="${vb}" preserveAspectRatio="xMidYMid meet" class="bento-map-svg" role="img" aria-label="${esc(name)}">${paths}</svg>`;
+  return `<svg viewBox="${vb}" data-bx="${bx.toFixed(2)}" data-by="${by.toFixed(2)}" data-bw="${bw.toFixed(2)}" data-bh="${bh.toFixed(2)}" preserveAspectRatio="xMidYMid meet" class="bento-map-svg" role="img" aria-label="${esc(name)}">${paths}</svg>`;
+}
+
+// Aspect-match every state-map tile's viewBox to its own rendered box, so the state
+// sits centred with symmetric margins regardless of its raw bbox shape (fixes the
+// letterboxed federal-territory tiles). Mirrors the main map's stateViewBox aspect
+// lock; touches only the viewBox string, never the frozen projection or seat paths.
+function fitBentoMapTiles() {
+  if (!BENTO) return;
+  BENTO.querySelectorAll(".bento-map-svg[data-bw]").forEach((svg) => {
+    const wrap = svg.parentElement;
+    if (!wrap) return;
+    const rw = wrap.clientWidth, rh = wrap.clientHeight;
+    if (!(rw > 0 && rh > 0)) return;
+    const ar = rw / rh;
+    let w = +svg.dataset.bw, h = +svg.dataset.bh;
+    if (!(w > 0 && h > 0)) return;
+    const cx = +svg.dataset.bx + w / 2, cy = +svg.dataset.by + h / 2;
+    if (w / h > ar) h = w / ar; else w = h * ar;
+    svg.setAttribute("viewBox", `${(cx - w / 2).toFixed(2)} ${(cy - h / 2).toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)}`);
+  });
+}
+// One ResizeObserver on the map wrap keeps the fit correct through the panel's width
+// transitions and any viewport resize without per-frame polling.
+let bentoMapRO = null;
+function observeBentoMap() {
+  fitBentoMapTiles();   // first pass now (sync layout) so the correct frame paints immediately
+  const wrap = BENTO && BENTO.querySelector(".bento-map-wrap");
+  if (!wrap) return;
+  if (typeof ResizeObserver === "undefined") { requestAnimationFrame(fitBentoMapTiles); return; }
+  if (!bentoMapRO) bentoMapRO = new ResizeObserver(() => fitBentoMapTiles());
+  bentoMapRO.disconnect();
+  BENTO.querySelectorAll(".bento-map-wrap").forEach((w) => bentoMapRO.observe(w));
 }
 
 // the seat's CURRENT holder + how they won it (votes, %, majority) — from the most
@@ -4574,6 +4627,22 @@ function bentoMapTileHTML(name) {
   return `<div class="bento-tile bento-map">${bentoMapSectionHTML(name)}</div>`;
 }
 
+// crest monogram initials — strip the "W.P." federal-territory prefix so the
+// territory reads by its real name (W.P. Kuala Lumpur → KL, W.P. Putrajaya → P).
+function stateInitials(name) {
+  return personInitials(String(name || "").replace(/^W\.P\.\s*/i, ""));
+}
+// A small state-colour roundel beside the dashboard title. Zero licensing risk —
+// Malaysian state arms (jata negeri) are restricted, so we ship a neutral monogram
+// (real crest art is a later pass). Colour = the state's own map hue, so the crest
+// reads as "this state"; falls back to a deterministic hash if hues aren't loaded.
+function stateCrestHTML(name) {
+  if (!name) return "";
+  const d = state.data[bentoMapTier()] || state.data.parlimen || state.data.dun;
+  const hue = (d && d.hues && d.hues[name]) || monogramColor(name);
+  return `<span class="bento-crest" style="background:${hue}" aria-hidden="true">${esc(stateInitials(name))}</span>`;
+}
+
 // dashboard chrome lives IN THE NAV BAR on wide screens: the state/election title
 // joins the brand on the left, the PRN toggle + close join the icon cluster on the
 // right — one full-width bar instead of a sparse nav plus a second header row.
@@ -4586,7 +4655,7 @@ function renderBentoChrome() {
   const election = bentoElectionMode();
   ctxEl.innerHTML = election
     ? `<span class="bento-title"><span class="live-dot"></span>🗳️ ${esc(e.name)}</span>`
-    : `<span class="bento-title">${esc(name)}</span>`;
+    : `<span class="bento-title">${stateCrestHTML(name)}${esc(name)}</span>`;
   const toggle = e
     ? `<button id="bento-prn-toggle" class="bento-prn-toggle${election ? " on" : ""}" type="button" aria-pressed="${election}">
          <span class="live-dot"></span>🗳️ ${esc(e.name)}
@@ -4602,6 +4671,81 @@ function hideBentoChrome() {
   if (ctxEl) { ctxEl.hidden = true; ctxEl.innerHTML = ""; }
   if (actEl) { actEl.hidden = true; actEl.innerHTML = ""; }
 }
+
+// ---- News (reviewer's most-repeated ask) ----
+// A compact strip of the campaign-window headlines already matched per Johor PRN
+// candidate (pipeline/06_candidate_news.py → candidate-news-johor.json), aggregated
+// + de-duplicated. Headline + source + outbound LINK only — no republished text.
+// Empty / sparse data → the strip simply doesn't render (graceful, never destabilises
+// the live election view). National + per-constituency news, and a migration to the
+// owned Kracked OSINT feed, are the later passes.
+function johorNewsItems() {
+  const src = state.prnNews;
+  if (!src || typeof src !== "object") return [];
+  const seen = new Set(), out = [];
+  for (const seat of Object.keys(src)) {
+    if (seat === "_done" || !src[seat] || typeof src[seat] !== "object") continue;
+    for (const cand of Object.keys(src[seat])) {
+      const arr = src[seat][cand];
+      if (!Array.isArray(arr)) continue;
+      for (const n of arr) {
+        if (!n || !n.u || !n.t || seen.has(n.u)) continue;
+        seen.add(n.u);
+        out.push({ t: n.t, u: n.u, s: n.s || "", d: n.d || "", candidate: cand });
+      }
+    }
+  }
+  out.sort((a, b) => String(b.d).localeCompare(String(a.d)));
+  return out;
+}
+function newsItemLinkHTML(n, withCand) {
+  const meta = [n.s, n.d ? fmtDayMonth(n.d) : "", withCand ? n.candidate : ""]
+    .filter(Boolean).map(esc).join(" · ");
+  return `<a class="news-link" href="${esc(n.u)}" target="_blank" rel="noopener">
+      <span class="news-t">${esc(n.t)}</span>
+      <span class="news-meta muted">${meta}</span>
+    </a>`;
+}
+function newsStripHTML() {
+  const items = johorNewsItems();
+  if (!items.length) return "";
+  const rows = items.slice(0, 4).map((n) => `<li>${newsItemLinkHTML(n, false)}</li>`).join("");
+  return `<section class="bento-news" aria-label="${esc(t("news_title"))}">
+      <div class="bento-news-head">
+        <h3 class="bento-news-title">📰 ${esc(t("news_title"))}</h3>
+        <button type="button" class="bento-news-all" data-open-news>${esc(t("news_see_all"))}</button>
+      </div>
+      <ul class="bento-news-list">${rows}</ul>
+      <p class="bento-news-note muted">${esc(t("prn_news_note"))}</p>
+    </section>`;
+}
+function openNewsModal() {
+  if (!NEWS_MODAL) return;
+  const items = johorNewsItems();
+  const body = items.length
+    ? `<ul class="news-modal-list">${items.map((n) => `<li>${newsItemLinkHTML(n, true)}</li>`).join("")}</ul>`
+    : `<p class="news-empty muted">${esc(t("news_empty"))}</p>`;
+  NEWS_MODAL.innerHTML = `
+    <div class="pol-modal-shell">
+      <button class="pol-modal-close" type="button" aria-label="${esc(t("card_preview_close"))}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><line x1="6" x2="18" y1="6" y2="18"/><line x1="6" x2="18" y1="18" y2="6"/></svg>
+      </button>
+      <h2 class="pledges-modal-h">📰 ${esc(t("news_title"))}</h2>
+      ${body}
+      <p class="src-line muted">${esc(t("news_note"))}</p>
+    </div>`;
+  if (typeof NEWS_MODAL.showModal === "function") NEWS_MODAL.showModal();
+  else NEWS_MODAL.setAttribute("open", "");
+}
+NEWS_MODAL?.addEventListener("click", (ev) => {
+  if (ev.target.closest(".pol-modal-close") || ev.target === NEWS_MODAL) {
+    if (NEWS_MODAL.open) NEWS_MODAL.close();
+    NEWS_MODAL.innerHTML = "";
+  }
+});
+document.addEventListener("click", (ev) => {
+  if (ev.target.closest("[data-open-news]")) { ev.preventDefault(); openNewsModal(); }
+});
 
 // election tiles — the original PRN dashboard body (unchanged content)
 function bentoElectionTilesHTML() {
@@ -4641,6 +4785,7 @@ function bentoElectionTilesHTML() {
         <div id="bento-spot-body">${bentoSpotlightHTML()}</div>
       </div>
     </div>
+    ${newsStripHTML()}
     <p class="bento-foot src-line muted">${esc(t("prn_source"))}</p>`;
 }
 
@@ -4772,6 +4917,7 @@ function renderStateBento() {
   if (!state.openState) return;
   renderBentoChrome();
   BENTO.innerHTML = bentoElectionMode() ? bentoElectionTilesHTML() : bentoStateTilesHTML(state.openState);
+  observeBentoMap();   // aspect-lock the state-map tile(s) to their rendered size
 }
 
 // the seat held by the state's head of government — the DEFAULT spotlight when the

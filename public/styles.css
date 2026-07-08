@@ -110,6 +110,12 @@ a:hover { text-decoration: underline; }
 .results button.active { background: var(--bg-2); }
 .results button.active { box-shadow: inset 2px 0 0 var(--accent); }
 .results .code { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); }
+/* a state row jumps to the whole dashboard — tag it with the accent so it reads as a
+   distinct action from the seat rows */
+.results .result-state .code {
+  color: var(--accent); font-family: inherit; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .08em;
+}
 
 /* ---- stage / map ---- */
 #stage { grid-area: stage; position: relative; background:
@@ -2725,6 +2731,13 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
   backdrop-filter: blur(8px);
 }
 .topbar-context .bento-title .live-dot { width: 8px; height: 8px; }
+/* state-colour monogram crest (neutral roundel — no restricted state arms) */
+.bento-crest {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; margin-left: -4px; border-radius: 6px;
+  font-size: 11px; font-weight: 800; letter-spacing: .02em; line-height: 1;
+  color: #fff; flex: 0 0 auto; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .16);
+}
 .topbar-actions { display: inline-flex; align-items: center; gap: 8px; }
 .topbar-actions .prn-close-btn {
   margin: 0; width: auto; border-radius: 999px; padding: 0 16px;
@@ -2732,6 +2745,16 @@ body.politicians-open #stage, body.politicians-open #panel { display: none; }
 }
 body.bento-on #topbar { justify-content: flex-start; }
 body.bento-on #topbar .top-controls { margin-inline: auto; }
+/* wide + dashboard open: the sidebar owns the brand, so the topbar carries only the
+   state title (left) + close (right). Pad the bar to the SAME centred 1000px rail as
+   the bento grid below, so the title lines up with the first card and close with the
+   last (grid left edge = (topbarWidth − 1000) / 2 from the topbar's own origin). */
+@media (min-width: 1240px) {
+  /* topbar box = viewport minus the 232px sidebar; inset each edge so the inner band
+     is the same centred 1000px as the grid. (% padding on a fixed element resolves
+     against the viewport, not the element — so compute the width explicitly.) */
+  body.bento-on #topbar { padding-inline: max(14px, calc((100vw - 232px - 1000px) / 2)); }
+}
 
 /* wide screens: the nav is a solid black strip (pills sit ON it), content passes under */
 @media (min-width: 1000px) {
@@ -2762,7 +2785,38 @@ body.bento-on #topbar .top-controls { margin-inline: auto; }
 
 /* very large screens: cap the dashboard's width and centre it — cards shouldn't
    stretch across an ultrawide */
-.bento-grid, .bento-foot { width: 100%; max-width: 1000px; margin-inline: auto; }
+.bento-grid, .bento-foot, .bento-news { width: 100%; max-width: 1000px; margin-inline: auto; }
+
+/* ---- news strip on the election dashboard (reviewer ask). Headline + source + link
+   only; graceful — renders only when there's matched coverage ---- */
+.bento-news {
+  margin-top: 14px; padding: 14px 16px;
+  background: var(--bg-1, rgba(20, 22, 26, .55)); border: 1px solid var(--line); border-radius: 16px;
+}
+.bento-news-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.bento-news-title { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .01em; }
+.bento-news-all {
+  font: inherit; font-size: 12px; font-weight: 600; color: var(--accent);
+  background: none; border: 0; cursor: pointer; padding: 2px 4px; border-radius: 8px;
+}
+.bento-news-all:hover { text-decoration: underline; }
+.bento-news-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.news-link {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 14px;
+  padding: 7px 8px; margin: 0 -8px; border-radius: 10px; text-decoration: none; color: inherit;
+}
+.news-link:hover { background: color-mix(in oklab, var(--accent) 8%, transparent); }
+.news-t { font-size: 13.5px; font-weight: 600; line-height: 1.35; min-width: 0; }
+.news-meta { font-size: 11px; white-space: nowrap; flex: 0 0 auto; }
+.bento-news-note { margin: 8px 0 0; font-size: 10.5px; }
+/* news modal list (see-all) */
+.news-modal-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 2px; }
+.news-modal-list .news-t { font-size: 14.5px; }
+.news-empty { padding: 20px 4px; font-size: 14px; }
+@media (max-width: 560px) {
+  .news-link { flex-direction: column; gap: 2px; }
+  .news-meta { white-space: normal; }
+}
 
 /* ============================================================================
    Navigation sidebar — wide screens (≥1240px so the rail never squeezes the

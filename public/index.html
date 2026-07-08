@@ -21,7 +21,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=32" />
+<link rel="stylesheet" href="styles.css?v=33" />
 </head>
 <body>
 <aside id="sidebar" aria-label="Navigation">
@@ -36,6 +36,7 @@
   <nav class="sb-nav">
     <button id="sb-map" class="sb-item" type="button" data-i18n-title="nav_map"><span class="sb-ic">🗺</span><span class="sb-label" data-i18n="nav_map">Map</span></button>
     <button id="sb-politicians" class="sb-item" type="button" data-i18n-title="nav_politicians"><span class="sb-ic">👥</span><span class="sb-label" data-i18n="nav_politicians">Politicians</span></button>
+    <button id="sb-news" class="sb-item" type="button" hidden data-i18n-title="nav_news"><span class="sb-ic">📰</span><span class="sb-label" data-i18n="nav_news">News</span></button>
     <button id="sb-prn" class="sb-item sb-live" type="button" hidden><span class="live-dot"></span><span class="sb-label" id="sb-prn-label">PRN</span></button>
     <button id="sb-pledges" class="sb-item" type="button" hidden data-i18n-title="prn_pledges"><span class="sb-ic">📜</span><span class="sb-label" data-i18n="prn_pledges">Manifesto pledges</span></button>
   </nav>
@@ -140,7 +141,7 @@
       </div>
       <div class="search-row">
         <div class="search">
-          <input id="q" type="search" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="results" aria-expanded="false" data-i18n-aria="search_aria" aria-label="Search a seat" data-i18n-ph="search_ph" placeholder="Search your seat…" autocomplete="off" spellcheck="false" />
+          <input id="q" type="search" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="results" aria-expanded="false" data-i18n-aria="search_aria" aria-label="Search a seat" data-i18n-ph="search_ph_home" placeholder="Search your seat…" autocomplete="off" spellcheck="false" />
           <div id="results" class="results" role="listbox" data-i18n-aria="results_aria" aria-label="Search results" hidden></div>
         </div>
         <div class="find-actions">
@@ -185,6 +186,7 @@
   <dialog id="pol-modal" class="pol-modal" aria-label="Politician profile"></dialog>
   <dialog id="candidate-modal" class="pol-modal candidate-modal" aria-label="Candidate profile"></dialog>
   <dialog id="pledges-modal" class="pol-modal pledges-modal" aria-label="Manifesto pledges"></dialog>
+  <dialog id="news-modal" class="pol-modal news-modal" aria-label="News"></dialog>
   <dialog id="card-preview" class="card-preview" aria-labelledby="card-preview-title">
     <div class="card-preview-shell">
       <div class="card-preview-head">
@@ -206,6 +208,6 @@
   </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 </div>
-<script type="module" src="app.js?v=32"></script>
+<script type="module" src="app.js?v=33"></script>
 </body>
 </html>
