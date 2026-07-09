@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=44";
-import { I18N } from "./i18n.js?v=44";
+  competitivenessFromMajorityPct } from "./lib.js?v=45";
+import { I18N } from "./i18n.js?v=45";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -131,7 +131,7 @@ function setLang(l) {
     renderPoliticiansDirectory((document.getElementById("pol-search") || {}).value || "");
   }
   renderSidebarStates();                                                // sidebar state list (election badge)
-  if (NEWS_MODAL && NEWS_MODAL.open) openNewsModal();                   // open modals
+  if (document.body.classList.contains("news-open")) openNewsPage();    // news full page
   if (PLEDGES_MODAL && PLEDGES_MODAL.open) openPledgesModal();
 }
 
@@ -2918,7 +2918,7 @@ RESET.addEventListener("click", deselect);
 
 // ---- manifesto pledges dialog (opened from the sidebar; same tabs everywhere) ----
 const PLEDGES_MODAL = document.getElementById("pledges-modal");
-const NEWS_MODAL = document.getElementById("news-modal");
+const NEWS_VIEW = document.getElementById("news-view");
 function openPledgesModal() {
   if (!PLEDGES_MODAL || !state.johorPledges) return;
   PLEDGES_MODAL.innerHTML = `
@@ -3043,7 +3043,7 @@ document.getElementById("sidebar")?.addEventListener("click", (ev) => {
   }
   if (ev.target.closest("#sb-politicians")) { hideInfo(); openPoliticians(); setTimeout(syncSidebar, 60); return; }
   if (ev.target.closest("#sb-prn")) { closePoliticians({ silent: true }); hideInfo(); openPrnMode(); setTimeout(syncSidebar, 60); return; }
-  if (ev.target.closest("#sb-news")) { openNewsModal(); return; }
+  if (ev.target.closest("#sb-news")) { hideInfo(); openNewsPage(); setTimeout(syncSidebar, 60); return; }
   if (ev.target.closest("#sb-pledges")) { openPledgesModal(); return; }
   if (ev.target.closest("#sb-about")) { showInfo(); return; }
   if (ev.target.closest("#sb-share")) { shareApp(); return; }
@@ -3092,6 +3092,7 @@ document.getElementById("sidebar")?.addEventListener("click", (ev) => {
                      // code in the deep link gets dropped so a re-shared link can't misrepresent state
                      // (replaceState → no extra history entry)
   if (bootHash === "#politicians" && state.politicians) await openPoliticians();  // deep-linked directory
+  if (bootHash === "#news") openNewsPage();   // deep-linked news page
   maybeShowHint();   // fresh visit, nothing selected → nudge that seats are tappable
 })();
 
@@ -3143,6 +3144,8 @@ POL_VIEW?.addEventListener("keydown", (e) => {
 window.addEventListener("popstate", () => {
   if (location.hash === "#politicians") { if (state.politicians) openPoliticians(); }
   else if (document.body.classList.contains("politicians-open")) closePoliticians({ silent: true });
+  if (location.hash === "#news") openNewsPage();
+  else if (document.body.classList.contains("news-open")) closeNewsPage({ silent: true });
 });
 
 /* ===== state-first drill: main map = states; tap a state to open its district mini-map in the card ===== */
@@ -4892,32 +4895,45 @@ function newsStripHTML() {
       <p class="bento-news-note muted">${esc(t("prn_news_note"))}</p>
     </section>`;
 }
-function openNewsModal() {
-  if (!NEWS_MODAL) return;
+// News is a full page (like the politicians directory), opened from the sidebar "News"
+// nav or the strip's "See all". Reuses the .pol-dir full-screen shell.
+function openNewsPage() {
+  if (!NEWS_VIEW) return;
+  closePoliticians({ silent: true });
+  if (state.prnMode) closePrnMode({ silent: true });
   const items = johorNewsItems();
   const body = items.length
-    ? `<ul class="news-modal-list">${items.map((n) => `<li>${newsItemLinkHTML(n, true)}</li>`).join("")}</ul>`
+    ? `<ul class="news-list">${items.map((n) => `<li>${newsItemLinkHTML(n, true)}</li>`).join("")}</ul>`
     : `<p class="news-empty muted">${esc(t("news_empty"))}</p>`;
-  NEWS_MODAL.innerHTML = `
-    <div class="pol-modal-shell">
-      <button class="pol-modal-close" type="button" aria-label="${esc(t("card_preview_close"))}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><line x1="6" x2="18" y1="6" y2="18"/><line x1="6" x2="18" y1="18" y2="6"/></svg>
-      </button>
-      <h2 class="pledges-modal-h">📰 ${esc(t("news_title"))}</h2>
+  NEWS_VIEW.innerHTML = `<div class="pol-dir news-page">
+      <div class="pol-dir-head">
+        <button id="news-back" class="pol-back" type="button">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+          <span>${esc(t("pol_back"))}</span>
+        </button>
+        <h1>📰 ${esc(t("news_title"))}</h1>
+        <p class="pol-dir-sub">${esc(t("prn_news_note"))}</p>
+      </div>
       ${body}
       <p class="src-line muted">${esc(t("news_note"))}</p>
     </div>`;
-  if (typeof NEWS_MODAL.showModal === "function") NEWS_MODAL.showModal();
-  else NEWS_MODAL.setAttribute("open", "");
+  document.body.classList.add("news-open");
+  NEWS_VIEW.querySelector("#news-back")?.addEventListener("click", () => {
+    closeNewsPage({ silent: true }); hideInfo(); backToControls(); syncSidebar();
+  });
+  syncSidebar();
+  if (location.hash !== "#news") history.pushState(null, "", "#news");
+  NEWS_VIEW.scrollTop = 0;
 }
-NEWS_MODAL?.addEventListener("click", (ev) => {
-  if (ev.target.closest(".pol-modal-close") || ev.target === NEWS_MODAL) {
-    if (NEWS_MODAL.open) NEWS_MODAL.close();
-    NEWS_MODAL.innerHTML = "";
-  }
-});
+function closeNewsPage(options = {}) {
+  if (!document.body.classList.contains("news-open")) return;
+  document.body.classList.remove("news-open");
+  if (NEWS_VIEW) NEWS_VIEW.innerHTML = "";
+  syncSidebar();
+  if (!options.silent) writeHash();
+}
 document.addEventListener("click", (ev) => {
-  if (ev.target.closest("[data-open-news]")) { ev.preventDefault(); openNewsModal(); }
+  if (ev.target.closest("[data-open-news]")) { ev.preventDefault(); openNewsPage(); }
 });
 
 // election tiles — the original PRN dashboard body (unchanged content)

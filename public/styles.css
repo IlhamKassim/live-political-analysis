@@ -2273,10 +2273,19 @@ body.searching .results {
 .yb-credit { font-size: 10.5px; margin: 0; }
 
 /* ===== Politicians directory ===== */
-#politicians-view { display: none; }
-body.politicians-open #politicians-view { display: block; }
-body.politicians-open #stage, body.politicians-open #panel { display: none; }
-body.politicians-open #topbar { display: none; }
+#politicians-view, #news-view { display: none; }
+body.politicians-open #politicians-view, body.news-open #news-view { display: block; }
+body.politicians-open #stage, body.politicians-open #panel,
+body.news-open #stage, body.news-open #panel { display: none; }
+body.politicians-open #topbar, body.news-open #topbar { display: none; }
+/* news full page: a readable single column of headlines (reuses the .pol-dir shell) */
+.news-page { max-width: 760px; margin: 0 auto; }
+.news-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 2px; }
+.news-list .news-link { padding: 12px 12px; margin: 0 -12px; border-radius: 12px; }
+.news-list .news-t { font-size: 15.5px; line-height: 1.4; }
+.news-list li + li { border-top: 1px solid var(--line); }
+.news-page .news-empty { padding: 28px 4px; font-size: 15px; }
+.news-page .src-line { max-width: 760px; margin: 18px auto 0; }
 .pol-dir {
   position: fixed; inset: 0; z-index: 6;
   overflow-y: auto; overscroll-behavior: contain;
