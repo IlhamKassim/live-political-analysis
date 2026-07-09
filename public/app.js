@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=49";
-import { I18N } from "./i18n.js?v=49";
+  competitivenessFromMajorityPct } from "./lib.js?v=50";
+import { I18N } from "./i18n.js?v=50";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -50,6 +50,8 @@ const state = {
   votingGuide: null,
   politicians: null,// {mps: {P.xxx -> {name, photo, bio, socials, ...}}} federal MP roster
   polProfiles: null,// source-linked candidate/person profile cards keyed by DUN seat
+  seatContextJohor: null,// per-DUN context pack (pipeline/13_johor_enrich.py)
+  excoJohor: null,// caretaker EXCO portfolio map
   stateEmblems: null,// state/federal territory coat-of-arms/seal assets + source manifest
   selected: null,
   seatTab: "overview",
@@ -235,11 +237,32 @@ async function loadOptional() {
     if (pp.ok) state.polProfiles = await pp.json();
   } catch (_) {}
   try {
+    // Per-DUN seat context: electorate, last result, by-election notes, competitiveness
+    const scj = await fetch("data/seat-context-johor.json");
+    if (scj.ok) state.seatContextJohor = await scj.json();
+  } catch (_) {}
+  try {
+    // Caretaker EXCO portfolio map for Johor
+    const ex = await fetch("data/exco-johor.json");
+    if (ex.ok) state.excoJohor = await ex.json();
+  } catch (_) {}
+  try {
     // federal MP roster: photo + bio + socials per P.xxx (pipeline/09_politicians.py)
     const pl = await fetch("data/politicians.json");
     if (pl.ok) state.politicians = await pl.json();
   } catch (_) {}
   return state;
+}
+
+/** Johor DUN seat context row (electorate, bye-election, competitiveness). */
+function johorSeatContext(code) {
+  return (state.seatContextJohor && state.seatContextJohor.seats && state.seatContextJohor.seats[code]) || null;
+}
+/** EXCO member row for a DUN code (caretaker cabinet). */
+function johorExcoForSeat(code) {
+  const members = state.excoJohor && state.excoJohor.members;
+  if (!members || !code) return null;
+  return members.find((m) => m.seat_code === code) || null;
 }
 
 // ---- politician profiles (federal MPs + ADUN portrait records) ----
@@ -4361,9 +4384,12 @@ function incumbentBlockHTML(entry, seatCode) {
     const mp = majorityPct2022(entry);
     bits.push(t("prn_won_by", { n: entry.majority_2022 }) + (mp != null ? ` (${mp}%)` : ""));
   }
-  // the incumbent's ADUN portrait where we have one (aduns.json keyed by seat code)
+  // portrait: prefer localised PRN profile photo, else aduns.json
+  const prof = seatCode ? profileForCandidate(seatCode, entry.incumbent_2022) : null;
   const adun = seatCode && state.aduns && state.aduns[seatCode];
-  const photo = adun && adun.photo ? personPhotoHTML(entry.incumbent_2022, adun.photo, "prn-inc-photo") : "";
+  const photoUrl = (prof && prof.photo_url) || (adun && adun.photo) || "";
+  const photo = photoUrl ? personPhotoHTML(entry.incumbent_2022, photoUrl, "prn-inc-photo") : "";
+  const photoCredit = (prof && prof.photo_credit) || (adun && adun.photo_credit) || "";
   return `<div class="prn-inc${photo ? " has-photo" : ""}">
     <div class="prn-inc-top"><span class="prn-inc-kicker">${esc(t("prn_incumbent"))}</span>${badge}</div>
     <div class="prn-inc-row">
@@ -4374,7 +4400,7 @@ function incumbentBlockHTML(entry, seatCode) {
         ${bits.length ? `<div class="prn-inc-stat muted">${esc(bits.join(" · "))}</div>` : ""}
       </div>
     </div>
-    ${photo && adun.photo_credit ? `<p class="yb-credit muted">${esc(t("pol_photo_by", { credit: adun.photo_credit }))}</p>` : ""}
+    ${photo && photoCredit ? `<p class="yb-credit muted">${esc(t("pol_photo_by", { credit: photoCredit }))}</p>` : ""}
   </div>`;
 }
 
@@ -4385,16 +4411,25 @@ function prnSpotlightHTML() {
   if (!seat || !entry) {
     return `<div class="bento-spot-empty"><div class="bento-spot-mark">🗳️</div><p class="muted">${esc(t("prn_bento_pick"))}</p></div>`;
   }
+  const ctx = johorSeatContext(seat.code);
+  const exco = johorExcoForSeat(seat.code);
   const inc = incumbentBlockHTML(entry, seat.code);
   const meta = [];
   if (entry.electorate) meta.push(`${entry.electorate.toLocaleString()} ${esc(t("prn_electorate"))}`);
   if (seat.parlimen) meta.push(`${esc(t("parlimen_label"))} ${esc(parlimenContext(seat))}`);
+  if (ctx && ctx.competitiveness) meta.push(esc(t("prn_comp_" + ctx.competitiveness) || ctx.competitiveness));
   const metaLine = meta.length ? `<span class="bento-spot-meta muted">${meta.join(" · ")}</span>` : "";
+  const bye = ctx && ctx.byelection
+    ? `<p class="bento-spot-bye muted">↩ ${esc(ctx.byelection.note || ("By-election " + (ctx.byelection.date || "")))}</p>`
+    : "";
+  const excoLine = exco
+    ? `<div class="bento-exco-chip"><span class="bento-exco-kicker">${esc(exco.role || "EXCO")}</span> ${esc(exco.portfolio || "")}</div>`
+    : "";
   // incumbent right under the seat name (answers "who holds this now?" first),
   // then the 2026 candidates as cards laid out beside the map
   return `<div class="bento-spot-head">
       <div class="bento-spot-kicker">${esc(entry.ncode)} · ${esc(t("prn_candidates"))} ${entry.candidates.length}</div>
-      <h3>${esc(entry.name)}</h3>${metaLine}
+      <h3>${esc(entry.name)}</h3>${metaLine}${bye}${excoLine}
     </div>${inc}
     <div class="bento-cand-label muted">${esc(t("prn_candidates"))}</div>
     <div class="bento-cand-grid bento-cand-row">${prnCandidateCardsHTML(entry, seat.code, true)}</div>`;
@@ -4594,9 +4629,12 @@ function candidateModalSourcesHTML(profile, election) {
   return links || src ? `${links}${src}` : "";
 }
 function candidateModalNewsHTML(seatCode, name) {
-  const items = state.prnNews && state.prnNews[seatCode] && state.prnNews[seatCode][name];
-  if (!items || !items.length) return "";
-  return `<div class="cand-news-list">${items.slice(0, 4).map((n) =>
+  const bucket = state.prnNews && state.prnNews[seatCode];
+  const items = (bucket && bucket[name]) || [];
+  const seatItems = (bucket && bucket._seat) || [];
+  const merged = [...items, ...seatItems.filter((s) => !items.some((i) => i.u === s.u))].slice(0, 5);
+  if (!merged.length) return "";
+  return `<div class="cand-news-list">${merged.map((n) =>
     `<a href="${esc(n.u)}" target="_blank" rel="noopener"><span>${esc(n.t)}</span><small>${esc(n.s)}${n.d ? " · " + esc(fmtDayMonth(n.d)) : ""}</small></a>`).join("")}</div>`;
 }
 function candidateModalHTML(seat, entry, candidate, profile) {
@@ -4626,6 +4664,28 @@ function candidateModalHTML(seat, entry, candidate, profile) {
   const education = candidateModalListHTML(profile && profile.education, false);
   const electionHistory = candidateModalListHTML(profile && profile.election_history, false);
   const news = candidateModalNewsHTML(seat.code, name);
+  const demo = profile && profile.demographics;
+  const demoLine = demo && (demo.age || demo.sex || demo.ethnicity)
+    ? [demo.age ? `Age ${demo.age}` : "", demo.sex === "M" ? "Male" : demo.sex === "F" ? "Female" : (demo.sex || ""), demo.ethnicity || ""]
+        .filter(Boolean).join(" · ")
+    : "";
+  const socials = profile && Array.isArray(profile.social_links) && profile.social_links.length
+    ? `<div class="cand-socials">${profile.social_links.map((u) => {
+        const host = (() => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch (_) { return "link"; } })();
+        return `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(host)}</a>`;
+      }).join(" ")}</div>`
+    : "";
+  const contact = profile && profile.official_contact;
+  const contactBits = contact
+    ? [contact.phone, contact.email, contact.address].filter(Boolean)
+    : [];
+  const contactHtml = contactBits.length
+    ? `<ul class="cand-list">${contactBits.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`
+    : "";
+  const exco = isInc ? johorExcoForSeat(seat.code) : null;
+  const roleText = exco && exco.portfolio
+    ? `${role} · ${exco.portfolio}`
+    : role;
   return `<div class="cand-modal-shell">
     <button class="pol-modal-close" type="button" aria-label="${esc(t("card_preview_close"))}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><line x1="6" x2="18" y1="6" y2="18"/><line x1="6" x2="18" y1="18" y2="6"/></svg>
@@ -4636,20 +4696,23 @@ function candidateModalHTML(seat, entry, candidate, profile) {
         <div class="cand-hero-id">
           <div class="cand-kicker">${esc(t("candidate_bento_title"))}</div>
           <h2>${esc(name)}</h2>
-          <p class="cand-seat muted">${meta}</p>
+          <p class="cand-seat muted">${meta}${demoLine ? " · " + esc(demoLine) : ""}</p>
           <div class="cand-pill-row">
             <span class="pill" style="background:${col.bg};color:${col.fg}">${party}</span>
             ${isInc ? `<span class="prn-cc-inc">${esc(t("prn_cc_incumbent"))}</span>` : ""}
+            ${exco ? `<span class="prn-cc-inc">${esc(exco.role || "EXCO")}</span>` : ""}
           </div>
+          ${socials}
         </div>
       </section>
-      ${candidateModalTileHTML("cand-role", t("candidate_bento_current_role"), `<p class="cand-role-text">${esc(role)}</p>`)}
+      ${candidateModalTileHTML("cand-role", t("candidate_bento_current_role"), `<p class="cand-role-text">${esc(roleText)}</p>`)}
       ${candidateModalTileHTML("cand-facts", t("candidate_bento_context"), `<div class="cand-facts-grid">${facts}</div>`)}
       ${candidateModalTileHTML("cand-summary", t("profile_background"), summary ? `<p>${esc(summary)}</p>` : `<p class="muted">${esc(t("candidate_profile_pending"))}</p>`)}
       ${candidateModalTileHTML("cand-party", t("profile_party_history"), partyHistory || `<p class="muted">${esc(t("candidate_profile_pending"))}</p>`)}
       ${candidateModalTileHTML("cand-track", t("profile_track_record"), track || experience || `<p class="muted">${esc(t("candidate_profile_pending"))}</p>`)}
       ${candidateModalTileHTML("cand-election", t("profile_election_history"), electionHistory || `<p class="muted">${esc(t("candidate_profile_pending"))}</p>`)}
       ${education ? candidateModalTileHTML("cand-education", t("profile_education"), education) : ""}
+      ${contactHtml ? candidateModalTileHTML("cand-contact", "Contact", contactHtml) : ""}
       ${news ? candidateModalTileHTML("cand-news", t("prn_news"), news) : ""}
       ${candidateModalTileHTML("cand-sources", t("profile_sources"), candidateModalSourcesHTML(profile, election))}
     </div>
@@ -4784,14 +4847,15 @@ function bentoMapSectionHTML(name) {
   if (bentoElectionMode()) {
     kicker = `<div class="bento-kicker">${esc(count("dun"))} ${esc(t("tier_dun"))} · ${esc(t("prn_bento_incumbent_map"))}</div>`;
   } else {
-    // both layers, as chips — tapping one flips the choropleth (search already spans both)
+    // both layers as a segmented pill (same look as the main Parliament/DUN toggle) —
+    // tapping one flips the choropleth (search already spans both)
     const chip = (tr, label) => {
       const n = count(tr);
       return n
-        ? `<button type="button" class="bento-tier-chip${tier === tr ? " on" : ""}" data-bento-tier="${tr}" aria-pressed="${tier === tr}">${n} ${esc(label)}</button>`
+        ? `<button type="button" role="tab" class="${tier === tr ? "on" : ""}" data-bento-tier="${tr}" aria-selected="${tier === tr}">${n} ${esc(label)}</button>`
         : "";
     };
-    kicker = `<div class="bento-kicker bento-map-tiers">${chip("parlimen", t("tier_parlimen"))}${chip("dun", t("tier_dun"))}<span class="bento-map-note">· ${esc(t("bento_map_winner"))}</span></div>`;
+    kicker = `<div class="bento-kicker bento-map-tiers"><span class="seg chip bento-map-seg" role="tablist">${chip("parlimen", t("tier_parlimen"))}${chip("dun", t("tier_dun"))}</span><span class="bento-map-note">· ${esc(t("bento_map_winner"))}</span></div>`;
   }
   return `<div class="bento-map-topbar">
       ${kicker}

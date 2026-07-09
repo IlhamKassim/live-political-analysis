@@ -481,6 +481,11 @@ body.state-open #map { overflow: visible; }
   transition: color .15s, border-color .15s;
 }
 .iconbtn svg { width: 18px; height: 18px; }
+.nav-icon {
+  width: 18px; height: 18px; display: block;
+  stroke: currentColor; stroke-width: 1.85; stroke-linecap: round; stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
 .iconbtn:hover { color: var(--ink); border-color: var(--line-2); }
 .iconbtn:active { transform: scale(.92); }
 .iconbtn[hidden] { display: none; }   /* the base display:grid would otherwise defeat the hidden attr */
@@ -2039,6 +2044,35 @@ button.map-inspect-overview:focus-visible { outline: 2px solid var(--accent); ou
   }
 }
 
+/* EXCO / seat-context chips in PRN spotlight */
+.bento-exco-chip {
+  margin-top: 6px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent, #8ab4f8) 14%, transparent);
+  font-size: 12px;
+  line-height: 1.35;
+}
+.bento-exco-kicker {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 10px;
+  opacity: 0.85;
+  margin-right: 6px;
+}
+.bento-spot-bye { margin: 4px 0 0; font-size: 12px; }
+.cand-socials { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.cand-socials a {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line, rgba(255,255,255,.12));
+  color: inherit;
+  text-decoration: none;
+}
+.cand-socials a:hover { border-color: var(--accent, #8ab4f8); }
+
 /* ===== live election (PRN16 Johor) — badge, banner, campaign view ===== */
 .live-badge {
   position: fixed; z-index: 40; top: 70px; right: 14px;
@@ -2898,16 +2932,11 @@ body.politicians-open #topbar, body.news-open #topbar { display: none; }
 }
 
 /* explore-card layer chips: both tiers visible, tap to flip the choropleth */
-.bento-map-tiers { display: flex; align-items: center; gap: 6px; text-transform: none; letter-spacing: normal; }
-.bento-tier-chip {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-height: 44px; font: inherit; font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em;
-  padding: 0 12px; border-radius: 999px; cursor: pointer;
-  border: 1px solid var(--line); background: var(--bg-2); color: var(--ink-faint);
-  transition: color .12s, border-color .12s, background .12s;
-}
-.bento-tier-chip:hover { color: var(--ink); border-color: var(--line-2); }
-.bento-tier-chip.on { color: var(--ink); border-color: var(--accent); background: color-mix(in oklab, var(--accent) 14%, var(--bg-2)); }
+.bento-map-tiers { display: flex; align-items: center; gap: 10px; text-transform: none; letter-spacing: normal; }
+/* the layer switch is a segmented pill, same look as the main Parliament/DUN toggle
+   (.seg.chip), just sized down for the map-tile kicker */
+.bento-map-seg { flex: 0 0 auto; }
+.seg.chip.bento-map-seg button { min-height: 28px; padding: 5px 12px; font-size: 10.5px; letter-spacing: .02em; white-space: nowrap; }
 .bento-map-note { font-size: 10.5px; text-transform: uppercase; letter-spacing: .09em; color: var(--ink-dim); font-weight: 600; }
 
 /* ---- dashboard chrome in the nav bar (wide screens, bento open) ----
@@ -3062,7 +3091,7 @@ body.politicians-open #top-controls { display: none; }
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
-.sb-ic { width: 18px; text-align: center; flex: 0 0 auto; }
+.sb-ic { width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
 .sb-live .live-dot { width: 8px; height: 8px; margin-right: 2px; }
 .sb-section {
   font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .09em;
