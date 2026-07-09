@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=45";
-import { I18N } from "./i18n.js?v=45";
+  competitivenessFromMajorityPct } from "./lib.js?v=46";
+import { I18N } from "./i18n.js?v=46";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -637,6 +637,7 @@ function renderPoliticiansDirectory(keepQuery = "") {
 }
 async function openPoliticians() {
   if (!state.politicians) return;
+  closeNewsPage({ silent: true });     // the directory and the news page are mutually exclusive
   if (state.prnMode) closePrnMode();   // leave the election dashboard before the directory takes over
   if (!state.data.parlimen) { try { await loadTier("parlimen"); } catch (_) {} }
   if (polTier !== "parlimen" && !state.data.dun) { try { await loadTier("dun"); } catch (_) {} }
@@ -3039,7 +3040,7 @@ document.getElementById("sidebar")?.addEventListener("click", (ev) => {
     return;
   }
   if (ev.target.closest("#sb-brand") || ev.target.closest("#sb-map")) {
-    closePoliticians({ silent: true }); hideInfo(); backToControls(); syncSidebar(); return;
+    closePoliticians({ silent: true }); closeNewsPage({ silent: true }); hideInfo(); backToControls(); syncSidebar(); return;
   }
   if (ev.target.closest("#sb-politicians")) { hideInfo(); openPoliticians(); setTimeout(syncSidebar, 60); return; }
   if (ev.target.closest("#sb-prn")) { closePoliticians({ silent: true }); hideInfo(); openPrnMode(); setTimeout(syncSidebar, 60); return; }
@@ -4143,6 +4144,7 @@ function enterPrnMode() {
 async function openPrnMode() {
   const e = liveElection();
   if (!e || state.prnMode) return;
+  closeNewsPage({ silent: true });
   const preSel = state.selected;   // openStateCard clears the selection — keep it for the bento spotlight
   if (state.tier !== e.tier) await setTier(e.tier);   // before the flag — setTier exits PRN mode
   enterPrnMode();
@@ -5333,6 +5335,7 @@ function syncLiveBadge() {
 
 function openStateCard(name) {
   if (!name) return;
+  closeNewsPage({ silent: true });   // opening a state leaves the news full page (no overlap)
   clearTimeout(stateExitTimer);
   SEATS.classList.remove("returning");
   const firstMap = SVG.getBoundingClientRect();
