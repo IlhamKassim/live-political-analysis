@@ -481,6 +481,8 @@ body.state-open #map { overflow: visible; }
 .iconbtn svg { width: 18px; height: 18px; }
 .iconbtn:hover { color: var(--ink); border-color: var(--line-2); }
 .iconbtn:active { transform: scale(.92); }
+.iconbtn[hidden] { display: none; }   /* the base display:grid would otherwise defeat the hidden attr */
+.iconbtn.top-live .live-dot { width: 9px; height: 9px; }   /* the election shortcut = a red pulse */
 #mobile-menu-btn {
   display: none;
 }
@@ -569,6 +571,7 @@ body.state-open #map { overflow: visible; }
   .mobile-menu .topicons {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;          /* the fuller nav (Map · Politicians · PRN · News · Pledges · Info · Share · lang) wraps instead of overflowing */
     gap: 8px;
     width: 100%;
     margin-left: 0;
@@ -2994,6 +2997,7 @@ body.politicians-open #top-controls { display: none; }
   #topbar { left: 232px; }
   /* the sidebar owns brand / nav / language — the topbar keeps only context */
   #topbar .brand-home, #topbar #top-map, #topbar #top-politicians,
+  #topbar #top-news, #topbar #top-prn, #topbar #top-pledges,
   #topbar #top-info, #topbar #top-share, #topbar #lang { display: none; }
   body.politicians-open #politicians-view { left: 232px; }
   body.politicians-open .pol-dir { left: 232px; }

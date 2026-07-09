@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=46";
-import { I18N } from "./i18n.js?v=46";
+  competitivenessFromMajorityPct } from "./lib.js?v=47";
+import { I18N } from "./i18n.js?v=47";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -3004,6 +3004,13 @@ function syncSidebar() {
   }
   const plBtn = sb.querySelector("#sb-pledges");
   if (plBtn) plBtn.hidden = !e || !state.johorPledges;
+  // mobile-menu icons mirror the sidebar nav (they only exist below the sidebar breakpoint)
+  const topNews = document.getElementById("top-news");
+  if (topNews) topNews.hidden = johorNewsItems().length === 0;
+  const topPrn = document.getElementById("top-prn");
+  if (topPrn) topPrn.hidden = !e;
+  const topPledges = document.getElementById("top-pledges");
+  if (topPledges) topPledges.hidden = !e || !state.johorPledges;
   sb.querySelectorAll("[data-sb-state]").forEach((b) =>
     b.classList.toggle("on", !pol && state.openState === b.dataset.sbState));
   sb.querySelectorAll("[data-sb-lang]").forEach((b) =>
@@ -3125,6 +3132,10 @@ document.getElementById("top-map")?.addEventListener("click", showWholeMap);
 document.getElementById("top-info")?.addEventListener("click", showInfo);
 document.getElementById("top-share")?.addEventListener("click", shareApp);
 document.getElementById("top-politicians")?.addEventListener("click", () => openPoliticians());
+// mobile-menu nav parity with the wide-screen sidebar (each shown only when relevant)
+document.getElementById("top-news")?.addEventListener("click", () => openNewsPage());
+document.getElementById("top-prn")?.addEventListener("click", () => openPrnMode());
+document.getElementById("top-pledges")?.addEventListener("click", () => openPledgesModal());
 POL_VIEW?.addEventListener("click", (e) => {
   if (e.target.closest("a")) return;   // a social-icon link — let it open, don't pop the profile
   const party = e.target.closest("[data-pol-party]");
