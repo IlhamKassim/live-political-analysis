@@ -3028,6 +3028,9 @@ body.politicians-open #top-controls { display: none; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* live-election marker: a small red pulsing dot (replaces the wide text badge that
+   was truncating the state name) */
+.sb-state-dot { flex: 0 0 auto; width: 8px; height: 8px; margin-right: 2px; }
 .sb-state-badge {
   flex: 0 0 auto;
   min-height: 20px;

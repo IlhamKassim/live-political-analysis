@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=43";
-import { I18N } from "./i18n.js?v=43";
+  competitivenessFromMajorityPct } from "./lib.js?v=44";
+import { I18N } from "./i18n.js?v=44";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -2982,7 +2982,7 @@ function renderSidebarStates() {
     return `<button type="button" class="sb-item sb-state${isElection ? " is-election" : ""}" data-sb-state="${esc(n)}">
       ${stateEmblemHTML(n, "sb-state-emblem")}
       <span class="sb-state-name">${esc(n)}</span>
-      ${isElection ? `<span class="sb-state-badge">${esc(t("prn_kicker"))}</span>` : ""}
+      ${isElection ? `<span class="live-dot sb-state-dot" title="${esc(t("prn_kicker"))}" aria-label="${esc(t("prn_kicker"))}"></span>` : ""}
     </button>`;
   }).join("");
 }
