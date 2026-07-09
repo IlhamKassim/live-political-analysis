@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
 <title>MyPolitik — Map Malaysia's Representatives</title>
+<!-- asset-v:59 -->
 <meta name="description" data-i18n-content="meta_desc" content="Interactive map of every Malaysian Parliament and State (DUN) seat. Click your area to see the representative, party, and performance — public data, computed transparently." />
 <meta name="theme-color" content="#0e0f12" />
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
@@ -21,7 +22,18 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=50" />
+<script>
+(() => {
+  try {
+    const saved = localStorage.getItem("mypolitik-theme");
+    const prefersLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
+    document.documentElement.dataset.theme = saved === "light" || saved === "dark" ? saved : (prefersLight ? "light" : "dark");
+  } catch (_) {
+    document.documentElement.dataset.theme = "dark";
+  }
+})();
+</script>
+<link rel="stylesheet" href="styles.css?v=59" />
 </head>
 <body>
 <aside id="sidebar" aria-label="Navigation">
@@ -45,6 +57,10 @@
   <div class="sb-foot">
     <button id="sb-about" class="sb-item sb-small" type="button"><span data-i18n="nav_about">About</span></button>
     <button id="sb-share" class="sb-item sb-small" type="button"><span data-i18n="nav_share">Share</span></button>
+    <button id="sb-theme" class="sb-collapse theme-toggle" type="button" data-theme-toggle aria-label="Switch theme" title="Switch theme">
+      <svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.4"/><path d="M12 2.8v2.1"/><path d="M12 19.1v2.1"/><path d="M4.9 4.9l1.5 1.5"/><path d="m17.6 17.6 1.5 1.5"/><path d="M2.8 12h2.1"/><path d="M19.1 12h2.1"/><path d="m4.9 19.1 1.5-1.5"/><path d="m17.6 6.4 1.5-1.5"/></svg>
+      <svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.1 14.3A7.7 7.7 0 0 1 9.7 3.9 8.4 8.4 0 1 0 20.1 14.3z"/></svg>
+    </button>
     <div class="seg lang-seg sb-lang" role="group" aria-label="Language">
       <button data-sb-lang="en">EN</button>
       <button data-sb-lang="ms">BM</button>
@@ -83,6 +99,10 @@
         </button>
         <button id="top-share" class="iconbtn" type="button" data-i18n-aria="share_aria" aria-label="Share MyPolitik" data-i18n-title="share_aria" title="Share MyPolitik">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.4"/><circle cx="6" cy="12" r="2.4"/><circle cx="18" cy="19" r="2.4"/><path d="M8.1 10.9 15.9 6.1M8.1 13.1l7.8 4.8"/></svg>
+        </button>
+        <button id="top-theme" class="iconbtn theme-toggle" type="button" data-theme-toggle aria-label="Switch theme" title="Switch theme">
+          <svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.4"/><path d="M12 2.8v2.1"/><path d="M12 19.1v2.1"/><path d="M4.9 4.9l1.5 1.5"/><path d="m17.6 17.6 1.5 1.5"/><path d="M2.8 12h2.1"/><path d="M19.1 12h2.1"/><path d="m4.9 19.1 1.5-1.5"/><path d="m17.6 6.4 1.5-1.5"/></svg>
+          <svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.1 14.3A7.7 7.7 0 0 1 9.7 3.9 8.4 8.4 0 1 0 20.1 14.3z"/></svg>
         </button>
         <div class="seg lang-seg" id="lang" role="tablist" data-i18n-aria="aria_lang" aria-label="Language">
           <button data-lang="en" class="on" role="tab" aria-selected="true" aria-label="English">EN</button>
@@ -216,6 +236,6 @@
   </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 </div>
-<script type="module" src="app.js?v=50"></script>
+<script type="module" src="app.js?v=59"></script>
 </body>
 </html>

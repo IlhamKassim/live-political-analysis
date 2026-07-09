@@ -10,7 +10,7 @@ import {
   findSeatForLocation, haversine, nearestSeat,
   formatParty, candidateCount, formatRunnerUp, formatResultCard, fitBox,
   partyColor, COALITION_COLORS, scoreColor, searchSeats,
-  resultKey, displayCode, tallyCoalitions, stateHues,
+  resultKey, displayCode, tallyCoalitions, stateHues, swatchTextColor,
   competitivenessFromMajorityPct,
 } from "./lib.js";
 import { I18N } from "./i18n.js";
@@ -721,28 +721,58 @@ test("tallyCoalitions: GE15 results match the frozen PH82·PN74·BN30·GPS23·GR
 });
 
 // ---- DUN (PRN) results: the 2023 six-state tally invariant (now a subset) ----
-test("results-dun.json: 2023 six-state PRN subset tally is PN146·PH80·BN19 = 245", () => {
-  // six-state PRN entries are the ones WITHOUT an `election` label (MECO states carry one)
+// 3 of the 245 PRN-2023 rows are superseded by later by-elections (Nenggiri,
+// Sungai Bakap, Kuala Kubu Baharu) — those carry an `election` label and drop
+// out of the unlabelled subset, so it's 242 = 245 - 3 with PN 146→144, PH 80→79.
+test("results-dun.json: 2023 six-state PRN subset tally is PN144·PH79·BN19 = 242 (3 by-election overlays)", () => {
+  // six-state PRN entries are the ones WITHOUT an `election` label (MECO states + by-elections carry one)
   const prn23 = Object.fromEntries(Object.entries(RESULTS_DUN).filter(([, v]) => !v.election));
   const counts = tallyCoalitions(prn23);
-  assert.equal(counts.PN, 146);
-  assert.equal(counts.PH, 80);
+  assert.equal(counts.PN, 144);
+  assert.equal(counts.PH, 79);
   assert.equal(counts.BN, 19);
-  assert.equal(Object.keys(prn23).length, 245);
+  assert.equal(Object.keys(prn23).length, 242);
   const states = new Set(Object.values(prn23).map((v) => v.state));
   assert.equal(states.size, 6);
 });
 
+// ---- DUN (PRN) results: by-election overlays = the CURRENT holder of each seat ----
+test("results-dun.json: the 7 by-election overlays hold (incl. Nenggiri PN→BN flip)", () => {
+  const byel = Object.entries(RESULTS_DUN).filter(([, v]) => v._byelection);
+  assert.deepEqual(
+    Object.fromEntries(byel.map(([k, v]) => [k, v.coalition])),
+    { "3_N.43": "BN", "7_N.20": "PN", "10_N.06": "PH", "12_N.58": "BN",
+      "13_N.67": "GPS", "6_N.36": "BN", "8_N.48": "BN" }
+  );
+  // every overlay names its poll so the card can cite it (src_byelection line)
+  assert.ok(byel.every(([, v]) => /by-election \d{4}$/.test(v.election)));
+});
+
 // ---- DUN (PRN) results: full coverage after the MECO other-states bake ----
-test("results-dun.json: 544/600 seats across 12 states, 299 MECO-labelled, turnout null", () => {
+test("results-dun.json: 544/600 seats across 12 states, 302 election-labelled, turnout null", () => {
   assert.equal(Object.keys(RESULTS_DUN).length, 544);
   const states = new Set(Object.values(RESULTS_DUN).map((v) => v.state));
   assert.equal(states.size, 12);
-  // MECO states each carry an `election` display label; the six-state PRN entries don't
+  // MECO states + by-election overlays carry an `election` label; six-state PRN entries don't
   const withElection = Object.values(RESULTS_DUN).filter((v) => v.election).length;
-  assert.equal(withElection, 299);
+  assert.equal(withElection, 302);
   // turnout isn't in either source → must be null on every entry (card omits the row)
   assert.ok(Object.values(RESULTS_DUN).every((v) => v.turnout === null));
+});
+
+// ---- GE15 results: parliament by-election overlays (current holder doctrine) ----
+test("results-ge15.json: 4 by-election overlays, coalition tally unchanged", () => {
+  const byel = Object.entries(RESULTS).filter(([, v]) => v._byelection);
+  assert.deepEqual(
+    Object.fromEntries(byel.map(([k, v]) => [k, v.name])),
+    {
+      "P.036": "Ahmad Amzad bin Mohamed @ Hashim",        // KT 2023: re-elected after nullification
+      "P.040": "Ahmad Samsuri bin Mokhtar",               // Kemaman 2023 (voided GE15 result)
+      "P.161": "Suhaizan bin Kaiat",                      // Pulai 2023 (death of Salahuddin Ayub)
+      "P.187": "Mohd Kurniawan Naim bin Moktar (Naim Moktar)", // Kinabatangan 2026 (death of Bung Moktar)
+    }
+  );
+  assert.ok(byel.every(([, v]) => /by-election \d{4}$/.test(v.election)));
 });
 
 test("results-dun.json: every key matches a real DUN boundary code", () => {
@@ -818,4 +848,20 @@ test("stateHues: byte-identical to the real-data hue map app.js relied on", () =
   const map = stateHues(SEATS);
   const states = [...new Set(SEATS.map((s) => s.state))];
   for (const st of states) assert.match(map[st], /^hsl\(\d+ \d+% \d+%\)$/);
+});
+
+test("swatchTextColor: chooses readable text for bright and dark party swatches", () => {
+  assert.equal(swatchTextColor("#15387c"), "#fff");      // PN blue stays white
+  assert.equal(swatchTextColor("#d7263d"), "#fff");      // PH red stays white
+  assert.equal(swatchTextColor("#1f9bd6"), "#05070c");   // BN blue fails with white
+  assert.equal(swatchTextColor("#e8772e"), "#05070c");   // GRS orange fails with white
+  assert.equal(swatchTextColor("#16a085"), "#05070c");   // WARISAN teal fails with white
+  assert.equal(swatchTextColor("#8a97a6"), "#05070c");   // BEBAS grey fails with white
+});
+
+test("swatchTextColor: accepts short hex and falls back on invalid input", () => {
+  assert.equal(swatchTextColor("#fff"), "#05070c");
+  assert.equal(swatchTextColor("#000"), "#fff");
+  assert.equal(swatchTextColor("not-a-colour"), "#fff");
+  assert.equal(swatchTextColor(null), "#fff");
 });

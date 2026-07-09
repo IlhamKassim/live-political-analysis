@@ -4,9 +4,9 @@
 
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
-  resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=50";
-import { I18N } from "./i18n.js?v=50";
+  resultKey, displayCode, tallyCoalitions, stateHues, swatchTextColor,
+  competitivenessFromMajorityPct } from "./lib.js?v=59";
+import { I18N } from "./i18n.js?v=59";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -17,6 +17,7 @@ const TOPBAR = document.getElementById("topbar");
 const TOP_CONTROLS = document.getElementById("top-controls");
 const MOBILE_MENU = document.getElementById("mobile-menu");
 const MOBILE_MENU_BTN = document.getElementById("mobile-menu-btn");
+const THEME_META = document.querySelector('meta[name="theme-color"]');
 const PANEL = document.getElementById("panel");
 const PANEL_EMPTY = document.getElementById("panel-empty");
 const PANEL_SEAT = document.getElementById("panel-seat");
@@ -69,6 +70,9 @@ const COALITION_ORDER = ["PH", "PN", "BN", "GPS", "GRS", "WARISAN", "KDM", "PBM"
 const SEAT_TABS = ["overview", "results", "candidates", "voting"];
 const isSeatTab = (tab) => SEAT_TABS.includes(tab);
 const LOAD_GATED_SCORES = false;
+const THEME_KEY = "mypolitik-theme";
+const THEMES = ["dark", "light"];
+let theme = document.documentElement.dataset.theme === "light" ? "light" : "dark";
 
 // ---- i18n (English default, Bahasa Melayu toggle) ----
 // The I18N string table now lives in ./i18n.js (one tested source of truth;
@@ -87,6 +91,32 @@ function t(key, params) {
   if (params) for (const k in params) s = s.split(`{${k}}`).join(params[k]);
   return s;
 }
+
+function syncThemeControls() {
+  const next = theme === "light" ? "dark" : "light";
+  const label = t(next === "light" ? "theme_switch_light" : "theme_switch_dark");
+  document.querySelectorAll("[data-theme-toggle]").forEach((btn) => {
+    btn.setAttribute("aria-label", label);
+    btn.setAttribute("title", label);
+    btn.setAttribute("aria-pressed", theme === "light" ? "true" : "false");
+  });
+  if (THEME_META) THEME_META.setAttribute("content", theme === "light" ? "#f5f7fa" : "#0e0f12");
+}
+
+function setTheme(next, persist = true) {
+  if (!THEMES.includes(next)) return;
+  theme = next;
+  document.documentElement.dataset.theme = theme;
+  if (persist) {
+    try { localStorage.setItem(THEME_KEY, theme); } catch (_) {}
+  }
+  syncThemeControls();
+}
+
+function toggleTheme() {
+  setTheme(theme === "light" ? "dark" : "light");
+}
+
 function applyStatic() {
   document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll("[data-i18n-ph]").forEach((el) => { el.setAttribute("placeholder", t(el.dataset.i18nPh)); });
@@ -98,6 +128,7 @@ function applyStatic() {
   document.querySelectorAll("[data-i18n-after]").forEach((el) => { el.setAttribute("data-after", t(el.dataset.i18nAfter)); });
   document.documentElement.lang = lang;
   document.title = t("title");
+  syncThemeControls();
 }
 function setLang(l) {
   if (l !== "en" && l !== "ms") return;
@@ -142,6 +173,7 @@ const $ = (sel, el = document) => el.querySelector(sel);
 // toggle a tab/segment button's active class AND its ARIA selected state together
 const setOn = (el, on) => { el.classList.toggle("on", on); el.setAttribute("aria-selected", on ? "true" : "false"); };
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const pillStyle = (bg, fg) => `background:${bg};color:${fg || swatchTextColor(bg)}`;
 
 // stateHues() now lives in lib.js (pure, tested) — imported above.
 
@@ -376,7 +408,7 @@ function politicianList() {
   return Object.entries(mps).map(([code, m]) => {
     const seat = pd && pd.byCode.get(code);
     return { code, name: m.name, party: m.party, coalition: m.coalition, photo: m.photo,
-             socials: m.socials, socials_source: m.socials_source,
+             socials: m.socials, socials_source: m.socials_source, vacated: !!m.vacated,
              seatName: (seat && seat.name) || code, state: (seat && seat.state) || "" };
   }).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
 }
@@ -544,12 +576,12 @@ function renderPoliticianGrid() {
           ? `${p.code} · ${p.seatName}  ﹢  ${p.alsoDun.dunCode} · ${p.alsoDun.seatName}`
           : `${p.dunCode || p.code} · ${p.seatName}`;
         return `
-        <div class="pol-card" tabindex="0" role="button" data-pol-code="${esc(p.code)}" aria-label="${esc(p.name)}, ${esc(seatLine)}">
+        <div class="pol-card" tabindex="0" role="button" data-pol-code="${esc(p.code)}" aria-label="${esc(p.name)}, ${esc(seatLine)}${p.vacated ? `, ${esc(t("pol_seat_vacant"))}` : ""}">
           <div class="pol-card-photo">
             ${personPhotoHTML(p.name, p.photo)}
-            <span class="pol-card-badge pill" style="background:${partyColor(p.coalition || p.party)};color:#fff">${esc(p.party || p.coalition || "")}</span>
+            <span class="pol-card-badge pill" style="${pillStyle(partyColor(p.coalition || p.party))}">${esc(p.party || p.coalition || "")}</span>
           </div>
-          <div class="pol-card-name">${esc(p.name)}</div>
+          <div class="pol-card-name">${esc(p.name)}${p.vacated ? ` <span class="pol-card-vacant">${esc(t("pol_seat_vacant"))}</span>` : ""}</div>
           <div class="pol-card-seat" title="${esc(seatLine)}">${esc(seatLine)}</div>
           ${p.socials ? socialLinksHTML(p.socials, p.socials_source, { compact: true, max: 4 }) : '<div class="pol-card-socials-spacer"></div>'}
         </div>`;
@@ -578,8 +610,8 @@ function renderPartyGrid() {
         const samples = p.samples.map((r) => `<li><b>${esc(r.name)}</b><span>${esc(r.seat)}</span></li>`).join("");
         return `<button type="button" class="pol-party-card" data-pol-party="${esc(p.party)}" aria-label="${esc(t("pol_party_open_aria", { party: p.party }))}">
           <div class="pol-party-top">
-            <span class="pol-party-mark" style="background:${partyColor(p.coalition || p.party)}">${esc(p.party)}</span>
-            ${p.coalition && p.coalition !== p.party ? `<span class="pill" style="background:${partyColor(p.coalition)};color:#fff">${esc(p.coalition)}</span>` : ""}
+            <span class="pol-party-mark" style="${pillStyle(partyColor(p.coalition || p.party))}">${esc(p.party)}</span>
+            ${p.coalition && p.coalition !== p.party ? `<span class="pill" style="${pillStyle(partyColor(p.coalition))}">${esc(p.coalition)}</span>` : ""}
           </div>
           <div class="pol-party-stats">
             <span><small>${esc(t("pol_party_total"))}</small><b>${p.total}</b></span>
@@ -685,124 +717,312 @@ function openSeatFromPolitician(code) {
 }
 
 // full-profile pop-up for one politician (opened from a directory card — does NOT
-// navigate the map; a footer button offers that path explicitly).
-const POL_MODAL = document.getElementById("pol-modal");
+// navigate the map; footer buttons offer that path explicitly). Renders the SAME
+// bento (#candidate-modal, .cand-grid) the PRN candidate cards use, so a sitting
+// rep and a 2026 candidate read identically — and every profile closes with a
+// Sources tile (radical transparency: each box says where its facts came from).
 const CAND_MODAL = document.getElementById("candidate-modal");
 let candidateModalReturnTo = null;
-// slimmer profile pop-up for a state assemblyman (directory ADUN tab): photo or
-// monogram, party, seat, last-result numbers + source, wikidata link where matched
-function openAdunModal(code) {
-  const seat = state.data.dun && state.data.dun.byCode.get(code);
-  const r = adunEntryFor(code);
-  if (!seat || !r || !POL_MODAL) return;
-  const ad = state.aduns && state.aduns[code];
-  const display = (ad && ad.name) || titleCaseName(r.name);
-  const official = namekeyLoose(display) !== namekeyLoose(r.name) ? titleCaseName(r.name) : "";
-  const own = state.resultsDun && state.resultsDun[code];
-  const card = formatResultCard(own) || {};
-  const pill = r.coalition || r.party
-    ? `<span class="pill" style="background:${partyColor(r.coalition || r.party)};color:#fff">${esc(r.coalition || r.party)}</span>`
-    : "";
-  const partyLabel = r.party && r.party !== r.coalition ? `${esc(r.party)} · ` : "";
-  const stat = (label, value, note) => value != null && value !== ""
-    ? `<div class="pol-stat"><span>${esc(label)}</span><b>${value}</b>${note ? `<small>${esc(note)}</small>` : ""}</div>` : "";
-  const stats = [
-    card.majority != null ? stat(t("majority_prn"), card.majority.toLocaleString(), card.majorityPct != null ? `${card.majorityPct}%` : "") : "",
-    card.votes != null ? stat(t("win_votes"), card.votes.toLocaleString(), card.votePct != null ? `${card.votePct}%` : "") : "",
-  ].filter(Boolean).join("");
-  const src = own ? resultSourceLine(own, true) : `<div class="src-line muted">${esc(t("src_johor2022"))}</div>`;
-  POL_MODAL.innerHTML = `
-    <div class="pol-modal-shell">
-      <button class="pol-modal-close" type="button" aria-label="${esc(t("card_preview_close"))}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><line x1="6" x2="18" y1="6" y2="18"/><line x1="6" x2="18" y1="18" y2="6"/></svg>
-      </button>
-      <div class="pol-modal-head">
-        ${personPhotoHTML(display, ad && ad.photo, "pol-modal-photo")}
-        <div class="pol-modal-id">
-          <span class="yb-kicker">${esc(t("kicker_dun"))} · ${esc(seat.dun_code)}</span>
-          <h2>${esc(display)}</h2>
-          ${official ? `<span class="yb-ballot muted">${esc(official)}</span>` : ""}
-          <p class="pol-modal-party">${partyLabel}${pill}</p>
-          <p class="pol-modal-seat muted">${esc(seat.name)} · ${esc(seat.state)}</p>
-        </div>
-      </div>
-      ${stats ? `<div class="pol-modal-stats">${stats}</div>` : ""}
-      ${src}
-      ${ad && ad.wikidata ? `<div class="pol-modal-links"><a href="https://www.wikidata.org/wiki/${esc(ad.wikidata)}" target="_blank" rel="noopener">Wikidata</a></div>` : ""}
-      ${ad && ad.photo_credit ? `<p class="yb-credit muted">${esc(t("pol_photo_by", { credit: ad.photo_credit }))}</p>` : ""}
-      <button class="pol-modal-seatbtn" type="button" data-pol-seat="${esc(code)}">${esc(t("pol_view_seat"))}</button>
-    </div>`;
-  if (typeof POL_MODAL.showModal === "function") POL_MODAL.showModal();
-  else POL_MODAL.setAttribute("open", "");
-  POL_MODAL.querySelector(".pol-modal-close").focus();
+
+// head-of-government (MB/KM/Premier) match for a person — loose name key against
+// the curated state-context entry, so the bento can badge the role with its source
+function govRoleFor(name, stateName) {
+  const st = state.stateCtx && state.stateCtx.states && state.stateCtx.states[stateName];
+  const g = st && st.gov;
+  if (!g || !g.name) return null;
+  const gk = namekeyLoose(g.name), pk = namekeyLoose(name);
+  if (!gk || !pk || gk.length < 8 || !(gk === pk || gk.includes(pk) || pk.includes(gk))) return null;
+  const title = g.title === "MB" ? "Menteri Besar" : g.title === "KM" ? "Ketua Menteri" : g.title;
+  return { ...g, displayTitle: title };
 }
-function openPoliticianModal(code) {
-  if (code.includes("_N.")) return openAdunModal(code);   // ADUN cards carry DUN seat codes
-  const mps = state.politicians && state.politicians.mps;
-  const m = mps && mps[code];
-  if (!m || !POL_MODAL) return;
-  const dual = dualSeatMap().mpToDun.get(code) || null;   // also an ADUN? (dual mandate)
+// reverse dual-mandate lookup: the parliament code an ADUN also holds (if any)
+function dualMpForDun(code) {
+  for (const [mp, a] of dualSeatMap().mpToDun) if (a.code === code) return mp;
+  return null;
+}
+// lazy pool of national political headlines (pipeline/06 output) for the
+// name-matched "In the news" tile — fetched on the first profile open, cached
+let politicalNewsPromise = null;
+function ensurePoliticalNews() {
+  if (!politicalNewsPromise) {
+    politicalNewsPromise = fetch("data/political-news.json")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { state.politicalNews = j; })
+      .catch(() => {});
+  }
+  return politicalNewsPromise;
+}
+// headlines whose title contains the person's full name — full-name containment
+// only (precision over recall; the tile carries the namesake disclaimer)
+function politicianNewsMatchHTML(names, excludeUrls) {
+  const pool = (state.politicalNews && state.politicalNews.national) || [];
+  const keys = [...new Set(names.filter((n) => n && n.length >= 8).map((n) => n.toLowerCase()))];
+  if (!keys.length || !pool.length) return "";
+  const hits = pool.filter((n) => {
+    if (!n || !n.t || !n.u || (excludeUrls && excludeUrls.has(n.u))) return false;
+    const tl = String(n.t).toLowerCase();
+    return keys.some((k) => tl.includes(k));
+  }).slice(0, 4);
+  if (!hits.length) return "";
+  return `<div class="cand-news-list">${hits.map((n) =>
+    `<a href="${esc(n.u)}" target="_blank" rel="noopener"><span>${esc(n.t)}</span><small>${esc(n.s || "")}${n.d ? " · " + esc(fmtDayMonth(n.d)) : ""}</small></a>`).join("")}</div>`;
+}
+
+// ---- bento bundles: normalise an MP / ADUN record into the tile model ----
+function bentoFact(label, value, note) {
+  return value != null && value !== "" ? { label, value, note: note || "" } : null;
+}
+function resultFacts(card) {
+  if (!card) return [];
+  return [
+    bentoFact(t("win_votes"), card.votes != null ? card.votes.toLocaleString() : null,
+      card.votePct != null ? `${card.votePct}%` : ""),
+    bentoFact(t("pol_majority"), card.majority != null ? card.majority.toLocaleString() : null,
+      card.majorityPct != null ? `${card.majorityPct}%` : ""),
+    bentoFact(t("turnout"), card.turnout != null ? `${card.turnout}%` : null),
+    bentoFact(t("pol_candidates_n"), card.candidates || null),
+    card.runnerUp ? bentoFact(t("pol_runner_up"), card.runnerUp.name,
+      [card.runnerUp.party, card.runnerUp.votes != null ? card.runnerUp.votes.toLocaleString() : ""].filter(Boolean).join(" · ")) : null,
+  ].filter(Boolean);
+}
+// shared Sources-tile body: link pills + muted provenance notes — ALWAYS rendered
+function politicianSourcesHTML(links, notes) {
+  const seen = new Set();
+  const pills = links.filter((l) => l && l.url && !seen.has(l.url) && seen.add(l.url))
+    .map((l) => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)}</a>`).join("");
+  const lines = notes.filter(Boolean).map((n) => `<p class="cand-source-note muted">${esc(n)}</p>`).join("");
+  return `${pills ? `<div class="cand-source-links">${pills}</div>` : ""}${lines}`;
+}
+function mpBentoBundle(code) {
+  const m = state.politicians && state.politicians.mps && state.politicians.mps[code];
+  if (!m) return null;
   const seat = state.data.parlimen && state.data.parlimen.byCode.get(code);
-  const res = (state.results && state.results[code]) || {};
-  const card = formatResultCard(res) || {};
-  const age = politicianAge(m.dob);
+  const r = (state.results && state.results[code]) || null;
+  const card = r ? formatResultCard(r) : null;
+  const dual = dualSeatMap().mpToDun.get(code) || null;
   const bio = m.wikipedia ? (m.wikipedia[lang] || m.wikipedia.en || m.wikipedia.ms) : null;
-  const ballot = m.ballot_name && namekeyLoose(m.ballot_name) !== namekeyLoose(m.name) ? m.ballot_name : "";
-  const partyLabel = m.party && m.party !== m.coalition ? `${esc(m.party)} · ` : "";
-  const pill = m.coalition || m.party
-    ? `<span class="pill" style="background:${partyColor(m.coalition || m.party)};color:#fff">${esc(m.coalition || m.party)}</span>`
-    : "";
-  const stat = (label, value, note) => value != null && value !== ""
-    ? `<div class="pol-stat"><span>${esc(label)}</span><b>${value}</b>${note ? `<small>${esc(note)}</small>` : ""}</div>` : "";
-  const stats = [
-    age ? stat(t("pol_born"), age, m.dob ? m.dob : "") : "",
-    card.majority != null ? stat(t("majority"), card.majority.toLocaleString(), card.majorityPct != null ? `${card.majorityPct}%` : "") : "",
-    card.turnout != null ? stat(t("turnout"), `${card.turnout}%`) : "",
+  const gov = seat ? govRoleFor(m.name, seat.state) : null;
+  const vacant = !!m.vacated;
+  const col = prnCoalColor(m.coalition || m.party);
+  const age = politicianAge(m.dob);
+  const official = r && namekeyLoose(r.name) !== namekeyLoose(m.name) ? titleCaseName(r.name) : "";
+  const party = m.party && m.party !== m.coalition ? `${m.coalition} · ${m.party}` : (m.coalition || m.party || "");
+  const pills = [
+    party ? `<span class="pill" style="${pillStyle(col.bg, col.fg)}">${esc(party)}</span>` : "",
+    vacant ? `<span class="cand-vacant-chip">${esc(t("pol_seat_vacant"))}</span>` : "",
+    gov ? `<span class="prn-cc-inc">${esc(gov.displayTitle)}${gov.caretaker ? ` · ${esc(t("ctx_caretaker"))}` : ""}</span>` : "",
   ].filter(Boolean).join("");
-  const links = [];
-  if (bio) links.push(`<a href="${esc(bio.url)}" target="_blank" rel="noopener">Wikipedia</a>`);
-  if (m.wikidata) links.push(`<a href="${esc(m.wikidata)}" target="_blank" rel="noopener">Wikidata</a>`);
-  POL_MODAL.innerHTML = `
-    <div class="pol-modal-shell">
-      <button class="pol-modal-close" type="button" aria-label="${esc(t("card_preview_close"))}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><line x1="6" x2="18" y1="6" y2="18"/><line x1="6" x2="18" y1="18" y2="6"/></svg>
-      </button>
-      <div class="pol-modal-head">
-        ${personPhotoHTML(m.name, m.photo, "pol-modal-photo")}
-        <div class="pol-modal-id">
-          <span class="yb-kicker">${esc(t("kicker_parlimen"))} · ${esc(code)}</span>
-          <h2>${esc(m.name)}</h2>
-          ${ballot ? `<span class="yb-ballot muted">${esc(ballot)}</span>` : ""}
-          <p class="pol-modal-party">${partyLabel}${pill}</p>
-          ${seat ? `<p class="pol-modal-seat muted">${esc(seat.name)} · ${esc(seat.state)}</p>` : ""}
-          ${dual ? `<p class="pol-modal-seat muted">﹢ ${esc(t("pol_also_adun", { c: dual.dunCode, s: dual.seatName }))}</p>` : ""}
+  const seatLabel = seat ? `${seat.name} (${code})` : code;
+  const roleLines = [];
+  if (vacant) {
+    const note = (lang === "ms" ? m.vacancy_note_ms : m.vacancy_note_en) || m.vacancy_note_en || "";
+    if (note) roleLines.push(note);
+  }
+  roleLines.push(t(vacant ? "pol_former_mandate_mp" : "pol_mandate_mp", { s: seatLabel }));
+  if (gov) roleLines.push(`${gov.displayTitle}, ${seat.state}${gov.caretaker ? ` (${t("ctx_caretaker")})` : ""}`);
+  if (dual) roleLines.push(t("pol_also_adun", { c: dual.dunCode, s: dual.seatName }));
+  const links = [
+    m.wikipedia && m.wikipedia.en ? { label: "Wikipedia (EN)", url: m.wikipedia.en.url } : null,
+    m.wikipedia && m.wikipedia.ms ? { label: "Wikipedia (BM)", url: m.wikipedia.ms.url } : null,
+    m.wikidata ? { label: "Wikidata", url: m.wikidata } : null,
+    vacant && m.vacancy_source ? { label: m.vacancy_source.label, url: m.vacancy_source.url } : null,
+  ];
+  const notes = [
+    r ? resultSourceText(r, false) : "",
+    t("pol_src_roster"),
+    gov && state.stateCtx && state.stateCtx.checked ? t("pol_src_govrole", { d: state.stateCtx.checked }) : "",
+    m.photo_credit ? t("pol_photo_by", { credit: m.photo_credit }) : "",
+  ];
+  return {
+    code,
+    kicker: `${esc(t("kicker_parlimen"))} · ${esc(code)}`,
+    name: m.name, ballot: official, col, pills,
+    meta: [seat ? `${esc(seat.name)} · ${esc(seat.state)}` : esc(code), age ? esc(t("pol_age", { n: age })) : ""].filter(Boolean).join(" · "),
+    photo: m.photo,
+    socialsHTML: socialLinksHTML(m.socials, m.socials_source),
+    roleLines,
+    facts: resultFacts(card),
+    resultNote: r ? resultSourceText(r, false) : "",
+    bgHTML: bio ? `<p>${esc(bio.extract)}</p><a class="yb-bio-more" href="${esc(bio.url)}" target="_blank" rel="noopener">Wikipedia →</a>` : "",
+    profile: null,
+    education: m.education || "",
+    contactHTML: "",
+    prnNewsHTML: "",
+    newsNames: [m.name, r && r.name ? titleCaseName(r.name) : ""].filter(Boolean),
+    sourcesHTML: politicianSourcesHTML(links, notes),
+    seatBtns: [
+      { code, label: t("pol_view_seat") },
+      dual ? { code: dual.code, label: t("pol_view_dun_seat", { c: dual.dunCode }) } : null,
+    ].filter(Boolean),
+  };
+}
+function adunBentoBundle(code) {
+  const seat = state.data.dun && state.data.dun.byCode.get(code);
+  const entry = adunEntryFor(code);
+  if (!seat || !entry) return null;
+  const ad = state.aduns && state.aduns[code];
+  const name = (ad && ad.name) || titleCaseName(entry.name);
+  const official = namekeyLoose(name) !== namekeyLoose(entry.name) ? titleCaseName(entry.name) : "";
+  const own = state.resultsDun && state.resultsDun[code];
+  const card = own ? formatResultCard(own) : null;
+  const jctx = !own ? johorSeatContext(code) : null;   // Johor: 2022 numbers + electorate
+  const profile = profileForCandidate(code, name) || profileForCandidate(code, titleCaseName(entry.name));
+  const gov = govRoleFor(name, seat.state);
+  const exco = gov ? null : johorExcoForSeat(code);   // the MB's EXCO row is his MB-ness — one badge, not two
+  const mpCode = dualMpForDun(code);
+  const mpSeat = mpCode && state.data.parlimen && state.data.parlimen.byCode.get(mpCode);
+  const col = prnCoalColor(entry.coalition || entry.party);
+  const govPhoto = gov && !(ad && ad.photo) && !(profile && profile.photo_url)
+    ? (state.govPhotos && state.govPhotos[seat.state]) : null;
+  const party = entry.party && entry.party !== entry.coalition ? `${entry.coalition} · ${entry.party}` : (entry.coalition || entry.party || "");
+  const pills = [
+    party ? `<span class="pill" style="${pillStyle(col.bg, col.fg)}">${esc(party)}</span>` : "",
+    gov ? `<span class="prn-cc-inc">${esc(gov.displayTitle)}${gov.caretaker ? ` · ${esc(t("ctx_caretaker"))}` : ""}</span>` : "",
+    exco ? `<span class="prn-cc-inc">${esc(exco.role || "EXCO")}</span>` : "",
+  ].filter(Boolean).join("");
+  const roleLines = [];
+  if (profile && profile.current_role) roleLines.push(profile.current_role);
+  roleLines.push(t("pol_mandate_adun", { s: `${seat.name} (${seat.dun_code})` }));
+  if (gov && !(profile && profile.current_role)) roleLines.push(`${gov.displayTitle}, ${seat.state}${gov.caretaker ? ` (${t("ctx_caretaker")})` : ""}`);
+  if (exco && exco.portfolio) roleLines.push(exco.portfolio);
+  if (mpSeat) roleLines.push(t("pol_also_mp", { c: mpCode, s: mpSeat.name }));
+  let facts = resultFacts(card);
+  let resultNote = own ? resultSourceText(own, true) : "";
+  if (!facts.length && jctx) {
+    const runner = Array.isArray(jctx.last_field) && jctx.last_field[1];
+    facts = [
+      bentoFact(t("win_votes"), jctx.incumbent_votes_2022 != null ? jctx.incumbent_votes_2022.toLocaleString() : null,
+        jctx.incumbent_pct_2022 != null ? `${jctx.incumbent_pct_2022}%` : ""),
+      bentoFact(t("pol_majority"), jctx.majority_2022 || null),
+      bentoFact(t("prn_electorate"), jctx.electorate != null ? jctx.electorate.toLocaleString() : null),
+      runner ? bentoFact(t("pol_runner_up"), runner.name,
+        [runner.party, runner.votes != null ? runner.votes.toLocaleString() : ""].filter(Boolean).join(" · ")) : null,
+    ].filter(Boolean);
+    resultNote = t("src_johor2022");
+  }
+  const summary = profile && (profile.summary || profile.biography_summary);
+  const profSocials = profile && Array.isArray(profile.social_links) && profile.social_links.length
+    ? `<div class="cand-socials">${profile.social_links.map((u) => {
+        const host = (() => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch (_) { return "link"; } })();
+        return `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(host)}</a>`;
+      }).join(" ")}</div>`
+    : "";
+  const contact = profile && profile.official_contact;
+  const contactBits = contact ? [contact.phone, contact.email, contact.address].filter(Boolean) : [];
+  const profileSources = Array.isArray(profile && profile.sources)
+    ? profile.sources.map(normalProfileSource).filter(Boolean) : [];
+  const links = [
+    ad && ad.wikidata ? { label: "Wikidata", url: `https://www.wikidata.org/wiki/${ad.wikidata}` } : null,
+    ...profileSources.map((s) => ({ label: s.label, url: s.url })),
+  ];
+  const photoCredit = (ad && ad.photo_credit) || (profile && profile.photo_credit) || (govPhoto && govPhoto.credit) || "";
+  const notes = [
+    resultNote,
+    t("pol_src_roster"),
+    gov && state.stateCtx && state.stateCtx.checked ? t("pol_src_govrole", { d: state.stateCtx.checked }) : "",
+    photoCredit ? t("pol_photo_by", { credit: photoCredit }) : "",
+  ];
+  return {
+    code,
+    kicker: `${esc(t("kicker_dun"))} · ${esc(seat.dun_code)}`,
+    name, ballot: official, col, pills,
+    meta: `${esc(seat.name)} · ${esc(seat.state)}`,
+    photo: (ad && ad.photo) || (profile && profile.photo_url) || (govPhoto && govPhoto.photo) || null,
+    socialsHTML: profSocials,
+    roleLines,
+    facts,
+    resultNote,
+    bgHTML: summary ? `<p>${esc(summary)}</p>` : "",
+    profile,
+    education: "",
+    contactHTML: contactBits.length ? `<ul class="cand-list">${contactBits.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : "",
+    prnNewsHTML: candidateModalNewsHTML(code, name) || candidateModalNewsHTML(code, titleCaseName(entry.name)),
+    newsNames: [name, titleCaseName(entry.name)].filter(Boolean),
+    sourcesHTML: politicianSourcesHTML(links, notes),
+    seatBtns: [
+      { code, label: t("pol_view_seat") },
+      mpSeat ? { code: mpCode, label: t("pol_view_mp_seat", { c: mpCode }) } : null,
+    ].filter(Boolean),
+  };
+}
+// one template for both tiers — the tile classes are the candidate bento's, so
+// the politician profile inherits its layout and theming byte-for-byte
+function politicianBentoHTML(b) {
+  const factHTML = (f) => `<div class="cand-fact"><span>${esc(f.label)}</span><b>${esc(f.value)}</b>${f.note ? `<small>${esc(f.note)}</small>` : ""}</div>`;
+  const facts = b.facts.map(factHTML).join("");
+  // dedupe near-identical role lines (a curated current_role often restates the
+  // gov/EXCO title, e.g. "Menteri Besar Johor" vs "Menteri Besar Johor (caretaker)")
+  const seenRoles = [];
+  const roleLines = b.roleLines.filter((l) => {
+    const k = namekeyLoose(l);
+    if (seenRoles.some((s) => s === k || s.includes(k) || k.includes(s))) return false;
+    seenRoles.push(k);
+    return true;
+  });
+  const roleBody = roleLines.length
+    ? roleLines.map((l) => `<p class="cand-role-text">${esc(l)}</p>`).join("")
+    : `<p class="muted">${esc(t("candidate_profile_pending"))}</p>`;
+  const partyHistory = candidateModalListHTML(b.profile && b.profile.party_history, false);
+  const track = candidateModalListHTML(b.profile && b.profile.track_record, true)
+    || candidateModalListHTML(b.profile && b.profile.career_highlights, false);
+  const electionHistory = candidateModalListHTML(b.profile && b.profile.election_history, false);
+  const education = candidateModalListHTML(b.profile && b.profile.education, false)
+    || (b.education ? `<p class="cand-role-text">${esc(b.education)}</p>` : "");
+  return `<div class="cand-modal-shell">
+    <button class="pol-modal-close" type="button" aria-label="${esc(t("card_preview_close"))}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><line x1="6" x2="18" y1="6" y2="18"/><line x1="6" x2="18" y1="18" y2="6"/></svg>
+    </button>
+    <div class="cand-grid">
+      <section class="cand-hero cand-tile" style="--cc:${b.col.bg};--ccfg:${b.col.fg}">
+        ${personPhotoHTML(b.name, b.photo, "cand-modal-photo")}
+        <div class="cand-hero-id">
+          <div class="cand-kicker">${b.kicker}</div>
+          <h2>${esc(b.name)}</h2>
+          ${b.ballot ? `<span class="yb-ballot muted">${esc(b.ballot)}</span>` : ""}
+          <p class="cand-seat muted">${b.meta}</p>
+          <div class="cand-pill-row">${b.pills}</div>
+          ${b.socialsHTML || ""}
         </div>
-      </div>
-      ${stats ? `<div class="pol-modal-stats">${stats}</div>` : ""}
-      ${bio ? `<p class="pol-modal-bio">${esc(bio.extract)}</p>` : ""}
-      ${m.education ? `<dl class="rows pol-modal-edu"><dt>${esc(t("pol_educated"))}</dt><dd>${esc(m.education)}</dd></dl>` : ""}
-      ${socialLinksHTML(m.socials, m.socials_source)}
-      ${links.length ? `<div class="pol-modal-links">${links.join("")}</div>` : ""}
-      ${m.photo_credit ? `<p class="yb-credit muted">${esc(t("pol_photo_by", { credit: m.photo_credit }))}</p>` : ""}
-      <button class="pol-modal-seatbtn" type="button" data-pol-seat="${esc(code)}">${esc(t("pol_view_seat"))}</button>
-      ${dual ? `<button class="pol-modal-seatbtn pol-modal-seatbtn2" type="button" data-pol-seat="${esc(dual.code)}">${esc(t("pol_view_dun_seat", { c: dual.dunCode }))}</button>` : ""}
-    </div>`;
-  if (typeof POL_MODAL.showModal === "function") POL_MODAL.showModal();
-  else POL_MODAL.setAttribute("open", "");
-  POL_MODAL.querySelector(".pol-modal-close").focus();
+      </section>
+      ${candidateModalTileHTML("cand-role", t("candidate_bento_current_role"), roleBody)}
+      ${facts ? candidateModalTileHTML("cand-facts", t("pol_bento_last_result"),
+        `<div class="cand-facts-grid">${facts}</div>${b.resultNote ? `<p class="cand-source-note muted">${esc(b.resultNote)}</p>` : ""}`) : ""}
+      ${b.bgHTML ? candidateModalTileHTML("cand-summary", t("profile_background"), b.bgHTML) : ""}
+      ${partyHistory ? candidateModalTileHTML("cand-party", t("profile_party_history"), partyHistory) : ""}
+      ${track ? candidateModalTileHTML("cand-track", t("profile_track_record"), track) : ""}
+      ${electionHistory ? candidateModalTileHTML("cand-election", t("profile_election_history"), electionHistory) : ""}
+      ${education ? candidateModalTileHTML("cand-education", t("profile_education"), education) : ""}
+      ${b.contactHTML ? candidateModalTileHTML("cand-contact", "Contact", b.contactHTML) : ""}
+      <section class="cand-tile cand-news" data-pol-news-slot hidden></section>
+      ${candidateModalTileHTML("cand-sources", t("profile_sources"), b.sourcesHTML)}
+    </div>
+    ${b.seatBtns.map((s) => `<button class="pol-modal-seatbtn cand-seatbtn" type="button" data-candidate-seat="${esc(s.code)}">${esc(s.label)}</button>`).join("")}
+  </div>`;
 }
-function closePoliticianModal() {
-  if (!POL_MODAL) return;
-  if (POL_MODAL.open) POL_MODAL.close();
-  POL_MODAL.innerHTML = "";
+function openPoliticianModal(code, returnTo = null) {
+  if (!CAND_MODAL) return;
+  const b = code.includes("_N.") ? adunBentoBundle(code) : mpBentoBundle(code);   // ADUN cards carry DUN seat codes
+  if (!b) return;
+  candidateModalReturnTo = returnTo;
+  CAND_MODAL.setAttribute("aria-label", t("pol_bento_aria"));
+  CAND_MODAL.dataset.polBento = code;
+  CAND_MODAL.innerHTML = politicianBentoHTML(b);
+  if (typeof CAND_MODAL.showModal === "function") CAND_MODAL.showModal();
+  else CAND_MODAL.setAttribute("open", "");
+  CAND_MODAL.querySelector(".pol-modal-close")?.focus();
+  // the news tile fills once the headline pool is in — sync PRN items + name matches
+  ensurePoliticalNews().then(() => {
+    if (CAND_MODAL.dataset.polBento !== code) return;   // a different profile took over
+    const slot = CAND_MODAL.querySelector("[data-pol-news-slot]");
+    if (!slot) return;
+    const exclude = new Set([...(b.prnNewsHTML || "").matchAll(/href="([^"]+)"/g)].map((m2) => m2[1]));
+    const matched = politicianNewsMatchHTML(b.newsNames, exclude);
+    const body = `${b.prnNewsHTML || ""}${matched}`;
+    if (!body) return;
+    slot.innerHTML = `<div class="cand-kicker">${esc(t("prn_news"))}</div>${body}<p class="cand-source-note muted">${esc(t("prn_news_note"))}</p>`;
+    slot.hidden = false;
+  });
 }
-POL_MODAL?.addEventListener("click", (e) => {
-  if (e.target.closest(".pol-modal-close")) { closePoliticianModal(); return; }
-  const seatBtn = e.target.closest("[data-pol-seat]");
-  if (seatBtn) { closePoliticianModal(); openSeatFromPolitician(seatBtn.dataset.polSeat); return; }
-  if (e.target === POL_MODAL) closePoliticianModal();   // backdrop click
-});
-POL_MODAL?.addEventListener("cancel", () => { POL_MODAL.innerHTML = ""; });   // native Esc
 function enableMode(mode) {
   const btn = document.querySelector(`#mode button[data-mode="${mode}"]`);
   if (btn) { btn.disabled = false; btn.removeAttribute("title"); btn.removeAttribute("data-i18n-title"); }
@@ -1593,17 +1813,21 @@ function parlimenContext(seat) {
   return p ? `${seat.parlimen} · ${p.name}` : seat.parlimen;
 }
 
-// which election a result row came from — src label shared by the seat panel and
-// the bento spotlight. Pure extraction from seatCardHTML; output unchanged.
-function resultSourceLine(r, ownDun) {
+// which election a result row came from — src label shared by the seat panel,
+// the bento spotlight and the politician-profile Sources tile. resultSourceText
+// is the bare string (for contexts that lay it out themselves); resultSourceLine
+// wraps it in the classic src-line div. Output unchanged.
+function resultSourceText(r, ownDun) {
   return r
-    ? `<div class="src-line muted">${esc(
-        r._johor2022 ? t("src_johor2022")
-        : r.election ? t(r._byelection ? "src_byelection" : "src_state_election", { e: r.election })
-        : ownDun ? t("src_prn15")
-        : t("src_ge15"),
-      )}</div>`
+    ? (r._johor2022 ? t("src_johor2022")
+      : r.election ? t(r._byelection ? "src_byelection" : "src_state_election", { e: r.election })
+      : ownDun ? t("src_prn15")
+      : t("src_ge15"))
     : "";
+}
+function resultSourceLine(r, ownDun) {
+  const s = resultSourceText(r, ownDun);
+  return s ? `<div class="src-line muted">${esc(s)}</div>` : "";
 }
 
 // the "Current YB" profile card (photo/bio/socials when we have the politician,
@@ -1634,12 +1858,16 @@ function ybCardHTML(seat, r, partyLabel, blocUnit, polOverride) {
          </div>
          ${bioEntry ? `<div class="yb-bio"><p class="yb-bio-text">${esc(bioEntry.extract)}</p><a class="yb-bio-more" href="${esc(bioEntry.url)}" target="_blank" rel="noopener">Wikipedia →</a></div>` : ""}
          ${socialLinksHTML(pol.socials, pol.socials_source)}
-         ${pol.photo_credit ? `<p class="yb-credit muted">${esc(t("pol_photo_by", { credit: pol.photo_credit }))}</p>` : ""}
        </div>`
-    : `<div class="seat-yb-card">
-         <span>${esc(t("card_current_yb"))}</span>
-         <strong>${esc(r.name)}</strong>
-         <p>${partyLabel ? partyLabel + " " : ""}${blocUnit}</p>
+    : `<div class="seat-yb-card has-profile">
+         <div class="yb-head">
+           ${personPhotoHTML(r.name, null, "yb-photo")}
+           <div class="yb-id">
+             <span class="yb-kicker">${esc(t("card_current_yb"))}</span>
+             <strong>${esc(r.name)}</strong>
+             <p>${partyLabel ? partyLabel + " " : ""}${blocUnit}</p>
+           </div>
+         </div>
        </div>`;
 }
 
@@ -1667,7 +1895,7 @@ function seatCardHTML(seat, options = {}) {
     // off the card means a partial row — vote_pct present but votes missing, a NaN or
     // string numeric — OMITS the row instead of rendering "NaN"/"undefined". Real GE15
     // data is complete today; this is defensive for future / DUN result data.
-    const blocPill = `<span class="pill" style="background:${partyColor(r.coalition)};color:#fff">${esc(r.coalition)}</span>`;
+    const blocPill = `<span class="pill" style="${pillStyle(partyColor(r.coalition))}">${esc(r.coalition)}</span>`;
     // surface party_full ("Perikatan Nasional (PN)") via the pure helper; only show
     // it when it adds something beyond the bloc pill (skip a redundant "PN · PN")
     const partyLabel = card.party && card.party.label && card.party.label !== r.coalition ? esc(card.party.label) : "";
@@ -1687,7 +1915,7 @@ function seatCardHTML(seat, options = {}) {
     const ru = card.runnerUp;
     if (ru) {
       const ruPill = ru.party
-        ? ` <span class="pill" style="background:${partyColor(ru.party === r.party ? r.coalition : ru.party)};color:#fff;opacity:.85">${esc(ru.party)}</span>`
+        ? ` <span class="pill" style="${pillStyle(partyColor(ru.party === r.party ? r.coalition : ru.party))};opacity:.85">${esc(ru.party)}</span>`
         : "";
       // now also surfaces runner_up.votes (panel previously showed only name + party)
       const ruVotes = ru.votes != null ? ` <span class="muted">${ru.votes.toLocaleString()}</span>` : "";
@@ -1929,7 +2157,7 @@ function candidatesHTML(seat) {
           </div>
         </div>
         <div class="candidate-side">
-          <span class="pill" style="background:${partyColor(c.coalition || c.party)};color:#fff">${esc(c.party || c.coalition || "")}</span>
+          <span class="pill" style="${pillStyle(partyColor(c.coalition || c.party))}">${esc(c.party || c.coalition || "")}</span>
           <span class="candidate-status">${esc(candidateResultText(c.result))}</span>
         </div>
         ${bits.length ? `<div class="candidate-meta">${bits.map(esc).join(" · ")}</div>` : ""}
@@ -2918,6 +3146,7 @@ placeMapControls();
 document.getElementById("lang").addEventListener("click", (e) => {
   const b = e.target.closest("button"); if (b) setLang(b.dataset.lang);
 });
+document.querySelectorAll("[data-theme-toggle]").forEach((btn) => btn.addEventListener("click", toggleTheme));
 
 // ---- shareable URL state  (#tier/mode[/code]) ----
 function writeHash() {
@@ -3003,7 +3232,7 @@ function renderSidebarStates() {
   const e = liveElection();
   host.innerHTML = names.map((n) => {
     const isElection = !!(e && e.state === n);
-    return `<button type="button" class="sb-item sb-state${isElection ? " is-election" : ""}" data-sb-state="${esc(n)}">
+    return `<button type="button" class="sb-item sb-state${isElection ? " is-election" : ""}" data-sb-state="${esc(n)}" aria-label="${esc(n)}" title="${esc(n)}">
       ${stateEmblemHTML(n, "sb-state-emblem")}
       <span class="sb-state-name">${esc(n)}</span>
       ${isElection ? `<span class="live-dot sb-state-dot" title="${esc(t("prn_kicker"))}" aria-label="${esc(t("prn_kicker"))}"></span>` : ""}
@@ -3084,6 +3313,7 @@ document.getElementById("sidebar")?.addEventListener("click", (ev) => {
 
 // ---- boot ----
 (async function init() {
+  setTheme(theme, false);
   document.querySelectorAll("#lang button").forEach((x) => setOn(x, x.dataset.lang === lang));
   applyStatic();
   const bootHash = location.hash;   // captured before writeHash() normalises it
@@ -3168,12 +3398,12 @@ POL_VIEW?.addEventListener("click", (e) => {
     return;
   }
   const card = e.target.closest("[data-pol-code]");
-  if (card) openPoliticianModal(card.dataset.polCode);   // full-profile pop-up, not the map
+  if (card) openPoliticianModal(card.dataset.polCode, card);   // full-profile bento, not the map
 });
 POL_VIEW?.addEventListener("keydown", (e) => {
   if (e.key !== "Enter" && e.key !== " ") return;
   const card = e.target.closest(".pol-card");
-  if (card && e.target === card) { e.preventDefault(); openPoliticianModal(card.dataset.polCode); }
+  if (card && e.target === card) { e.preventDefault(); openPoliticianModal(card.dataset.polCode, card); }
 });
 // browser back closes the directory (it pushed a #politicians history entry)
 window.addEventListener("popstate", () => {
@@ -3395,7 +3625,7 @@ function mapInspectOverviewHTML(seat) {
   }
   const card = formatResultCard(r);
   const partyLabel = card.party && card.party.label && card.party.label !== r.coalition ? esc(card.party.label) : "";
-  const blocPill = r.coalition ? `<span class="pill" style="background:${partyColor(r.coalition)};color:#fff">${esc(r.coalition)}</span>` : "";
+  const blocPill = r.coalition ? `<span class="pill" style="${pillStyle(partyColor(r.coalition))}">${esc(r.coalition)}</span>` : "";
   // A BUTTON, not a div: the YB overview is the biggest thing in the tray and reads as
   // tappable — so it is. It opens the same detail as "More" (#map-inspect-details handler).
   return `
@@ -4132,7 +4362,7 @@ function prnSeatCardHTML(seat, entry) {
 function pledgeBlockHTML(coal, m, opts = {}) {
   if (!m) return "";
   const col = prnCoalColor(coal);
-  const head = `<div class="prn-pledge-h"><span class="pill" style="background:${col.bg};color:${col.fg}">${esc(coal)}</span>${m.title ? ` <span class="muted">${esc(m.title)}</span>` : ""}</div>`;
+  const head = `<div class="prn-pledge-h"><span class="pill" style="${pillStyle(col.bg, col.fg)}">${esc(coal)}</span>${m.title ? ` <span class="muted">${esc(m.title)}</span>` : ""}</div>`;
   const src = m.source ? `<a class="src-line muted prn-pledge-src" href="${esc(m.source)}" target="_blank" rel="noopener">${esc(t("prn_pledge_src"))}</a>` : "";
   if (m.pending) {
     return `<div class="prn-pledge-coal is-pending">${head}
@@ -4435,10 +4665,40 @@ function prnSpotlightHTML() {
     <div class="bento-cand-grid bento-cand-row">${prnCandidateCardsHTML(entry, seat.code, true)}</div>`;
 }
 
-// spotlight dispatcher: election tiles need the candidate roster; the generic state
-// dashboard shows the seat's representative + last result instead
+// Spotlight is always the normal state card (holder + how it voted). PRN runners
+// live in a separate bottom tile (replacing key numbers / economy) — see bentoRunnersTileHTML.
 function bentoSpotlightHTML() {
-  return bentoElectionMode() ? prnSpotlightHTML() : stateSpotlightHTML();
+  return stateSpotlightHTML();
+}
+
+/** Bottom tile for PRN mode: 2026 candidates for the spotlighted seat. */
+function bentoRunnersTileHTML() {
+  const entry = bentoSeat && state.prn16 && state.prn16.seats && state.prn16.seats[bentoSeat];
+  const seat = bentoSeat && state.data.dun && state.data.dun.byCode.get(bentoSeat);
+  const title = seat
+    ? `${esc(entry && entry.ncode ? entry.ncode : seat.dun_code || "")} · ${esc(seat.name)} · ${esc(t("prn_candidates"))}`
+    : esc(t("prn_candidates"));
+  if (!entry || !entry.candidates || !entry.candidates.length) {
+    return `<div class="bento-tile bento-statsrow bento-runners">
+      <div class="bento-kicker">${title}</div>
+      <div id="bento-runners-body" class="bento-runners-body">
+        <p class="muted">${esc(t("prn_bento_pick"))}</p>
+      </div>
+    </div>`;
+  }
+  return `<div class="bento-tile bento-statsrow bento-runners">
+    <div class="bento-kicker">${title} · ${entry.candidates.length}</div>
+    <div id="bento-runners-body" class="bento-runners-body">
+      <div class="bento-cand-grid bento-runners-grid">${prnCandidateCardsHTML(entry, bentoSeat, true)}</div>
+    </div>
+  </div>`;
+}
+function bentoRunnersBodyHTML() {
+  const entry = bentoSeat && state.prn16 && state.prn16.seats && state.prn16.seats[bentoSeat];
+  if (!entry || !entry.candidates || !entry.candidates.length) {
+    return `<p class="muted">${esc(t("prn_bento_pick"))}</p>`;
+  }
+  return `<div class="bento-cand-grid bento-runners-grid">${prnCandidateCardsHTML(entry, bentoSeat, true)}</div>`;
 }
 
 // generic seat spotlight — who represents this seat and how they won it.
@@ -4478,7 +4738,7 @@ function stateSpotlightHTML() {
     return `${head()}<div class="bento-spot-empty"><div class="bento-spot-mark">🗳️</div><p class="muted">${esc(t("rep_ph"))}</p></div>`;
   }
   const card = formatResultCard(r);
-  const blocPill = `<span class="pill" style="background:${partyColor(r.coalition)};color:#fff">${esc(r.coalition)}</span>`;
+  const blocPill = `<span class="pill" style="${pillStyle(partyColor(r.coalition))}">${esc(r.coalition)}</span>`;
   const partyLabel = card.party && card.party.label && card.party.label !== r.coalition ? esc(card.party.label) : "";
   const blocUnit = `<span class="bloc-unit">${partyLabel ? "· " : ""}${blocPill}</span>`;
   const yb = ybCardHTML(seat, r, partyLabel, blocUnit, politicianOf(seat, spotTier));
@@ -4698,7 +4958,7 @@ function candidateModalHTML(seat, entry, candidate, profile) {
           <h2>${esc(name)}</h2>
           <p class="cand-seat muted">${meta}${demoLine ? " · " + esc(demoLine) : ""}</p>
           <div class="cand-pill-row">
-            <span class="pill" style="background:${col.bg};color:${col.fg}">${party}</span>
+            <span class="pill" style="${pillStyle(col.bg, col.fg)}">${party}</span>
             ${isInc ? `<span class="prn-cc-inc">${esc(t("prn_cc_incumbent"))}</span>` : ""}
             ${exco ? `<span class="prn-cc-inc">${esc(exco.role || "EXCO")}</span>` : ""}
           </div>
@@ -4736,6 +4996,8 @@ function openCandidateModal(seatCode, candidateName, returnTo = null) {
   const found = prnCandidateForSeat(seatCode, candidateName);
   if (!seat || !found) return;
   candidateModalReturnTo = returnTo;
+  CAND_MODAL.setAttribute("aria-label", t("candidate_bento_title"));   // the politician bento may have relabelled it
+  delete CAND_MODAL.dataset.polBento;
   const profile = profileForCandidate(seatCode, found.candidate.name);
   CAND_MODAL.innerHTML = candidateModalHTML(seat, found.entry, found.candidate, profile);
   if (typeof CAND_MODAL.showModal === "function") CAND_MODAL.showModal();
@@ -4788,13 +5050,14 @@ function prnCandidateCardsHTML(entry, seatCode, compact) {
       : "";
     const extra = sym || news ? `<div class="prn-cc-extra">${sym}${news}</div>` : "";
     const incChip = isInc ? ` <span class="prn-cc-inc">${esc(t("prn_cc_incumbent"))}</span>` : "";
-    const photo = profile ? personPhotoHTML(c.name, profile.photo_url, "prn-profile-photo") : "";
+    // always show a face (profile photo or monogram) so compact runner cards never look empty
+    const photo = personPhotoHTML(c.name, profile && profile.photo_url, "prn-profile-photo");
     const body = compact ? "" : `${candidateProfileHTML(profile)}${extra}`;
     return `<div class="prn-cc${isInc ? " is-inc" : ""}${profile ? " has-profile" : ""}${compact ? " is-compact" : ""}" style="--cc:${col.bg}" role="button" tabindex="0" aria-haspopup="dialog" aria-label="${esc(t("candidate_open_profile_aria", { name: c.name }))}" data-prn-seat="${esc(seatCode)}" data-prn-candidate="${esc(c.name)}">
       <div class="prn-cc-head">
         ${photo}
         <div class="prn-cc-id"><span class="prn-cc-name"><span>${esc(c.name)}</span>${incChip}</span>${alias}</div>
-        <span class="pill" style="background:${col.bg};color:${col.fg}">${party}</span>
+        <span class="pill" style="${pillStyle(col.bg, col.fg)}">${party}</span>
       </div>${body}<span class="prn-cc-open">${esc(t("candidate_open_profile"))}</span></div>`;
   }).join("");
 }
@@ -4843,9 +5106,9 @@ function bentoMapSectionHTML(name) {
     const d = state.data[tr];
     return d ? d.seats.filter((s) => s.state === name).length : 0;
   };
-  let kicker;
+  let layerControls;
   if (bentoElectionMode()) {
-    kicker = `<div class="bento-kicker">${esc(count("dun"))} ${esc(t("tier_dun"))} · ${esc(t("prn_bento_incumbent_map"))}</div>`;
+    layerControls = `<span class="bento-map-count">${esc(count("dun"))} ${esc(t("tier_dun"))}</span>`;
   } else {
     // both layers as a segmented pill (same look as the main Parliament/DUN toggle) —
     // tapping one flips the choropleth (search already spans both)
@@ -4855,16 +5118,16 @@ function bentoMapSectionHTML(name) {
         ? `<button type="button" role="tab" class="${tier === tr ? "on" : ""}" data-bento-tier="${tr}" aria-selected="${tier === tr}">${n} ${esc(label)}</button>`
         : "";
     };
-    kicker = `<div class="bento-kicker bento-map-tiers"><span class="seg chip bento-map-seg" role="tablist">${chip("parlimen", t("tier_parlimen"))}${chip("dun", t("tier_dun"))}</span><span class="bento-map-note">· ${esc(t("bento_map_winner"))}</span></div>`;
+    layerControls = `<span class="seg chip bento-map-seg" role="tablist">${chip("parlimen", t("tier_parlimen"))}${chip("dun", t("tier_dun"))}</span>`;
   }
-  return `<div class="bento-map-topbar">
-      ${kicker}
+  return `<div class="bento-map-wrap">${stateMapTileSVG(name)}</div>
+    <div class="bento-map-controls">
       <div class="bento-search">
         <input id="bento-q" class="bento-q" type="search" autocomplete="off" spellcheck="false" placeholder="${esc(t("search_ph"))}" aria-label="${esc(t("search_ph"))}" />
         <div id="bento-results" class="bento-results" role="listbox" hidden></div>
       </div>
-    </div>
-    <div class="bento-map-wrap">${stateMapTileSVG(name)}</div>`;
+      ${layerControls}
+    </div>`;
 }
 function bentoMapTileHTML(name) {
   return `<div class="bento-tile bento-map">${bentoMapSectionHTML(name)}</div>`;
@@ -5063,39 +5326,37 @@ function bentoElectionTilesHTML() {
     <p class="bento-foot src-line muted">${esc(t("prn_source"))}</p>`;
 }
 
-// the government tile: MB/KM/Premier as a profile (Commons portrait or monogram)
-// + the election-clock row. W.P. territories have no state government → just the
-// federal clock row.
+// Government card — split: LEFT large state emblem + state name (top-left),
+// RIGHT current MB/KM/Premier. Same outer card footprint as before.
+// W.P. territories have no state government → no gov tile.
 function bentoGovTileHTML(name) {
   const ctx = state.stateCtx;
   const st = ctx && ctx.states && ctx.states[name];
   if (!st) return "";
   const g = st.gov;
-  const clock = stateClockRow(name);
-  if (!g) {
-    return clock
-      ? `<div class="bento-tile bento-gov">
-           <div class="bento-kicker">${esc(t("bento_gov"))}</div>
-           <dl class="rows state-ctx bento-ctx">${clock}</dl>
-         </div>`
-      : "";
-  }
+  if (!g) return "";
   const gp = state.govPhotos && state.govPhotos[name];
   const title = g.title === "MB" ? "Menteri Besar" : g.title === "KM" ? "Ketua Menteri" : g.title;
   const care = g.caretaker ? ` <span class="muted">(${esc(t("ctx_caretaker"))})</span>` : "";
   const since = g.since ? ` <span class="muted">· ${esc(t("bento_gov_since", { y: g.since }))}</span>` : "";
   return `<div class="bento-tile bento-gov">
-    <div class="bento-kicker">${esc(t("bento_gov"))}</div>
-    <div class="bento-gov-head">
-      ${personPhotoHTML(g.name, gp && gp.photo, "bento-gov-photo")}
-      <div class="bento-gov-id">
-        <span class="bento-gov-title muted">${esc(title)}${care}</span>
-        <strong>${esc(g.name)}</strong>
-        <p>${esc(g.party)} <span class="pill" style="background:${partyColor(g.coalition)};color:#fff">${esc(g.coalition)}</span>${since}</p>
+    <div class="bento-gov-split">
+      <div class="bento-gov-emblem-pane">
+        <div class="bento-gov-state-name">${esc(name)}</div>
+        ${stateEmblemHTML(name, "bento-gov-emblem")}
+      </div>
+      <div class="bento-gov-yb-pane">
+        <div class="bento-kicker">${esc(t("bento_gov"))}</div>
+        <div class="bento-gov-head">
+          ${personPhotoHTML(g.name, gp && gp.photo, "bento-gov-photo")}
+          <div class="bento-gov-id">
+            <span class="bento-gov-title muted">${esc(title)}${care}</span>
+            <strong>${esc(g.name)}</strong>
+            <p>${esc(g.party)} <span class="pill" style="${pillStyle(partyColor(g.coalition))}">${esc(g.coalition)}</span>${since}</p>
+          </div>
+        </div>
       </div>
     </div>
-    ${clock ? `<dl class="rows state-ctx bento-ctx">${clock}</dl>` : ""}
-    ${gp && gp.credit ? `<p class="yb-credit muted">${esc(t("pol_photo_by", { credit: gp.credit }))}</p>` : ""}
   </div>`;
 }
 
@@ -5105,21 +5366,22 @@ function bentoGovTileHTML(name) {
 // (never colour-alone — GPS/PH reds are close, the legend is the identity channel)
 function donutHTML(ents, total) {
   if (!ents.length || !total) return "";
-  const R = 46, C = 2 * Math.PI * R;
+  // viewBox padded so stroke-width doesn't get clipped at the edge of the card
+  const R = 42, SW = 14, C = 2 * Math.PI * R;
   const gap = ents.length > 1 ? 2.5 : 0;
   let acc = 0;
   const segs = ents.map(([coal, n]) => {
     const len = C * n / total;
     const draw = Math.max(len - gap, 0.75);
-    const seg = `<circle r="${R}" cx="60" cy="60" fill="none" stroke="${partyColor(coal)}" stroke-width="15" stroke-linecap="butt"
+    const seg = `<circle r="${R}" cx="60" cy="60" fill="none" stroke="${partyColor(coal)}" stroke-width="${SW}" stroke-linecap="butt"
       stroke-dasharray="${draw.toFixed(2)} ${(C - draw).toFixed(2)}" stroke-dashoffset="${(-acc).toFixed(2)}"><title>${esc(coal)} ${n}</title></circle>`;
     acc += len;
     return seg;
   }).join("");
-  return `<svg viewBox="0 0 120 120" class="bento-donut-svg" role="img" aria-label="${esc(t("state_makeup"))}">
+  return `<svg viewBox="0 0 120 120" class="bento-donut-svg" role="img" aria-label="${esc(t("state_makeup"))}" focusable="false">
     <g transform="rotate(-90 60 60)">${segs}</g>
-    <text x="60" y="58" text-anchor="middle" class="bento-donut-total">${total}</text>
-    <text x="60" y="76" text-anchor="middle" class="bento-donut-sub">${esc(t("bento_donut_seats"))}</text>
+    <text x="60" y="56" text-anchor="middle" dominant-baseline="middle" class="bento-donut-total">${total}</text>
+    <text x="60" y="74" text-anchor="middle" class="bento-donut-sub">${esc(t("bento_donut_seats"))}</text>
   </svg>`;
 }
 function donutLegendHTML(ents, total) {
@@ -5139,11 +5401,19 @@ function donutLegendHTML(ents, total) {
 // FOUR cards: government (top-left) · seats by coalition (top-right) ·
 // one explore section holding BOTH the map and the seat spotlight · key numbers
 // + economy merged into one stats card.
+// Also used for PRN Johor election mode (identical shell; spotlight adds runners).
 function bentoStateTilesHTML(name) {
   const st = stateStats(name, bentoMapTier());
   const econ = stateEconRows(name);
   const govTile = bentoGovTileHTML(name);
   const totalSeats = st ? st.seats.length : 0;
+  // Same seats-by-coalition donut as the normal state bento (always). Live tallies
+  // — when present — appear as a small line under the legend, not a different card.
+  const liveNow = bentoElectionMode() && state.prnLive && state.prnLive.phase && state.prnLive.phase !== "campaign"
+    && state.prnLive.tally && Object.keys(state.prnLive.tally).length;
+  const liveLine = liveNow
+    ? `<div class="bento-live-under muted">${prnLiveTallyHTML()}</div>`
+    : "";
   const makeupTile = st
     ? `<div class="bento-tile bento-stand">
          <div class="bento-kicker">${esc(t("state_makeup"))}</div>
@@ -5151,6 +5421,7 @@ function bentoStateTilesHTML(name) {
            ${donutHTML(st.ents, totalSeats)}
            <div class="bento-donut-legend">${donutLegendHTML(st.ents, totalSeats)}</div>
          </div>
+         ${liveLine}
        </div>`
     : "";
   const exploreTile = `<div class="bento-tile bento-explore">
@@ -5163,8 +5434,13 @@ function bentoStateTilesHTML(name) {
       </div>
     </div>`;
   const records = st ? [st.closestStat, st.largestStat, st.turnoutStat, st.candidatesStat].filter(Boolean) : [];
-  const statsTile = (records.length || econ.rows.length)
-    ? `<div class="bento-tile bento-statsrow">
+  // PRN mode: bottom card = running candidates for the selected seat (replaces key numbers + economy).
+  // Normal state mode: key numbers + economy as before.
+  let statsTile = "";
+  if (bentoElectionMode()) {
+    statsTile = bentoRunnersTileHTML();
+  } else if (records.length || econ.rows.length) {
+    statsTile = `<div class="bento-tile bento-statsrow">
         <div class="bento-stats-inner">
           ${records.length ? `<div class="bento-records">
             <div class="bento-kicker">${esc(t("bento_records"))}</div>
@@ -5176,21 +5452,33 @@ function bentoStateTilesHTML(name) {
             ${econ.src}
           </div>` : ""}
         </div>
-      </div>`
-    : "";
-  return `<div class="bento-grid is-state">
+      </div>`;
+  }
+  return `<div class="bento-grid is-state${govTile ? "" : " no-gov"}">
       ${govTile}
       ${makeupTile}
       ${exploreTile}
       ${statsTile}
     </div>
-    <p class="bento-foot src-line muted">${esc(t("bento_foot_src"))}</p>`;
+    <p class="bento-foot src-line muted">${esc(t(bentoElectionMode() ? "prn_source" : "bento_foot_src"))}</p>`;
 }
 
 function renderStateBento() {
   if (!state.openState) return;
   renderBentoChrome();
-  BENTO.innerHTML = bentoElectionMode() ? bentoElectionTilesHTML() : bentoStateTilesHTML(state.openState);
+  // PRN mode uses the SAME four-card state layout as a normal state open
+  // (gov · makeup · map+spotlight · key numbers/economy). Election mode only
+  // changes the spotlight body (incumbent + 2026 runners) and the DUN map layer —
+  // no separate Key-dates / countdown grid.
+  let html = bentoStateTilesHTML(state.openState);
+  if (bentoElectionMode()) {
+    const news = newsStripHTML();
+    if (news) {
+      // inject news strip above the foot line
+      html = html.replace(/(<p class="bento-foot)/, `${news}$1`);
+    }
+  }
+  BENTO.innerHTML = html;
   observeBentoMap();   // aspect-lock the state-map tile(s) to their rendered size
 }
 
@@ -5226,7 +5514,11 @@ function showStateBento(name) {
   if (!name || !BENTO_MQ.matches) return;
   // the explore card searches BOTH layers — fetch the other one in the background
   const other = state.tier === "parlimen" ? "dun" : "parlimen";
-  if (!state.data[other]) loadTier(other).catch(() => {});
+  if (!state.data[other]) {
+    loadTier(other).then(() => {
+      if (bentoState === name && document.body.classList.contains("bento-on")) renderStateBento();
+    }).catch(() => {});
+  }
   if (bentoState !== name) { bentoSeat = null; bentoTier = null; bentoState = name; }   // fresh state → fresh spotlight + layer
   const d = state.data[state.tier];
   if (!bentoSeat && state.selected && d && d.byCode.has(state.selected)) bentoSeat = state.selected;
@@ -5255,6 +5547,21 @@ function hideStateBento() {
 function updateBentoSpotlight() {
   const body = document.getElementById("bento-spot-body");
   if (body) body.innerHTML = bentoSpotlightHTML();
+  // PRN bottom tile tracks the same seat as the spotlight
+  if (bentoElectionMode()) {
+    const runners = document.getElementById("bento-runners-body");
+    if (runners) runners.innerHTML = bentoRunnersBodyHTML();
+    const tile = BENTO && BENTO.querySelector(".bento-runners .bento-kicker");
+    if (tile) {
+      const entry = bentoSeat && state.prn16 && state.prn16.seats && state.prn16.seats[bentoSeat];
+      const seat = bentoSeat && state.data.dun && state.data.dun.byCode.get(bentoSeat);
+      if (seat && entry) {
+        tile.textContent = `${entry.ncode || seat.dun_code || ""} · ${seat.name} · ${t("prn_candidates")} · ${entry.candidates.length}`;
+      } else {
+        tile.textContent = t("prn_candidates");
+      }
+    }
+  }
   BENTO.querySelectorAll(".bento-seat.sel").forEach((p) => p.classList.remove("sel"));
   const p = bentoSeat && BENTO.querySelector(`.bento-seat[data-code="${CSS.escape(bentoSeat)}"]`);
   if (p) p.classList.add("sel");
@@ -5330,6 +5637,11 @@ function bentoSearchPick(code) {
   if (q) { q.value = ""; q.blur(); }
   bentoSearchClose();
 }
+function isBentoBackdropClick(ev) {
+  return document.body.classList.contains("bento-on") &&
+    BENTO.contains(ev.target) &&
+    !ev.target.closest(".bento-tile, .bento-news, .bento-foot");
+}
 
 function toggleBentoPrn() {
   const e = prnActiveForState(state.openState);
@@ -5372,6 +5684,7 @@ BENTO.addEventListener("click", (ev) => {
   }
   const path = ev.target.closest(".bento-seat");
   if (path) { bentoSeat = path.dataset.code; updateBentoSpotlight(); }
+  else if (isBentoBackdropClick(ev)) { backToControls(); }
 });
 BENTO.addEventListener("keydown", handleCandidateCardKeydown);
 BENTO.addEventListener("input", (ev) => {
