@@ -93,9 +93,9 @@ MECO_TARGETS = {
     "Perak":   ("SE-15", "Perak 2022"),
     "Perlis":  ("SE-15", "Perlis 2022"),
 }
-# seats whose sitting rep changed at a by-election AFTER that general election →
-# overlay the by-election winner so the card shows who actually holds the seat now.
-MECO_BYELECTION_SEATS = {"Sabah": {"N.58"}, "Sarawak": {"N.67"}, "Pahang": {"N.36"}, "Perak": {"N.48"}}
+# seats whose sitting rep changed at a by-election AFTER that state's general
+# election get overlaid in apply_byelection_overlays() below — date-driven from
+# MECO's BY-ELECTION rows (no curated seat list to fall out of date).
 
 MECO_COAL_FULL = {
     "BN": "Barisan Nasional", "PH": "Pakatan Harapan", "PN": "Perikatan Nasional",
@@ -176,24 +176,54 @@ def build_meco_states(valid, st2code):
                 continue
             out[key] = _meco_entry(lst, plook, edisp)
         added[state] = len([k for k in by_seat if f"{sc}_{k}" in valid])
-    # by-election overlays — the true current holder supersedes the general result
-    for state, seats_ in MECO_BYELECTION_SEATS.items():
-        sc = st2code[state]
-        for ncode in seats_:
-            # every seat in MECO_BYELECTION_SEATS is verified to have its latest
-            # by-election dated AFTER that state's general election baked above.
-            be = [b for b in ballots if b["state"] == state and b["election"] == "BY-ELECTION"
-                  and dun_code(b["seat"]) == ncode]
-            key = f"{sc}_{ncode}"
-            if not be or key not in valid or key not in out:
-                continue
-            latest = max(b["date"] for b in be)
-            lst = [b for b in be if b["date"] == latest]
-            entry = _meco_entry(lst, plook, f"{state} {ncode} by-election {latest[:4]}")
-            entry["_byelection"] = True
-            out[key] = entry
-            overlaid.append(f"{key} {latest} → {entry['name']} ({entry['coalition']})")
-    return out, added, overlaid, unmatched
+    return out, added, unmatched
+
+
+def _normname(s):
+    return "".join(ch for ch in s.lower() if ch.isalnum())
+
+
+def apply_byelection_overlays(out, st2code, seat_names):
+    """Overlay every DUN by-election dated AFTER that state's baked general
+    election — the true current holder supersedes the general result. Date-driven
+    from MECO's BY-ELECTION rows, so new by-elections land on a simple re-run.
+    (Johor never enters `out` — its sitting reps come from prn16-johor.json —
+    so Johor by-elections are skipped by the `key in out` gate.)"""
+    ballots = _meco_load(MECO_BALLOTS, "meco_consol_ballots.csv")
+    plook = {r["party"]: r["party_name_en"] for r in _meco_load(MECO_PARTY, "meco_lookup_party.csv")}
+    # the baked general election's polling day per state: MECO_TARGETS states use
+    # their bake label; the PRN-2023 six default to their own SE-15 (Aug 2023)
+    baked = {}
+    for state in st2code:
+        elabel = MECO_TARGETS.get(state, (None,))[0] or "SE-15"
+        dates = [b["date"] for b in ballots if b["state"] == state and b["election"] == elabel]
+        if dates:
+            baked[state] = max(dates)
+    by_seat = {}
+    for b in ballots:
+        if b["election"] != "BY-ELECTION" or not dun_code(b["seat"]).startswith("N."):
+            continue
+        if b["state"] not in st2code:
+            continue
+        by_seat.setdefault((b["state"], dun_code(b["seat"])), []).append(b)
+    overlaid = []
+    for (state, ncode), rows in by_seat.items():
+        key = f"{st2code[state]}_{ncode}"
+        latest = max(r["date"] for r in rows)
+        if key not in out or latest <= baked.get(state, "9999"):
+            continue
+        lst = [r for r in rows if r["date"] == latest]
+        # numbering-drift guard: the MECO seat name must match our boundary seat
+        meco_name = _normname(lst[0]["seat"].split(" ", 1)[1]) if " " in lst[0]["seat"] else ""
+        ours = _normname(seat_names.get(key, ""))
+        if meco_name and ours and meco_name != ours:
+            print(f"  ⚠ by-election seat-name mismatch for {key}: MECO '{lst[0]['seat']}' vs ours '{seat_names.get(key)}' — skipped")
+            continue
+        entry = _meco_entry(lst, plook, f"{state} {ncode} by-election {latest[:4]}")
+        entry["_byelection"] = True
+        out[key] = entry
+        overlaid.append(f"{key} {latest} → {entry['name']} ({entry['coalition']})")
+    return overlaid
 
 
 def main():
@@ -251,8 +281,12 @@ def main():
     prn23 = len(out)
 
     # add the remaining DUN states from the Malaysian Election Corpus
-    meco, added, overlaid, unmatched = build_meco_states(valid, st2code)
+    meco, added, unmatched = build_meco_states(valid, st2code)
     out.update(meco)
+
+    # by-election overlays — who holds each seat NOW (all DUN states, date-driven)
+    seat_names = {s["code"]: s["name"] for s in seats}
+    overlaid = apply_byelection_overlays(out, st2code, seat_names)
 
     path = os.path.join(OUT, "results-dun.json")
     with open(path, "w") as f:

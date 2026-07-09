@@ -68,6 +68,84 @@ def to_coalition(short):
     return bloc, COALITION_FULL.get(bloc, bloc.title())
 
 
+# ---------------------------------------------------------------------------
+# By-election overlays — the true current holder supersedes the GE15 winner
+# (same doctrine as 03_results_dun.py). MECO (Thevesh/paper-meco-results)
+# consol_ballots.csv lists every Malaysian by-election; any parliament (P.xxx)
+# by-election dated after GE15 polling day overlays that seat, date-driven so
+# future by-elections land on a simple re-run instead of a curated list.
+# The row keeps `election` + `_byelection` so the card cites the right poll.
+# ---------------------------------------------------------------------------
+GE15_POLLING_DAY = "2022-11-19"
+MECO_BASE = "https://raw.githubusercontent.com/Thevesh/paper-meco-results/main/data"
+MECO_FILES = {"meco_consol_ballots.csv": f"{MECO_BASE}/consol_ballots.csv",
+              "meco_lookup_party.csv": f"{MECO_BASE}/lookup_party.csv"}
+
+
+def _meco_load(fn):
+    path = os.path.join(RAW, fn)
+    if not os.path.exists(path):
+        urllib.request.urlretrieve(MECO_FILES[fn], path)
+    with open(path) as f:
+        return list(csv.DictReader(f))
+
+
+def _vint(s):
+    try:
+        return int(float(s))
+    except (TypeError, ValueError):
+        return 0
+
+
+def apply_byelection_overlays(out):
+    ballots = _meco_load("meco_consol_ballots.csv")
+    plook = {r["party"]: r["party_name_en"] for r in _meco_load("meco_lookup_party.csv")}
+    by_seat = {}
+    for b in ballots:
+        if b["election"] != "BY-ELECTION" or not b["seat"].startswith("P."):
+            continue
+        if b["date"] <= GE15_POLLING_DAY:
+            continue
+        by_seat.setdefault(code_of(b["seat"]), []).append(b)
+    overlaid = []
+    for code, rows in by_seat.items():
+        if code not in out:
+            continue
+        latest = max(r["date"] for r in rows)
+        lst = sorted((r for r in rows if r["date"] == latest),
+                     key=lambda b: _vint(b["votes"]), reverse=True)
+        win = next((b for b in lst if b["result"].strip().lower() in ("won", "won_uncontested")), lst[0])
+        runner = next((b for b in lst if b is not win), None)
+        total = sum(_vint(b["votes"]) for b in lst)
+        wv = _vint(win["votes"])
+        # MECO tags independents/solo runners with coalition 'ALONE' — surface the party
+        party = win["party"]
+        bloc = party if win["coalition"] in ("ALONE", "BEBAS", "") else win["coalition"]
+        majority = (wv - _vint(runner["votes"])) if runner else None
+        seat_name = win["seat"].split(" ", 1)[1] if " " in win["seat"] else win["seat"]
+        entry = {
+            "state": win["state"],
+            "name": win["name"],
+            "party": party,
+            "party_full": plook.get(party, party),
+            "coalition": bloc,
+            "coalition_full": COALITION_FULL.get(bloc, plook.get(bloc, bloc)),
+            "votes": wv,
+            "vote_pct": round(100 * wv / total, 1) if total else None,
+            "majority": majority,
+            "majority_pct": round(100 * majority / total, 1) if (majority is not None and total) else None,
+            "turnout": None,  # registered-voter counts aren't in consol_ballots
+            "n_candidates": len(lst),
+            "election": f"{seat_name} by-election {latest[:4]}",
+            "_byelection": True,
+        }
+        if runner:
+            entry["runner_up"] = {"name": runner["name"], "party": runner["party"], "votes": _vint(runner["votes"])}
+        out[code] = entry
+        overlaid.append(f"{code} {latest} → {entry['name']} ({entry['coalition']})")
+    return overlaid
+
+
 def main():
     cands = load("candidates_ge15.csv")
     results = {code_of(r["parlimen"]): r for r in load("results_parlimen_ge15.csv")}
@@ -105,6 +183,9 @@ def main():
             entry["runner_up"] = {"name": runner["name"], "party": rs, "votes": int(runner["votes"])}
         out[code] = entry
 
+    # by-election overlays — who holds the seat NOW
+    overlaid = apply_byelection_overlays(out)
+
     path = os.path.join(OUT, "results-ge15.json")
     with open(path, "w") as f:
         json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
@@ -113,6 +194,9 @@ def main():
     from collections import Counter
     dist = Counter(v["coalition"] for v in out.values())
     print(f"  → results-ge15.json  ({len(out)} seats, {os.path.getsize(path)/1024:.0f} KB)")
+    print(f"  by-election overlays (current holder): {len(overlaid)}")
+    for o in overlaid:
+        print(f"    · {o}")
     print("  seats won by coalition:")
     for p, n in dist.most_common():
         print(f"      {p:10s} {n}")
