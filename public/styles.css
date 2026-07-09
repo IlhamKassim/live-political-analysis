@@ -586,6 +586,33 @@ body.state-open #map { overflow: visible; }
   }
 }
 
+/* Medium widths — below the ≥1240 sidebar but above phones. Use the hamburger here too
+   so the topbar (brand + hamburger only) never overflows with the tier/mode controls and
+   the full nav-icon row. The map's hover tooltip/glow stay enabled (those live in the
+   ≤860 block); this only relocates the menu into a right-aligned dropdown. */
+@media (min-width: 861px) and (max-width: 1239px) {
+  #mobile-menu-btn { display: grid; }
+  .mobile-menu {
+    position: fixed;
+    top: calc(max(12px, env(safe-area-inset-top)) + 54px);
+    right: 12px; left: auto; width: min(360px, calc(100vw - 24px));
+    z-index: 60; display: none; gap: 10px; padding: 10px;
+    background: rgba(20,22,26,.92); border: 1px solid var(--line); border-radius: 16px;
+    backdrop-filter: blur(12px);
+  }
+  body.mobile-menu-open .mobile-menu { display: grid; }
+  .mobile-menu .menu-map-controls, .mobile-menu .top-controls {
+    width: 100%; display: grid; grid-template-columns: 1fr; gap: 8px;
+  }
+  .mobile-menu .menu-map-controls .seg.chip, .mobile-menu .top-controls .seg.chip { width: 100%; }
+  .mobile-menu .topicons {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%;
+    margin-left: 0; padding-top: 10px; border-top: 1px solid var(--line);
+  }
+  .mobile-menu .top-map-btn { display: grid; }
+  .mobile-menu .lang-seg { margin-left: auto; }
+}
+
 @media (max-width: 430px) {
   #topbar { padding-left: 12px; padding-right: 12px; gap: 8px; }   /* one alignment line: buttons = card = info box */
   .brand-home { padding-inline: 10px; }
