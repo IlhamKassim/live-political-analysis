@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues,
-  competitivenessFromMajorityPct } from "./lib.js?v=42";
-import { I18N } from "./i18n.js?v=42";
+  competitivenessFromMajorityPct } from "./lib.js?v=43";
+import { I18N } from "./i18n.js?v=43";
 
 const SVG = document.getElementById("map");
 const SEATS = document.getElementById("seats");
@@ -124,6 +124,15 @@ function setLang(l) {
   }
   syncMapInspectButton();
   renderMapInspectTray();
+  // Dynamic views build their own HTML (not data-i18n), so applyStatic() can't reach
+  // them — re-render whatever is open so the language actually changes the content.
+  if (state.openState && BENTO_MQ.matches) renderStateBento();          // wide-screen state dashboard
+  if (document.body.classList.contains("politicians-open")) {          // politicians directory
+    renderPoliticiansDirectory((document.getElementById("pol-search") || {}).value || "");
+  }
+  renderSidebarStates();                                                // sidebar state list (election badge)
+  if (NEWS_MODAL && NEWS_MODAL.open) openNewsModal();                   // open modals
+  if (PLEDGES_MODAL && PLEDGES_MODAL.open) openPledgesModal();
 }
 
 // ---- helpers ----
