@@ -6065,3 +6065,17 @@ PANEL_STATE.addEventListener("keydown", (e) => {
 document.addEventListener("click", (e) => {
   if (!e.target.closest("#map-inspect-district-picker")) setDistrictPickerOpen(false);
 });
+
+// Some state-level YB cards are rendered without the compact bento metadata.
+// Keep those cards actionable too by resolving the currently selected seat.
+function openFallbackYbBento(e, root, fallbackCode) {
+  if (!root.contains(e.target) || e.target.closest("a")) return false;
+  const card = e.target.closest(".seat-yb-card");
+  if (!card || card.dataset.polCode) return false;
+  const code = fallbackCode || state.selected || "";
+  if (!code) return false;
+  openPoliticianModal(code, card);
+  return true;
+}
+PANEL_STATE.addEventListener("click", (e) => { openFallbackYbBento(e, PANEL_STATE, state.selected); });
+BENTO.addEventListener("click", (e) => { openFallbackYbBento(e, BENTO, bentoSeat); });
