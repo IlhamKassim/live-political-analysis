@@ -2207,12 +2207,12 @@ button.map-inspect-overview:focus-visible { outline: 2px solid var(--focus); out
 /* ===== live election (PRN16 Johor) — badge, banner, campaign view ===== */
 .live-badge {
   position: fixed; z-index: 40; top: 70px; right: 16px;
-  display: inline-flex; align-items: center; gap: 9px;
-  min-height: 48px; padding: 0 18px; border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: 44px; padding: 0 14px; border-radius: 999px;
   border: 1px solid var(--danger);
   background: var(--danger); color: var(--danger-fg); cursor: pointer;
   box-shadow: none; overflow: hidden; isolation: isolate;
-  font-family: var(--sans); font-size: 12.5px; letter-spacing: .04em; font-weight: 800;
+  font-family: var(--sans); font-size: 12px; letter-spacing: .04em; font-weight: 800;
   text-transform: uppercase;
 }
 .live-badge::before {
@@ -2220,14 +2220,14 @@ button.map-inspect-overview:focus-visible { outline: 2px solid var(--focus); out
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: linear-gradient(90deg, transparent 8%, rgba(255, 122, 128, .42) 50%, transparent 92%);
-  transform: translateX(-115%);
-  animation: live-badge-wave 2.4s ease-in-out infinite;
+  background: var(--danger-hi);
+  opacity: 0;
+  animation: live-badge-color 4.8s ease-in-out infinite;
   pointer-events: none;
-  will-change: transform;
+  will-change: opacity;
 }
 .live-badge > span { position: relative; z-index: 1; }
-.live-badge .live-dot { width: 9px; height: 9px; background: var(--danger-fg); }
+.live-badge .live-dot { width: 8px; height: 8px; background: var(--danger-fg); }
 .live-badge:hover { border-color: var(--danger-hi); background: var(--danger-hi); color: var(--danger-fg); }
 .live-badge:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 .live-badge[hidden] { display: none; }   /* explicit display would defeat the hidden attribute */
@@ -2236,9 +2236,9 @@ button.map-inspect-overview:focus-visible { outline: 2px solid var(--focus); out
   animation: live-pulse 1.6s ease-in-out infinite;
 }
 @keyframes live-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .45; transform: scale(.72); } }
-@keyframes live-badge-wave {
-  0%, 12% { transform: translateX(-115%); }
-  68%, 100% { transform: translateX(115%); }
+@keyframes live-badge-color {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
   .live-dot { animation: none; }
