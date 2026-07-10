@@ -108,7 +108,6 @@ a:hover { text-decoration: underline; }
 .results button:last-child { border-bottom: 0; }
 .results button:hover,
 .results button.active { background: var(--bg-2); }
-.results button.active { box-shadow: inset 2px 0 0 var(--accent); }
 .results .code { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); }
 /* a state row jumps to the whole dashboard — tag it with the accent so it reads as a
    distinct action from the seat rows */
@@ -3711,6 +3710,13 @@ html[data-theme="light"] .cand-vacant-chip,
 html[data-theme="light"] .pol-card-vacant {
   color: #8a6116; border-color: rgba(138, 97, 22, .5); background: rgba(210, 162, 76, .16);
 }
+
+/* Flat card policy: no decorative accent rail on an individual row or card. */
+.cand-news-list a {
+  border-left-width: 1px;
+  border-left-color: var(--line);
+}
+.results button.active { box-shadow: none; }
 
 /* White mode is deliberately flat: suppress elevation from legacy and future components. */
 html[data-theme="light"],
