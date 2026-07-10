@@ -466,11 +466,11 @@ html[data-theme="light"] {
   --topbar-strip: rgba(255,255,255,.94);
   --tooltip-bg: rgba(255,255,255,.96);
   --dialog-backdrop: rgba(15,23,42,.32);
-  --shadow-pop: 0 18px 42px rgba(15,23,42,.14);
-  --shadow-soft: 0 10px 28px rgba(15,23,42,.12);
+  --shadow-pop: none;
+  --shadow-soft: none;
   --stage-top: #ffffff;
   --bento-page-top: #ffffff;
-  --label-shadow: 0 1px 0 rgba(255,255,255,.8), 0 12px 30px rgba(15,23,42,.18);
+  --label-shadow: none;
   --state-emblem-bg: rgba(15,23,42,.055);
   --land-muted: #c6ced8;
   --danger: #b8323a;
@@ -3617,4 +3617,13 @@ html[data-theme="light"] .theme-toggle .theme-sun { opacity: 0; transform: scale
 html[data-theme="light"] .cand-vacant-chip,
 html[data-theme="light"] .pol-card-vacant {
   color: #8a6116; border-color: rgba(138, 97, 22, .5); background: rgba(210, 162, 76, .16);
+}
+
+/* White mode is deliberately flat: suppress elevation from legacy and future components. */
+html[data-theme="light"],
+html[data-theme="light"] *,
+html[data-theme="light"] *::before,
+html[data-theme="light"] *::after {
+  box-shadow: none !important;
+  text-shadow: none !important;
 }
