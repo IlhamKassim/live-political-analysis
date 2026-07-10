@@ -2206,13 +2206,18 @@ button.map-inspect-overview:focus-visible { outline: 2px solid var(--focus); out
 
 /* ===== live election (PRN16 Johor) — badge, banner, campaign view ===== */
 .live-badge {
-  position: fixed; z-index: 40; top: 70px; right: 14px;
-  display: inline-flex; align-items: center; gap: 6px;
-  min-height: 44px; padding: 0 13px; border-radius: 999px; border: 1px solid color-mix(in oklab, var(--danger) 55%, var(--line));
-  background: color-mix(in oklab, var(--danger) 12%, var(--panel)); color: var(--ink); cursor: pointer;
-  font-family: var(--mono); font-size: 11px; letter-spacing: .06em; font-weight: 700;
+  position: fixed; z-index: 40; top: 70px; right: 16px;
+  display: inline-flex; align-items: center; gap: 9px;
+  min-height: 48px; padding: 0 18px; border-radius: 999px;
+  border: 1px solid var(--danger);
+  background: var(--danger); color: var(--danger-fg); cursor: pointer;
+  box-shadow: none;
+  font-family: var(--sans); font-size: 12.5px; letter-spacing: .04em; font-weight: 800;
+  text-transform: uppercase;
 }
-.live-badge:hover { border-color: color-mix(in oklab, var(--danger) 72%, var(--line)); background: color-mix(in oklab, var(--danger) 18%, var(--panel)); }
+.live-badge .live-dot { width: 9px; height: 9px; background: var(--danger-fg); }
+.live-badge:hover { border-color: var(--danger-hi); background: var(--danger-hi); color: var(--danger-fg); }
+.live-badge:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 .live-badge[hidden] { display: none; }   /* explicit display would defeat the hidden attribute */
 .live-dot {
   width: 7px; height: 7px; border-radius: 50%; background: #ff5a5a; flex: 0 0 auto;
