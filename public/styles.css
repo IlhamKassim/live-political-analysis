@@ -428,7 +428,7 @@ h1, h2, .seat-head h2 { font-family: var(--font-display); font-weight: 700; lett
   --danger-hi: #cc3a43;
   --danger-fg: #ffffff;
   --control-radius: 12px;
-  --grid-line: rgba(255,255,255,.032);
+  --grid-line: transparent;
   --grid-size: 24px;
   /* ---- motion vocabulary (one source of truth; compositor-only props only) ---- */
   --dur-1: 150ms; --dur-2: 200ms; --dur-3: 300ms; --dur-4: 400ms;
@@ -476,7 +476,7 @@ html[data-theme="light"] {
   --danger: #b8323a;
   --danger-hi: #9f2932;
   --danger-fg: #ffffff;
-  --grid-line: rgba(15,23,42,.07);
+  --grid-line: transparent;
 }
 
 body { font-family: var(--sans); }
