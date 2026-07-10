@@ -3014,16 +3014,13 @@ body.politicians-open #topbar, body.news-open #topbar { display: none; }
     "gov     stand"
     "explore explore"
     "stats   stats";
-  grid-template-rows: auto minmax(380px, 1fr) auto;
+  /* row 1 is max-content, NOT auto: on short viewports an auto row gets compressed
+     below its content (gov card clipped to one line, donut card overflowing under the
+     explore card). max-content can't be squeezed — the grid overflows #state-bento,
+     which scrolls (by design, see .bento-grid comment above). */
+  grid-template-rows: max-content minmax(380px, 1fr) auto;
 }
-.bento-gov { grid-area: gov; } .bento-explore { grid-area: explore; } .bento-statsrow { grid-area: stats; }
-/* W.P. territories have no state government → no gov tile; makeup donut spans the top row */
-.bento-grid.is-state.no-gov {
-  grid-template-areas:
-    "stand   stand"
-    "explore explore"
-    "stats   stats";
-}
+.bento-gov { grid-area: gov; } .bento-stand { grid-area: stand; } .bento-explore { grid-area: explore; } .bento-statsrow { grid-area: stats; }
 .bento-explore { min-height: 0; }
 .bento-explore-inner { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 20px; }
 .bento-explore-map { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 9px; }
@@ -3048,54 +3045,73 @@ body.politicians-open #topbar, body.news-open #topbar { display: none; }
   body.politicians-open #state-bento { display: none; }
 }
 
-/* government tile: LEFT large emblem + state name · RIGHT current YB */
-.bento-gov { padding: 14px 16px; }
+/* leadership tile: large state identity · current MB/KM/Premier */
+.bento-gov { padding: 18px 20px; }
 .bento-gov-split {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(100px, 0.95fr) minmax(0, 1.15fr);
-  gap: 14px;
+  grid-template-columns: minmax(150px, .9fr) minmax(0, 1.35fr);
+  gap: 24px;
   align-items: stretch;
   width: 100%;
 }
+.bento-gov-split.solo { grid-template-columns: minmax(0, 1fr); }
 .bento-gov-emblem-pane {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   justify-content: flex-start;
-  gap: 10px;
+  gap: 14px;
   min-width: 0;
-  padding: 2px 10px 2px 0;
+  min-height: 0;
+  padding: 2px 20px 2px 0;
   border-right: 1px solid var(--line, rgba(255,255,255,.08));
+  box-sizing: border-box;
 }
 .bento-gov-state-name {
   align-self: flex-start;
-  font-size: 13px;
+  flex: 0 0 auto;
+  font-family: var(--font-display);
+  font-size: clamp(26px, 2.3vw, 34px);
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.05;
   color: var(--ink);
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
 }
+/* Stable generous frame; object-fit:contain keeps portrait and landscape crests whole. */
 .bento-gov-emblem-pane .state-emblem,
 .bento-gov-emblem-pane .bento-gov-emblem {
-  width: min(112px, 100%);
-  height: min(112px, 22vh);
-  max-height: 120px;
+  width: min(140px, 100%);
+  height: min(142px, 20vh);
+  max-width: 100%;
+  max-height: 142px;
   display: grid;
   place-items: center;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+  box-sizing: border-box;
 }
 .bento-gov-emblem-pane .state-emblem img {
   width: 100%;
   height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
+  object-position: center;
   display: block;
 }
 .bento-gov-emblem-pane .state-emblem-fallback {
   width: 100%;
   height: 100%;
-  min-height: 72px;
+  min-height: 0;
   border-radius: 18px;
   font-size: 28px;
   font-weight: 700;
@@ -3105,23 +3121,30 @@ body.politicians-open #topbar, body.news-open #topbar { display: none; }
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 10px;
+  gap: 14px;
   padding-left: 2px;
 }
-.bento-gov-head { display: flex; align-items: center; gap: 12px; }
+.bento-gov-head { display: flex; align-items: center; gap: 16px; }
 /* faces sit near the top of full-body Commons shots — bias the square crop up */
-.pol-photo.bento-gov-photo { width: 56px; height: 56px; border-radius: 14px; flex: 0 0 auto; object-fit: cover; object-position: center 12%; font-size: 18px; }
+.pol-photo.bento-gov-photo { width: 84px; height: 84px; border-radius: 16px; flex: 0 0 auto; object-fit: cover; object-position: center 12%; font-size: 22px; }
 .bento-gov-id { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.bento-gov-title { font-size: 11px; }
-.bento-gov-id strong { font-size: 15px; line-height: 1.25; }
-.bento-gov-id p { margin: 2px 0 0; font-size: 12.5px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.bento-gov-title { font-size: 12px; }
+.bento-gov-id strong { font-size: 18px; line-height: 1.2; }
+.bento-gov-id p { margin: 4px 0 0; font-size: 13px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .bento-gov .yb-credit { margin: 4px 0 0; font-size: 10px; }
 html[data-theme="light"] .bento-gov-emblem-pane {
   border-right-color: rgba(15, 23, 42, 0.08);
 }
 @media (max-width: 1100px) {
-  .bento-gov-split { grid-template-columns: minmax(88px, 0.85fr) minmax(0, 1.2fr); gap: 10px; }
-  .bento-gov-emblem-pane .state-emblem { max-height: 96px; }
+  .bento-gov-split { grid-template-columns: minmax(125px, .85fr) minmax(0, 1.25fr); gap: 16px; }
+  .bento-donut { gap: 12px; }
+  .bento-gov-emblem-pane .state-emblem,
+  .bento-gov-emblem-pane .bento-gov-emblem {
+    width: min(118px, 100%);
+    height: min(124px, 18vh);
+    max-height: 124px;
+  }
+  .pol-photo.bento-gov-photo { width: 76px; height: 76px; }
 }
 
 /* incumbent portrait inside the "currently held by" block */
@@ -3219,20 +3242,15 @@ body.bento-on #topbar .top-controls { margin-inline: auto; }
 body.bento-on #top-controls,
 body.politicians-open #top-controls { display: none; }
 
-/* seats-by-coalition donut — card MUST wrap the chart (title + ring + legend). */
+/* Top cards contribute their full intrinsic height; the max-content row sizes to the
+   taller leadership/coalition card so neither the crest nor donut can be clipped. */
 .bento-grid.is-state .bento-stand,
 .bento-grid.is-state .bento-gov {
-  /* size to content; don't let min-height:0 / stretch clip the donut outside the bg */
   align-self: stretch;
   min-height: min-content;
   height: auto;
-  overflow: hidden;          /* keep ring inside rounded white card */
   justify-content: flex-start;
   gap: 14px;
-}
-.bento-grid.is-state .bento-stand > .bento-kicker {
-  flex: 0 0 auto;
-  white-space: nowrap;
 }
 .bento-donut {
   flex: 0 0 auto !important; /* never flex-shrink the chart out of the card */

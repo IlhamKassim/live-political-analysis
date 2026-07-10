@@ -5159,9 +5159,8 @@ function stateCrestHTML(name) {
   return stateEmblemHTML(name, "bento-crest");
 }
 
-// Dashboard actions live in the nav bar on wide screens. The government card already
-// carries the state name + emblem, so the left context stays hidden unless that card
-// does not exist (the three W.P. territories still need an identity label).
+// Dashboard actions live in the nav bar on wide screens. The leadership card always
+// carries state identity (including W.P.), so the redundant left context stays hidden.
 function renderBentoChrome() {
   const ctxEl = document.getElementById("topbar-context");
   const actEl = document.getElementById("topbar-actions");
@@ -5169,16 +5168,14 @@ function renderBentoChrome() {
   const name = state.openState || "";
   const e = prnActiveForState(name);
   const election = bentoElectionMode();
-  const st = state.stateCtx && state.stateCtx.states && state.stateCtx.states[name];
-  const hasIdentityCard = !!(st && st.gov);
-  ctxEl.innerHTML = hasIdentityCard ? "" : `<span class="bento-title">${stateCrestHTML(name)}${esc(name)}</span>`;
+  ctxEl.innerHTML = "";
   const toggle = e
     ? `<button id="bento-prn-toggle" class="bento-prn-toggle${election ? " on" : ""}" type="button" aria-pressed="${election}">
          <span class="live-dot"></span>🗳️ ${esc(e.name)}
        </button>`
     : "";
   actEl.innerHTML = `${toggle}<button id="bento-close-btn" class="prn-close-btn bento-close" type="button">${esc(t("bento_close"))}</button>`;
-  ctxEl.hidden = hasIdentityCard;
+  ctxEl.hidden = true;
   actEl.hidden = false;
 }
 function hideBentoChrome() {
@@ -5326,36 +5323,36 @@ function bentoElectionTilesHTML() {
     <p class="bento-foot src-line muted">${esc(t("prn_source"))}</p>`;
 }
 
-// Government card — split: LEFT large state emblem + state name (top-left),
-// RIGHT current MB/KM/Premier. Same outer card footprint as before.
-// W.P. territories have no state government → no gov tile.
+// Leadership card: state identity on the left, current MB/KM/Premier on the right.
+// W.P. territories keep the identity half and omit the government half cleanly.
 function bentoGovTileHTML(name) {
   const ctx = state.stateCtx;
   const st = ctx && ctx.states && ctx.states[name];
-  if (!st) return "";
-  const g = st.gov;
-  if (!g) return "";
+  const g = st && st.gov;
   const gp = state.govPhotos && state.govPhotos[name];
-  const title = g.title === "MB" ? "Menteri Besar" : g.title === "KM" ? "Ketua Menteri" : g.title;
-  const care = g.caretaker ? ` <span class="muted">(${esc(t("ctx_caretaker"))})</span>` : "";
-  const since = g.since ? ` <span class="muted">· ${esc(t("bento_gov_since", { y: g.since }))}</span>` : "";
+  const govPane = g ? (() => {
+    const title = g.title === "MB" ? "Menteri Besar" : g.title === "KM" ? "Ketua Menteri" : g.title;
+    const care = g.caretaker ? ` <span class="muted">(${esc(t("ctx_caretaker"))})</span>` : "";
+    const since = g.since ? ` <span class="muted">· ${esc(t("bento_gov_since", { y: g.since }))}</span>` : "";
+    return `<div class="bento-gov-yb-pane">
+      <div class="bento-kicker">${esc(t("bento_gov"))}</div>
+      <div class="bento-gov-head">
+        ${personPhotoHTML(g.name, gp && gp.photo, "bento-gov-photo")}
+        <div class="bento-gov-id">
+          <span class="bento-gov-title muted">${esc(title)}${care}</span>
+          <strong>${esc(g.name)}</strong>
+          <p>${esc(g.party)} <span class="pill" style="${pillStyle(partyColor(g.coalition))}">${esc(g.coalition)}</span>${since}</p>
+        </div>
+      </div>
+    </div>`;
+  })() : "";
   return `<div class="bento-tile bento-gov">
-    <div class="bento-gov-split">
+    <div class="bento-gov-split${govPane ? "" : " solo"}">
       <div class="bento-gov-emblem-pane">
         <div class="bento-gov-state-name">${esc(name)}</div>
         ${stateEmblemHTML(name, "bento-gov-emblem")}
       </div>
-      <div class="bento-gov-yb-pane">
-        <div class="bento-kicker">${esc(t("bento_gov"))}</div>
-        <div class="bento-gov-head">
-          ${personPhotoHTML(g.name, gp && gp.photo, "bento-gov-photo")}
-          <div class="bento-gov-id">
-            <span class="bento-gov-title muted">${esc(title)}${care}</span>
-            <strong>${esc(g.name)}</strong>
-            <p>${esc(g.party)} <span class="pill" style="${pillStyle(partyColor(g.coalition))}">${esc(g.coalition)}</span>${since}</p>
-          </div>
-        </div>
-      </div>
+      ${govPane}
     </div>
   </div>`;
 }
@@ -5454,7 +5451,7 @@ function bentoStateTilesHTML(name) {
         </div>
       </div>`;
   }
-  return `<div class="bento-grid is-state${govTile ? "" : " no-gov"}">
+  return `<div class="bento-grid is-state">
       ${govTile}
       ${makeupTile}
       ${exploreTile}
