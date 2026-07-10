@@ -961,7 +961,7 @@ function politicianBentoHTML(b) {
   });
   const roleBody = roleLines.length
     ? roleLines.map((l) => `<p class="cand-role-text">${esc(l)}</p>`).join("")
-    : `<p class="muted">${esc(t("candidate_profile_pending"))}</p>`;
+    : "";
   const partyHistory = candidateModalListHTML(b.profile && b.profile.party_history, false);
   const track = candidateModalListHTML(b.profile && b.profile.track_record, true)
     || candidateModalListHTML(b.profile && b.profile.career_highlights, false);
@@ -984,7 +984,7 @@ function politicianBentoHTML(b) {
           ${b.socialsHTML || ""}
         </div>
       </section>
-      ${candidateModalTileHTML("cand-role", t("candidate_bento_current_role"), roleBody)}
+      ${roleBody ? candidateModalTileHTML("cand-role", t("candidate_bento_current_role"), roleBody) : ""}
       ${facts ? candidateModalTileHTML("cand-facts", t("pol_bento_last_result"),
         `<div class="cand-facts-grid">${facts}</div>${b.resultNote ? `<p class="cand-source-note muted">${esc(b.resultNote)}</p>` : ""}`) : ""}
       ${b.bgHTML ? candidateModalTileHTML("cand-summary", t("profile_background"), b.bgHTML) : ""}
@@ -4934,7 +4934,7 @@ function candidateModalHTML(seat, entry, candidate, profile) {
   const party = candidate.party && candidate.party !== candidate.coalition ? `${esc(candidate.coalition)} · ${esc(candidate.party)}` : esc(candidate.coalition);
   const isInc = namekeyLoose(name) === namekeyLoose(entry.incumbent_2022 || "");
   const summary = (profile && (profile.summary || profile.biography_summary)) || "";
-  const role = (profile && profile.current_role) || t("candidate_profile_pending");
+  const role = (profile && profile.current_role) || "";
   const meta = [
     `${esc(entry.ncode || seat.dun_code)} · ${esc(entry.name || seat.name)}`,
     seat.parlimen ? `${esc(t("parlimen_label"))} ${esc(parlimenContext(seat))}` : "",
@@ -4973,9 +4973,7 @@ function candidateModalHTML(seat, entry, candidate, profile) {
     ? `<ul class="cand-list">${contactBits.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`
     : "";
   const exco = isInc ? johorExcoForSeat(seat.code) : null;
-  const roleText = exco && exco.portfolio
-    ? `${role} · ${exco.portfolio}`
-    : role;
+  const roleText = [role, exco && exco.portfolio].filter(Boolean).join(" · ");
   return `<div class="cand-modal-shell">
     <button class="pol-modal-close" type="button" aria-label="${esc(t("card_preview_close"))}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><line x1="6" x2="18" y1="6" y2="18"/><line x1="6" x2="18" y1="18" y2="6"/></svg>
@@ -4995,12 +4993,12 @@ function candidateModalHTML(seat, entry, candidate, profile) {
           ${socials}
         </div>
       </section>
-      ${candidateModalTileHTML("cand-role", t("candidate_bento_current_role"), `<p class="cand-role-text">${esc(roleText)}</p>`)}
+      ${roleText ? candidateModalTileHTML("cand-role", t("candidate_bento_current_role"), `<p class="cand-role-text">${esc(roleText)}</p>`) : ""}
       ${candidateModalTileHTML("cand-facts", t("candidate_bento_context"), `<div class="cand-facts-grid">${facts}</div>`)}
-      ${candidateModalTileHTML("cand-summary", t("profile_background"), summary ? `<p>${esc(summary)}</p>` : `<p class="muted">${esc(t("candidate_profile_pending"))}</p>`)}
-      ${candidateModalTileHTML("cand-party", t("profile_party_history"), partyHistory || `<p class="muted">${esc(t("candidate_profile_pending"))}</p>`)}
-      ${candidateModalTileHTML("cand-track", t("profile_track_record"), track || experience || `<p class="muted">${esc(t("candidate_profile_pending"))}</p>`)}
-      ${candidateModalTileHTML("cand-election", t("profile_election_history"), electionHistory || `<p class="muted">${esc(t("candidate_profile_pending"))}</p>`)}
+      ${summary ? candidateModalTileHTML("cand-summary", t("profile_background"), `<p>${esc(summary)}</p>`) : ""}
+      ${partyHistory ? candidateModalTileHTML("cand-party", t("profile_party_history"), partyHistory) : ""}
+      ${(track || experience) ? candidateModalTileHTML("cand-track", t("profile_track_record"), track || experience) : ""}
+      ${electionHistory ? candidateModalTileHTML("cand-election", t("profile_election_history"), electionHistory) : ""}
       ${education ? candidateModalTileHTML("cand-education", t("profile_education"), education) : ""}
       ${contactHtml ? candidateModalTileHTML("cand-contact", "Contact", contactHtml) : ""}
       ${news ? candidateModalTileHTML("cand-news", t("prn_news"), news) : ""}

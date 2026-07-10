@@ -2678,9 +2678,10 @@ body.politicians-open #topbar, body.news-open #topbar { display: none; }
   padding: 16px;
 }
 .cand-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(280px, .85fr);
-  gap: 12px;
+  display: block;
+  column-count: 2;
+  column-gap: 14px;
+  column-fill: balance;
 }
 .cand-tile {
   min-width: 0;
@@ -2689,8 +2690,14 @@ body.politicians-open #topbar, body.news-open #topbar { display: none; }
   background: var(--bg-2);
   padding: 14px;
 }
+.cand-grid > .cand-tile {
+  width: 100%;
+  margin: 0 0 14px;
+  break-inside: avoid;
+}
+.cand-grid > .cand-tile:not(.cand-hero):not([hidden]) { display: inline-block; }
 .cand-hero {
-  grid-column: 1 / -1;
+  column-span: all;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 14px;
@@ -2712,6 +2719,12 @@ body.politicians-open #topbar, body.news-open #topbar { display: none; }
   letter-spacing: .07em;
   text-transform: uppercase;
 }
+.cand-role {
+  border-color: var(--line);
+  background: var(--bg-2);
+  box-shadow: none;
+}
+.cand-role .cand-kicker { color: var(--ink-faint); }
 .cand-role-text, .cand-summary p, .cand-tile > p { margin: 8px 0 0; color: var(--ink-dim); font-size: 13px; line-height: 1.55; }
 .cand-role-text { color: var(--ink); font-weight: 650; }
 .cand-facts-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 9px; }
@@ -2731,7 +2744,8 @@ body.politicians-open #topbar, body.news-open #topbar { display: none; }
 @media (max-width: 760px) {
   .candidate-modal { width: min(100vw - 16px, 620px); max-height: 94dvh; border-radius: 18px; }
   .cand-modal-shell { padding: 12px; }
-  .cand-grid { grid-template-columns: 1fr; }
+  .cand-grid { column-count: 1; column-gap: 0; }
+  .cand-grid > .cand-tile { margin-bottom: 10px; }
   .cand-hero { padding-right: 48px; grid-template-columns: 72px minmax(0, 1fr); }
   .cand-modal-photo { width: 72px; height: 72px; border-radius: 14px; }
   .cand-facts-grid { grid-template-columns: 1fr; }
