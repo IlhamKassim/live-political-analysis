@@ -3083,9 +3083,9 @@ body.politicians-open #topbar, body.news-open #topbar { display: none; }
 .bento-gov-emblem-pane .state-emblem,
 .bento-gov-emblem-pane .bento-gov-emblem {
   width: min(140px, 100%);
-  height: min(118px, 17vh);
+  height: 132px;
   max-width: 100%;
-  max-height: 118px;
+  max-height: 132px;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
@@ -3141,8 +3141,8 @@ html[data-theme="light"] .bento-gov-emblem-pane {
   .bento-gov-emblem-pane .state-emblem,
   .bento-gov-emblem-pane .bento-gov-emblem {
     width: min(118px, 100%);
-    height: min(108px, 16vh);
-    max-height: 108px;
+    height: 118px;
+    max-height: 118px;
   }
   .pol-photo.bento-gov-photo { width: 76px; height: 76px; }
 }
