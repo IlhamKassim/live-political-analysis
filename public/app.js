@@ -5159,9 +5159,9 @@ function stateCrestHTML(name) {
   return stateEmblemHTML(name, "bento-crest");
 }
 
-// dashboard chrome lives IN THE NAV BAR on wide screens: the state/election title
-// joins the brand on the left, the PRN toggle + close join the icon cluster on the
-// right — one full-width bar instead of a sparse nav plus a second header row.
+// Dashboard actions live in the nav bar on wide screens. The government card already
+// carries the state name + emblem, so the left context stays hidden unless that card
+// does not exist (the three W.P. territories still need an identity label).
 function renderBentoChrome() {
   const ctxEl = document.getElementById("topbar-context");
   const actEl = document.getElementById("topbar-actions");
@@ -5169,16 +5169,16 @@ function renderBentoChrome() {
   const name = state.openState || "";
   const e = prnActiveForState(name);
   const election = bentoElectionMode();
-  ctxEl.innerHTML = election
-    ? `<span class="bento-title">${stateCrestHTML(e && e.state ? e.state : name)}<span class="live-dot"></span>🗳️ ${esc(e.name)}</span>`
-    : `<span class="bento-title">${stateCrestHTML(name)}${esc(name)}</span>`;
+  const st = state.stateCtx && state.stateCtx.states && state.stateCtx.states[name];
+  const hasIdentityCard = !!(st && st.gov);
+  ctxEl.innerHTML = hasIdentityCard ? "" : `<span class="bento-title">${stateCrestHTML(name)}${esc(name)}</span>`;
   const toggle = e
     ? `<button id="bento-prn-toggle" class="bento-prn-toggle${election ? " on" : ""}" type="button" aria-pressed="${election}">
          <span class="live-dot"></span>🗳️ ${esc(e.name)}
        </button>`
     : "";
   actEl.innerHTML = `${toggle}<button id="bento-close-btn" class="prn-close-btn bento-close" type="button">${esc(t("bento_close"))}</button>`;
-  ctxEl.hidden = false;
+  ctxEl.hidden = hasIdentityCard;
   actEl.hidden = false;
 }
 function hideBentoChrome() {
@@ -5637,6 +5637,28 @@ function bentoSearchPick(code) {
   if (q) { q.value = ""; q.blur(); }
   bentoSearchClose();
 }
+// Pointer-only preview: show the hovered seat's state + sitting YB in the search
+// field without changing its value, query results, focus, or keyboard behaviour.
+function showBentoHoverPreview(path) {
+  const q = document.getElementById("bento-q");
+  if (!q || q.value || document.activeElement === q) return;
+  const tier = bentoMapTier();
+  const data = state.data[tier];
+  const seat = data && data.byCode.get(path.dataset.code);
+  if (!seat) return;
+  const who = seatPersonOf(seat, tier);
+  if (!who) return;
+  if (!q.dataset.basePlaceholder) q.dataset.basePlaceholder = q.placeholder || t("search_ph");
+  q.placeholder = `${seat.state || state.openState} · YB ${who}`;
+  q.classList.add("is-hover-preview");
+}
+function clearBentoHoverPreview() {
+  const q = document.getElementById("bento-q");
+  if (!q || !q.classList.contains("is-hover-preview")) return;
+  q.placeholder = q.dataset.basePlaceholder || t("search_ph");
+  delete q.dataset.basePlaceholder;
+  q.classList.remove("is-hover-preview");
+}
 function isBentoBackdropClick(ev) {
   return document.body.classList.contains("bento-on") &&
     BENTO.contains(ev.target) &&
@@ -5687,6 +5709,16 @@ BENTO.addEventListener("click", (ev) => {
   else if (isBentoBackdropClick(ev)) { backToControls(); }
 });
 BENTO.addEventListener("keydown", handleCandidateCardKeydown);
+BENTO.addEventListener("mouseover", (ev) => {
+  const path = ev.target.closest && ev.target.closest(".bento-seat");
+  if (!path || path.contains(ev.relatedTarget)) return;
+  showBentoHoverPreview(path);
+});
+BENTO.addEventListener("mouseout", (ev) => {
+  const path = ev.target.closest && ev.target.closest(".bento-seat");
+  if (!path || path.contains(ev.relatedTarget)) return;
+  clearBentoHoverPreview();
+});
 BENTO.addEventListener("input", (ev) => {
   if (ev.target.id !== "bento-q") return;
   const box = document.getElementById("bento-results");

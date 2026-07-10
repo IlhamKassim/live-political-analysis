@@ -2971,6 +2971,7 @@ body.politicians-open #topbar, body.news-open #topbar { display: none; }
 .bento-q { width: 100%; min-height: 44px; font: inherit; font-size: 12.5px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg-2); color: var(--ink); }
 .bento-q:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-color: var(--focus); }
 .bento-q::placeholder { color: var(--ink-faint); }
+.bento-q.is-hover-preview::placeholder { color: var(--ink); opacity: 1; }
 .bento-results { position: absolute; top: calc(100% + 5px); left: 0; right: 0; z-index: 8; background: var(--panel); border: 1px solid var(--line-2); border-radius: 12px; box-shadow: 0 14px 34px rgba(0,0,0,.55); max-height: 264px; overflow-y: auto; }
 .bento-result { display: block; width: 100%; text-align: left; font: inherit; font-size: 12.5px; padding: 9px 13px; background: none; border: 0; color: var(--ink); cursor: pointer; }
 .bento-result b { color: var(--accent); font-weight: 600; margin-right: 7px; }
@@ -3153,7 +3154,7 @@ html[data-theme="light"] .bento-gov-emblem-pane {
 }
 
 /* ---- dashboard chrome in the nav bar (wide screens, bento open) ----
-   title pill next to the brand; PRN toggle + close join the icon cluster.
+   fallback title for no-government W.P. dashboards; PRN toggle + close join the icon cluster.
    The centre pills keep centring via auto margins while the bar fills out. */
 .topbar-context[hidden], .topbar-actions[hidden] { display: none; }
 .topbar-context {
