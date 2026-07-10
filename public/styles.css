@@ -541,6 +541,10 @@ body.state-open #map { overflow: visible; }
   margin-left: auto;
 }
 .topicons { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+/* standalone theme toggle: always top-right in the topbar, at every width */
+.topbar-theme { margin-left: auto; }
+.topbar-theme ~ .mobile-menu-btn,
+.topbar-theme ~ .mobile-menu .topicons { margin-left: 0; }
 .iconbtn {
   width: 44px; height: 44px; display: grid; place-items: center; padding: 0;
   background: var(--glass); border: 1px solid var(--line); border-radius: var(--control-radius);
@@ -2206,15 +2210,16 @@ button.map-inspect-overview:focus-visible { outline: 2px solid var(--focus); out
 
 /* ===== live election (PRN16 Johor) — badge, banner, campaign view ===== */
 .live-badge {
-  position: fixed; z-index: 40; top: 70px; right: 16px;
+  position: relative; z-index: 0; flex: 0 0 auto; margin-left: auto;
   display: inline-flex; align-items: center; gap: 8px;
   min-height: 44px; padding: 0 14px; border-radius: 999px;
   border: 1px solid var(--danger);
   background: var(--danger); color: var(--danger-fg); cursor: pointer;
   box-shadow: none; overflow: hidden; isolation: isolate;
   font-family: var(--sans); font-size: 12px; letter-spacing: .04em; font-weight: 800;
-  text-transform: uppercase;
+  text-transform: uppercase; white-space: nowrap;
 }
+.live-badge:not([hidden]) + .topbar-theme { margin-left: 0; }
 .live-badge::before {
   content: "";
   position: absolute;
@@ -2243,6 +2248,14 @@ button.map-inspect-overview:focus-visible { outline: 2px solid var(--focus); out
 @media (prefers-reduced-motion: reduce) {
   .live-dot { animation: none; }
   .live-badge::before { display: none; animation: none; }
+}
+@media (max-width: 560px) {
+  #topbar { gap: 8px; padding-left: 10px; padding-right: 10px; }
+  .live-badge { gap: 6px; padding: 0 10px; font-size: 10.5px; }
+  .live-badge-date { display: none; }
+}
+@media (max-width: 360px) {
+  .live-badge-state { display: none; }
 }
 
 .prn-banner {
@@ -3362,7 +3375,7 @@ body.politicians-open #top-controls { display: none; }
   /* the sidebar owns brand / nav / language — the topbar keeps only context */
   #topbar .brand-home, #topbar #top-map, #topbar #top-politicians,
   #topbar #top-news, #topbar #top-prn, #topbar #top-pledges,
-  #topbar #top-info, #topbar #top-share, #topbar #top-theme, #topbar #lang { display: none; }
+  #topbar #top-info, #topbar #top-share, #topbar #lang { display: none; }
   body.politicians-open #politicians-view { left: 232px; }
   body.politicians-open .pol-dir { left: 232px; }
 }

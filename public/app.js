@@ -5774,9 +5774,7 @@ BENTO_MQ.addEventListener("change", () => {
   if (state.openState && BENTO_MQ.matches) showStateBento(state.openState);
   else hideStateBento();
 });
-// overview badge pinned above the contested state, tracking the camera
-// the live-election badge is pinned to the TOP-RIGHT of the map (fixed, via CSS) —
-// a stable "jump to the election" button, no longer camera-tracked over the state.
+// Topbar live-election shortcut beside the theme toggle.
 function syncLiveBadge() {
   const el = document.getElementById("live-badge");
   if (!el) return;

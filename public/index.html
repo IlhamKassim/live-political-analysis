@@ -33,7 +33,7 @@
   }
 })();
 </script>
-<link rel="stylesheet" href="styles.css?v=83" />
+<link rel="stylesheet" href="styles.css?v=84" />
 </head>
 <body>
 <aside id="sidebar" aria-label="Navigation">
@@ -58,10 +58,6 @@
   <div class="sb-foot">
     <button id="sb-about" class="sb-item sb-small" type="button"><span data-i18n="nav_about">About</span></button>
     <button id="sb-share" class="sb-item sb-small" type="button"><span data-i18n="nav_share">Share</span></button>
-    <button id="sb-theme" class="sb-collapse theme-toggle" type="button" data-theme-toggle aria-label="Switch theme" title="Switch theme">
-      <svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.4"/><path d="M12 2.8v2.1"/><path d="M12 19.1v2.1"/><path d="M4.9 4.9l1.5 1.5"/><path d="m17.6 17.6 1.5 1.5"/><path d="M2.8 12h2.1"/><path d="M19.1 12h2.1"/><path d="m4.9 19.1 1.5-1.5"/><path d="m17.6 6.4 1.5-1.5"/></svg>
-      <svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.1 14.3A7.7 7.7 0 0 1 9.7 3.9 8.4 8.4 0 1 0 20.1 14.3z"/></svg>
-    </button>
     <div class="seg lang-seg sb-lang" role="group" aria-label="Language">
       <button data-sb-lang="en">EN</button>
       <button data-sb-lang="ms">BM</button>
@@ -74,6 +70,14 @@
       <span class="mark"><span class="brand-symbol">◧</span> <span class="brand-word">My<b>Politik</b></span></span>
     </button>
     <div id="topbar-context" class="topbar-context" hidden></div>
+    <button id="live-badge" class="live-badge" type="button" hidden>
+      <span class="live-dot" aria-hidden="true"></span>
+      <span id="live-badge-text"><span>PRN</span><span class="live-badge-state"> JOHOR</span><span class="live-badge-date"> · 11 JUL</span></span>
+    </button>
+    <button id="top-theme" class="iconbtn theme-toggle topbar-theme" type="button" data-theme-toggle aria-label="Switch theme" title="Switch theme">
+      <svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.4"/><path d="M12 2.8v2.1"/><path d="M12 19.1v2.1"/><path d="M4.9 4.9l1.5 1.5"/><path d="m17.6 17.6 1.5 1.5"/><path d="M2.8 12h2.1"/><path d="M19.1 12h2.1"/><path d="m4.9 19.1 1.5-1.5"/><path d="m17.6 6.4 1.5-1.5"/></svg>
+      <svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.1 14.3A7.7 7.7 0 0 1 9.7 3.9 8.4 8.4 0 1 0 20.1 14.3z"/></svg>
+    </button>
     <button id="mobile-menu-btn" class="iconbtn mobile-menu-btn" type="button" data-i18n-aria="mobile_menu_aria" aria-label="Open menu" aria-controls="mobile-menu" aria-expanded="false">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M5 7h14"/><path d="M5 12h14"/><path d="M5 17h14"/></svg>
     </button>
@@ -100,10 +104,6 @@
         </button>
         <button id="top-share" class="iconbtn" type="button" data-i18n-aria="share_aria" aria-label="Share MyPolitik" data-i18n-title="share_aria" title="Share MyPolitik">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.4"/><circle cx="6" cy="12" r="2.4"/><circle cx="18" cy="19" r="2.4"/><path d="M8.1 10.9 15.9 6.1M8.1 13.1l7.8 4.8"/></svg>
-        </button>
-        <button id="top-theme" class="iconbtn theme-toggle" type="button" data-theme-toggle aria-label="Switch theme" title="Switch theme">
-          <svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.4"/><path d="M12 2.8v2.1"/><path d="M12 19.1v2.1"/><path d="M4.9 4.9l1.5 1.5"/><path d="m17.6 17.6 1.5 1.5"/><path d="M2.8 12h2.1"/><path d="M19.1 12h2.1"/><path d="m4.9 19.1 1.5-1.5"/><path d="m17.6 6.4 1.5-1.5"/></svg>
-          <svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.1 14.3A7.7 7.7 0 0 1 9.7 3.9 8.4 8.4 0 1 0 20.1 14.3z"/></svg>
         </button>
         <div class="seg lang-seg" id="lang" role="tablist" data-i18n-aria="aria_lang" aria-label="Language">
           <button data-lang="en" class="on" role="tab" aria-selected="true" aria-label="English">EN</button>
@@ -134,9 +134,6 @@
   </div>
 
   <main id="stage">
-    <button id="live-badge" class="live-badge" type="button" hidden>
-      <span class="live-dot" aria-hidden="true"></span><span id="live-badge-text">PRN JOHOR · 11 JUL</span>
-    </button>
     <svg id="map" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" data-i18n-aria="map_aria" aria-label="Map of Malaysia's electoral seats">
       <defs>
         <pattern id="selected-district-lines" patternUnits="userSpaceOnUse" width="4.5" height="4.5" patternTransform="rotate(45)">
@@ -237,6 +234,6 @@
   </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 </div>
-<script type="module" src="app.js?v=83"></script>
+<script type="module" src="app.js?v=84"></script>
 </body>
 </html>
