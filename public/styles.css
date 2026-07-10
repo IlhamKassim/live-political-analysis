@@ -3348,6 +3348,7 @@ body.politicians-open #top-controls { display: none; }
   min-height: 44px; background: none; border: 0; cursor: pointer; padding: 6px 10px 14px; text-align: left;
 }
 .sb-brand .brand-word b { font-weight: 800; }
+.sb-brand .brand-symbol { font-size: 23px; line-height: 1; }
 .sb-nav { display: flex; flex-direction: column; gap: 2px; }
 .sb-item {
   display: flex; align-items: center; gap: 10px; width: 100%;
@@ -3361,7 +3362,8 @@ body.politicians-open #top-controls { display: none; }
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
-.sb-ic { width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.sb-ic { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.sb-ic .nav-icon { width: 22px; height: 22px; }
 .sb-live .live-dot { width: 8px; height: 8px; margin-right: 2px; }
 .sb-section {
   font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .09em;
@@ -3370,7 +3372,7 @@ body.politicians-open #top-controls { display: none; }
 .sb-states { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; }
 .sb-state { font-size: 13px; min-height: 44px; padding: 7px 10px; gap: 8px; }
 .sb-state-emblem {
-  width: 22px; height: 22px; padding: 2px; border-radius: 7px;
+  width: 30px; height: 30px; padding: 2px; border-radius: 8px;
   background: var(--state-emblem-bg);
 }
 .sb-state-emblem.state-emblem-fallback { padding: 0; font-size: 9.5px; }
@@ -3452,8 +3454,8 @@ body.politicians-open #top-controls { display: none; }
   }
   body.sb-collapsed .sb-state-name { display: none; }
   body.sb-collapsed .sb-state-emblem {
-    width: 26px;
-    height: 26px;
+    width: 34px;
+    height: 34px;
     padding: 2px;
     border-radius: 8px;
   }
@@ -3472,7 +3474,7 @@ body.politicians-open #top-controls { display: none; }
   flex: 0 0 auto; width: 44px; height: 44px; display: grid; place-items: center;
   border: 0; border-radius: 8px; background: none; color: var(--ink-faint); cursor: pointer;
 }
-.sb-collapse svg { width: 18px; height: 18px; }
+.sb-collapse svg { width: 22px; height: 22px; }
 .sb-collapse:hover { background: var(--surface-hover-2); color: var(--ink); }
 
 /* manifesto pledges dialog (opened from the sidebar) */
