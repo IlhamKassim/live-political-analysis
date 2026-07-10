@@ -3383,6 +3383,25 @@ body.politicians-open #top-controls { display: none; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.sb-state-hover-label {
+  position: fixed;
+  left: 68px;
+  top: 0;
+  z-index: 80;
+  transform: translateY(-50%);
+  max-width: min(220px, calc(100vw - 84px));
+  padding: 7px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: 7px;
+  background: var(--tooltip-bg, rgba(8,11,16,.94));
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.sb-state-hover-label[hidden] { display: none; }
 /* live-election marker: a small red pulsing dot (replaces the wide text badge that
    was truncating the state name) */
 .sb-state-dot { flex: 0 0 auto; width: 8px; height: 8px; margin-right: 2px; }

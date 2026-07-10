@@ -1380,6 +1380,7 @@ async function render(tier) {
       const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
       p.setAttribute("d", seat.d);
       p.setAttribute("class", "seat no-dun");
+      p.dataset.state = seat.state;
       frag.appendChild(p);
     }
   }
@@ -2689,6 +2690,8 @@ function setStateHover(name, data) {
   for (const s of data.seats) {
     if (s.state === name) { const p = state.paths.get(s.code); if (p) p.classList.add("state-hover"); }
   }
+  SEATS.querySelectorAll(".seat.no-dun").forEach((p) =>
+    p.classList.toggle("state-hover", p.dataset.state === name));
 }
 function clearStateHover() {
   if (!hoverState) {
@@ -3232,12 +3235,38 @@ function renderSidebarStates() {
   const e = liveElection();
   host.innerHTML = names.map((n) => {
     const isElection = !!(e && e.state === n);
-    return `<button type="button" class="sb-item sb-state${isElection ? " is-election" : ""}" data-sb-state="${esc(n)}" aria-label="${esc(n)}" title="${esc(n)}">
+    return `<button type="button" class="sb-item sb-state${isElection ? " is-election" : ""}" data-sb-state="${esc(n)}" aria-label="${esc(n)}">
       ${stateEmblemHTML(n, "sb-state-emblem")}
       <span class="sb-state-name">${esc(n)}</span>
       ${isElection ? `<span class="live-dot sb-state-dot" title="${esc(t("prn_kicker"))}" aria-label="${esc(t("prn_kicker"))}"></span>` : ""}
     </button>`;
   }).join("");
+  host.querySelectorAll("[data-sb-state]").forEach((button) => {
+    button.addEventListener("pointerenter", () => previewSidebarState(button));
+    button.addEventListener("pointerleave", clearSidebarStatePreview);
+    button.addEventListener("focus", () => previewSidebarState(button));
+    button.addEventListener("blur", clearSidebarStatePreview);
+  });
+}
+function previewSidebarState(button) {
+  const name = button && button.dataset.sbState;
+  const data = state.data[state.tier];
+  if (!name || !data) return;
+  setStateHover(name, data);
+
+  const label = document.getElementById("sb-state-hover-label");
+  if (!label || !document.body.classList.contains("sb-collapsed")) return;
+  label.textContent = name;
+  label.hidden = false;
+  const rect = button.getBoundingClientRect();
+  const half = (label.offsetHeight || 30) / 2;
+  const center = rect.top + rect.height / 2;
+  label.style.top = `${Math.round(Math.max(half + 8, Math.min(innerHeight - half - 8, center)))}px`;
+}
+function clearSidebarStatePreview() {
+  const label = document.getElementById("sb-state-hover-label");
+  if (label) label.hidden = true;
+  clearStateHover();
 }
 function syncSidebar() {
   const sb = document.getElementById("sidebar");
@@ -3281,6 +3310,7 @@ async function sidebarOpenState(name) {
 // collapse ⇄ expand: the rail shrinks to an icon strip and the content reflows
 // beside it (the sidebar never overlays the map or the dashboard)
 function setSidebarCollapsed(v) {
+  clearSidebarStatePreview();
   document.body.classList.toggle("sb-collapsed", !!v);
   try { localStorage.setItem("mp-sb-collapsed", v ? "1" : "0"); } catch (_) {}
   requestAnimationFrame(syncMapToCard);          // map band re-measures at the new width
