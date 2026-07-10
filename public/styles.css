@@ -402,7 +402,7 @@ h1, h2, .seat-head h2 { font-family: var(--font-display); font-weight: 700; lett
   --line: #2a2d33; --line-2: #383c45;
   --ink: #e9eaed; --ink-dim: #9a9da4; --ink-faint: #6b6f77;
   --accent: #eceef1; --accent-2: #eceef1;
-  --land: #1c2026; --land-hi: #2a2f37; --stroke: #3a3f48; --select: #ffffff;
+  --land: #1c2026; --land-hi: #2a2f37; --stroke: var(--bg); --select: #ffffff;
   color-scheme: dark;
   --accent-fg: #0e0f12;
   --badge-fg: #0e0f12;
@@ -725,6 +725,7 @@ body.state-open #map { overflow: visible; }
   background: none; border: 0; overflow: visible;
   padding: 0 12px calc(12px + env(safe-area-inset-bottom));
 }
+#panel.empty { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
 #panel-empty {
   transform-origin: bottom center;   /* the minimize collapse grows/shrinks from the bottom */
   max-height: var(--panel-card-max-h, none);
@@ -1965,6 +1966,7 @@ body.state-open #panel-state {
    floating card — NOT the tall mobile backdrop (which left a lot of empty space here). ---- */
 @media (min-aspect-ratio: 1/1) {
   #panel { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+  #panel.empty { padding-bottom: calc(40px + env(safe-area-inset-bottom)); }
   /* cap the map width on wide screens and CENTRE it (grid stays full-bleed behind). The map
      is aspect-locked, so a width cap also bounds its height. */
   #map {
