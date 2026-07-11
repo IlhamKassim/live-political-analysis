@@ -14,7 +14,7 @@
     "live:campaign": "python3 pipeline/live/johor_poller.py --once --phase campaign",
     "live:rehearsal": "python3 pipeline/live/johor_poller.py --fixture pipeline/live/fixtures/midcount.json",
     "dev": "python3 dev-server.py",
-    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:staging": "bash scripts/deploy-staging.sh",
     "deploy": "wrangler deploy"
   }
 }

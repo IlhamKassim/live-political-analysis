@@ -47,3 +47,19 @@ your seat → a beautiful, shareable card. The map is the *reward*, not the gate
 - Boundaries/results are official DOSM + Thevesh — never fabricate data.
 - Brand, folder, package, and Worker deploy names are **MyPolitik** / `mypolitik`.
 - **Verify via syntax checks + unit tests + data validation only** — this is a headless box, no browser/screenshots.
+
+## Deploying to STAGING (laptop checkout only)
+The "no deploy" guardrail above is for the VPS sandbox. On the **laptop** checkout
+(`~/Desktop/Experiments/mypolitik`, where `~/.kracked/deploy.env` exists), any agent may
+push the working tree to staging with ONE command from the repo root:
+
+    npm run deploy:staging
+
+It runs `scripts/deploy-staging.sh`: validates first (`node --check`, `lib.test.mjs`,
+`scripts/validate.sh` — any failure aborts before upload), deploys with
+`npx wrangler deploy --env staging` (use npx — bare `wrangler` is not on PATH), then
+verifies the live site: `/api/health` must return ok and staging's `app.js`/`styles.css`
+must hash-identical to the working tree. Deploys ship the WORKING TREE in `./public` —
+commit first so what's live is reproducible.
+
+**Production stays manual and human-only: never `npm run deploy` or bare `wrangler deploy`.**
