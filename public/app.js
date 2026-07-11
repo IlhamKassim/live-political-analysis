@@ -5,7 +5,7 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues, swatchTextColor,
-  competitivenessFromMajorityPct, withCurrentAffiliation } from "./lib.js?v=63";
+  competitivenessFromMajorityPct, withCurrentAffiliation } from "./lib.js?v=64";
 import { I18N } from "./i18n.js?v=66";
 
 const SVG = document.getElementById("map");
@@ -197,11 +197,16 @@ async function loadOptional() {
     if (r.ok) { state.results = await r.json(); enableMode("parti"); paint(); renderSummary(); renderNatGlance(); }
   } catch (_) {}
   try {
-    // DUN (state-assembly / PRN) results, where Thevesh publishes them (the 6-state
-    // 2023 PRN today). Per-seat: a DUN seat with an entry shows its own result; one
-    // without keeps the parent-Parliament fallback + "PRN coming soon" note.
+    // DUN (state-assembly / PRN) results — MECO + six-state PRN (544/600 seats; Johor
+    // via prn16). MUST paint after load: party mode paints DUN from resultsDun, and
+    // if we only painted after GE15, every DUN seat stayed neutral grey until a mode
+    // switch. (Perak etc. looked patchy/grey on mobile for this reason.)
     const rd = await fetch("data/results-dun.json");
-    if (rd.ok) state.resultsDun = await rd.json();
+    if (rd.ok) {
+      state.resultsDun = await rd.json();
+      paint();
+      renderSummary();
+    }
   } catch (_) {}
   try {
     // Election results remain historical; this optional layer powers present-day
@@ -1104,7 +1109,7 @@ function politicianBentoHTML(b) {
   const education = candidateModalListHTML(b.profile && b.profile.education, false)
     || (b.education ? `<p class="cand-role-text">${esc(b.education)}</p>` : "");
   return `<div class="cand-modal-shell" style="--cc:${b.col.bg};--ccfg:${b.col.fg}">
-    <button class="pol-modal-close" type="button" aria-label="${esc(t("card_preview_close"))}">
+    <button class="pol-modal-close cand-modal-close" type="button" data-i18n-title="card_preview_close" title="${esc(t("card_preview_close"))}" aria-label="${esc(t("card_preview_close"))}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><line x1="6" x2="18" y1="6" y2="18"/><line x1="6" x2="18" y1="18" y2="6"/></svg>
     </button>
     <div class="cand-grid">
@@ -1621,17 +1626,42 @@ function assemblyDissolutionFor(stateName) {
   const assemblies = state.currentAffiliations && state.currentAffiliations.dissolved_assemblies;
   return assemblies && assemblies[stateName] ? assemblies[stateName] : null;
 }
+// Parliament's member roster sometimes files MPs under a generic heading
+// ("PEMBANGKANG" = opposition, no formal bloc) with null party/coalition. That is
+// not a colourable alliance — using it for the choropleth turns seats like
+// Jeli / Gua Musang neutral grey even though they still sit under PN from GE15.
+// Skip those labels and fall through to the election coalition/party.
+const GENERIC_AFFILIATION_BLOCS = new Set([
+  "PEMBANGKANG", "OPPOSITION", "KERAJAAN", "GOVERNMENT",
+  "INDEPENDENT", "TIDAK BERAFILIASI", "UNAFFILIATED",
+]);
 function currentBlocFor(result) {
-  return (result && (result.current_bloc || result.coalition || result.party)) || "";
+  if (!result) return "";
+  for (const raw of [result.current_bloc, result.coalition, result.party,
+                     result.election_coalition, result.election_party]) {
+    const s = String(raw || "").trim();
+    if (!s) continue;
+    if (GENERIC_AFFILIATION_BLOCS.has(s.toUpperCase())) continue;
+    if (s.toUpperCase() === "VACANT") continue;
+    return s;
+  }
+  return "";
+}
+/** Bloc used for map fill: prefer real current affiliation, else GE15 / PRN election row. */
+function mapBlocFor(seat, tier = state.tier) {
+  const elect = seatResultOf(seat, tier);
+  const r = currentRepresentationFor(seat, tier);
+  if (r && r.vacant_since) return "";   // vacant → neutral grey
+  return currentBlocFor(r) || (elect && (elect.coalition || elect.party)) || "";
 }
 // The result to DISPLAY for a seat. Parliament: the seat's own GE15 winner. DUN: the
 // seat's OWN state-election result only — a covered PRN state (results-dun.json) or
 // Johor's 2022 incumbent (johorDunResult) — and NEVER the parent-Parliament MP.
 // Falling back to the parent MP mislabels a federal MP as the state assemblyman, and
 // since 2-4 DUN seats share one Parliament seat it shows the SAME person on every
-// sibling seat (the "sama YB" bug). The states with no DUN results of their own
-// (Melaka, Pahang, Perak, Perlis, Sabah, Sarawak) therefore degrade to an honest
-// "PRN results not in our dataset yet" empty state instead of a wrong, repeated name.
+// sibling seat (the "sama YB" bug). Seats with no own DUN result (only Johor's 56
+// are outside results-dun — they use prn16 incumbents) degrade to an honest empty
+// state instead of a wrong, repeated federal name.
 function resultFor(seat) {
   if (state.tier !== "parlimen") return ownDunResult(seat);
   return state.results && state.results[resultKey(seat, state.tier)];
@@ -1679,9 +1709,13 @@ function seatValueColor(seat) {
     if (p) p.style.fillOpacity = "";
     return "#39404c";
   }
-  if (state.mode === "parti" && state.results) {
-    const r = currentRepresentationFor(seat);
-    return r ? partyColor(currentBlocFor(r)) : "#222b36";
+  // Party choropleth: GE15 on Parliament, own state-election (resultsDun / Johor
+  // prn16) on DUN. Gate on either results table so DUN isn't stuck waiting on GE15.
+  // mapBlocFor falls back to the election coalition when the roster only says
+  // "PEMBANGKANG" with null party (Jeli / Gua Musang / etc.).
+  if (state.mode === "parti" && (state.results || state.resultsDun || state.prn16)) {
+    const bloc = mapBlocFor(seat);
+    return bloc ? partyColor(bloc) : "#222b36";
   }
   if (state.mode === "skor" && state.scores) {
     const key = resultKey(seat, state.tier);
@@ -5044,8 +5078,8 @@ function bentoSeatColor(seat) {
     const r = johorDunResult(seat);
     return r ? prnCoalColor(r.coalition).bg : "#39404c";
   }
-  const r = currentRepresentationFor(seat, bentoMapTier());
-  return r ? partyColor(currentBlocFor(r)) : "#39404c";
+  const bloc = mapBlocFor(seat, bentoMapTier());
+  return bloc ? partyColor(bloc) : "#39404c";
 }
 
 // a compact, self-contained state choropleth built from the seat paths of the open
@@ -5755,7 +5789,7 @@ function candidateModalHTML(seat, entry, candidate, profile) {
     demoLine,
   ].filter(Boolean).map((x) => `<span class="cand-meta-chip">${esc(x)}</span>`).join("");
   return `<div class="cand-modal-shell" style="--cc:${col.bg};--ccfg:${col.fg}">
-    <button class="pol-modal-close" type="button" aria-label="${esc(t("card_preview_close"))}">
+    <button class="pol-modal-close cand-modal-close" type="button" data-i18n-title="card_preview_close" title="${esc(t("card_preview_close"))}" aria-label="${esc(t("card_preview_close"))}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><line x1="6" x2="18" y1="6" y2="18"/><line x1="6" x2="18" y1="18" y2="6"/></svg>
     </button>
     <div class="cand-grid">

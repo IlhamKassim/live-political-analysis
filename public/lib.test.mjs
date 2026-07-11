@@ -544,20 +544,24 @@ test("withCurrentAffiliation: preserves election data unless a current override 
     current_party: "PAS", current_coalition: "PN", current_bloc: "PN",
   }), {
     name: "Example", party: "PAS", coalition: "PN", votes: 1000,
+    election_coalition: "BN", election_party: "UMNO",
     current_bloc: "PN", vacant_since: null, affiliation_status: null,
   });
-  // Explicit nulls must clear historical party/bloc fields when the official
-  // current roster lists a representative only under a generic opposition heading.
+  // Explicit nulls clear display party/coalition when the roster only says
+  // "PEMBANGKANG", but election_* is kept for map colour fallback.
   assert.deepEqual(withCurrentAffiliation(result, {
     current_party: null, current_coalition: null, current_bloc: "PEMBANGKANG",
     affiliation_status: "opposition-unaffiliated",
   }), {
     name: "Example", party: null, coalition: null, votes: 1000,
+    election_coalition: "BN", election_party: "UMNO",
     current_bloc: "PEMBANGKANG", vacant_since: null,
     affiliation_status: "opposition-unaffiliated",
   });
   assert.deepEqual(withCurrentAffiliation(null, { vacant_since: "2026-05-18" }), {
-    name: undefined, party: undefined, coalition: undefined, current_bloc: "", vacant_since: "2026-05-18", affiliation_status: null,
+    name: undefined, party: undefined, coalition: undefined,
+    election_coalition: undefined, election_party: undefined,
+    current_bloc: "", vacant_since: "2026-05-18", affiliation_status: null,
   });
 });
 

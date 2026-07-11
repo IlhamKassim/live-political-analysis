@@ -35,6 +35,10 @@ export function withCurrentAffiliation(result, override) {
     name: owns("current_name") ? override.current_name : base.name,
     party: owns("current_party") ? override.current_party : base.party,
     coalition: owns("current_coalition") ? override.current_coalition : base.coalition,
+    // Keep the election affiliation even when the roster nulls party/coalition
+    // (e.g. "PEMBANGKANG") so map colour can fall back to GE15 PN/PH/BN.
+    election_coalition: base.coalition,
+    election_party: base.party,
     current_bloc: override.current_bloc || base.coalition || base.party || "",
     vacant_since: override.vacant_since || null,
     affiliation_status: override.affiliation_status || null,

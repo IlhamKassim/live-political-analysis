@@ -2886,6 +2886,11 @@ body.news-open #topbar .topbar-context { pointer-events: auto; }
   --cc: var(--accent);
   --ccfg: #0b0e13;
 }
+.candidate-modal .cand-modal-close {
+  z-index: 5;
+  top: 10px;
+  right: 10px;
+}
 .cand-grid {
   display: block;
   column-count: 2;
@@ -3246,6 +3251,12 @@ body.news-open #topbar .topbar-context { pointer-events: auto; }
     border-radius: 18px;
   }
   .cand-modal-shell { padding: 12px; max-height: inherit; }
+  .candidate-modal .cand-modal-close {
+    top: 10px;
+    right: 10px;
+    width: 40px;
+    height: 40px;
+  }
   .cand-grid { column-count: 1; column-gap: 0; }
   .cand-grid > .cand-tile { margin-bottom: 10px; }
   .cand-hero {
