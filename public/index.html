@@ -118,10 +118,15 @@
     </div>
     <p class="muted" data-i18n="info_body">MyPolitik maps every Malaysian Parliament and State (DUN) seat. Tap a state, then a district, to see your representative, party, and GE15 result — built from public, official data, shown transparently.</p>
     <p class="src muted">
-      <span data-i18n="src_bound">Boundaries</span>: <a href="https://github.com/dosm-malaysia/data-open" target="_blank" rel="noopener">DOSM</a> ·
-      <span data-i18n="src_res">Results</span>: <a href="https://github.com/Thevesh/analysis-election-msia" target="_blank" rel="noopener">Thevesh</a> ·
+      <span data-i18n="src_sources">Sources</span>:
+      <a href="https://github.com/dosm-malaysia/data-open" target="_blank" rel="noopener">DOSM</a> ·
+      <a href="https://data.gov.my" target="_blank" rel="noopener">data.gov.my</a> ·
+      <a href="https://electiondata.my" target="_blank" rel="noopener">electiondata.my (Thevesh)</a> ·
+      <a href="https://www.spr.gov.my" target="_blank" rel="noopener">SPR</a> ·
+      <a href="https://www.wikidata.org" target="_blank" rel="noopener">Wikipedia / Wikidata</a> ·
       <span data-i18n="src_proj">Projection</span>: <a href="https://maps.krackeddevs.com" target="_blank" rel="noopener">krackedmaps</a>
     </p>
+    <p class="src muted" data-i18n="src_own">Plus datasets we build and curate ourselves — by-election overlays, current affiliations, candidate profiles, live counts — every figure linked to its source.</p>
     <div class="info-footer">
       <p class="muted info-credit" data-i18n="info_credit">Made by masterofnone, a KD member</p>
       <a class="kd-logo-link" href="https://krackeddevs.com" target="_blank" rel="noopener" aria-label="KrackedDevs">
@@ -137,7 +142,12 @@
         <pattern id="selected-district-lines" patternUnits="userSpaceOnUse" width="4.5" height="4.5" patternTransform="rotate(45)">
           <path d="M0 0V4.5" stroke="rgba(255,255,255,.86)" stroke-width="1.15" />
         </pattern>
+        <filter id="state-outline-filter" x="-4%" y="-4%" width="108%" height="108%" color-interpolation-filters="sRGB">
+          <feMorphology in="SourceGraphic" operator="dilate" radius="1.35" result="expanded" />
+          <feComposite in="expanded" in2="SourceGraphic" operator="out" />
+        </filter>
       </defs>
+      <g id="state-outlines" aria-hidden="true"></g>
       <g id="seats"></g>
       <g id="selected-overlay" aria-hidden="true"></g>
     </svg>
@@ -233,6 +243,6 @@
   </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 </div>
-<script type="module" src="app.js?v=113"></script>
+<script type="module" src="app.js?v=114"></script>
 </body>
 </html>

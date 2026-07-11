@@ -9,6 +9,7 @@ import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSe
 import { I18N } from "./i18n.js?v=66";
 
 const SVG = document.getElementById("map");
+const STATE_OUTLINES = document.getElementById("state-outlines");
 const SEATS = document.getElementById("seats");
 const SELECTED_OVERLAY = document.getElementById("selected-overlay");
 const TOOLTIP = document.getElementById("tooltip");
@@ -1498,6 +1499,7 @@ async function render(tier) {
   SVG.setAttribute("viewBox", data.viewBox);
   viewBox = data.viewBox.split(" ").map(Number);
   SEATS.innerHTML = "";
+  if (STATE_OUTLINES) STATE_OUTLINES.replaceChildren();
   if (SELECTED_OVERLAY) SELECTED_OVERLAY.replaceChildren();
   state.paths.clear();
   hoverState = null;   // paths are rebuilt → any prior hover highlight is gone
@@ -1525,6 +1527,27 @@ async function render(tier) {
     p.dataset.code = seat.code;
     frag.appendChild(p);
     state.paths.set(seat.code, p);
+  }
+  if (STATE_OUTLINES) {
+    const byState = new Map();
+    for (const seat of data.seats) {
+      const name = seat.state || "";
+      if (!name) continue;
+      if (!byState.has(name)) byState.set(name, []);
+      byState.get(name).push(seat);
+    }
+    const outlines = document.createDocumentFragment();
+    for (const seats of byState.values()) {
+      const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      group.setAttribute("class", "state-outline");
+      for (const seat of seats) {
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", seat.d);
+        group.appendChild(path);
+      }
+      outlines.appendChild(group);
+    }
+    STATE_OUTLINES.appendChild(outlines);
   }
   SEATS.appendChild(frag);
   paint();
@@ -2180,6 +2203,9 @@ function seatCardHTML(seat, options = {}) {
     ${desktopFinder}
     <div class="seat-detail-main">
       <div class="seat-head">
+        <button class="share-icon seat-head-share" type="button" data-share-link data-i18n-aria="share_btn" aria-label="Share link" data-i18n-title="share_btn" title="Share link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.2 14.8 14.8 9.2"/><path d="M10.4 7.4 11.8 6a4.2 4.2 0 0 1 6 6l-1.4 1.4"/><path d="M13.6 16.6 12.2 18a4.2 4.2 0 0 1-6-6l1.4-1.4"/></svg>
+        </button>
         <div class="kicker">${esc(kicker)}</div>
         <h2>${esc(seat.name)}</h2>
         ${showStateLine ? `<div class="where">${t("state_label")} <b>${esc(seat.state)}</b></div>` : ""}
@@ -2870,9 +2896,10 @@ function syncStageLabelPosition() {
     document.documentElement.style.removeProperty("--state-label-top");
     return;
   }
-  // Mobile district detail: pin the title to its resting spot under the topbar. The
-  // isolated state now keeps its current frame when details open, so the title should
-  // stay anchored to the chrome rather than chase the map geometry.
+  // Mobile district detail: pin the title under the topbar. The map band also
+  // starts below that title (syncMapToCard) and we reframe the state into that
+  // band so geometry rides with the name instead of staying put while the
+  // title alone jumps.
   if (MOBILE_MAP_INSPECT_MQ.matches && PANEL.classList.contains("seat-detail")) {
     const floor = TOPBAR ? Math.max(12, Math.round(TOPBAR.getBoundingClientRect().bottom + 6)) : 12;
     document.documentElement.style.setProperty("--state-label-top", `${floor}px`);
@@ -2901,7 +2928,18 @@ function setStageLabel(text) {
     // clears any hover sub — fine, the label just changed which state it names.
     const main = document.createElement("span");
     main.className = "label-main";
-    main.textContent = text;
+    const flagAsset = stateFlagAssetFor(text);
+    if (flagAsset) {
+      const flag = document.createElement("img");
+      flag.className = "label-flag";
+      flag.src = flagAsset;
+      flag.alt = "";
+      flag.setAttribute("aria-hidden", "true");
+      flag.loading = "lazy";
+      flag.decoding = "async";
+      main.appendChild(flag);
+    }
+    main.appendChild(document.createTextNode(text));
     if (chip) {
       const s = document.createElement("span");
       s.className = "label-tier";
@@ -3390,7 +3428,7 @@ document.getElementById("mode").addEventListener("click", (e) => {
 // the sidebar owns nav); below the sidebar breakpoint they live in the hamburger menu
 // alongside the other nav, so the topbar never overflows. One set of elements, relocated
 // by viewport — handlers bind by id, so they keep working wherever the nodes land.
-const MAPCTRL_MQ = matchMedia("(min-width: 1240px)");
+const MAPCTRL_MQ = matchMedia("(min-width: 640px)");
 function placeMapControls() {
   const tier = document.getElementById("tier"), mode = document.getElementById("mode");
   const target = MAPCTRL_MQ.matches
@@ -3399,6 +3437,17 @@ function placeMapControls() {
   if (!tier || !mode || !target) return;
   target.appendChild(tier);            // append keeps [location] then [tier][mode] on desktop
   target.appendChild(mode);
+  // phone topbar keeps only brand · live badge · burger — the language seg and
+  // theme toggle ride into the menu's icon row (flex `order` restores the topbar
+  // arrangement when they move back; handlers bind by id/attr so they keep working)
+  const lang = document.getElementById("lang");
+  const theme = document.getElementById("top-theme");
+  const icons = document.querySelector("#mobile-menu .topicons");
+  const end = document.querySelector("#topbar .topbar-end");
+  if (lang && theme && icons && end) {
+    if (MAPCTRL_MQ.matches) { end.appendChild(lang); end.appendChild(theme); }
+    else { icons.appendChild(lang); icons.appendChild(theme); }
+  }
 }
 MAPCTRL_MQ.addEventListener ? MAPCTRL_MQ.addEventListener("change", placeMapControls) : MAPCTRL_MQ.addListener(placeMapControls);
 placeMapControls();
@@ -3576,7 +3625,7 @@ async function sidebarOpenState(name) {
 // beside it (the sidebar never overlays the map or the dashboard).
 // Desktop: click the toggle to expand; auto-collapse after 1.5s idle. No hover-open.
 const SB_AUTO_COLLAPSE_MS = 1500;
-const SB_WIDE_MQ = matchMedia("(min-width: 1240px)");
+const SB_WIDE_MQ = matchMedia("(min-width: 640px)");
 let sbAutoTimer = null;
 
 function sbAutoCollapseEnabled() {
@@ -3629,7 +3678,7 @@ function bindSidebarAutoCollapse() {
 }
 // desktop: start collapsed; narrow keeps prior preference
 try {
-  if (typeof matchMedia === "function" && matchMedia("(min-width: 1240px)").matches) {
+  if (typeof matchMedia === "function" && matchMedia("(min-width: 640px)").matches) {
     document.body.classList.add("sb-collapsed");
   } else if (localStorage.getItem("mp-sb-collapsed") === "1") {
     document.body.classList.add("sb-collapsed");
@@ -4251,15 +4300,17 @@ async function showMapInspectDetails(options = {}) {
         resetStateInfoScroll();
         writeHash();
       }, (firstMap, lastMap) => {
-        // Preserve the isolated state's current screen size/position through the card
-        // swap. The district selection should highlight; it should not make the whole
-        // state expand or refit just because the detail card changed height.
+        // Keep the camera stable through the card FLIP, then reframe so the state
+        // rides up with the title pinned under the topbar.
         if (MOBILE_MAP_INSPECT_MQ.matches && state.openState) {
           setViewBoxPreservingScreen(firstMap, lastMap);
           return true;
         }
         return false;
       });
+      if (MOBILE_MAP_INSPECT_MQ.matches && state.openState) {
+        requestAnimationFrame(() => reframeMobileStateWithTitle());
+      }
     } finally {
       mapInspectDetailsAnimating = false;
     }
@@ -5890,6 +5941,31 @@ function bentoMapTileHTML(name) {
 function stateInitials(name) {
   return personInitials(String(name || "").replace(/^W\.P\.\s*/i, ""));
 }
+const STATE_FLAG_ASSETS = Object.freeze({
+  "Johor": "assets/state-flags/johor.svg",
+  "Kedah": "assets/state-flags/kedah.svg",
+  "Kelantan": "assets/state-flags/kelantan.svg",
+  "Melaka": "assets/state-flags/melaka.svg",
+  "Negeri Sembilan": "assets/state-flags/negeri-sembilan.svg",
+  "Pahang": "assets/state-flags/pahang.svg",
+  "Perak": "assets/state-flags/perak.svg",
+  "Perlis": "assets/state-flags/perlis.svg",
+  "Pulau Pinang": "assets/state-flags/penang.svg",
+  "Penang": "assets/state-flags/penang.svg",
+  "Sabah": "assets/state-flags/sabah.svg",
+  "Sarawak": "assets/state-flags/sarawak.svg",
+  "Selangor": "assets/state-flags/selangor.svg",
+  "Terengganu": "assets/state-flags/terengganu.svg",
+  "W.P. Kuala Lumpur": "assets/state-flags/kuala-lumpur.svg",
+  "Kuala Lumpur": "assets/state-flags/kuala-lumpur.svg",
+  "W.P. Putrajaya": "assets/state-flags/putrajaya.svg",
+  "Putrajaya": "assets/state-flags/putrajaya.svg",
+  "W.P. Labuan": "assets/state-flags/labuan.svg",
+  "Labuan": "assets/state-flags/labuan.svg"
+});
+function stateFlagAssetFor(name) {
+  return STATE_FLAG_ASSETS[String(name || "").trim()];
+}
 // Sourced emblem art when the manifest is loaded; deterministic monogram fallback
 // when the optional file fails or a new state key is missing.
 function stateEmblemFor(name) {
@@ -6645,12 +6721,22 @@ function revealStateCard(options = {}) {
   riseCard(PANEL_STATE, 0);          // the minimize already led; bounce up from the minimized bar
 }
 
+// After a mobile district open/close, re-pin the title and reframe the whole
+// state into the new map band so the geometry moves with the name.
+function reframeMobileStateWithTitle(ms = DETAIL_POP_MS) {
+  if (!MOBILE_MAP_INSPECT_MQ.matches || !state.openState) return;
+  syncMapToCard();
+  syncStageLabelPosition();
+  zoomToState(state.openState, (ANIM_OFF || REDUCE_MOTION.matches) ? 0 : ms, DETAIL_POP_EASE_FN);
+}
+
 function showDistrict(code) {
   const seat = state.data[state.tier] && state.data[state.tier].byCode.get(code);
   if (!seat) return;
   const wasMapInspect = state.mapInspect;
+  const mobileDetail = MOBILE_MAP_INSPECT_MQ.matches;
   state.selected = code;
-  // highlight the tapped district on the (static) zoomed-in map
+  // highlight the tapped district on the zoomed-in map
   setSelectedDistrict(code);
   animateCardResize(PANEL_STATE, () => {   // grow/shrink the floating card to fit the detail
     if (wasMapInspect) {
@@ -6660,6 +6746,11 @@ function showDistrict(code) {
     STATE_INFO.innerHTML = stateSeatCardHTML(seat);
     resetStateInfoScroll();
   }, { preserveMapView: true });
+  // mobile: title pins under the topbar + map band shrinks — reframe so the
+  // state rides up with the title (not left floating mid-band)
+  if (mobileDetail) {
+    requestAnimationFrame(() => reframeMobileStateWithTitle());
+  }
   animateIn(STATE_INFO, 6);   // the district detail swaps into the card under the header
   // a district chosen while the dashboard is up (search, geolocate, deep link)
   // spotlights it there too — the hidden panel stays consistent for resize-down
@@ -6686,6 +6777,8 @@ function goBack() {
         STATE_INFO.scrollTop = 0;
         setMapInspectWithoutRefit(true);
       }, { preserveMapView: true });
+      // reverse of district open: title leaves the top pin, map reframes with it
+      requestAnimationFrame(() => reframeMobileStateWithTitle());
       writeHash();
       return;
     }
@@ -6764,6 +6857,11 @@ function backToControls() {
   clearMatches();
   setFindStatus(null);
   syncSidebar();
+  // The landing map is the citizen's national Parliament view. Explicit deep
+  // links still honour their requested tier during boot; only returning home
+  // resets the view to the product default.
+  if (state.mode !== "parti") setMode("parti");
+  if (state.tier !== "parlimen") void setTier("parlimen");
   writeHash();
 }
 
