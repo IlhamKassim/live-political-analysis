@@ -5201,6 +5201,10 @@ function snapshotPrnLiveStatuses(live) {
 
 async function refreshPrnLive() {
   clearTimeout(prnLiveTimer);
+  // No live election → never poll the live endpoint. Without this a concluded
+  // election still fetched stale /api/live/johor data and fired seat-call toasts
+  // ("N.xx · Leading · BN") on the normal map.
+  if (!liveElection()) { state.prnLive = null; prnFlashCodes = []; return; }
   let live = null;
   const localHost = ["", "localhost", "127.0.0.1", "::1"].includes(location.hostname);
   const urls = localHost ? ["data/live-johor.json", "/api/live/johor"] : ["/api/live/johor", "data/live-johor.json"];
