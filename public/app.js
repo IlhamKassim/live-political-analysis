@@ -3036,12 +3036,16 @@ async function switchOpenStateTier() {
     state.tier = next;
     state.selected = null;
     clearSelectedDistrict();
-    const cached = !!state.data[next];
-    if (!cached) showLoading();
+    // Preload the layer silently and skip the national-map fade: flipping layer
+    // while a state is open should recolour/reshape THAT state in place, not flash
+    // a whole new SVG loading in. (Geometry differs P↔DUN, but the reveal shouldn't.)
+    if (!state.data[next]) await loadTier(next).catch(() => {});
+    skipMapFade = true;
     try {
       await render(next);
     } catch (err) {
       console.error("switchOpenStateTier: render failed", err);
+      skipMapFade = false;
       state.tier = prev;
       document.querySelectorAll("#tier button").forEach((x) => setOn(x, x.dataset.tier === prev));
       showLoadError();
