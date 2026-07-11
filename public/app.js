@@ -3120,20 +3120,27 @@ SVG.addEventListener("click", (e) => {
     e.stopPropagation();
     return;
   }
-  if (MOBILE_MAP_INSPECT_MQ.matches && state.openState && state.selected && !state.mapInspect) {
+  const tgt = e.target;   // NOT `t` — that name is the module-level i18n fn t(); shadowing it would break any t("key") added here
+  TOOLTIP.hidden = true; clearStateHover();  // dismiss any lingering hover tooltip / state highlight
+  const isSeat = !!(tgt.classList && tgt.classList.contains("seat"));
+  const seat = isSeat && state.data[state.tier] && state.data[state.tier].byCode.get(tgt.dataset.code);
+  // mobile seat-detail: tapping a district OF THE OPEN STATE opens the inspect tray.
+  // Only own-state districts qualify — sea/outside taps used to be swallowed here,
+  // stranding the user in the seat view after "locate me".
+  if (MOBILE_MAP_INSPECT_MQ.matches && state.openState && state.selected && !state.mapInspect
+      && seat && seat.state === state.openState) {
     setMapInspect(true);
     return;
   }
-  const tgt = e.target;   // NOT `t` — that name is the module-level i18n fn t(); shadowing it would break any t("key") added here
-  TOOLTIP.hidden = true; clearStateHover();  // dismiss any lingering hover tooltip / state highlight
-  if (tgt.classList && tgt.classList.contains("seat")) {
-    const seat = state.data[state.tier] && state.data[state.tier].byCode.get(tgt.dataset.code);
+  if (isSeat) {
     if (!seat) return;
     if (state.openState) {
       // already isolated in a state → tapping a district shows its detail
       if (seat.state === state.openState) {
         if (state.mapInspect) previewDistrict(seat.code);
         else showDistrict(seat.code);
+      } else {
+        goBack();   // tapped a neighbouring state's seat → step back, same as empty space
       }
     } else {
       openStateCard(seat.state);   // overview → isolate + zoom into the tapped state
