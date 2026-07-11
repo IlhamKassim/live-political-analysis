@@ -118,7 +118,29 @@ a:hover { text-decoration: underline; }
 
 /* ---- stage / map ---- */
 #stage { grid-area: stage; position: relative; background:
-  radial-gradient(120% 90% at 50% 0%, var(--stage-top, #0d141d) 0%, var(--sea) 70%); overflow: hidden; }
+  radial-gradient(120% 90% at 50% 0%, var(--stage-top, #0d141d) 0%, var(--sea) 70%); overflow: hidden;
+  /* isolate: the fluid-bg child at z:-1 then paints above this background but
+     below every other child (svg, overlays) — no per-child z-index needed */
+  isolation: isolate; }
+/* the lazy iframe never loads under reduced motion (display:none = never intersects) */
+@media (prefers-reduced-motion: reduce) { #stage > fluid-bg { display: none; } }
+/* colour journey: slowly re-hue the fluid through the state-emblem palette —
+   holds on a colour (~9s), morphs to the next (~3s); a full wheel per loop
+   (blue → purple → red → gold/yellow → green → teal). Pure filter on the host:
+   the sim never reloads, and the map/party colours above are untouched. */
+@keyframes fluid-hue {
+  0%, 12%  { filter: hue-rotate(0deg); }
+  17%, 29% { filter: hue-rotate(60deg); }
+  33%, 45% { filter: hue-rotate(120deg); }
+  50%, 62% { filter: hue-rotate(180deg); }
+  67%, 79% { filter: hue-rotate(240deg); }
+  83%, 95% { filter: hue-rotate(300deg); }
+  100%     { filter: hue-rotate(360deg); }
+}
+#stage > fluid-bg, #state-bento fluid-bg { animation: fluid-hue 72s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  #stage > fluid-bg, #state-bento fluid-bg { animation: none; }
+}
 #map { width: 100%; height: 100%; display: block; cursor: grab; }
 #map:active { cursor: grabbing; }
 
@@ -430,7 +452,7 @@ h1, h2, .seat-head h2 { font-family: var(--font-display); font-weight: 700; lett
   --grid-line: transparent;
   --grid-size: 24px;
   /* ---- motion vocabulary (one source of truth; compositor-only props only) ---- */
-  --dur-1: 150ms; --dur-2: 200ms; --dur-3: 300ms; --dur-4: 400ms;
+  --dur-1: 90ms; --dur-2: 140ms; --dur-3: 200ms; --dur-4: 260ms;
   --ease-out: cubic-bezier(0, 0, 0.2, 1);      /* entrances / user-triggered */
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1); /* reflow */
 }
@@ -478,6 +500,12 @@ html[data-theme="light"] {
   --grid-line: transparent;
 }
 
+/* fluid dashboard background: the fixed embed (z:0) paints above the page
+   background; the bento content lifts to z:1 so tiles/text stay on top.
+   #bento-content is display:contents — its children join #state-bento's flex. */
+#bento-content { display: contents; }
+body.bento-on #bento-content > * { position: relative; z-index: 1; }
+
 body { font-family: var(--sans); }
 #app { display: block; position: relative; height: 100vh; height: 100dvh; }
 
@@ -503,14 +531,26 @@ body { font-family: var(--sans); }
    visible (outstate seats are opacity 0) and the card (z-30) covers it as it rises. */
 body.state-open #map { overflow: visible; }
 
-/* ---- floating top bar: logo left, icon cluster right ---- */
+/* ---- floating top bar: logo left, actions + theme right ---- */
 #topbar {
   position: fixed; top: 0; left: 0; right: 0; z-index: 50;   /* stays above the lifted map when a state is open */
+  display: flex; align-items: center; gap: 8px;
   background: none; border: 0; flex-wrap: nowrap;
   padding: max(12px, env(safe-area-inset-top)) 14px 10px;
   pointer-events: none;
+  /* room for absolute-centred MyPolitik title */
+  min-height: calc(max(12px, env(safe-area-inset-top)) + 44px + 10px);
 }
 #topbar > * { pointer-events: auto; }
+/* right cluster: bento close/toggle · theme (always) · hamburger — theme is last-but-menu so it stays top-right */
+.topbar-end {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  min-width: 0;
+}
 .brand { flex-direction: row; align-items: center; }
 .brand .mark { font-size: 18px; }
 .brand .tag { display: none; }
@@ -537,13 +577,32 @@ body.state-open #map { overflow: visible; }
 .menu-map-controls:empty { display: none; }
 .mobile-menu-btn {
   display: none;
-  margin-left: auto;
 }
 .topicons { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-/* standalone theme toggle: always top-right in the topbar, at every width */
-.topbar-theme { margin-left: auto; }
-.topbar-theme ~ .mobile-menu-btn,
-.topbar-theme ~ .mobile-menu .topicons { margin-left: 0; }
+/* theme + language live in .topbar-end — always visible (map, bento, politicians) */
+.topbar-theme { margin-left: 0; flex: 0 0 auto; order: 3; }
+.topbar-end .topbar-lang { order: 2; flex: 0 0 auto; }
+.topbar-end .mobile-menu-btn { order: 4; }
+.topbar-end .topbar-actions { order: 1; }
+.topbar-lang {
+  background: var(--glass);
+  border: 1px solid var(--line);
+  border-radius: var(--control-radius);
+  backdrop-filter: blur(8px);
+  overflow: hidden;
+}
+.topbar-lang button {
+  min-width: 40px;
+  min-height: 44px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+/* when menu is open as display:contents, don't let topicons steal right-side space */
+@media (min-width: 1240px) {
+  #topbar > .mobile-menu,
+  #topbar .topicons { display: none; }
+}
 .iconbtn {
   width: 44px; height: 44px; display: grid; place-items: center; padding: 0;
   background: var(--glass); border: 1px solid var(--line); border-radius: var(--control-radius);
@@ -728,7 +787,10 @@ body.state-open #map { overflow: visible; }
   background: none; border: 0; overflow: visible;
   padding: 0 12px calc(12px + env(safe-area-inset-bottom));
 }
-#panel.empty { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+/* empty home card: lift off the floor so bottom air ≈ gap under the map band */
+#panel.empty {
+  padding-bottom: max(56px, calc(9vh + env(safe-area-inset-bottom)));
+}
 #panel-empty {
   transform-origin: bottom center;   /* the minimize collapse grows/shrinks from the bottom */
   max-height: var(--panel-card-max-h, none);
@@ -830,9 +892,17 @@ body.state-open #map { overflow: visible; }
 #panel-seat .card-back { width: auto; min-width: 44px; height: 44px; padding: 0 12px; gap: 6px; font-size: 13px; margin-bottom: 12px; }
 .state-map-wrap { width: 100%; height: 300px; }
 #state-map { width: 100%; height: 100%; display: block; }
-.mini-seat { stroke: var(--line-2); stroke-width: .25; cursor: pointer; transition: filter .12s; }
-.mini-seat:hover { filter: brightness(1.3) saturate(1.1); stroke: var(--accent); stroke-width: .5; }
-.mini-seat.sel { stroke: var(--select); stroke-width: .8; paint-order: stroke; }
+/* same non-scaling rule as .bento-seat / .seat — mini map viewBoxes also differ per state */
+.mini-seat {
+  stroke: var(--line-2);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+  cursor: pointer;
+  transition: filter .12s;
+}
+.mini-seat:hover { filter: brightness(1.3) saturate(1.1); stroke: var(--accent); stroke-width: 1.5; }
+.mini-seat.sel { stroke: var(--select); stroke-width: 1.8; paint-order: stroke; }
 
 /* info under the state map: coalition make-up by default, the tapped district's detail when chosen */
 #state-info { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 14px; }
@@ -1633,31 +1703,68 @@ body.state-open #map { overflow: visible; }
 .results { top: auto; bottom: calc(100% + 8px); left: 0; right: 0; width: auto;
   background: var(--panel); border-color: var(--line-2); box-shadow: 0 -16px 40px rgba(0,0,0,.5); }
 
-/* ---- national at-a-glance: the Dewan Rakyat (GE15) makeup, idle card header ---- */
-.nat-glance { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+/* ---- national at-a-glance: GE15 bloc bar under the home search ----
+   Default: colour bar only. Hover / focus-within reveals PH 82 · PN 74 · …
+   Touch (no hover): counts stay open so they remain discoverable. */
+.nat-glance {
+  /* equal air: gap under search = card bottom padding (12px) so the bar sits mid-band */
+  margin: 12px 0 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  cursor: default;
+}
 .nat-glance[hidden] { display: none; }
-.nat-glance-h { font-size: 11px; color: var(--ink-faint); letter-spacing: .02em; }
-.nat-glance .sharebar { margin: 9px 0 7px; }
-.nat-glance .sharebar-key { gap: 5px 13px; }
-.nat-glance .sharebar-key .sk { display: inline-flex; align-items: center; gap: 5px; }  /* keep each PH·82 together on wrap */
-.nat-glance-maj { font-size: 11px; color: var(--ink-faint); margin-top: 7px; }
+.nat-glance-h,
+.nat-glance-maj { display: none; } /* title + majority live in aria-label */
+.nat-glance .sharebar {
+  margin: 0;
+  height: 10px;
+  border-radius: 999px;
+}
+.nat-glance .sharebar-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 13px;
+  margin: 0;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: max-height .22s ease, opacity .18s ease, margin .18s ease;
+}
+.nat-glance .sharebar-key .sk {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+/* reveal counts while open — JS adds .is-open on enter and keeps it ~3s after leave */
+.nat-glance.is-open .sharebar-key {
+  max-height: 6em;
+  opacity: 1;
+  margin-top: 8px;
+  pointer-events: auto;
+}
+@media (hover: none) {
+  .nat-glance .sharebar-key {
+    max-height: 6em;
+    opacity: 1;
+    margin-top: 8px;
+    pointer-events: auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nat-glance .sharebar-key { transition: none; }
+}
 
 @media (min-aspect-ratio: 1/1) {
-  .nat-glance-h {
-    font-size: 13px;
-    line-height: 1.3;
-  }
   .nat-glance .sharebar {
-    height: 14px;
-    margin: 10px 0 8px;
+    height: 12px;
   }
   .nat-glance .sharebar-key {
     gap: 6px 16px;
     font-size: 13px;
-    line-height: 1.35;
-  }
-  .nat-glance-maj {
-    font-size: 12.5px;
     line-height: 1.35;
   }
 }
@@ -1810,7 +1917,7 @@ body.state-open #map { overflow: visible; }
 #seats .seat.state-hover, #seats.overview .seat.state-hover:hover { filter: brightness(1.32); }
 
 /* ---- spotlight: with a state card open, the open state stays lit, the rest dim back ---- */
-#seats .seat { transition: opacity .18s ease; }
+#seats .seat { transition: opacity .1s ease, filter .1s ease; }
 #seats.overview .seat.outstate { opacity: .24; }
 #seats.overview .seat.instate { opacity: 1; }
 
@@ -1834,7 +1941,7 @@ body.state-open #map { overflow: visible; }
   paint-order: stroke;
 }
 #seats.returning .seat {
-  transition-duration: 560ms;
+  transition-duration: 220ms;
   transition-timing-function: var(--ease-in-out);
 }
 #seats.isolated.returning .seat.outstate {
@@ -1969,7 +2076,10 @@ body.state-open #panel-state {
    floating card — NOT the tall mobile backdrop (which left a lot of empty space here). ---- */
 @media (min-aspect-ratio: 1/1) {
   #panel { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
-  #panel.empty { padding-bottom: calc(40px + env(safe-area-inset-bottom)); }
+  /* desktop: sit the search card higher — roomy bottom margin balances the map gap above */
+  #panel.empty {
+    padding-bottom: max(80px, calc(11vh + env(safe-area-inset-bottom)));
+  }
   /* cap the map width on wide screens and CENTRE it (grid stays full-bleed behind). The map
      is aspect-locked, so a width cap also bounds its height. */
   #map {
@@ -2029,7 +2139,7 @@ body.mobile-menu-open .mobile-menu { transform-origin: top center;  animation: p
 .results:not([hidden])             { transform-origin: bottom center; animation: pop-up var(--dur-2) var(--ease-out); }
 .map-inspect-select-list:not([hidden]) { transform-origin: bottom center; animation: pop-up var(--dur-2) var(--ease-out); }
 /* the just-selected district's line texture draws in rather than snapping on */
-.selected-texture { animation: fade-in-only 260ms var(--ease-out); }
+.selected-texture { animation: fade-in-only 120ms var(--ease-out); }
 @media (prefers-reduced-motion: reduce) {
   body.mobile-menu-open .mobile-menu,
   #info-card:not([hidden]),
@@ -2209,30 +2319,54 @@ button.map-inspect-overview:focus-visible { outline: 2px solid var(--focus); out
 
 /* ===== live election (PRN16 Johor) — badge, banner, campaign view ===== */
 .live-badge {
-  position: relative; z-index: 0; flex: 0 0 auto; margin-left: auto;
+  position: relative; z-index: 0; flex: 0 0 auto; margin-left: 0;
   display: inline-flex; align-items: center; gap: 8px;
   min-height: 44px; padding: 0 14px; border-radius: 999px;
-  border: 1px solid var(--danger);
-  background: var(--danger); color: var(--danger-fg); cursor: pointer;
+  /* soft translucent red — white type for legibility */
+  border: 1px solid color-mix(in oklab, var(--danger) 60%, transparent);
+  background: color-mix(in oklab, var(--danger) 28%, transparent);
+  color: #fff;
+  cursor: pointer;
   box-shadow: none; overflow: hidden; isolation: isolate;
   font-family: var(--sans); font-size: 12px; letter-spacing: .04em; font-weight: 800;
   text-transform: uppercase; white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
-.live-badge:not([hidden]) + .topbar-theme { margin-left: 0; }
+
+/* left → right light sweep through the translucent pill */
 .live-badge::before {
   content: "";
   position: absolute;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 55%;
   z-index: 0;
-  background: var(--danger-hi);
-  opacity: 0;
-  animation: live-badge-color 4.8s ease-in-out infinite;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in oklab, var(--danger) 38%, transparent) 45%,
+    color-mix(in oklab, var(--danger) 12%, transparent) 70%,
+    transparent 100%
+  );
+  transform: translateX(-120%);
+  animation: live-badge-sweep 2.4s ease-in-out infinite;
   pointer-events: none;
-  will-change: opacity;
+  will-change: transform;
 }
 .live-badge > span { position: relative; z-index: 1; }
-.live-badge .live-dot { width: 8px; height: 8px; background: var(--danger-fg); }
-.live-badge:hover { border-color: var(--danger-hi); background: var(--danger-hi); color: var(--danger-fg); }
+.live-badge .live-dot {
+  width: 8px; height: 8px;
+  background: #fff;
+  box-shadow: 0 0 0 0 color-mix(in oklab, #fff 40%, transparent);
+}
+.live-badge:hover {
+  border-color: color-mix(in oklab, var(--danger) 80%, transparent);
+  background: color-mix(in oklab, var(--danger) 40%, transparent);
+  color: #fff;
+}
 .live-badge:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 .live-badge[hidden] { display: none; }   /* explicit display would defeat the hidden attribute */
 .live-dot {
@@ -2240,9 +2374,12 @@ button.map-inspect-overview:focus-visible { outline: 2px solid var(--focus); out
   animation: live-pulse 1.6s ease-in-out infinite;
 }
 @keyframes live-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .45; transform: scale(.72); } }
-@keyframes live-badge-color {
-  0%, 100% { opacity: 0; }
-  50% { opacity: 1; }
+@keyframes live-badge-sweep {
+  0%   { transform: translateX(-120%); opacity: 0; }
+  12%  { opacity: 1; }
+  55%  { opacity: 1; }
+  88%  { opacity: 0.35; }
+  100% { transform: translateX(220%); opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .live-dot { animation: none; }
@@ -2455,6 +2592,7 @@ body.searching .results {
 .info-credit { font-size: 12px; margin: 0; }
 .kd-logo-link { display: inline-block; width: fit-content; }
 .kd-logo { height: 40px; width: auto; image-rendering: pixelated; display: block; }
+
 @media (max-width: 860px) {
   #info-card { left: 12px; right: 12px; width: auto; }
 }
@@ -2479,6 +2617,16 @@ body.searching .results {
 }
 .pol-monogram { font-family: var(--font-display); font-weight: 700; font-size: 26px; line-height: 1; color: #fff; letter-spacing: .02em; }
 .seat-yb-card.has-profile { gap: 10px; }
+/* bento compact strip: fixed-height identity row — no bio, so the map never grows */
+.seat-yb-card.is-compact { gap: 0; }
+.seat-yb-card.is-compact .yb-head { align-items: center; }
+.seat-yb-card.is-openable {
+  cursor: pointer;
+  border-radius: 12px;
+  transition: background .12s ease, border-color .12s ease;
+}
+.seat-yb-card.is-openable:hover { background: color-mix(in oklab, var(--bg-2) 70%, transparent); }
+.seat-yb-card.is-openable:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .yb-head { display: flex; gap: 12px; align-items: flex-start; }
 .yb-id { min-width: 0; display: grid; gap: 3px; }
 .yb-kicker { color: var(--ink-faint); font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
@@ -2511,7 +2659,29 @@ body.searching .results {
 body.politicians-open #politicians-view, body.news-open #news-view { display: block; }
 body.politicians-open #stage, body.politicians-open #panel,
 body.news-open #stage, body.news-open #panel { display: none; }
-body.politicians-open #topbar, body.news-open #topbar { display: none; }
+/* directory pages hide map chrome; keep centre MyPolitik title + theme/lang cluster */
+body.politicians-open #brand-home,
+body.politicians-open #live-badge,
+body.politicians-open #mobile-menu-btn,
+body.politicians-open #mobile-menu,
+body.politicians-open #topbar-actions,
+body.news-open #brand-home,
+body.news-open #live-badge,
+body.news-open #mobile-menu-btn,
+body.news-open #mobile-menu,
+body.news-open #topbar-actions { display: none !important; }
+body.politicians-open #topbar,
+body.news-open #topbar {
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border: 0;
+  pointer-events: none;
+}
+body.politicians-open #topbar .topbar-end,
+body.politicians-open #topbar .topbar-context,
+body.news-open #topbar .topbar-end,
+body.news-open #topbar .topbar-context { pointer-events: auto; }
 /* news full page: a readable single column of headlines (reuses the .pol-dir shell) */
 .news-page { max-width: 760px; margin: 0 auto; }
 .news-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 2px; }
@@ -2538,12 +2708,22 @@ body.politicians-open #topbar, body.news-open #topbar { display: none; }
 .pol-back:hover { border-color: var(--line-2); background: color-mix(in oklab, var(--bg-2) 85%, var(--ink) 15%); }
 .pol-back:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .pol-back svg { flex: 0 0 auto; }
-.pol-dir-controls { max-width: 1100px; margin: 0 auto 16px; display: flex; flex-wrap: wrap; gap: 8px; }
+.pol-dir-controls { max-width: 1100px; margin: 0 auto 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .pol-dir-controls input, .pol-dir-controls select {
   background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px;
   padding: 11px 13px; font-size: 16px; font-family: var(--sans); color: var(--ink); min-height: 44px;
 }
 .pol-dir-search { flex: 1 1 220px; min-width: 0; }
+/* party drill-down chip (set by clicking a Parties-tab card) */
+.pol-party-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: 44px; padding: 0 14px; border-radius: 999px; cursor: pointer;
+  font: inherit; font-size: 13px; font-weight: 700; letter-spacing: .02em;
+  color: var(--ink); background: color-mix(in oklab, var(--accent) 16%, var(--bg-2));
+  border: 1px solid color-mix(in oklab, var(--accent) 40%, var(--line));
+}
+.pol-party-chip:hover { background: color-mix(in oklab, var(--accent) 24%, var(--bg-2)); }
+.pol-party-chip:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .pol-dir-count { max-width: 1100px; margin: 0 auto 10px; color: var(--ink-faint); font-size: 12px; font-family: var(--mono); }
 .pol-grid {
   max-width: 1100px; margin: 0 auto;
@@ -2663,18 +2843,27 @@ body.politicians-open #topbar, body.news-open #topbar { display: none; }
   outline-offset: 3px;
 }
 
-/* ===== PRN candidate full bento pop-up ===== */
+/* ===== PRN / politician full bento pop-up =====
+   Hierarchy: party-tinted hero → primary role/stats → prose → quieter meta tiles.
+   Avoids the "wall of identical grey boxes" look. */
 .candidate-modal {
   width: min(1080px, calc(100vw - 28px));
   max-height: min(92dvh, 900px);
   border-radius: 22px;
+  border: 1px solid color-mix(in oklab, var(--line) 80%, var(--ink) 20%);
+  background: var(--panel);
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--ink) 4%, transparent),
+    0 28px 80px rgba(0, 0, 0, .55);
 }
 .cand-modal-shell {
   position: relative;
   max-height: inherit;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 16px;
+  padding: 18px;
+  --cc: var(--accent);
+  --ccfg: #0b0e13;
 }
 .cand-grid {
   display: block;
@@ -2686,8 +2875,9 @@ body.politicians-open #topbar, body.news-open #topbar { display: none; }
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 16px;
-  background: var(--bg-2);
-  padding: 14px;
+  background: color-mix(in oklab, var(--bg-2) 88%, var(--panel));
+  padding: 14px 16px;
+  box-shadow: inset 0 1px 0 color-mix(in oklab, var(--ink) 4%, transparent);
 }
 .cand-grid > .cand-tile {
   width: 100%;
@@ -2695,59 +2885,361 @@ body.politicians-open #topbar, body.news-open #topbar { display: none; }
   break-inside: avoid;
 }
 .cand-grid > .cand-tile:not(.cand-hero):not([hidden]) { display: inline-block; }
+/* ---- HERO: party colour wash + portrait ring ---- */
 .cand-hero {
   column-span: all;
+  position: relative;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 14px;
+  gap: 18px;
   align-items: center;
-  padding-right: 58px;
-  background: linear-gradient(135deg, color-mix(in oklab, var(--cc) 22%, var(--bg-2)), var(--bg-2) 58%);
+  padding: 20px 60px 20px 20px;
+  overflow: hidden;
+  isolation: isolate;
+  border-color: color-mix(in oklab, var(--cc) 38%, var(--line));
+  background:
+    radial-gradient(ellipse 70% 140% at 0% 40%, color-mix(in oklab, var(--cc) 42%, transparent), transparent 58%),
+    radial-gradient(ellipse 50% 100% at 100% 0%, color-mix(in oklab, var(--cc) 16%, transparent), transparent 50%),
+    linear-gradient(155deg,
+      color-mix(in oklab, var(--cc) 20%, var(--panel)) 0%,
+      var(--panel) 52%,
+      color-mix(in oklab, var(--bg-2) 70%, var(--panel)) 100%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--cc) 28%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, var(--ink) 3%, transparent);
 }
-.cand-modal-photo { width: 92px; height: 92px; border-radius: 18px; object-fit: cover; border: 1px solid rgba(255,255,255,.12); }
-.cand-modal-photo.pol-monogram { font-size: 30px; }
-.cand-hero-id { min-width: 0; display: grid; gap: 7px; }
-.cand-hero h2 { margin: 0; font-family: var(--font-display); font-size: clamp(24px, 3.4vw, 40px); line-height: 1; letter-spacing: 0; }
-.cand-seat { margin: 0; font-size: 13px; line-height: 1.35; }
-.cand-pill-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.cand-kicker {
-  color: var(--ink-faint);
-  font-family: var(--mono);
-  font-size: 10px;
+.cand-hero::after {
+  content: "";
+  position: absolute;
+  right: -8%;
+  top: -40%;
+  width: 46%;
+  height: 180%;
+  background: radial-gradient(circle, color-mix(in oklab, var(--cc) 18%, transparent), transparent 68%);
+  pointer-events: none;
+  z-index: 0;
+}
+.cand-hero > * { position: relative; z-index: 1; }
+.cand-photo-wrap {
+  flex: 0 0 auto;
+  width: 112px;
+  height: 112px;
+  border-radius: 24px;
+  padding: 3px;
+  background: linear-gradient(145deg,
+    color-mix(in oklab, var(--cc) 85%, white),
+    color-mix(in oklab, var(--cc) 40%, transparent) 55%,
+    color-mix(in oklab, var(--ink) 12%, transparent));
+  box-shadow:
+    0 14px 36px color-mix(in oklab, var(--cc) 28%, transparent),
+    0 0 0 1px color-mix(in oklab, var(--cc) 20%, transparent);
+}
+.cand-modal-photo {
+  width: 100%;
+  height: 100%;
+  border-radius: 21px;
+  object-fit: cover;
+  object-position: center 12%;
+  border: 0;
+  display: grid;
+  place-items: center;
+  background: color-mix(in oklab, var(--cc) 55%, #1a2030);
+}
+.cand-modal-photo.pol-monogram {
+  font-size: 34px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 1px 0 rgba(0,0,0,.25);
+}
+.cand-hero-id { min-width: 0; display: grid; gap: 8px; }
+.cand-hero h2 {
+  margin: 0;
+  font-family: var(--font-display, var(--sans));
+  font-size: clamp(26px, 3.6vw, 42px);
   font-weight: 700;
-  letter-spacing: .07em;
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.cand-seat { margin: 0; font-size: 13px; line-height: 1.35; }
+.cand-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+.cand-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-dim);
+  background: color-mix(in oklab, var(--ink) 7%, transparent);
+  border: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
+}
+.cand-pill-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 2px; }
+.cand-pill-row .pill {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  padding: 6px 12px;
+  border-radius: 999px;
+  box-shadow: 0 4px 14px color-mix(in oklab, var(--cc) 30%, transparent);
+}
+.cand-kicker {
+  color: color-mix(in oklab, var(--cc) 55%, var(--ink-faint));
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .08em;
   text-transform: uppercase;
 }
+/* ---- tile variants (not all the same grey slab) ---- */
 .cand-role {
   border-color: var(--line);
-  background: var(--bg-2);
+  background: color-mix(in oklab, var(--bg-2) 88%, var(--panel));
   box-shadow: none;
 }
 .cand-role .cand-kicker { color: var(--ink-faint); }
-.cand-role-text, .cand-summary p, .cand-tile > p { margin: 8px 0 0; color: var(--ink-dim); font-size: 13px; line-height: 1.55; }
-.cand-role-text { color: var(--ink); font-weight: 650; }
-.cand-facts-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 9px; }
-.cand-fact { display: grid; gap: 4px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-soft); }
-.cand-fact span { color: var(--ink-faint); font-family: var(--mono); font-size: 9.5px; letter-spacing: .05em; text-transform: uppercase; }
-.cand-fact b { min-width: 0; color: var(--ink); font-size: 14px; line-height: 1.2; overflow-wrap: anywhere; }
-.cand-fact small { color: var(--ink-faint); font-size: 11px; }
-.cand-list { margin: 10px 0 0; padding-left: 18px; color: var(--ink-dim); display: grid; gap: 6px; font-size: 13px; line-height: 1.45; }
-.cand-party .cand-list { list-style: none; padding-left: 0; display: flex; flex-wrap: wrap; gap: 7px; }
-.cand-party .cand-list li { border: 1px solid var(--line); background: var(--surface-soft-2); color: var(--ink); border-radius: 999px; padding: 6px 9px; font-weight: 650; line-height: 1.2; }
+.cand-role-text {
+  margin: 10px 0 0;
+  color: var(--ink);
+  font-size: 15.5px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+.cand-summary {
+  background: color-mix(in oklab, var(--bg-2) 70%, var(--panel));
+}
+.cand-summary p, .cand-tile > p {
+  margin: 10px 0 0;
+  color: var(--ink-dim);
+  font-size: 13.5px;
+  line-height: 1.6;
+  max-width: 62ch;
+}
+.cand-facts {
+  background: color-mix(in oklab, var(--panel) 40%, var(--bg-2));
+}
+.cand-facts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: 12px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--line);
+}
+.cand-fact {
+  display: grid;
+  gap: 6px;
+  padding: 14px 14px 12px;
+  border: 0;
+  border-radius: 0;
+  background: var(--bg-2);
+}
+.cand-fact span {
+  color: var(--ink-faint);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.cand-fact b {
+  min-width: 0;
+  color: var(--ink);
+  font-family: var(--font-display, var(--sans));
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+.cand-fact small { color: var(--ink-faint); font-size: 11.5px; font-weight: 600; }
+.cand-list {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: var(--ink-dim);
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.cand-track .cand-list, .cand-election .cand-list {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: cand-step;
+}
+.cand-track .cand-list li, .cand-election .cand-list li {
+  position: relative;
+  padding: 8px 10px 8px 36px;
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--ink) 4%, transparent);
+  border: 1px solid color-mix(in oklab, var(--ink) 5%, transparent);
+}
+.cand-track .cand-list li::before, .cand-election .cand-list li::before {
+  counter-increment: cand-step;
+  content: counter(cand-step);
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 800;
+  font-family: var(--mono);
+  color: var(--ccfg, #0b0e13);
+  background: color-mix(in oklab, var(--cc) 75%, white);
+}
+.cand-party .cand-list {
+  list-style: none;
+  padding-left: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cand-party .cand-list li {
+  border: 1px solid color-mix(in oklab, var(--cc) 28%, var(--line));
+  background: color-mix(in oklab, var(--cc) 12%, var(--bg-2));
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-weight: 700;
+  font-size: 12.5px;
+  line-height: 1.2;
+}
+.cand-news {
+  border-color: color-mix(in oklab, var(--accent) 22%, var(--line));
+}
 .cand-source-links, .cand-news-list { display: grid; gap: 8px; margin-top: 10px; }
-.cand-source-links a, .cand-news-list a { color: var(--ink); text-decoration: none; border: 1px solid var(--line); border-radius: 12px; padding: 9px 10px; background: var(--surface-soft); }
-.cand-source-links a:hover, .cand-news-list a:hover { border-color: var(--line-2); }
-.cand-news-list a { display: grid; gap: 3px; }
+.cand-news-list a {
+  display: grid;
+  gap: 4px;
+  color: var(--ink);
+  text-decoration: none;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 11px 12px;
+  background: color-mix(in oklab, var(--accent) 6%, var(--bg-2));
+  transition: border-color .12s, background .12s, transform .04s;
+}
+.cand-news-list a:hover {
+  border-color: color-mix(in oklab, var(--accent) 40%, var(--line));
+  background: color-mix(in oklab, var(--accent) 10%, var(--bg-2));
+}
+.cand-news-list a:active { transform: translateY(1px); }
+.cand-source-links a {
+  color: var(--ink-dim);
+  text-decoration: none;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 9px 11px;
+  background: color-mix(in oklab, var(--ink) 4%, transparent);
+  font-size: 12.5px;
+  font-weight: 650;
+  transition: color .12s, background .12s, border-color .12s;
+}
+.cand-source-links a:hover {
+  color: var(--ink);
+  border-color: var(--line);
+  background: color-mix(in oklab, var(--ink) 7%, transparent);
+  text-decoration: none;
+}
+.cand-sources {
+  background: transparent;
+  border-style: dashed;
+  box-shadow: none;
+}
 .cand-news-list small, .cand-source-note { color: var(--ink-faint); font-size: 11.5px; line-height: 1.4; }
-.cand-seatbtn { margin-top: 12px; }
+.cand-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+.cand-seatbtn, .pol-modal-seatbtn.cand-seatbtn {
+  flex: 1 1 200px;
+  margin-top: 0;
+  min-height: 48px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 14px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ccfg, #0b0e13);
+  background: linear-gradient(180deg,
+    color-mix(in oklab, var(--cc) 92%, white),
+    color-mix(in oklab, var(--cc) 78%, black));
+  box-shadow:
+    0 1px 0 color-mix(in oklab, white 22%, transparent) inset,
+    0 10px 24px color-mix(in oklab, var(--cc) 32%, transparent);
+  transition: filter .12s, transform .04s;
+}
+.cand-seatbtn:hover { filter: brightness(1.06); }
+.cand-seatbtn:active { transform: translateY(1px); filter: brightness(.97); }
+.cand-seatbtn:focus-visible { outline: 2px solid var(--focus, var(--accent)); outline-offset: 3px; }
+.cand-actions .cand-seatbtn:nth-child(n+2) {
+  color: var(--ink);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  box-shadow: none;
+}
+.cand-actions .cand-seatbtn:nth-child(n+2):hover {
+  filter: none;
+  border-color: var(--line-2);
+  background: color-mix(in oklab, var(--bg-2) 85%, var(--ink) 15%);
+}
+.cand-socials { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.cand-socials a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--ink-dim);
+  background: color-mix(in oklab, var(--ink) 7%, transparent);
+  border: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
+  text-decoration: none;
+}
+.cand-socials a:hover { color: var(--ink); border-color: var(--line-2); text-decoration: none; }
 @media (max-width: 760px) {
-  .candidate-modal { width: min(100vw - 16px, 620px); max-height: 94dvh; border-radius: 18px; }
-  .cand-modal-shell { padding: 12px; }
+  .candidate-modal {
+    width: min(100vw - 20px, 620px);
+    max-height: min(90dvh, calc(100dvh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
+    margin: auto;
+    border-radius: 18px;
+  }
+  .cand-modal-shell { padding: 12px; max-height: inherit; }
   .cand-grid { column-count: 1; column-gap: 0; }
   .cand-grid > .cand-tile { margin-bottom: 10px; }
-  .cand-hero { padding-right: 48px; grid-template-columns: 72px minmax(0, 1fr); }
-  .cand-modal-photo { width: 72px; height: 72px; border-radius: 14px; }
+  .cand-hero {
+    padding: 16px 48px 16px 14px;
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 12px;
+  }
+  .cand-photo-wrap { width: 76px; height: 76px; border-radius: 18px; }
+  .cand-modal-photo, .cand-modal-photo.pol-monogram { border-radius: 15px; font-size: 26px; }
+  .cand-hero h2 { font-size: clamp(22px, 6vw, 28px); }
   .cand-facts-grid { grid-template-columns: 1fr; }
+  .cand-fact b { font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cand-seatbtn, .cand-news-list a { transition: none; }
 }
 
 /* community-sourced (web-searched) socials — visibly distinct from Wikidata-verified */
@@ -2794,13 +3286,15 @@ body.politicians-open #topbar, body.news-open #topbar { display: none; }
 .bento-close { margin: 0; width: auto; }
 
 /* three rows, filling the height: meta strip · map+spotlight · pledges.
-   flex:1 + min-height:0 → the grid sizes to the VIEWPORT, not to its content: card
-   heights stay fixed while the spotlight/panels scroll INSIDE their cards. Rows keep
-   minmax() floors, so on short (iPad-landscape) heights the grid bottoms out at its
-   minimums and #state-bento scrolls the overflow cleanly (SVGs are absolutely
-   positioned, so they can never inflate a track). */
+   flex:1 + min-height:min-content → the grid fills the viewport when content fits,
+   but NEVER shrinks below its rows' minimums (minmax floors + max-content row 1).
+   min-height:0 here used to let flex squeeze the grid box below its tracks, so the
+   overflowing tiles painted OVER the following siblings (news strip / source line)
+   instead of pushing them down. With min-content, short (iPad-landscape) heights
+   bottom out at the row minimums and #state-bento scrolls the overflow cleanly
+   (SVGs are absolutely positioned, so they can never inflate a track). */
 .bento-grid {
-  display: grid; gap: 12px; flex: 1; min-height: 0;
+  display: grid; gap: 12px; flex: 1; min-height: min-content;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   /* middle row (map + spotlight) gets priority height so the spotlight shows every
      candidate + the incumbent without scrolling; pledges take the natural remainder */
@@ -2844,9 +3338,19 @@ body.politicians-open #topbar, body.news-open #topbar { display: none; }
    can never inflate the grid row through intrinsic aspect-ratio sizing. */
 .bento-map-wrap { position: relative; flex: 1; min-height: 220px; }
 .bento-map-svg { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
-.bento-seat { stroke: var(--stroke); stroke-width: .3; cursor: pointer; transition: filter .15s; }
+/* stroke-width is in CSS px via non-scaling-stroke — without it, small states
+   (Perlis, Penang, FT) zoom in hard via viewBox and inflate map-unit strokes
+   into thick white outlines while large states (Sarawak, Johor, Pahang) look thin. */
+.bento-seat {
+  stroke: var(--stroke);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+  cursor: pointer;
+  transition: filter .15s;
+}
 .bento-seat:hover { filter: brightness(1.3); }
-.bento-seat.sel { stroke: var(--select); stroke-width: 1.2; paint-order: stroke; }
+.bento-seat.sel { stroke: var(--select); stroke-width: 1.8; paint-order: stroke; }
 
 /* standings */
 .bento-standings-bar { height: 16px; }
@@ -2933,11 +3437,28 @@ body.politicians-open #topbar, body.news-open #topbar { display: none; }
 /* candidate cards in the bento spotlight (beside the map) */
 .bento-cand-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; align-content: start; }
 .bento-cand-grid:has(.prn-cc.has-profile) { grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); }
-.prn-cc { background: var(--bg-2); border: 1px solid var(--line); border-radius: 11px; padding: 11px 13px; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
-.prn-cc[role="button"] { cursor: pointer; transition: border-color .12s ease, background .12s ease, transform .08s ease; }
-.prn-cc[role="button"]:hover { border-color: var(--line-2); background: color-mix(in oklab, var(--bg-2) 88%, var(--ink) 12%); }
-.prn-cc[role="button"]:active { transform: translateY(1px); }
-.prn-cc[role="button"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.prn-cc {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--bg-2);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  appearance: none;
+  -webkit-appearance: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.prn-cc[role="button"], button.prn-cc { cursor: pointer; transition: border-color .12s ease, background .12s ease, transform .08s ease; }
+.prn-cc[role="button"]:hover, button.prn-cc:hover { border-color: var(--line-2); background: color-mix(in oklab, var(--bg-2) 88%, var(--ink) 12%); }
+.prn-cc[role="button"]:active, button.prn-cc:active { transform: translateY(1px); }
+.prn-cc[role="button"]:focus-visible, button.prn-cc:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 .prn-cc.is-inc { border-color: var(--line-2); }   /* the INCUMBENT chip carries the emphasis — no accent edging */
 .prn-cc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .prn-cc-id { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -2991,8 +3512,13 @@ body.politicians-open #topbar, body.news-open #topbar { display: none; }
 /* shared: a compact card is just photo + name + party — drop the profile-only bits */
 .prn-cc.is-compact .prn-cc-open, .prn-cc.is-compact .prn-cc-alias { display: none; }
 .prn-cc.is-compact { min-height: 0; }
-/* mobile seat-card compare list: the compact cards keep a natural short height */
-.prn-cands-compare .prn-cc.is-compact { min-height: 0; gap: 6px; }
+/* mobile seat-card compare list: keep cards short, but show a real tap affordance */
+.prn-cands-compare .prn-cc.is-compact { min-height: 76px; gap: 6px; }
+.prn-cands-compare .prn-cc.is-compact .prn-cc-open {
+  display: inline-flex;
+  align-self: flex-start;
+  margin-top: 1px;
+}
 /* tighten the head + "currently held by" block so the whole spotlight fits without
    the body scrolling (Danial: the card must not scroll) */
 #bento-spot .bento-spot-head h3 { font-size: 15px; margin: 1px 0 0; }
@@ -3002,6 +3528,81 @@ body.politicians-open #topbar, body.news-open #topbar { display: none; }
 #bento-spot .prn-inc .prn-margin-bar { height: 5px; margin: 4px 0 3px; }
 #bento-spot .prn-inc-stat { font-size: 11.5px; }
 #bento-spot .bento-cand-label { margin: 0 0 5px; }
+
+/* PRN spotlight: 2026 runners + Rick-fed tonight count */
+.prn-spot-runners { margin: 4px 0 2px; min-width: 0; }
+.prn-tonight {
+  margin: 6px 0 4px;
+  padding: 8px 0 6px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+.prn-tonight-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.prn-tonight-st {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--ink-dim);
+  background: var(--surface-soft-2);
+  flex: 0 0 auto;
+}
+.prn-tonight-st-leading {
+  color: #f0c674;
+  border-color: color-mix(in oklab, #f0c674 45%, var(--line));
+  background: color-mix(in oklab, #f0c674 16%, transparent);
+}
+.prn-tonight-st-called,
+.prn-tonight-st-official {
+  color: #7dcea0;
+  border-color: color-mix(in oklab, #7dcea0 45%, var(--line));
+  background: color-mix(in oklab, #7dcea0 16%, transparent);
+}
+.prn-tonight-st-awaiting {
+  color: var(--ink-faint);
+}
+.prn-tonight-empty {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.prn-tonight-field { display: grid; gap: 5px; }
+.prn-tonight-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(48px, 1fr) auto;
+  gap: 6px 8px;
+  align-items: center;
+  font-size: 11.5px;
+}
+.prn-tonight-row.is-lead .prn-last-name { color: var(--ink); font-weight: 650; }
+.prn-tonight-lead {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #f0c674;
+  vertical-align: middle;
+}
+.prn-tonight-sum {
+  margin-top: 6px;
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+#bento-spot .prn-tonight { margin-top: 4px; }
+#bento-spot .prn-tonight-row .prn-last-bar { height: 5px; }
 
 /* tabbed manifestos in the bento pledges tile (one coalition at a time) */
 .prn-pl-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
@@ -3070,7 +3671,129 @@ body.politicians-open #topbar, body.news-open #topbar { display: none; }
      which scrolls (by design, see .bento-grid comment above). */
   grid-template-rows: max-content minmax(380px, 1fr) auto;
 }
+/* election-night: insert full-width live seat table between map and runners */
+.bento-grid.is-state.is-prn-live {
+  grid-template-areas:
+    "gov     stand"
+    "explore explore"
+    "live    live"
+    "stats   stats";
+  grid-template-rows: max-content minmax(300px, 1fr) auto auto;
+}
 .bento-gov { grid-area: gov; } .bento-stand { grid-area: stand; } .bento-explore { grid-area: explore; } .bento-statsrow { grid-area: stats; }
+.bento-livetable { grid-area: live; min-height: 0; }
+
+/* ---- election-night live strip (above the bento grid) ---- */
+.bento-live-strip {
+  width: 100%; max-width: 1000px; margin: 0 auto 12px;
+  display: grid; gap: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: linear-gradient(135deg, color-mix(in oklab, var(--accent) 10%, var(--panel)), var(--panel));
+  box-shadow: inset 0 1px 0 color-mix(in oklab, var(--accent) 12%, transparent);
+}
+.bento-live-strip.is-hot {
+  border-color: color-mix(in oklab, var(--accent) 40%, var(--line));
+  background: linear-gradient(135deg, color-mix(in oklab, #e11 12%, var(--panel)), color-mix(in oklab, var(--accent) 8%, var(--panel)));
+}
+.bento-live-strip-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.bento-live-strip-title { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.bento-live-strip-title b { font-size: 14px; letter-spacing: .02em; }
+.bento-live-strip-title .muted { font-size: 12px; }
+.bento-live-strip .live-chip {
+  display: inline-flex; align-items: center; min-height: 28px; padding: 0 10px;
+  border-radius: 999px; font-size: 11px; font-weight: 800; letter-spacing: .06em;
+  color: #fff; background: #c81e1e;
+  box-shadow: 0 0 0 0 rgba(200, 30, 30, .45); animation: live-pulse 1.6s ease infinite;
+}
+@keyframes live-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(200, 30, 30, .4); }
+  50% { box-shadow: 0 0 0 6px rgba(200, 30, 30, 0); }
+}
+.bento-live-metrics {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px;
+}
+.bento-live-metric {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 10px 12px; border-radius: 12px;
+  background: color-mix(in oklab, var(--ink) 4%, transparent);
+  border: 1px solid color-mix(in oklab, var(--ink) 6%, transparent);
+}
+.bento-live-metric .muted { font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.bento-live-metric b { font-family: var(--font-display, var(--sans)); font-size: clamp(22px, 3vw, 32px); line-height: 1; letter-spacing: -.02em; }
+.bento-live-metric b small { font-size: .55em; color: var(--ink-dim); font-weight: 600; }
+.bento-live-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.bento-live-legend { display: flex; flex-wrap: wrap; gap: 10px; }
+.bento-live-leg { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink-dim); }
+.bento-live-leg i { width: 9px; height: 9px; border-radius: 3px; display: block; background: var(--line-2); }
+.bento-live-leg.st-awaiting i { background: #5a6574; }
+.bento-live-leg.st-leading i { background: #d97706; }
+.bento-live-leg.st-called i { background: #16a34a; }
+.bento-live-leg.st-official i { background: #2563eb; }
+.bento-live-updated { font-size: 11.5px; }
+
+/* ---- 56-seat live table ---- */
+.bento-livetable { padding: 12px 14px 10px; gap: 8px; }
+.bento-livetable-head {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
+}
+.bento-live-filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.bento-live-chip {
+  min-height: 32px; padding: 0 11px; border-radius: 999px; cursor: pointer;
+  font: inherit; font-size: 11.5px; font-weight: 700;
+  border: 1px solid var(--line); background: var(--bg-2); color: var(--ink-dim);
+}
+.bento-live-chip:hover { border-color: var(--line-2); color: var(--ink); }
+.bento-live-chip.on { background: color-mix(in oklab, var(--accent) 18%, var(--bg-2)); border-color: color-mix(in oklab, var(--accent) 40%, var(--line)); color: var(--ink); }
+.bento-live-chip:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.bento-livetable-scroll {
+  max-height: min(340px, 42vh); overflow: auto; border-radius: 12px;
+  border: 1px solid var(--line); background: color-mix(in oklab, var(--bg-2) 70%, var(--panel));
+}
+.bento-live-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.bento-live-table th {
+  position: sticky; top: 0; z-index: 1;
+  text-align: left; padding: 9px 10px;
+  font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--ink-faint); background: var(--panel); border-bottom: 1px solid var(--line);
+}
+.bento-live-table td { padding: 8px 10px; border-bottom: 1px solid color-mix(in oklab, var(--line) 70%, transparent); vertical-align: middle; }
+.bento-live-row { cursor: pointer; transition: background .1s; }
+.bento-live-row:hover { background: color-mix(in oklab, var(--ink) 5%, transparent); }
+.bento-live-row.is-sel { background: color-mix(in oklab, var(--accent) 12%, transparent); }
+.bento-live-row:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.bento-live-st {
+  display: inline-flex; align-items: center; min-height: 22px; padding: 0 8px;
+  border-radius: 999px; font-size: 10.5px; font-weight: 700; letter-spacing: .03em;
+  background: color-mix(in oklab, var(--ink) 6%, transparent); color: var(--ink-dim);
+}
+.bento-live-st.st-leading { background: color-mix(in oklab, #d97706 22%, transparent); color: #fbbf24; }
+.bento-live-st.st-called { background: color-mix(in oklab, #16a34a 22%, transparent); color: #4ade80; }
+.bento-live-st.st-official { background: color-mix(in oklab, #2563eb 22%, transparent); color: #93c5fd; }
+.bento-live-coal { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.bento-live-coal .sw { width: 9px; height: 9px; border-radius: 3px; flex: 0 0 auto; }
+.bento-live-empty { text-align: center; padding: 18px 10px !important; }
+.bento-live-row.just-called, .bento-seat.just-called {
+  animation: seat-flash 1.1s ease;
+}
+@keyframes seat-flash {
+  0% { filter: brightness(1.8) saturate(1.3); }
+  40% { filter: brightness(1.35) saturate(1.15); }
+  100% { filter: none; }
+}
+.bento-seat.st-leading { stroke: #fbbf24; stroke-width: 1.2; }
+.bento-seat.st-called, .bento-seat.st-official { stroke: rgba(255,255,255,.55); stroke-width: 1; }
+@media (max-width: 760px) {
+  .bento-live-metrics { grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .bento-live-metric b { font-size: 20px; }
+  .bento-livetable-scroll { max-height: 280px; }
+  .bento-live-table { font-size: 11.5px; }
+  .bento-live-table th, .bento-live-table td { padding: 7px 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bento-live-strip .live-chip, .bento-live-row.just-called, .bento-seat.just-called { animation: none; }
+}
 .bento-explore { min-height: 0; }
 .bento-explore-inner { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 20px; }
 .bento-explore-map { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 9px; }
@@ -3129,6 +3852,79 @@ body.politicians-open #topbar, body.news-open #topbar { display: none; }
   color: var(--ink);
   letter-spacing: 0;
 }
+/* silver shimmer sweeping through the state-title letters, left → right:
+   the text becomes a silver gradient fill (background-clip:text) whose bright
+   band travels across on a loop with a rest between passes. text-fill-color
+   beats the color rules, and the whole thing is @supports-gated so an old
+   engine keeps plain var(--ink) letters instead of transparent ones. */
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .bento-gov-state-name {
+    background-image: linear-gradient(105deg,
+      #b9c0ca 0%, #b9c0ca 40%, #ffffff 50%, #b9c0ca 60%, #b9c0ca 100%);
+    background-size: 300% 100%;
+    background-position: 100% 0;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: state-name-shimmer 4.5s ease-in-out infinite;
+  }
+  /* light theme: dark letters, a silver glint passes through */
+  html[data-theme="light"] .bento-gov-state-name {
+    background-image: linear-gradient(105deg,
+      var(--ink) 0%, var(--ink) 40%, #aab5c2 50%, var(--ink) 60%, var(--ink) 100%);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bento-gov-state-name { animation: none; background-position: 50% 0; }
+  }
+}
+@keyframes state-name-shimmer {
+  0%   { background-position: 100% 0; }   /* band waits off the LEFT edge */
+  55%  { background-position: 0% 0; }     /* sweeps through to exit RIGHT */
+  100% { background-position: 0% 0; }     /* rest until the next pass */
+}
+/* the same silver glint sweeps through every search-bar placeholder (home card,
+   bento seat search, politician directory, map-inspect district filter). The base
+   stays ink-faint so it still reads as a placeholder; only the passing band lights
+   up. Same @supports gate: without background-clip:text the plain ::placeholder
+   color rules above keep working and nothing turns transparent. */
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .search input::placeholder,
+  .bento-q::placeholder,
+  .pol-dir-search::placeholder,
+  .map-inspect-search::placeholder {
+    background-image: linear-gradient(105deg,
+      var(--ink-faint) 0%, var(--ink-faint) 40%, #dbe3ec 50%, var(--ink-faint) 60%, var(--ink-faint) 100%);
+    background-size: 300% 100%;
+    background-position: 100% 0;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: state-name-shimmer 4.5s ease-in-out infinite;
+  }
+  /* light theme: faint letters, a darker-silver glint passes through */
+  html[data-theme="light"] .search input::placeholder,
+  html[data-theme="light"] .bento-q::placeholder,
+  html[data-theme="light"] .pol-dir-search::placeholder,
+  html[data-theme="light"] .map-inspect-search::placeholder {
+    background-image: linear-gradient(105deg,
+      var(--ink-faint) 0%, var(--ink-faint) 40%, #aab5c2 50%, var(--ink-faint) 60%, var(--ink-faint) 100%);
+  }
+  /* hover-preview keeps its brighter text: same shimmer, ink base instead of faint */
+  .bento-q.is-hover-preview::placeholder {
+    background-image: linear-gradient(105deg,
+      var(--ink) 0%, var(--ink) 40%, #ffffff 50%, var(--ink) 60%, var(--ink) 100%);
+  }
+  html[data-theme="light"] .bento-q.is-hover-preview::placeholder {
+    background-image: linear-gradient(105deg,
+      var(--ink) 0%, var(--ink) 40%, #aab5c2 50%, var(--ink) 60%, var(--ink) 100%);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .search input::placeholder,
+    .bento-q::placeholder,
+    .pol-dir-search::placeholder,
+    .map-inspect-search::placeholder { animation: none; background-position: 50% 0; }
+  }
+}
 /* Stable generous frame; object-fit:contain keeps portrait and landscape crests whole. */
 .bento-gov-emblem-pane .state-emblem,
 .bento-gov-emblem-pane .bento-gov-emblem {
@@ -3138,6 +3934,7 @@ body.politicians-open #topbar, body.news-open #topbar { display: none; }
   max-height: 132px;
   display: grid;
   place-items: center;
+  position: relative;
   flex: 0 0 auto;
   min-width: 0;
   min-height: 0;
@@ -3149,11 +3946,14 @@ body.politicians-open #topbar, body.news-open #topbar { display: none; }
   overflow: hidden;
   box-sizing: border-box;
 }
+/* absolutely positioned: 100% resolves against the box itself, not the auto grid
+   row — an intrinsically square crest in the non-square (140x132) box otherwise
+   computes to 140x140 and gets sliced by the box's overflow:hidden */
 .bento-gov-emblem-pane .state-emblem img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  max-width: 100%;
-  max-height: 100%;
   object-fit: contain;
   object-position: center;
   display: block;
@@ -3216,6 +4016,28 @@ html[data-theme="light"] .bento-gov-emblem-pane {
   max-width: 100%;
   vertical-align: top;
 }
+/* manifesto pledges pane (Politicians → Manifesto tab) */
+.pol-pledges-pane {
+  max-width: 1100px;
+  margin: 0 auto;
+  min-height: 200px;
+}
+.pol-pledges-body {
+  padding: 4px 0 12px;
+}
+.pol-pledges-body .prn-pl-panel {
+  min-height: 180px;
+  margin-top: 4px;
+}
+.pol-pledges-body .prn-pledge-coal {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: var(--surface-soft);
+}
+.pol-pledges-body .prn-pledge-list {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
 
 /* explore-card layer chips: both tiers visible, tap to flip the choropleth */
 /* the layer switch is a segmented pill, same look as the main Parliament/DUN toggle
@@ -3229,16 +4051,58 @@ html[data-theme="light"] .bento-gov-emblem-pane {
 }
 
 /* ---- dashboard chrome in the nav bar (wide screens, bento open) ----
-   fallback title for no-government W.P. dashboards; PRN toggle + close join the icon cluster.
+   State identity lives in the leadership card; PRN toggle + close join the icon cluster.
    The centre pills keep centring via auto margins while the bar fills out. */
-.topbar-context[hidden], .topbar-actions[hidden] { display: none; }
-.topbar-context {
-  display: flex; align-items: center; min-width: 0;
+.topbar-actions[hidden] { display: none; }
+/* bento actions (PRN toggle + close) sit in the right cluster, left of the theme button */
+.topbar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  min-width: 0;
 }
+/* permanent centre title — always "MyPolitik", same pill slot state titles used */
+.topbar-context {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  z-index: 1;
+  pointer-events: auto;
+}
+.topbar-title {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--glass);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1;
+  color: var(--ink);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.topbar-title:hover { border-color: var(--line-2); }
+.topbar-title:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.topbar-title .brand-word b { color: var(--accent); font-weight: 800; }
 .topbar-context .bento-title {
   display: inline-flex; align-items: center; gap: 9px;
   min-height: 44px; padding: 0 16px;
-  font-size: 16px; font-weight: 700; white-space: nowrap;
+  font-family: var(--font-display); font-size: 19px; font-weight: 700; letter-spacing: 0; white-space: nowrap;
   background: var(--glass); border: 1px solid var(--line); border-radius: 999px;
   backdrop-filter: blur(8px);
 }
@@ -3256,26 +4120,32 @@ html[data-theme="light"] .bento-gov-emblem-pane {
   color: #fff; font-weight: 800; letter-spacing: .02em; line-height: 1;
 }
 .bento-crest {
-  width: 28px; height: 28px; margin-left: -4px; padding: 3px; border-radius: 8px;
-  background: var(--state-emblem-bg);
+  width: 30px; height: 30px; margin-left: 0; padding: 0; border-radius: 0;
+  background: transparent; border: 0; box-shadow: none; overflow: visible;
 }
 .bento-crest.state-emblem-fallback { padding: 0; font-size: 11px; }
-.topbar-actions { display: inline-flex; align-items: center; gap: 8px; }
 .topbar-actions .prn-close-btn {
-  margin: 0; width: auto; border-radius: 999px; padding: 0 16px;
+  margin: 0; width: auto; border-radius: 999px; padding: 0 16px; min-height: 44px;
   background: var(--glass); backdrop-filter: blur(8px); border-color: var(--line);
 }
 body.bento-on #topbar { justify-content: flex-start; }
 body.bento-on #topbar .top-controls { margin-inline: auto; }
-/* wide + dashboard open: the sidebar owns the brand, so the topbar carries only the
-   state title (left) + close (right). Pad the bar to the SAME centred 1000px rail as
-   the bento grid below, so the title lines up with the first card and close with the
-   last (grid left edge = (topbarWidth − 1000) / 2 from the topbar's own origin). */
+/* Align the right cluster (close / PRN toggle + theme) with the bento's 1000px rail.
+   Theme stays the rightmost control; actions sit just left of it on the same baseline. */
+@media (min-width: 1000px) {
+  body.bento-on #topbar {
+    /* content area is full viewport (no sidebar at this breakpoint) */
+    padding-inline: max(14px, calc((100vw - 1000px) / 2));
+  }
+}
 @media (min-width: 1240px) {
-  /* topbar box = viewport minus the 232px sidebar; inset each edge so the inner band
-     is the same centred 1000px as the grid. (% padding on a fixed element resolves
-     against the viewport, not the element — so compute the width explicitly.) */
-  body.bento-on #topbar { padding-inline: max(14px, calc((100vw - 232px - 1000px) / 2)); }
+  /* topbar is offset by the sidebar (232px / 60px collapsed) — match that in the rail math */
+  body.bento-on #topbar {
+    padding-inline: max(14px, calc((100vw - 232px - 1000px) / 2));
+  }
+  body.sb-collapsed.bento-on #topbar {
+    padding-inline: max(14px, calc((100vw - 60px - 1000px) / 2));
+  }
 }
 
 /* wide screens: the nav is a solid black strip (pills sit ON it), content passes under */
@@ -3337,7 +4207,7 @@ body.politicians-open #top-controls { display: none; }
 
 /* very large screens: cap the dashboard's width and centre it — cards shouldn't
    stretch across an ultrawide */
-.bento-grid, .bento-foot, .bento-news { width: 100%; max-width: 1000px; margin-inline: auto; }
+.bento-grid, .bento-foot, .bento-news, .bento-live-strip { width: 100%; max-width: 1000px; margin-inline: auto; }
 
 /* ---- news strip on the election dashboard (reviewer ask). Headline + source + link
    only; graceful — renders only when there's matched coverage ---- */
@@ -3345,22 +4215,58 @@ body.politicians-open #top-controls { display: none; }
   margin-top: 14px; padding: 14px 16px;
   background: var(--bg-1, rgba(20, 22, 26, .55)); border: 1px solid var(--line); border-radius: 16px;
 }
+/* Light mode: translucent dark strip was unreadable on the grid — solid soft-red card */
+html[data-theme="light"] .bento-news {
+  background: #fde8e6;
+  border: 1px solid #f0b4ae;
+  color: #1a1c20;
+  box-shadow: none;
+}
+html[data-theme="light"] .bento-news-title {
+  color: #b42318;
+}
+html[data-theme="light"] .bento-news-all {
+  color: #b42318;
+}
+html[data-theme="light"] .bento-news .news-t {
+  color: #14161a;
+  font-weight: 600;
+}
+html[data-theme="light"] .bento-news .news-meta {
+  color: #6b4a47;
+}
+html[data-theme="light"] .bento-news-note {
+  color: #7a5c58;
+}
+html[data-theme="light"] .bento-news .news-link:hover {
+  background: color-mix(in oklab, #f8877f 22%, #fff);
+}
+html[data-theme="light"] .bento-news .muted {
+  color: #7a5c58;
+}
 .bento-news-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
 .bento-news-title { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .01em; }
-.bento-news-all {
-  font: inherit; font-size: 12px; font-weight: 600; color: var(--accent);
-  background: none; border: 0; cursor: pointer; padding: 2px 4px; border-radius: 8px;
+/* full campaign-news list (no separate News nav page) */
+.bento-news-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+  max-height: min(480px, 52vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
 }
-.bento-news-all:hover { text-decoration: underline; }
-.bento-news-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .news-link {
   display: flex; align-items: baseline; justify-content: space-between; gap: 14px;
   padding: 7px 8px; margin: 0 -8px; border-radius: 10px; text-decoration: none; color: inherit;
 }
 .news-link:hover { background: color-mix(in oklab, var(--accent) 8%, transparent); }
 .news-t { font-size: 13.5px; font-weight: 600; line-height: 1.35; min-width: 0; }
-.news-meta { font-size: 11px; white-space: nowrap; flex: 0 0 auto; }
+.news-meta { font-size: 11px; white-space: nowrap; flex: 0 0 auto; max-width: 42%; overflow: hidden; text-overflow: ellipsis; }
 .bento-news-note { margin: 8px 0 0; font-size: 10.5px; }
+.bento-news-note + .bento-news-note { margin-top: 4px; }
 /* news modal list (see-all) */
 .news-modal-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 2px; }
 .news-modal-list .news-t { font-size: 14.5px; }
@@ -3385,10 +4291,10 @@ body.politicians-open #top-controls { display: none; }
   }
   #app { margin-left: 232px; }
   #topbar { left: 232px; }
-  /* the sidebar owns brand / nav / language — the topbar keeps only context */
+  /* the sidebar owns brand / nav / language — topbar keeps live-badge + theme + bento actions */
   #topbar .brand-home, #topbar #top-map, #topbar #top-politicians,
-  #topbar #top-news, #topbar #top-prn, #topbar #top-pledges,
-  #topbar #top-info, #topbar #top-share, #topbar #lang { display: none; }
+  #topbar #top-info, #topbar #top-share,
+  #topbar .topicons { display: none; }
   body.politicians-open #politicians-view { left: 232px; }
   body.politicians-open .pol-dir { left: 232px; }
 }
@@ -3424,8 +4330,37 @@ body.politicians-open #top-controls { display: none; }
 .sb-state-emblem {
   width: 30px; height: 30px; padding: 2px; border-radius: 8px;
   background: var(--state-emblem-bg);
+  position: relative;   /* anchors the map-hover glint sweep */
+  transition: transform .18s ease, box-shadow .18s ease;
 }
 .sb-state-emblem.state-emblem-fallback { padding: 0; font-size: 9.5px; }
+/* hovering a state on the map (or its sidebar row) glints its sidebar emblem:
+   the tile pops up slightly and a diagonal glare band sweeps across it on the
+   shared shimmer keyframes — the emblem's overflow:hidden clips the band to
+   the rounded tile. */
+.sb-state.is-map-hover .sb-state-emblem {
+  transform: translateY(-2px) scale(1.14);
+  /* keep the base inset edge, add lift shadow */
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.16), 0 4px 10px rgba(0,0,0,.4);
+}
+.sb-state.is-map-hover .sb-state-emblem::after {
+  content: "";
+  position: absolute; inset: 0;
+  background-image: linear-gradient(105deg,
+    transparent 0%, transparent 40%, rgba(255,255,255,.7) 50%, transparent 60%, transparent 100%);
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  animation: state-name-shimmer 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+/* light theme: a white glare vanishes on the pale tile — sweep silver instead */
+html[data-theme="light"] .sb-state.is-map-hover .sb-state-emblem::after {
+  background-image: linear-gradient(105deg,
+    transparent 0%, transparent 40%, rgba(170,181,194,.6) 50%, transparent 60%, transparent 100%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sb-state.is-map-hover .sb-state-emblem::after { animation: none; background-position: 50% 0; }
+}
 .sb-state-name {
   min-width: 0;
   flex: 1 1 auto;
@@ -3452,9 +4387,15 @@ body.politicians-open #top-controls { display: none; }
   pointer-events: none;
 }
 .sb-state-hover-label[hidden] { display: none; }
-/* live-election marker: a small red pulsing dot (replaces the wide text badge that
-   was truncating the state name) */
-.sb-state-dot { flex: 0 0 auto; width: 8px; height: 8px; margin-right: 2px; }
+/* live-election state row (Johor): translucent red + left→right pulse — replaces
+   the separate sidebar PRN button; main-page live-badge still opens PRN too */
+.sb-state-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  margin-right: 2px;
+  background: #fff;
+}
 .sb-state-badge {
   flex: 0 0 auto;
   min-height: 20px;
@@ -3470,7 +4411,52 @@ body.politicians-open #top-controls { display: none; }
   letter-spacing: .05em;
   text-transform: uppercase;
 }
-.sb-state.is-election { color: var(--ink); }
+.sb-state.is-election {
+  position: relative;
+  z-index: 0;
+  overflow: hidden;
+  isolation: isolate;
+  color: #fff;
+  border: 1px solid color-mix(in oklab, var(--danger) 55%, transparent);
+  background: color-mix(in oklab, var(--danger) 24%, transparent);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
+}
+.sb-state.is-election::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 55%;
+  z-index: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in oklab, var(--danger) 42%, transparent) 45%,
+    color-mix(in oklab, var(--danger) 14%, transparent) 70%,
+    transparent 100%
+  );
+  transform: translateX(-120%);
+  animation: live-badge-sweep 2.4s ease-in-out infinite;
+  pointer-events: none;
+  will-change: transform;
+}
+.sb-state.is-election > * { position: relative; z-index: 1; }
+.sb-state.is-election .sb-state-name { color: #fff; }
+.sb-state.is-election:hover {
+  background: color-mix(in oklab, var(--danger) 36%, transparent);
+  border-color: color-mix(in oklab, var(--danger) 75%, transparent);
+  color: #fff;
+}
+.sb-state.is-election.on,
+.sb-state.is-election.is-prn-on {
+  background: color-mix(in oklab, var(--danger) 42%, transparent);
+  border-color: color-mix(in oklab, var(--danger) 80%, transparent);
+  font-weight: 650;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sb-state.is-election::before { display: none; animation: none; }
+}
 .sb-foot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 2px; }
 .sb-small { width: auto; font-size: 12.5px; padding: 7px 9px; }
 .sb-lang { margin-left: auto; }
@@ -3482,13 +4468,13 @@ body.politicians-open #top-controls { display: none; }
 
 /* ---- collapsible rail: 232px ⇄ 60px icon strip; content reflows beside it ---- */
 @media (min-width: 1240px) {
-  #sidebar { transition: width .18s ease, padding .18s ease; }
-  #app { transition: margin-left .18s ease; }
-  #topbar { transition: left .18s ease; }
+  #sidebar { transition: width .12s ease, padding .12s ease; }
+  #app { transition: margin-left .12s ease; }
+  #topbar { transition: left .12s ease; }
   /* the map stage and the bottom panel are FIXED full-bleed layers — offset them
      beside the rail too, so the sidebar never covers the map */
-  #stage { left: 232px; transition: left .18s ease; }
-  #panel { left: 232px; transition: left .18s ease; }
+  #stage { left: 232px; transition: left .12s ease; }
+  #panel { left: 232px; transition: left .12s ease; }
   body.sb-collapsed #stage, body.sb-collapsed #panel { left: 60px; }
   body.sb-collapsed #sidebar { width: 60px; padding: 14px 8px 12px; }
   body.sb-collapsed #app { margin-left: 60px; }
@@ -3501,7 +4487,6 @@ body.politicians-open #top-controls { display: none; }
   body.sb-collapsed .sb-foot { display: none; }
   body.sb-collapsed .sb-top { justify-content: center; padding-bottom: 10px; }
   body.sb-collapsed .sb-item { justify-content: center; padding: 10px 0; }
-  body.sb-collapsed .sb-live .live-dot { margin: 0; }
   body.sb-collapsed .sb-states {
     display: flex;
     flex: 1 1 auto;
@@ -3576,7 +4561,7 @@ body.politicians-open #top-controls { display: none; }
   --snow-green-fill: var(--snow-green);
   --snow-red-fill: var(--snow-red);
   --snow-dark-ink: #14161A;
-  --snow-card-glass: color-mix(in oklab, var(--snow-card) 86%, transparent);
+  --snow-card-glass: color-mix(in oklab, var(--snow-card) 95%, transparent);
   --snow-inner-glass: color-mix(in oklab, var(--snow-inner) 84%, transparent);
 }
 
@@ -3594,18 +4579,37 @@ html[data-theme="light"] {
   --snow-green-fill: #d8f2e7;
   --snow-red-fill: #ffe0dd;
   --snow-dark-ink: #161a22;
-  --snow-card-glass: color-mix(in oklab, var(--snow-card) 88%, transparent);
+  --snow-card-glass: color-mix(in oklab, var(--snow-card) 96%, transparent);
   --snow-inner-glass: color-mix(in oklab, var(--snow-inner) 88%, transparent);
 }
-/* tiles: translucent enough for the page grid to read behind them */
+/* tiles: near-solid glass, slightly 3D — a lit top edge (inset highlight) +
+   tight contact shadow + soft ambient lift, and a whisper of top-light gradient
+   on the surface. Dark mode leans on the highlight (shadows read poorly on
+   near-black); light mode leans on real drop shadows. */
 .bento-tile {
   background: var(--snow-card-glass); border: 1px solid rgba(255,255,255,.035);
   border-radius: 20px; padding: 18px 20px; backdrop-filter: blur(6px);
+  background-image: linear-gradient(180deg, rgba(255,255,255,.028), transparent 30%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.055),
+    0 1px 2px rgba(0,0,0,.35),
+    0 14px 34px -14px rgba(0,0,0,.55);
 }
-html[data-theme="light"] .bento-tile { border-color: rgba(15,23,42,.08); }
+html[data-theme="light"] .bento-tile {
+  border-color: rgba(15,23,42,.08);
+  background-image: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.9),
+    0 1px 2px rgba(15,23,42,.06),
+    0 12px 28px -12px rgba(15,23,42,.16);
+}
 .bento-grid { gap: 16px; }
-/* card titles: sentence case, coloured per card (SnowUI-style) */
-.bento-kicker { text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 600; color: var(--ink); }
+/* card titles: sentence case, coloured per card (SnowUI-style), set in the
+   display face to echo the state title */
+.bento-kicker {
+  text-transform: none; letter-spacing: 0; color: var(--ink);
+  font-family: var(--font-display); font-size: 17px; font-weight: 700; line-height: 1.15;
+}
 .bento-gov > .bento-kicker,
 .bento-gov-yb-pane > .bento-kicker { color: var(--snow-blue-fg); }
 .bento-gov-state-name { color: var(--ink); }
@@ -3663,7 +4667,11 @@ html[data-theme="light"] .bento-gov-emblem-pane {
    the bento title/close carry their own styling, and the dashboard bg sits under it */
 @media (min-width: 1000px) {
   #topbar { background: transparent; border-bottom: 0; backdrop-filter: none; }
-  .topbar-context .bento-title { background: none; border: 0; padding: 0 4px; font-size: 17px; backdrop-filter: none; }
+  .topbar-context .bento-title {
+    background: none; border: 0; padding: 0 4px;
+    font-family: var(--font-display); font-size: 19px; font-weight: 700; letter-spacing: 0;
+    backdrop-filter: none;
+  }
   .topbar-actions .prn-close-btn { background: var(--snow-inner); border: 0; backdrop-filter: none; }
   body.bento-on #state-bento {
     background:

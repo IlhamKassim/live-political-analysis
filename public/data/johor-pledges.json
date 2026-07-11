@@ -1,6 +1,6 @@
 {
  "election": "prn16-johor",
- "note": "Coalition platforms for PRN Johor 2026, faithfully summarised from published manifestos / credible reporting and attributed to the coalition, not individual candidates. A coalition marked pending had not released a manifesto as of the stated date.",
+ "note": "Coalition platforms for PRN Johor 2026, faithfully summarised from published manifestos / credible reporting. PN remains pending — no full manifesto released.",
  "coalitions": {
   "PH": {
    "title": "Johor Untuk Semua ~ 10-point manifesto",
@@ -13,12 +13,12 @@
     "RM1 billion SME fund; RM500 million Johor Youth Fund",
     "RM50 monthly transport pass; RM1,000 per newborn",
     "Gigabit internet and AI labs in all schools by 2030",
-    "Halve Johor–Singapore checkpoint waits via RTS Link"
+    "Halve Malaysia–Singapore checkpoint waits by integrating RTS Link, ETS, Bas.My and smart mobility systems"
    ]
   },
   "BN": {
    "title": "TEKAD BN Johor ~ 63 pledges, 6 pillars",
-   "source": "https://prnjohor.com/manifesto/",
+   "source": "https://prnjohor.com/wp-content/uploads/2026/06/Manifesto-BN-JOHOR.pdf",
    "pledges": [
     "200,000 jobs, incl. 100,000 premium-income for Johoreans",
     "RM100 million fund for subsidised home ownership",
@@ -32,8 +32,11 @@
   },
   "PN": {
    "pending": true,
-   "as_of": "5 Jul 2026",
-   "note": "PN said its Johor manifesto is forthcoming but had not released one at this date."
+   "as_of": "10 Jul 2026",
+   "note": "As of 10 Jul 2026, PN had not published a formal multi-point manifesto comparable to PH/BN for PRN Johor 2026. Campaign messaging focused on leadership and seat-level canvassing rather than a single state manifesto. This block stays pending rather than inventing pledges.",
+   "sources": [
+    "https://www.nst.com.my/amp/news/regional/2026/07/1480205/johor-polls-pn-unlikely-unveil-manifesto-focus-targeted-offer"
+   ]
   },
   "BERSAMA": {
    "title": "Aku Janji Khidmat ~ 5 service pledges",
@@ -62,12 +65,12 @@
     "https://www.malaymail.com/news/malaysia/2026/06/15/muda-psm-form-progressive-bloc-for-johor-and-n-sembilan-state-polls-says-joint-statement/223856"
    ],
    "pledges": [
-    "Abolish the law allowing up to 5 appointed, unelected assembly members",
-    "Affordable housing with rent control pegged to household income",
-    "Transit and starter homes for young families",
-    "Create enough jobs for the roughly 200,000 youths who graduate yearly",
-    "Tighter environmental rules for factories and data centres; keep rivers clean",
-    "Balanced north and south development, with more jobs in northern Johor"
+    "MUDA: abolish the law allowing up to 5 appointed, unelected assembly members",
+    "PSM: affordable housing with rent control pegged to household income",
+    "PSM: transit and starter homes for young families",
+    "PSM: create enough jobs for the roughly 200,000 youths who graduate yearly",
+    "PSM: tighter environmental rules for factories and data centres; keep rivers clean",
+    "PSM: balanced north and south development, with more jobs in northern Johor"
    ]
   }
  }

@@ -186,14 +186,22 @@ def seat_context_item(item, seat_name):
     return term_present(f, "johor") or any(term_present(f, term) for term in ELECTION_TERMS)
 
 
-def aliases_for(candidate):
+def aliases_for(candidate, extra_names=None):
     aliases = []
-    for val in (candidate.get("name"), candidate.get("ballot_name")):
+    names = [candidate.get("name"), candidate.get("ballot_name")]
+    if extra_names:
+        names.extend(extra_names)
+    for val in names:
         toks = clean_name(val)
         if len(toks) >= 2:
             aliases.append(toks)
         if len(toks) >= 3:
             aliases.append([toks[0], toks[-1]])
+            aliases.append(toks[-2:])  # last two tokens (family-ish)
+        # single distinctive long token (e.g. "Rafizi", "Zahari") only with seat context later
+        for t in toks:
+            if len(t) >= 6:
+                aliases.append([t])
     out, seen = [], set()
     for toks in aliases:
         key = tuple(toks)
@@ -203,11 +211,41 @@ def aliases_for(candidate):
     return out
 
 
-def candidate_matches(item, candidate, seat_name):
-    text_words = set(words(item_text(item)))
-    if not political_context(item_text(item), seat_name):
+def load_extra_aliases():
+    """Optional name variants from sinar_match / profiles (ballot/Sinar ALL-CAPS forms)."""
+    extras = {}  # (seat_code, candidate_name) -> [alt strings]
+    for path in (
+        os.path.join(ROOT, "pipeline", "raw", "sinar_match.json"),
+        os.path.join(ROOT, "pipeline", "raw", "meco_match.json"),
+    ):
+        if not os.path.exists(path):
+            continue
+        try:
+            rows = json.load(open(path))
+        except Exception:
+            continue
+        for r in rows:
+            key = (r.get("seat_code"), r.get("candidate"))
+            alts = extras.setdefault(key, [])
+            for k in ("sinar_name", "name", "name_on_ballot", "aka"):
+                if r.get(k):
+                    alts.append(r[k])
+    return extras
+
+
+def candidate_matches(item, candidate, seat_name, extra_names=None):
+    text = item_text(item)
+    text_words = set(words(text))
+    f = folded(text)
+    seat_hit = bool(seat_name) and folded(seat_name) in f
+    if not political_context(text, seat_name) and not seat_hit:
         return False
-    for toks in aliases_for(candidate):
+    for toks in aliases_for(candidate, extra_names):
+        if len(toks) == 1:
+            # single-token alias: require seat name or "johor" + election term
+            if toks[0] in text_words and (seat_hit or term_present(f, "johor")):
+                return True
+            continue
         if all(t in text_words for t in toks):
             return True
     return False
@@ -329,6 +367,7 @@ def sort_items(items, limit):
 
 def apply_feed_matches(news, prn, feed_items):
     matched_candidates = 0
+    extras = load_extra_aliases()
     general = []
     for item in feed_items:
         if general_johor_election_item(item):
@@ -337,11 +376,22 @@ def apply_feed_matches(news, prn, feed_items):
         news.setdefault("_general", {})
         news["_general"]["Johor election"] = merge_items([], general, MAX_GENERAL)
 
+    # seat-level buckets: headlines that name the DUN (even without a candidate)
     for code, seat in sorted(prn["seats"].items()):
+        seat_name = seat.get("name", "")
+        seat_hits = [
+            to_public_item(item) for item in feed_items
+            if seat_context_item(item, seat_name)
+        ]
+        if seat_hits:
+            news.setdefault(code, {})
+            news[code]["_seat"] = merge_items(news[code].get("_seat", []), seat_hits, 5)
+
         for cand in seat.get("candidates", []):
             found = []
+            extra = extras.get((code, cand.get("name")))
             for item in feed_items:
-                if candidate_matches(item, cand, seat.get("name", "")):
+                if candidate_matches(item, cand, seat_name, extra_names=extra):
                     found.append(to_public_item(item))
             if found:
                 name = cand["name"]

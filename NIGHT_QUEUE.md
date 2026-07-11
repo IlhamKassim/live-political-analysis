@@ -8,6 +8,12 @@ RULES: one task per round · `[MV]` = machine-verifiable (`node --test`/`node --
 build task is followed by its VERIFY+STRESS task · any bug found → add a `[ ]` fix task at the TOP.
 
 ## 🔝 Bug fixes (top priority — found in critique round 5, 2026-06-27)
+- [x] (codex) [MV] ACCURACY PASS — add a sourced current-affiliation layer for parliamentary vacancies/current blocs and confirmed DUN switches; keep historical result files immutable; update map fills, Current YB cards, state rollups, and party/bloc counts. Verified with Sarawak GPS79/BEBAS1/PH2 and Melaka BN20/PN3/PH5.
+- [x] (codex) [MV] ACCURACY PASS — replace the Johor caretaker EXCO roster from the official Johor Assembly page, correct the N.41 incumbent/name records, move polling state to polling, update verified manifesto/source text, and quarantine false candidate-news/demographic fields. Full validator green.
+- [ ] (codex) [HVR] ACCURACY FOLLOW-UP — refresh the remaining 81 Johor nomination ages/one sex field and stale curated career/summary strings from the Bernama/SPR dashboards before re-enabling demographic display.
+- [ ] (claude) [MV] FIX empty BM translation: `I18N.ms.kd_project_b` is currently an empty string, breaking the
+      non-empty I18N invariant in `public/lib.test.mjs`. Restore meaningful BM copy or remove the unused key in both
+      languages, then run the full Node suite. Found during Codex YB mini-card verification on 2026-07-11.
 - [x] (claude) [MV] FIX search-throw on boundary-load failure: the `#q` input handler (app.js ~630) does
       `const data = state.data[state.tier]; ... searchSeats(data.seats, q, state.tier)`. On boot, if `render(tier)`
       throws (boundaries file missing/corrupt) `init()` shows the error overlay and `return`s early — but `#q` stays

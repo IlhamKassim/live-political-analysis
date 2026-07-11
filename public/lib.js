@@ -21,6 +21,26 @@ export function partyColor(p) {
   return COALITION_COLORS[(typeof p === "string" ? p : "").toUpperCase()] || "#5d6b7d";
 }
 
+// Election results are immutable historical facts; a sitting representative's
+// affiliation can change later. Apply a source-linked current-affiliation
+// override without mutating the election row. Explicit null values matter here:
+// Parliament's official roster can record an MP under a generic opposition
+// heading rather than a party or coalition.
+export function withCurrentAffiliation(result, override) {
+  const base = result && typeof result === "object" ? result : {};
+  if (!override || typeof override !== "object") return { ...base };
+  const owns = (key) => Object.prototype.hasOwnProperty.call(override, key);
+  return {
+    ...base,
+    name: owns("current_name") ? override.current_name : base.name,
+    party: owns("current_party") ? override.current_party : base.party,
+    coalition: owns("current_coalition") ? override.current_coalition : base.coalition,
+    current_bloc: override.current_bloc || base.coalition || base.party || "",
+    vacant_since: override.vacant_since || null,
+    affiliation_status: override.affiliation_status || null,
+  };
+}
+
 function hexToRgb(hex) {
   if (typeof hex !== "string") return null;
   let s = hex.trim();

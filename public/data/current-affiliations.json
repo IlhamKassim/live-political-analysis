@@ -1,0 +1,38 @@
+{
+  "checked": "2026-07-11",
+  "scope": "Current parliamentary and state-assembly affiliation/vacancy corrections. Election-result files remain historical records.",
+  "parlimen": {
+    "P.017": {"current_name": "Azman Nasrudin", "source_label": "Parliament of Malaysia member roster", "source_url": "https://www.parlimen.gov.my/ahli-dewan.html?=&lang=en&uweb=dr"},
+    "P.030": {"current_party": null, "current_coalition": null, "current_bloc": "PEMBANGKANG", "affiliation_status": "opposition-unaffiliated", "as_of": "2026-06-30", "source_label": "Parliament of Malaysia member roster", "source_url": "https://www.parlimen.gov.my/ahli-dewan.html?=&lang=en&uweb=dr"},
+    "P.032": {"current_party": null, "current_coalition": null, "current_bloc": "PEMBANGKANG", "affiliation_status": "opposition-unaffiliated", "as_of": "2026-06-30", "source_label": "Parliament of Malaysia member roster", "source_url": "https://www.parlimen.gov.my/ahli-dewan.html?=&lang=en&uweb=dr"},
+    "P.041": {"current_name": "Siti Mastura Muhammad", "source_label": "Parliament of Malaysia member roster", "source_url": "https://www.parlimen.gov.my/ahli-dewan.html?=&lang=en&uweb=dr"},
+    "P.044": {"current_name": "Muhammad Fawwaz Mohamad Jan", "source_label": "Parliament of Malaysia member roster", "source_url": "https://www.parlimen.gov.my/ahli-dewan.html?=&lang=en&uweb=dr"},
+    "P.056": {"current_name": "Hamzah Zainudin", "source_label": "Parliament of Malaysia member roster", "source_url": "https://www.parlimen.gov.my/ahli-dewan.html?=&lang=en&uweb=dr"},
+    "P.059": {"current_party": null, "current_coalition": null, "current_bloc": "PEMBANGKANG", "affiliation_status": "opposition-unaffiliated", "as_of": "2026-06-30", "source_label": "Parliament of Malaysia member roster", "source_url": "https://www.parlimen.gov.my/ahli-dewan.html?=&lang=en&uweb=dr"},
+    "P.067": {"current_party": null, "current_coalition": null, "current_bloc": "PEMBANGKANG", "affiliation_status": "opposition-unaffiliated", "as_of": "2026-06-30", "source_label": "Parliament of Malaysia member roster", "source_url": "https://www.parlimen.gov.my/ahli-dewan.html?=&lang=en&uweb=dr"},
+    "P.093": {"current_name": "Muslimin Yahaya", "source_label": "Parliament of Malaysia member roster", "source_url": "https://www.parlimen.gov.my/ahli-dewan.html?=&lang=en&uweb=dr"},
+    "P.095": {"current_party": null, "current_coalition": null, "current_bloc": "PEMBANGKANG", "affiliation_status": "opposition-unaffiliated", "as_of": "2026-06-30", "source_label": "Parliament of Malaysia member roster", "source_url": "https://www.parlimen.gov.my/ahli-dewan.html?=&lang=en&uweb=dr"},
+    "P.127": {"current_name": "Shamshulkahar Mohd Deli", "source_label": "Parliament of Malaysia member roster", "source_url": "https://www.parlimen.gov.my/ahli-dewan.html?=&lang=en&uweb=dr"},
+    "P.142": {"current_name": "Pang Hok Liong", "source_label": "Parliament of Malaysia member roster", "source_url": "https://www.parlimen.gov.my/ahli-dewan.html?=&lang=en&uweb=dr"},
+    "P.100": {"current_party": null, "current_coalition": null, "current_bloc": "VACANT", "vacant_since": "2026-05-18", "source_label": "Election Commission vacancy notice", "source_url": "https://spr.gov.my/wp-content/uploads/2026/07/KM-BIL.11-2026-STATUS-KEKOSONGAN-LUAR-JANGKA-KERUSI-PARLIMEN-P.100-DAN-P.188.pdf"},
+    "P.118": {"current_party": null, "current_coalition": null, "current_bloc": "VACANT", "vacant_since": "2026-05-18", "source_label": "Election Commission vacancy notice", "source_url": "https://spr.gov.my/wp-content/uploads/2026/07/KM-BIL.11-2026-STATUS-KEKOSONGAN-LUAR-JANGKA-KERUSI-PARLIMEN-P.100-DAN-P.188.pdf"},
+    "P.146": {"current_party": "MUDA", "current_coalition": null, "current_bloc": "MUDA", "as_of": "2026-07-09", "source_label": "Parliament of Malaysia member roster", "source_url": "https://www.parlimen.gov.my/ahli-dewan.html?=&lang=en&uweb=dr"},
+    "P.161": {"current_name": "Suhaizan Kaiat", "source_label": "Parliament of Malaysia member roster", "source_url": "https://www.parlimen.gov.my/ahli-dewan.html?=&lang=en&uweb=dr"},
+    "P.166": {"current_party": null, "current_coalition": null, "current_bloc": "PEMBANGKANG", "affiliation_status": "opposition-unaffiliated", "as_of": "2026-06-30", "source_label": "Parliament of Malaysia member roster", "source_url": "https://www.parlimen.gov.my/ahli-dewan.html?=&lang=en&uweb=dr"},
+    "P.188": {"current_name": "Mohammad Yusof Bin Apdal", "source_label": "SPR current result release", "source_url": "https://spr.gov.my/wp-content/uploads/2026/01/KM-BIL-6-2026-KEPUTUSAN-PRK-PARLIMEN-P.187-KINABATANGAN-DAN-LAMAG-SABAH-2026-1.pdf"},
+    "P.191": {"current_name": "Andi Muhammad Suryady Bandy", "source_label": "Parliament of Malaysia member roster", "source_url": "https://www.parlimen.gov.my/ahli-dewan.html?=&lang=en&uweb=dr"},
+    "P.170": {"current_party": "UPKO", "current_coalition": "GRS", "current_bloc": "GRS", "as_of": "2026-06-18", "source_label": "Parliament of Malaysia member roster", "source_url": "https://www.parlimen.gov.my/ahli-dewan.html?=&lang=en&uweb=dr"},
+    "P.174": {"current_party": "UPKO", "current_coalition": "GRS", "current_bloc": "GRS", "as_of": "2026-06-18", "source_label": "Parliament of Malaysia member roster", "source_url": "https://www.parlimen.gov.my/ahli-dewan.html?=&lang=en&uweb=dr"}
+  },
+  "dun": {
+    "4_N.06": {"current_party": "PAS", "current_coalition": "PN", "current_bloc": "PN", "as_of": "2024-12-27", "source_label": "Melaka Hari Ini / Speaker statement", "source_url": "https://www.melakahariini.my/adun-rembia-kini-di-blok-pembangkang/"},
+    "13_N.11": {"current_party": "BEBAS", "current_coalition": "BEBAS", "current_bloc": "BEBAS", "as_of": "2026-05-13", "source_label": "Sarawak DUN Hansard", "source_url": "https://duns.sarawak.gov.my/web/attachment/show/?docid=ZmZPSGovcUt3V0Q3TU1HNWFGT3MxZz09OjqlzjXXugdwigMK5VXEy_xF"},
+    "13_N.33": {"current_party": "PDP", "current_coalition": "GPS", "current_bloc": "GPS", "as_of": "2024-05-04", "source_label": "Sarawak DUN", "source_url": "https://duns.sarawak.gov.my/web/subpage/news_view/77"},
+    "13_N.53": {"current_party": "PDP", "current_coalition": "GPS", "current_bloc": "GPS", "as_of": "2024-05-04", "source_label": "Sarawak DUN", "source_url": "https://duns.sarawak.gov.my/web/subpage/news_view/77"},
+    "13_N.81": {"current_party": "PDP", "current_coalition": "GPS", "current_bloc": "GPS", "as_of": "2024-05-04", "source_label": "Sarawak DUN", "source_url": "https://duns.sarawak.gov.my/web/subpage/news_view/77"}
+  },
+  "dissolved_assemblies": {
+    "Johor": {"dissolved_on": "2026-06-01", "source_label": "Johor state government", "source_url": "https://mediadigitaljohor.gov.my/en/dewan-negeri-johor-bubar-berkuat-kuasa-hari-ini/"},
+    "Negeri Sembilan": {"dissolved_on": "2026-06-05", "source_label": "Bernama", "source_url": "https://bernama.com/en/news.php/world/general/news.php?id=2565126"}
+  }
+}

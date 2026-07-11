@@ -11,7 +11,7 @@ import {
   formatParty, candidateCount, formatRunnerUp, formatResultCard, fitBox,
   partyColor, COALITION_COLORS, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues, swatchTextColor,
-  competitivenessFromMajorityPct,
+  competitivenessFromMajorityPct, withCurrentAffiliation,
 } from "./lib.js";
 import { I18N } from "./i18n.js";
 
@@ -26,6 +26,10 @@ const RESULTS = JSON.parse(
 
 const RESULTS_DUN = JSON.parse(
   readFileSync(fileURLToPath(new URL("./data/results-dun.json", import.meta.url)), "utf8")
+);
+
+const CURRENT_AFFILIATIONS = JSON.parse(
+  readFileSync(fileURLToPath(new URL("./data/current-affiliations.json", import.meta.url)), "utf8")
 );
 
 test("encodeHash: tier + mode, no selection", () => {
@@ -531,6 +535,43 @@ test("partyColor: unknown / empty / nullish / non-string → #5d6b7d fallback", 
   assert.equal(partyColor(42), "#5d6b7d");
   assert.equal(partyColor({}), "#5d6b7d");
   assert.equal(partyColor([]), "#5d6b7d");
+});
+
+test("withCurrentAffiliation: preserves election data unless a current override is explicit", () => {
+  const result = { name: "Example", party: "UMNO", coalition: "BN", votes: 1000 };
+  assert.deepEqual(withCurrentAffiliation(result), result);
+  assert.deepEqual(withCurrentAffiliation(result, {
+    current_party: "PAS", current_coalition: "PN", current_bloc: "PN",
+  }), {
+    name: "Example", party: "PAS", coalition: "PN", votes: 1000,
+    current_bloc: "PN", vacant_since: null, affiliation_status: null,
+  });
+  // Explicit nulls must clear historical party/bloc fields when the official
+  // current roster lists a representative only under a generic opposition heading.
+  assert.deepEqual(withCurrentAffiliation(result, {
+    current_party: null, current_coalition: null, current_bloc: "PEMBANGKANG",
+    affiliation_status: "opposition-unaffiliated",
+  }), {
+    name: "Example", party: null, coalition: null, votes: 1000,
+    current_bloc: "PEMBANGKANG", vacant_since: null,
+    affiliation_status: "opposition-unaffiliated",
+  });
+  assert.deepEqual(withCurrentAffiliation(null, { vacant_since: "2026-05-18" }), {
+    name: undefined, party: undefined, coalition: undefined, current_bloc: "", vacant_since: "2026-05-18", affiliation_status: null,
+  });
+});
+
+test("current-affiliations: audited vacancy and bloc corrections are source-linked", () => {
+  assert.equal(CURRENT_AFFILIATIONS.parlimen["P.100"].current_bloc, "VACANT");
+  assert.equal(CURRENT_AFFILIATIONS.parlimen["P.118"].current_bloc, "VACANT");
+  assert.equal(CURRENT_AFFILIATIONS.parlimen["P.030"].current_bloc, "PEMBANGKANG");
+  assert.equal(CURRENT_AFFILIATIONS.parlimen["P.146"].current_party, "MUDA");
+  assert.equal(CURRENT_AFFILIATIONS.dun["13_N.11"].current_bloc, "BEBAS");
+  assert.equal(CURRENT_AFFILIATIONS.dun["13_N.33"].current_coalition, "GPS");
+  assert.equal(CURRENT_AFFILIATIONS.dun["4_N.06"].current_coalition, "PN");
+  for (const group of [CURRENT_AFFILIATIONS.parlimen, CURRENT_AFFILIATIONS.dun]) {
+    for (const row of Object.values(group)) assert.match(row.source_url, /^https:\/\//);
+  }
 });
 
 // ---- scoreColor (0..100 red→green ramp) ----

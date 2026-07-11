@@ -3,25 +3,30 @@
 
 Endpoints (live-tested 2026-07-04; api.data.gov.my — follow redirects, ONE filter
 param with comma-separated value@column pairs):
-  • gdp_state_real_supply  — real GDP by state; series=growth_yoy|abs, sector=p0
-                             (constant 2015 prices; latest machine-readable year 2023;
-                             15 geographies — Putrajaya is folded into W.P. Kuala Lumpur)
+  • DOSM GDP by State 2025 workbook — real GDP by state (constant 2015 prices),
+                             including W.P. Putrajaya; this official release is newer
+                             than the lagging machine-readable API series
   • population_state       — for derived REAL GDP per capita (abs RM mil / population)
   • lfs_qtr_state          — u_rate, quarterly, all 16 states (latest 2025-Q3)
-  • hies_state             — income_median + gini + poverty, 2022 snapshot, all 16
+  • hies_state             — income_median + gini + poverty, latest available release
 
 Output: public/data/state-econ.json
-  { "year_gdp": 2023, "national": {...}, "states": { "<state>": {
+  { "year_gdp": 2025, "national": {...}, "states": { "<state>": {
       gdp_growth, gdp_pc, u_rate, u_qtr, income_median, income_year } } }
 """
 import json
 import os
 import urllib.parse
 import urllib.request
+import xml.etree.ElementTree as ET
+import zipfile
+from io import BytesIO
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "public", "data", "state-econ.json")
 API = "https://api.data.gov.my/data-catalogue"
+GDP_2025_WORKBOOK = "https://www.dosm.gov.my/portal-main/release-document-log?release_document_id=19977"
+NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 
 
 def fetch(id_, **params):
@@ -33,17 +38,64 @@ def fetch(id_, **params):
         return json.loads(r.read().decode())
 
 
+def fetch_bytes(url):
+    req = urllib.request.Request(url, headers={"User-Agent": "MyPolitikEcon/1.0"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return r.read()
+
+
+def official_gdp_2025():
+    """Read DOSM workbook table A7/A8 without adding an XLSX dependency."""
+    with zipfile.ZipFile(BytesIO(fetch_bytes(GDP_2025_WORKBOOK))) as book:
+        strings = ["".join(x.itertext()) for x in ET.fromstring(book.read("xl/sharedStrings.xml")).findall(NS + "si")]
+        root = ET.fromstring(book.read("xl/worksheets/sheet7.xml"))
+
+    rows = {}
+    for row in root.find(NS + "sheetData"):
+        cells = {}
+        for cell in row.findall(NS + "c"):
+            value = cell.find(NS + "v")
+            if value is None:
+                continue
+            col = "".join(ch for ch in cell.attrib["r"] if ch.isalpha())
+            cells[col] = strings[int(value.text)] if cell.attrib.get("t") == "s" else value.text
+        rows[int(row.attrib["r"])] = cells
+
+    amounts, previous, growth = {}, {}, {}
+    for i in range(5, 21):
+        state = rows[i].get("B")
+        if state:
+            amounts[state] = float(rows[i]["E"])
+            previous[state] = float(rows[i]["D"])
+    for i in range(28, 44):
+        state = rows[i].get("B")
+        if state:
+            growth[state] = float(rows[i]["E"])
+    assert len(amounts) == len(growth) == 16, "unexpected GDP-by-state workbook layout"
+    return growth, amounts, previous, 5.151
+
+
 def main():
-    growth = fetch("gdp_state_real_supply", filter="growth_yoy@series,p0@sector", sort="-date,state")
-    absgdp = fetch("gdp_state_real_supply", filter="abs@series,p0@sector", sort="-date,state")
+    try:
+        g_by_state, a_by_state, a_prev, nat_growth = official_gdp_2025()
+        latest_gdp_year = "2025"
+    except Exception as e:
+        # The open-data feed remains a conservative fallback if DOSM moves the release
+        # document; retain its dynamic latest-year behaviour rather than failing stale.
+        print(f"official GDP workbook unavailable ({e}); falling back to data.gov.my")
+        growth = fetch("gdp_state_real_supply", filter="growth_yoy@series,p0@sector", sort="-date,state")
+        absgdp = fetch("gdp_state_real_supply", filter="abs@series,p0@sector", sort="-date,state")
+        latest_gdp_year = max(r["date"][:4] for r in growth)
+        g_by_state = {r["state"]: r["value"] for r in growth if r["date"][:4] == latest_gdp_year}
+        a_by_state = {r["state"]: r["value"] for r in absgdp if r["date"][:4] == latest_gdp_year}
+        a_prev = {r["state"]: r["value"] for r in absgdp if int(r["date"][:4]) == int(latest_gdp_year) - 1}
+        tot_now = sum(v for s, v in a_by_state.items() if s != "Supra")
+        tot_prev = sum(v for s, v in a_prev.items() if s != "Supra")
+        nat_growth = 100 * (tot_now / tot_prev - 1) if tot_prev else None
     pop = fetch("population_state", filter="overall_sex@sex,overall_age@age,overall_ethnicity@ethnicity", sort="-date,state")
     lfs = fetch("lfs_qtr_state", sort="-date,state", limit=64)
     hies = fetch("hies_state", limit=32)
 
-    latest_gdp_year = max(r["date"][:4] for r in growth)
-    g_by_state = {r["state"]: r["value"] for r in growth if r["date"][:4] == latest_gdp_year}
-    a_by_state = {r["state"]: r["value"] for r in absgdp if r["date"][:4] == latest_gdp_year}
-    a_prev = {r["state"]: r["value"] for r in absgdp if int(r["date"][:4]) == int(latest_gdp_year) - 1}
     pop_years = sorted({r["date"][:4] for r in pop})
     pop_year = latest_gdp_year if latest_gdp_year in pop_years else pop_years[-1]
     p_by_state = {r["state"]: r["population"] for r in pop if r["date"][:4] == pop_year}
@@ -63,8 +115,6 @@ def main():
     # national aggregates (GDP has no Malaysia row): growth from summed abs;
     # per-capita from summed abs over summed population (excluding the 'Supra' row)
     tot = sum(v for s, v in a_by_state.items() if s != "Supra")
-    tot_prev = sum(v for s, v in a_prev.items() if s != "Supra")
-    nat_growth = round(100 * (tot / tot_prev - 1), 2) if tot_prev else None
     nat_pop = sum(v for s, v in p_by_state.items() if s in a_by_state)
 
     states = {}
@@ -90,11 +140,16 @@ def main():
     out = {
         "year_gdp": int(latest_gdp_year), "u_qtr": u_qtr, "income_year": int(inc_year),
         "national": {
-            "gdp_growth": nat_growth,
+            "gdp_growth": round(nat_growth, 1) if nat_growth is not None else None,
             "gdp_pc": int(round(tot * 1e6 / (nat_pop * 1e3))) if nat_pop else None,
             "u_rate": u_by_state.get("Malaysia") or nat_u,
         },
-        "license": "DOSM via data.gov.my · CC BY 4.0",
+        "license": "DOSM: GDP by State 2025; HIES 2024; Labour Force Survey via data.gov.my · CC BY 4.0",
+        "sources": {
+            "gdp": "https://www.dosm.gov.my/portal-main/release-content/gross-domestic-product-gdp-by-state-2025",
+            "income": "https://v2.dosm.gov.my/portal-main/release-content/household-income-survey-report--malaysia--states-2024",
+            "labour": "https://api.data.gov.my/data-catalogue?id=lfs_qtr_state",
+        },
         "states": states,
     }
     with open(OUT, "w") as f:
