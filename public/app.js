@@ -1994,7 +1994,9 @@ function select(code) {
   showDistrict(code);
   dismissHint();
 }
-function deselect() { backToControls(); }
+// programmatic deselection (tier switches, data reloads) must keep the layer the
+// caller just set — only explicit "go home" actions reset to the landing view
+function deselect() { backToControls({ keepLayer: true }); }
 
 // "P.140 · Segamat" for a DUN seat — the parliament dataset is already cached in DUN
 // tier (the FT underlays load it); degrades to the bare code if it isn't.
@@ -3398,7 +3400,8 @@ async function setTier(tier) {
   if (!cached) showLoading();
   try {
     await render(tier);
-  } catch (_) {
+  } catch (err) {
+    console.error("setTier: render failed", err);   // surfaced — a silent revert here reads as a dead button
     // new tier's boundaries unavailable — keep the previous layer and explain why
     state.tier = prev;
     document.querySelectorAll("#tier button").forEach((x) => setOn(x, x.dataset.tier === prev));
@@ -6794,7 +6797,7 @@ function goBack() {
   }
 }
 
-function backToControls() {
+function backToControls(options = {}) {
   const wasBento = document.body.classList.contains("bento-on");
   const closingState = state.openState;
   // panel (non-bento) exit still zooms out; bento exit uses a center pop instead
@@ -6859,9 +6862,12 @@ function backToControls() {
   syncSidebar();
   // The landing map is the citizen's national Parliament view. Explicit deep
   // links still honour their requested tier during boot; only returning home
-  // resets the view to the product default.
-  if (state.mode !== "parti") setMode("parti");
-  if (state.tier !== "parlimen") void setTier("parlimen");
+  // resets the view to the product default. keepLayer callers (deselect() during
+  // a tier switch) skip the reset — it would instantly revert the switch.
+  if (!options.keepLayer) {
+    if (state.mode !== "parti") setMode("parti");
+    if (state.tier !== "parlimen") void setTier("parlimen");
+  }
   writeHash();
 }
 
