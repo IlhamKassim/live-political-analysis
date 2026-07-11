@@ -55,6 +55,13 @@ STAGING_BASE_URL = os.environ.get("LIVE_STAGING_BASE_URL", "https://staging.mypo
 
 # night-of recon fills this in (see docstring); leave None to skip the source
 THESTAR_URL = os.environ.get("THESTAR_URL") or None
+# myundi.com.my (revmedia/NST official aggregator) live-results JSON API — real
+# per-candidate vote counts + explicit "final"/WON flags. Trusted like manual.
+MYUNDI_URL = os.environ.get("MYUNDI_URL", "https://www.myundi.com.my/api/live-results")
+MYUNDI_LIVE = os.environ.get("MYUNDI_LIVE", "1") not in ("0", "false", "no")
+# myundi party code → our coalition bucket (unknown → OTHERS)
+MYUNDI_COAL = {"BN": "BN", "PN": "PN", "PH": "PH", "MU": "BERSAMA",
+               "MUDA": "MUDA-PSM", "PSM": "MUDA-PSM", "BEBAS": "OTHERS", "ASLI": "OTHERS"}
 # skip live network fetches only if explicitly disabled
 SINAR_LIVE = os.environ.get("SINAR_LIVE", "1") not in ("0", "false", "no")
 SINAR_WORKERS = int(os.environ.get("SINAR_WORKERS", "10"))
@@ -404,7 +411,64 @@ def source_sinar(by_name):
     return rows_out or None
 
 
-SOURCES = [("manual", source_manual), ("thestar", source_thestar), ("sinar", source_sinar)]
+def source_myundi(by_name):
+    """myundi.com.my /api/live-results — official aggregator, real vote counts.
+
+    Each seat: {c:"N50", n, s:"draft"|"final", cn:[{n, pc, pn, vn, uvn, uvs}]}.
+    Trusted (see merge): a "final" seat publishes official; an unofficial WON call
+    publishes won; otherwise leading. Only seats with a voted candidate are emitted.
+    """
+    if not MYUNDI_LIVE:
+        return None
+    try:
+        url = MYUNDI_URL + ("&" if "?" in MYUNDI_URL else "?") + f"v={int(time.time())}"
+        data = json.loads(http_get(url, timeout=20)).get("data") or []
+    except Exception as e:
+        print(f"[{now_iso()}] myundi fetch error: {e}", file=sys.stderr)
+        return None
+    with open(PRN16) as f:
+        prn = json.load(f)
+    rows_out = {}
+    for seat in data:
+        if seat.get("t") != "DUN":
+            continue
+        code = norm_code(seat.get("c"))
+        if not code or code not in prn["seats"]:
+            continue
+        cands = []
+        for c in seat.get("cn") or []:
+            votes = int(c.get("vn") or c.get("uvn") or 0)
+            coal = MYUNDI_COAL.get((c.get("pc") or "").upper(), (c.get("pc") or "OTHERS").upper())
+            cands.append({"name": (c.get("n") or "").strip(), "votes": votes,
+                          "party": (c.get("pn") or "").strip(), "coalition": coal})
+        if not cands or not any(x["votes"] > 0 for x in cands):
+            continue
+        cands.sort(key=lambda x: x["votes"], reverse=True)
+        leader = cands[0]
+        runner = cands[1]["votes"] if len(cands) > 1 else 0
+        won_flag = any((c.get("uvs") or c.get("vs")) == "WON" for c in (seat.get("cn") or []))
+        status = "official" if seat.get("s") == "final" else ("won" if won_flag else "leading")
+        rows_out[code] = {
+            "status": status,
+            "coalition": leader["coalition"],
+            "party": leader["party"],
+            "name": leader["name"],
+            "majority": str(leader["votes"] - runner),
+            "votes": leader["votes"],
+            "candidates": cands,
+        }
+    if rows_out:
+        log_snapshot("myundi-normalized", rows_out)
+        print(f"[{now_iso()}] myundi: {len(rows_out)} Johor seats")
+    return rows_out or None
+
+
+# manual (Rick's calls) and myundi (official aggregator) are TRUSTED — their
+# won/official status is published without a second-source confirmation. thestar
+# and sinar are corroborating scrapers, capped to "leading" unless two agree.
+TRUSTED_SOURCES = {"manual", "myundi"}
+SOURCES = [("manual", source_manual), ("myundi", source_myundi),
+           ("thestar", source_thestar), ("sinar", source_sinar)]
 
 
 def merge(readings):
@@ -425,15 +489,17 @@ def merge(readings):
             by_winner.setdefault(key, []).append((src, c))
         for key, group in by_winner.items():
             srcs = {s for s, _ in group}
+            # a trusted source's row is the representative: its status is authoritative
+            group = sorted(group, key=lambda g: 0 if g[0] in TRUSTED_SOURCES else 1)
             c = dict(group[0][1])
-            manual = "manual" in srcs
+            trusted = srcs & TRUSTED_SOURCES
             claimed = max((g[1].get("status") or "leading") for g in group)
-            if manual or len(srcs) >= 2:
-                status = c.get("status") if manual else "won"
-                if not manual and claimed == "leading":
+            if trusted or len(srcs) >= 2:
+                status = c.get("status") if trusted else "won"
+                if not trusted and claimed == "leading":
                     status = "leading"
             else:
-                status = "leading"   # single non-manual source never publishes a win
+                status = "leading"   # single untrusted source never publishes a win
             c["status"] = status
             c["sources"] = sorted(srcs)
             if best is None or ("won", "official").count(c["status"]) > ("won", "official").count(best["status"]):
