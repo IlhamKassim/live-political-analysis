@@ -21,6 +21,11 @@
 
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
+/* Safari paints the pinch-zoom / overscroll canvas from the ROOT element's
+   background — without this, zooming out exposes WHITE beyond the fixed fluid
+   layers. The fluid embeds are decorative enhancement: the page must stay
+   coherent wherever they don't reach (Safari zoom, slow CDN, reduced motion). */
+html { background: var(--bg); }
 body {
   background: var(--bg);
   color: var(--ink);

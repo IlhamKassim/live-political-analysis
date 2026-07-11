@@ -6386,14 +6386,10 @@ function ensureBentoFluid() {
   el.setAttribute("hash", BENTO_FLUID_HASH);
   randomizeFluidPhase(el);
   BENTO.prepend(el);
-  // the component renders loading="lazy", which never fires inside the hidden
-  // bento (display:none = no intersection) — flip to eager so it warms now
-  const iframe = el.shadowRoot && el.shadowRoot.querySelector("iframe");
-  if (iframe) iframe.setAttribute("loading", "eager");
+  // no eager warm-up: the lazy iframe loads when the bento first becomes visible
+  // (showStateBento calls this right as it opens). Keeping the second WebGL sim
+  // unloaded until then halves idle GPU/memory for everyone on the plain map.
 }
-// boot-time warm-up (desktop only — the bento never renders under 1000px).
-// Placed after the consts it needs: a call above their declarations would TDZ.
-if (BENTO_MQ.matches) ensureBentoFluid();
 function updateBentoSpotlight() {
   const body = document.getElementById("bento-spot-body");
   if (body) body.innerHTML = bentoSpotlightHTML();
@@ -6420,7 +6416,13 @@ function updateBentoSpotlight() {
   const row = bentoSeat && BENTO.querySelector(`.bento-live-row[data-code="${CSS.escape(bentoSeat)}"]`);
   if (row) {
     row.classList.add("is-sel");
-    row.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    // reveal the row ONLY within the table's own scroll box — scrollIntoView also
+    // scrolls the page, yanking the reader away from the spotlight beside the map
+    const scroller = row.closest(".bento-livetable-scroll");
+    if (scroller) {
+      const target = row.offsetTop - (scroller.clientHeight - row.offsetHeight) / 2;
+      scroller.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
+    }
   }
 }
 
