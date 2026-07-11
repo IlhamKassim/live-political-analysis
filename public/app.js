@@ -6,7 +6,7 @@ import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSe
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues, swatchTextColor,
   competitivenessFromMajorityPct, withCurrentAffiliation } from "./lib.js?v=145";
-import { I18N } from "./i18n.js?v=152";
+import { I18N } from "./i18n.js?v=153";
 
 const SVG = document.getElementById("map");
 const STATE_OUTLINES = document.getElementById("state-outlines");

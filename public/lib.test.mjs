@@ -794,13 +794,13 @@ test("results-dun.json: the 7 by-election overlays hold (incl. Nenggiri PN→BN 
 });
 
 // ---- DUN (PRN) results: full coverage after the MECO other-states bake ----
-test("results-dun.json: 544/600 seats across 12 states, 302 election-labelled, turnout null", () => {
-  assert.equal(Object.keys(RESULTS_DUN).length, 544);
+test("results-dun.json: 600/600 seats across 13 states, 358 election-labelled, turnout null", () => {
+  assert.equal(Object.keys(RESULTS_DUN).length, 600);
   const states = new Set(Object.values(RESULTS_DUN).map((v) => v.state));
-  assert.equal(states.size, 12);
+  assert.equal(states.size, 13);
   // MECO states + by-election overlays carry an `election` label; six-state PRN entries don't
   const withElection = Object.values(RESULTS_DUN).filter((v) => v.election).length;
-  assert.equal(withElection, 302);
+  assert.equal(withElection, 358);
   // turnout isn't in either source → must be null on every entry (card omits the row)
   assert.ok(Object.values(RESULTS_DUN).every((v) => v.turnout === null));
 });
