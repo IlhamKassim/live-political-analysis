@@ -229,8 +229,18 @@ body.state-open #state-label {
 }
 
 /* coalition seat-share bar (overview) */
-.sharebar { display: flex; height: 12px; border-radius: 4px; overflow: hidden; margin: 16px 0 8px; }
-.sharebar span { display: block; height: 100%; }
+.sharebar {
+  display: flex;
+  height: 12px;
+  min-height: 12px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 16px 0 8px;
+  width: 100%;
+  flex-shrink: 0;
+  background: color-mix(in oklab, var(--ink) 8%, transparent);
+}
+.sharebar span { display: block; height: 100%; min-height: 12px; flex: 0 0 auto; }
 .sharebar-key { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11px; color: var(--ink-dim); }
 .sharebar-key b { color: var(--ink); font-family: var(--mono); font-weight: 500; }
 
@@ -407,10 +417,14 @@ body.state-open #state-label {
 /* transient confirmation toast */
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 12px);
   max-width: min(92vw, 420px); padding: 11px 16px; font-size: 13px; text-align: center;
-  color: var(--bg); background: var(--accent); border-radius: 999px; z-index: 50;
+  color: var(--bg); background: var(--accent); border-radius: 999px; z-index: 80;
   box-shadow: 0 6px 24px rgba(0,0,0,.35); opacity: 0; pointer-events: none;
   transition: opacity .2s, transform .2s; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+/* Keep live flashes above the tall PRN sheet on phones */
+body.map-inspect.prn-mode .toast {
+  bottom: max(24px, calc(min(80dvh, 920px) + 10px));
+}
 @media (prefers-reduced-motion: reduce) { .toast { transition: opacity .2s; } }
 
 /* ============================================================
@@ -2045,13 +2059,175 @@ body.state-open #panel-state {
   body.map-inspect #panel-state #map-inspect-tray {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    align-items: center;
+    align-items: start;
     gap: 10px;
     padding-top: 0;
     border-top: 0;
+    max-height: min(58dvh, 560px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   body.map-inspect #panel-state #map-inspect-tray.has-select {
     grid-template-columns: minmax(0, 1fr);
+  }
+  /*
+   * PRN night mobile (iOS Safari fix):
+   * Nested flex:1 + overflow:hidden collapses children on WebKit and paints
+   * later siblings (All candidates / hint / district picker) ON TOP of the table.
+   * Use one tall scroll sheet (block flow) instead.
+   */
+  body.map-inspect.prn-mode #panel {
+    padding: 0;
+  }
+  body.map-inspect.prn-mode #panel-state {
+    max-width: none;
+    width: 100%;
+    height: auto;
+    max-height: none;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+  }
+  body.map-inspect.prn-mode #panel-state #map-inspect-tray {
+    display: block;
+    height: auto;
+    max-height: min(80dvh, 920px);   /* cover most of the screen; map stays a strip above */
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    border-radius: 16px 16px 0 0;
+    border: 0;
+    border-top: 1.5px solid rgba(255, 100, 100, .5);
+    background: linear-gradient(180deg, rgba(255, 70, 70, .18), rgba(14, 15, 18, .96) 22%, #0e0f12 100%);
+    box-shadow: 0 -8px 28px rgba(0, 0, 0, .35);
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+  body.map-inspect.prn-mode #map-inspect-tray,
+  body.map-inspect.prn-mode .map-inspect-choice {
+    gap: 0;
+    border-radius: 16px 16px 0 0;
+  }
+  body.map-inspect.prn-mode .map-inspect-choice {
+    display: block;
+    overflow: visible;
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+    min-height: 0;
+  }
+  body.map-inspect.prn-mode .prn-mobile-summary,
+  body.map-inspect.prn-mode .prn-mobile-summary.is-live,
+  body.map-inspect.prn-mode .prn-mobile-summary.is-compact {
+    display: block;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    padding: 12px 12px 4px;
+    overflow: visible;
+    min-height: 0;
+    flex: none;
+  }
+  body.map-inspect.prn-mode .mobile-live-board,
+  body.map-inspect.prn-mode .prn-mobile-board,
+  body.map-inspect.prn-mode .mobile-live-board .bento-livetable,
+  body.map-inspect.prn-mode .prn-mobile-board .bento-livetable {
+    display: block;
+    overflow: visible;
+    min-height: 0;
+    flex: none;
+    height: auto;
+  }
+  body.map-inspect.prn-mode .mobile-live-board .bento-livetable-head,
+  body.map-inspect.prn-mode .prn-mobile-board .bento-livetable-head {
+    position: relative;
+    z-index: 2;
+  }
+  /* Table has its own scroll so header/filters stay in the sheet flow */
+  body.map-inspect.prn-mode .mobile-live-board .bento-livetable-scroll,
+  body.map-inspect.prn-mode .prn-mobile-board .bento-livetable-scroll {
+    display: block;
+    max-height: min(48dvh, 480px);
+    min-height: 200px;
+    overflow-x: auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    position: relative;
+    z-index: 1;
+    border: 1px solid color-mix(in oklab, var(--line) 80%, transparent);
+    border-radius: 10px;
+    background: color-mix(in oklab, var(--bg-2) 55%, transparent);
+  }
+  body.map-inspect.prn-mode .prn-mobile-cands {
+    display: flex;
+    margin: 8px 0 10px;
+    position: relative;
+    z-index: 2;
+  }
+  body.map-inspect.prn-mode .prn-mobile-hint {
+    display: none; /* redundant under live table; was painting over rows on iOS */
+  }
+  body.map-inspect.prn-mode .map-inspect-overview,
+  body.map-inspect.prn-mode .seat-district-switcher {
+    display: block;
+    margin: 0;
+    padding: 8px 12px 10px;
+    position: relative;
+    z-index: 3;
+    background: #0e0f12;
+  }
+  /* Keep pick-seat + locate on ONE row (display:block was stacking the loc fab under the select) */
+  body.map-inspect.prn-mode .map-inspect-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 8px 12px 10px;
+    position: sticky;
+    bottom: 0;
+    z-index: 4;
+    background: #0e0f12;
+    border-top: 1px solid color-mix(in oklab, var(--line) 70%, transparent);
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+  body.map-inspect.prn-mode .map-inspect-row .map-inspect-select {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  body.map-inspect.prn-mode .map-inspect-row .map-inspect-locate,
+  body.map-inspect.prn-mode .map-inspect-row .map-inspect-more {
+    flex: 0 0 auto;
+    width: 46px;
+    height: 46px;
+    min-width: 46px;
+  }
+  body.map-inspect.prn-mode .seat-district-switcher {
+    border-top: 1px solid color-mix(in oklab, var(--line) 70%, transparent);
+    position: sticky;
+    bottom: 0;
+    z-index: 4;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+  body.map-inspect.prn-mode .seat-district-switcher .map-inspect-row {
+    border-top: 0;
+    padding: 0;
+    position: static;
+  }
+  body.map-inspect.prn-mode .sharebar.prn-live-bar {
+    min-height: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    width: 100%;
+  }
+  body.map-inspect.prn-mode .sharebar.prn-live-bar span {
+    min-width: 2px;
+    flex: 0 0 auto;
   }
   body.map-inspect .map-inspect-select-list {
     top: auto;
@@ -2452,11 +2628,19 @@ button.map-inspect-overview:focus-visible { outline: 2px solid var(--focus); out
 .prn-check:hover { text-decoration: underline; }
 .prn-mobile-summary {
   display: grid;
-  gap: 5px;
-  padding: 10px 12px;
+  gap: 8px;
+  padding: 12px;
   border: 1px solid rgba(255,120,120,.34);
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(255,90,90,.10), rgba(255,90,90,.025));
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255,90,90,.12), rgba(255,90,90,.03));
+}
+.prn-mobile-summary.is-live {
+  border-color: rgba(255,90,90,.45);
+  background: linear-gradient(180deg, rgba(255,70,70,.16), rgba(20,22,28,.55));
+}
+.prn-mobile-summary.is-compact {
+  gap: 6px;
+  padding: 10px 12px;
 }
 .prn-mobile-title {
   min-width: 0;
@@ -2465,20 +2649,197 @@ button.map-inspect-overview:focus-visible { outline: 2px solid var(--focus); out
   gap: 8px;
   color: var(--ink);
   font-weight: 800;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.25;
 }
-.prn-mobile-title span:last-child {
+.prn-mobile-title > span:nth-child(2) {
   min-width: 0;
+  flex: 1 1 auto;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.prn-mobile-title .prn-live-chip {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  padding: 3px 7px;
+  border-radius: 999px;
+  color: #fff;
+  background: #e23;
+}
 .prn-mobile-meta,
-.prn-mobile-foot {
+.prn-mobile-foot,
+.prn-mobile-board-h,
+.prn-mobile-hint {
   color: var(--ink-dim);
   font-size: 11.5px;
   line-height: 1.35;
+}
+.prn-mobile-hint { margin: 0; }
+.prn-mobile-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.prn-mobile-metric {
+  min-width: 0;
+  padding: 8px 8px 7px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: color-mix(in oklab, var(--surface-soft) 88%, transparent);
+  text-align: center;
+}
+.prn-mobile-metric span {
+  display: block;
+  font-size: 10px;
+  line-height: 1.2;
+  margin-bottom: 2px;
+}
+.prn-mobile-metric b {
+  display: block;
+  font-size: 16px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  line-height: 1.1;
+}
+.prn-mobile-metric b small {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-dim);
+  margin-left: 1px;
+}
+.prn-mobile-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.prn-mobile-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  font-size: 11.5px;
+  color: var(--ink-dim);
+}
+.prn-mobile-chip b { color: var(--ink); font-weight: 700; }
+.prn-mobile-board-h {
+  margin-top: 2px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  font-size: 10.5px;
+}
+.prn-mobile-board {
+  margin-top: 0;
+}
+/* Nested bento-tile chrome is for desktop dashboard only — on phone it steals
+   height/width from the 56-seat table. Flatten it so filters + rows own the tray. */
+.mobile-live-board .bento-livetable,
+.prn-mobile-board .bento-livetable {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  gap: 8px;
+  box-shadow: none;
+  backdrop-filter: none;
+  background-image: none;
+}
+.mobile-live-board .bento-livetable-head,
+.prn-mobile-board .bento-livetable-head {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+.mobile-live-board .bento-kicker,
+.prn-mobile-board .bento-kicker {
+  font-size: 10.5px;
+}
+.mobile-live-board .bento-live-filters,
+.prn-mobile-board .bento-live-filters {
+  gap: 4px;
+}
+.mobile-live-board .bento-live-chip,
+.prn-mobile-board .bento-live-chip {
+  min-height: 28px;
+  padding: 0 9px;
+  font-size: 11px;
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.mobile-live-board .bento-live-filters,
+.prn-mobile-board .bento-live-filters,
+.mobile-live-board .bento-livetable-head,
+.prn-mobile-board .bento-livetable-head {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  pointer-events: auto;
+}
+.mobile-live-board .bento-livetable-scroll,
+.prn-mobile-board .bento-livetable-scroll {
+  max-height: min(52dvh, 420px);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+/* Drop BLOC column on narrow — swatch+code already imply it; frees leader name */
+@media (max-width: 560px) {
+  .mobile-live-board .bento-live-table .col-bloc,
+  .prn-mobile-board .bento-live-table .col-bloc {
+    display: none;
+  }
+  .mobile-live-board .bento-live-table col.col-code,
+  .prn-mobile-board .bento-live-table col.col-code { width: 2.9rem; }
+  .mobile-live-board .bento-live-table col.col-seat,
+  .prn-mobile-board .bento-live-table col.col-seat { width: 22%; }
+  .mobile-live-board .bento-live-table col.col-status,
+  .prn-mobile-board .bento-live-table col.col-status { width: 5.2rem; }
+  .mobile-live-board .bento-live-table col.col-maj,
+  .prn-mobile-board .bento-live-table col.col-maj { width: 3.2rem; }
+  .mobile-live-board .bento-live-table,
+  .prn-mobile-board .bento-live-table {
+    font-size: 11.5px;
+  }
+  .mobile-live-board .bento-live-table th,
+  .mobile-live-board .bento-live-table td,
+  .prn-mobile-board .bento-live-table th,
+  .prn-mobile-board .bento-live-table td {
+    padding: 7px 5px;
+  }
+  .mobile-live-board .bento-live-st,
+  .prn-mobile-board .bento-live-st {
+    min-width: 4.4rem;
+    font-size: 10px;
+  }
+}
+.prn-mobile-cands {
+  margin-top: 4px;
+  min-height: 42px;
+  font-size: 13px;
+}
+.prn-live-tally-h {
+  font-size: 11px;
+  font-weight: 600;
+  margin: 2px 0 0;
+}
+.map-inspect-overview.is-live-lead {
+  border-color: color-mix(in oklab, var(--accent) 35%, var(--line));
+  background: color-mix(in oklab, var(--accent) 8%, var(--surface-soft));
+}
+.map-inspect-overview.is-live-await strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-dim);
 }
 .prn-close-btn {
   margin-top: 14px; width: 100%; min-height: 44px; padding: 8px 12px; border-radius: 10px;
@@ -3289,8 +3650,7 @@ body.news-open #topbar .topbar-context { pointer-events: auto; }
 .prn-pledges-btn:hover { border-color: var(--line-2); background: color-mix(in oklab, var(--bg-2) 85%, var(--ink) 15%); }
 .prn-pledges-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 /* mobile election panel: the 56-seat live board (reuses the bento table renderer) */
-.mobile-live-board { display: grid; gap: 8px; }
-.mobile-live-board .bento-livetable-scroll { max-height: min(300px, 44vh); }
+.mobile-live-board { display: grid; gap: 6px; }
 /* all-candidates browser: 172 runners grouped by seat inside the candidate dialog */
 .prn-all-shell { padding: 18px; }
 .prn-all-title { font-family: var(--font-display); font-size: 18px; font-weight: 700; margin: 0 40px 12px 0; }
@@ -3374,6 +3734,17 @@ body.news-open #topbar .topbar-context { pointer-events: auto; }
 }
 .bento-count { grid-area: count; } .bento-countreg { grid-area: creg; } .bento-map { grid-area: map; } .bento-stand { grid-area: stand; }
 .bento-dates { grid-area: dates; } .bento-reg { grid-area: reg; } .bento-spot { grid-area: spot; } .bento-pledge { grid-area: pledge; }
+/* "who's leading now" line under the seats-by-coalition donut on election night */
+.bento-live-under {
+  margin-top: 12px; padding-top: 12px;
+  border-top: 1px solid color-mix(in oklab, var(--line) 70%, transparent);
+  display: grid; gap: 6px;
+}
+.bento-live-under .prn-live-tally-h { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; }
+.bento-live-under .sharebar { height: 8px; border-radius: 999px; overflow: hidden; display: flex; }
+.bento-live-under .sharebar-key { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; }
+.bento-live-under .state-bloc { display: inline-flex; align-items: center; gap: 5px; }
+.bento-live-under .state-bloc .sw { width: 9px; height: 9px; border-radius: 2px; flex: 0 0 auto; }
 
 .bento-tile {
   background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
@@ -3800,6 +4171,10 @@ body.news-open #topbar .topbar-context { pointer-events: auto; }
   min-height: 32px; padding: 0 11px; border-radius: 999px; cursor: pointer;
   font: inherit; font-size: 11.5px; font-weight: 700;
   border: 1px solid var(--line); background: var(--bg-2); color: var(--ink-dim);
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
 }
 .bento-live-chip:hover { border-color: var(--line-2); color: var(--ink); }
 .bento-live-chip.on { background: color-mix(in oklab, var(--accent) 18%, var(--bg-2)); border-color: color-mix(in oklab, var(--accent) 40%, var(--line)); color: var(--ink); }
@@ -3808,27 +4183,77 @@ body.news-open #topbar .topbar-context { pointer-events: auto; }
   max-height: min(340px, 42vh); overflow: auto; border-radius: 12px;
   border: 1px solid var(--line); background: color-mix(in oklab, var(--bg-2) 70%, var(--panel));
 }
-.bento-live-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.bento-live-table {
+  width: 100%;
+  table-layout: fixed;          /* lock columns so every row lines up */
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.bento-live-table col.col-code { width: 3.4rem; }
+.bento-live-table col.col-seat { width: 18%; }
+.bento-live-table col.col-status { width: 5.6rem; }
+.bento-live-table col.col-leader { width: auto; }
+.bento-live-table col.col-bloc { width: 4.2rem; }
+.bento-live-table col.col-maj { width: 3.6rem; }
 .bento-live-table th {
   position: sticky; top: 0; z-index: 1;
-  text-align: left; padding: 9px 10px;
+  text-align: left; padding: 9px 8px;
   font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
   color: var(--ink-faint); background: var(--panel); border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.bento-live-table td { padding: 8px 10px; border-bottom: 1px solid color-mix(in oklab, var(--line) 70%, transparent); vertical-align: middle; }
+.bento-live-table td {
+  padding: 8px 8px;
+  border-bottom: 1px solid color-mix(in oklab, var(--line) 70%, transparent);
+  vertical-align: middle;
+  overflow: hidden;
+}
+.bento-live-cell {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bento-live-table .col-code {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--ink-dim);
+}
+.bento-live-table .col-status {
+  text-align: left;
+}
+.bento-live-table .col-maj {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-feature-settings: "tnum" 1;
+}
+.bento-live-table th.col-maj { text-align: right; }
+.bento-live-table .col-bloc {
+  white-space: nowrap;
+}
 .bento-live-row { cursor: pointer; transition: background .1s; }
 .bento-live-row:hover { background: color-mix(in oklab, var(--ink) 5%, transparent); }
 .bento-live-row.is-sel { background: color-mix(in oklab, var(--accent) 12%, transparent); }
 .bento-live-row:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
 .bento-live-st {
-  display: inline-flex; align-items: center; min-height: 22px; padding: 0 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 4.6rem; min-height: 22px; padding: 0 8px;
   border-radius: 999px; font-size: 10.5px; font-weight: 700; letter-spacing: .03em;
   background: color-mix(in oklab, var(--ink) 6%, transparent); color: var(--ink-dim);
+  white-space: nowrap;
+  box-sizing: border-box;
 }
 .bento-live-st.st-leading { background: color-mix(in oklab, #d97706 22%, transparent); color: #fbbf24; }
 .bento-live-st.st-called { background: color-mix(in oklab, #16a34a 22%, transparent); color: #4ade80; }
 .bento-live-st.st-official { background: color-mix(in oklab, #2563eb 22%, transparent); color: #93c5fd; }
-.bento-live-coal { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.bento-live-coal {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-width: 0; max-width: 100%; white-space: nowrap;
+}
 .bento-live-coal .sw { width: 9px; height: 9px; border-radius: 3px; flex: 0 0 auto; }
 .bento-live-empty { text-align: center; padding: 18px 10px !important; }
 .bento-live-row.just-called, .bento-seat.just-called {

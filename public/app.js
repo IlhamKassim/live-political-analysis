@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues, swatchTextColor,
-  competitivenessFromMajorityPct, withCurrentAffiliation } from "./lib.js?v=121";
-import { I18N } from "./i18n.js?v=121";
+  competitivenessFromMajorityPct, withCurrentAffiliation } from "./lib.js?v=129";
+import { I18N } from "./i18n.js?v=129";
 
 const SVG = document.getElementById("map");
 const STATE_OUTLINES = document.getElementById("state-outlines");
@@ -3907,11 +3907,11 @@ function districtOptionsForOpenState() {
 
 function districtSelectHTML(selectedCode = "") {
   const seats = districtOptionsForOpenState();
-  const label = esc(t("map_inspect_select_label"));
+  const label = esc(t(state.prnMode ? "prn_pick_seat_label" : "map_inspect_select_label"));
   const selected = seats.find((seat) => seat.code === selectedCode);
   const selectedText = selected
     ? `${displayCode(selected, state.tier) || selected.code} · ${selected.name}`
-    : t("map_inspect_select_ph");
+    : t(state.prnMode ? "prn_pick_seat_ph" : "map_inspect_select_ph");
   return `
     <div class="map-inspect-select" id="map-inspect-district-picker">
       <button
@@ -4064,6 +4064,35 @@ document.addEventListener("keydown", (e) => {
 
 function mapInspectOverviewHTML(seat) {
   if (!seat) return "";
+  // Election night: show tonight's lead for this seat, not the 2022 incumbent
+  if (state.prnMode && prnLiveIsHot()) {
+    const lr = prnLiveForSeat(seat.code);
+    if (lr && (lr.name || lr.coalition || lr.party)) {
+      const coal = lr.coalition || lr.party || "";
+      const col = coal ? prnCoalColor(coal) : null;
+      const pill = col
+        ? `<span class="pill" style="${pillStyle(col.bg, col.fg)}">${esc(coal)}</span>`
+        : "";
+      const maj = lr.majority != null && lr.majority !== ""
+        ? ` · ${esc(t("prn_majority_n", { n: lr.majority }))}`
+        : "";
+      const st = prnLiveStatusMeta(lr);
+      return `
+        <button id="map-inspect-details" class="map-inspect-overview is-live-lead" type="button" title="${esc(t("map_inspect_more"))}">
+          <span>${esc(t("prn_tonight_leader"))} · ${esc(st.label)}</span>
+          <strong>${esc(lr.name || "—")}</strong>
+          <p>${pill}${maj ? `<span class="muted">${maj}</span>` : ""}</p>
+        </button>
+      `;
+    }
+    return `
+      <button id="map-inspect-details" class="map-inspect-overview is-live-await" type="button" title="${esc(t("map_inspect_more"))}">
+        <span>${esc(seat.dun_code || seat.code)} · ${esc(seat.name)}</span>
+        <strong>${esc(t("prn_tonight_awaiting_seat"))}</strong>
+        <p class="muted">${esc(t("prn_tap_hint"))}</p>
+      </button>
+    `;
+  }
   const r = resultFor(seat);
   if (!r) {
     return `
@@ -4101,16 +4130,81 @@ function mapInspectPrnSummaryHTML() {
   const e = prnActiveForState(state.openState);
   const p = state.prn16;
   if (!e || !p) return "";
-  const liveNow = state.prnLive && (state.prnLive.phase === "live" || state.prnLive.phase === "final");
-  const status = liveNow
-    ? t(state.prnLive.phase === "final" ? "prn_phase_final" : "prn_phase_live")
-    : prnCountdownLabel(e);
-  const total = Object.values(p.contested || {}).reduce((a, b) => a + b, 0);
+  const liveNow = prnLiveIsHot();
+  const totalCands = prnContestTotal(p);
+  const seatSelected = !!selectedSeat();
+  const phaseChip = liveNow
+    ? `<span class="prn-live-chip">${esc(t(state.prnLive.phase === "final" ? "prn_phase_final" : "prn_phase_live"))}</span>`
+    : "";
+
+  if (liveNow) {
+    const { declared, leading, majority, total, live } = prnLiveStats();
+    // Landing (no seat): full race picture. Seat open: keep a compact race strip so
+    // you never lose the night tally behind "choose district".
+    const metrics = `
+      <div class="prn-mobile-metrics" role="group" aria-label="${esc(t("prn_live_strip_title"))}">
+        <div class="prn-mobile-metric">
+          <span class="muted">${esc(t("prn_live_declared_short"))}</span>
+          <b>${declared}<small>/${total}</small></b>
+        </div>
+        <div class="prn-mobile-metric">
+          <span class="muted">${esc(t("prn_live_leading_short"))}</span>
+          <b>${leading}</b>
+        </div>
+        <div class="prn-mobile-metric">
+          <span class="muted">${esc(t("prn_live_majority_short"))}</span>
+          <b>${majority}</b>
+        </div>
+      </div>`;
+    const tally = prnLiveTallyHTML({ compact: true });
+    // Order matters on iOS: actions ABOVE the table so they never paint over rows
+    // when WebKit mishandles nested flex overflow.
+    const candsBtn = !seatSelected
+      ? `<button id="prn-all-candidates" class="prn-pledges-btn prn-mobile-cands" type="button">👥 ${esc(t("prn_all_cands", { n: totalCands }))} →</button>`
+      : "";
+    const board = !seatSelected
+      ? `<div id="mobile-live-board" class="mobile-live-board prn-mobile-board">${bentoLiveTableHTML(state.openState)}</div>`
+      : "";
+    return `
+      <section class="prn-mobile-summary is-live${seatSelected ? " is-compact" : ""}" aria-label="${esc(e.name)}">
+        <div class="prn-mobile-title">
+          <span class="live-dot" aria-hidden="true"></span>
+          <span>${esc(e.name)}</span>
+          ${phaseChip}
+        </div>
+        <div class="prn-mobile-meta">${esc(t("prn_live_polling_today"))} · ${esc(fmtDayMonth(e.polling_day))}</div>
+        ${metrics}
+        ${tally}
+        ${candsBtn}
+        ${board}
+      </section>
+    `;
+  }
+
+  // Pre-count / campaign: still more than a title — dates, majority, field size
+  const cd = prnCountdownLabel(e);
+  const order = Object.entries(p.contested || {}).sort((a, b) => b[1] - a[1]);
+  const bar = order.map(([coal, n]) => {
+    const c = prnCoalColor(coal);
+    return `<span style="width:${(100 * n / Math.max(1, totalCands)).toFixed(2)}%;background:${c.bg}"></span>`;
+  }).join("");
+  const key = order.map(([coal, n]) => {
+    const c = prnCoalColor(coal);
+    return `<span class="state-bloc"><span class="sw" style="background:${c.bg}"></span>${esc(coal)} ${n}</span>`;
+  }).join("");
   return `
     <section class="prn-mobile-summary" aria-label="${esc(e.name)}">
       <div class="prn-mobile-title"><span class="live-dot" aria-hidden="true"></span><span>${esc(e.name)}</span></div>
-      <div class="prn-mobile-meta">${esc(t("prn_polling"))} ${esc(fmtDayMonth(e.polling_day))}${status ? " · " + esc(status) : ""}</div>
-      <div class="prn-mobile-foot">${esc(t("prn_contested"))} · ${total}</div>
+      <div class="prn-mobile-meta">${esc(t("prn_polling"))} ${esc(fmtDayMonth(e.polling_day))}${cd ? " · " + esc(cd) : ""}</div>
+      <div class="prn-mobile-chips">
+        <span class="prn-mobile-chip"><b>${esc(t("prn_candidates_filed", { n: totalCands }))}</b></span>
+        <span class="prn-mobile-chip">${esc(t("prn_majority", { n: e.majority }))}</span>
+      </div>
+      <div class="prn-mobile-board-h muted">${esc(t("prn_contested"))} · ${totalCands}</div>
+      <div class="sharebar prn-live-bar">${bar}</div>
+      <div class="sharebar-key">${key}</div>
+      <button id="prn-all-candidates" class="prn-pledges-btn prn-mobile-cands" type="button">👥 ${esc(t("prn_all_cands", { n: totalCands }))} →</button>
+      <p class="prn-mobile-hint muted">${esc(t("prn_mobile_landing_hint"))}</p>
     </section>
   `;
 }
@@ -4709,34 +4803,38 @@ function prnBannerHTML(name) {
     <button id="prn-open" class="prn-open-btn" type="button">${esc(t("prn_open"))} →</button>
   </div>`;
 }
-// polling-night tally block: won (solid) counts per coalition racing to the majority line
-function prnLiveTallyHTML() {
-  const e = liveElection();
-  const live = state.prnLive;
-  if (!e || !live || !live.seats) return "";
-  const won = {}, leading = {};
-  let declared = 0;
-  for (const r of Object.values(live.seats)) {
-    const coal = r.coalition || r.party;
-    if (!coal) continue;
-    if (r.status === "won" || r.status === "official") { won[coal] = (won[coal] || 0) + 1; declared++; }
-    else if (r.status === "leading") leading[coal] = (leading[coal] || 0) + 1;
-  }
-  const order = Object.entries(won).sort((a, b) => b[1] - a[1]);
+// polling-night tally: declared wins when any exist; otherwise provisional leads
+// (election night spends hours with status=leading only — empty bar was useless).
+function prnLiveTallyHTML(opts = {}) {
+  const { e, live, declared, leading, won, lead, majority, total } = prnLiveStats();
+  if (!e || !live) return "";
+  const provisional = declared === 0;
+  const counts = provisional ? lead : won;
+  const order = Object.entries(counts).sort((a, b) => b[1] - a[1]);
   const bar = order.map(([coal, n]) => {
     const c = prnCoalColor(coal);
-    return `<span style="width:${(100 * n / e.total_seats).toFixed(2)}%;background:${c.bg}"></span>`;
+    return `<span style="width:${(100 * n / total).toFixed(2)}%;background:${c.bg}"></span>`;
   }).join("");
   const key = order.map(([coal, n]) => {
     const c = prnCoalColor(coal);
-    const lead = leading[coal] ? ` <span class="muted">+${leading[coal]}</span>` : "";
-    return `<span class="state-bloc"><span class="sw" style="background:${c.bg}"></span>${esc(coal)} <b>${n}</b>${lead}</span>`;
+    const extra = !provisional && lead[coal] ? ` <span class="muted">+${lead[coal]}</span>` : "";
+    return `<span class="state-bloc"><span class="sw" style="background:${c.bg}"></span>${esc(coal)} <b>${n}</b>${extra}</span>`;
   }).join("");
-  const updated = live.updated ? new Date(live.updated).toLocaleTimeString(lang === "ms" ? "ms-MY" : "en-MY", { hour: "2-digit", minute: "2-digit" }) : "";
-  return `<div class="state-info-h muted" style="margin-top:14px">${esc(t("prn_live_tally", { n: declared, total: e.total_seats }))}</div>
+  const updated = live.updated
+    ? new Date(live.updated).toLocaleTimeString(lang === "ms" ? "ms-MY" : "en-MY", { hour: "2-digit", minute: "2-digit" })
+    : "";
+  const title = provisional
+    ? t("prn_live_leading_count", { n: leading, total })
+    : t("prn_live_tally", { n: declared, total });
+  const note = provisional
+    ? t("prn_live_provisional")
+    : t("prn_majority", { n: majority });
+  const headCls = opts.compact ? "prn-live-tally-h muted" : "state-info-h muted";
+  const headStyle = opts.compact ? "" : ' style="margin-top:14px"';
+  return `<div class="${headCls}"${headStyle}>${esc(title)}</div>
     <div class="sharebar prn-live-bar">${bar}</div>
     <div class="sharebar-key">${key || `<span class="muted">${esc(t("prn_live_waiting"))}</span>`}</div>
-    <p class="prn-majority muted">${esc(t("prn_majority", { n: e.majority }))}${updated ? ` · ${esc(t("prn_live_updated", { t: updated }))}` : ""}${live.source ? ` · ${esc(live.source)}` : ""}</p>`;
+    <p class="prn-majority muted">${esc(note)}${updated ? ` · ${esc(t("prn_live_updated", { t: updated }))}` : ""}${live.source ? ` · ${esc(live.source)}` : ""}</p>`;
 }
 
 // the PRN summary card (replaces the state make-up while the election view is on)
@@ -4941,6 +5039,43 @@ function closePrnMode(options = {}) {
 let prnLiveTimer = null;
 let prnLiveSeatSnap = {};   // code → last-seen status (for map flash + toasts)
 let bentoLiveFilter = "all"; // live seat table filter
+
+/** Apply All / Undeclared / BN / PH / … filter and re-render wherever the board lives. */
+function setLiveSeatFilter(raw) {
+  const next = String(raw || "all").trim() || "all";
+  bentoLiveFilter = next;
+  // Desktop bento dashboard
+  if (document.body.classList.contains("bento-on")) {
+    renderStateBento();
+    return;
+  }
+  // Mobile map-inspect tray owns the night board
+  if (state.mapInspect && MOBILE_MAP_INSPECT_MQ.matches && state.prnMode) {
+    renderMapInspectTray();
+    return;
+  }
+  // Panel summary path (state-summary with #mobile-live-board)
+  if (state.prnMode && state.openState && PANEL.classList.contains("state-summary")) {
+    STATE_INFO.innerHTML = stateSummaryHTML(state.openState);
+    return;
+  }
+  const board = document.getElementById("mobile-live-board");
+  if (board && state.openState) board.innerHTML = bentoLiveTableHTML(state.openState);
+}
+
+function liveSeatMatchesFilter(lr, st, filter) {
+  const f = (filter || "all").toUpperCase();
+  if (f === "ALL" || filter === "all") return true;
+  // Undeclared = not yet won/official (includes leading + awaiting)
+  if (filter === "open") {
+    const status = (lr && lr.status) || "";
+    return status !== "won" && status !== "official";
+  }
+  const coal = String((lr && (lr.coalition || lr.party)) || "").toUpperCase();
+  const party = String((lr && lr.party) || "").toUpperCase();
+  // Chip id may be a coalition (BN/PH/PN) or a minor ticket (BERSAMA, MUDA-PSM)
+  return coal === f || party === f;
+}
 let prnFlashCodes = [];      // seats to pulse on next map paint
 
 function prnLiveIsHot(live = state.prnLive) {
@@ -5044,8 +5179,15 @@ async function refreshPrnLive() {
   if (state.prnMode) prnLiveTimer = setTimeout(refreshPrnLive, interval);
 }
 function renderPrnSummaryIfOpen() {
-  if (state.prnMode && state.openState && PANEL.classList.contains("state-summary")) {
+  if (!(state.prnMode && state.openState)) return;
+  if (PANEL.classList.contains("state-summary")) {
     STATE_INFO.innerHTML = stateSummaryHTML(state.openState);
+  }
+  // Mobile map-inspect tray owns the night landing — keep it in sync with live ticks
+  if (state.mapInspect && MOBILE_MAP_INSPECT_MQ.matches) renderMapInspectTray();
+  else {
+    const board = document.getElementById("mobile-live-board");
+    if (board) board.innerHTML = bentoLiveTableHTML(state.openState);
   }
 }
 
@@ -5198,15 +5340,10 @@ function bentoLiveTableHTML(name) {
   ).join("");
 
   const rows = seats.map((s) => {
-    const lr = liveSeats[s.code];
+    const lr = liveSeats[s.code] || liveSeats[String(s.code).replace(/^1_/, "")] || null;
     const st = prnLiveStatusMeta(lr);
     const coal = (lr && (lr.coalition || lr.party)) || "";
-    const isOpen = !lr || !lr.status || lr.status === "counting" || st.key === "awaiting";
-    const match =
-      filter === "all" ||
-      (filter === "open" && isOpen) ||
-      (filter !== "open" && filter !== "all" && coal === filter);
-    if (!match) return "";
+    if (!liveSeatMatchesFilter(lr, st, filter)) return "";
     const leader = (lr && lr.name) || "—";
     const maj = lr && lr.majority != null && lr.majority !== "" ? lr.majority : "—";
     const col = coal ? prnCoalColor(coal) : null;
@@ -5214,12 +5351,12 @@ function bentoLiveTableHTML(name) {
     const sel = s.code === bentoSeat ? " is-sel" : "";
     const flash = (prnFlashCodes || []).includes(s.code) ? " just-called" : "";
     return `<tr class="bento-live-row st-${st.key}${sel}${flash}" data-code="${esc(s.code)}" tabindex="0" role="button">
-      <td class="mono">${esc(s.dun_code || s.code.replace(/^1_/, ""))}</td>
-      <td>${esc(s.name)}</td>
-      <td><span class="bento-live-st st-${st.key}">${esc(st.label)}</span></td>
-      <td>${esc(leader)}</td>
-      <td class="bento-live-coal">${sw}${esc(coal || "—")}</td>
-      <td class="mono">${esc(String(maj))}</td>
+      <td class="col-code mono">${esc(s.dun_code || s.code.replace(/^1_/, ""))}</td>
+      <td class="col-seat"><span class="bento-live-cell">${esc(s.name)}</span></td>
+      <td class="col-status"><span class="bento-live-st st-${st.key}">${esc(st.label)}</span></td>
+      <td class="col-leader"><span class="bento-live-cell">${esc(leader)}</span></td>
+      <td class="col-bloc bento-live-coal">${sw}<span class="bento-live-cell">${esc(coal || "—")}</span></td>
+      <td class="col-maj mono">${esc(String(maj))}</td>
     </tr>`;
   }).filter(Boolean).join("");
 
@@ -5231,14 +5368,22 @@ function bentoLiveTableHTML(name) {
     </div>
     <div class="bento-livetable-scroll">
       <table class="bento-live-table">
+        <colgroup>
+          <col class="col-code" />
+          <col class="col-seat" />
+          <col class="col-status" />
+          <col class="col-leader" />
+          <col class="col-bloc" />
+          <col class="col-maj" />
+        </colgroup>
         <thead>
           <tr>
-            <th>${esc(t("prn_live_col_code"))}</th>
-            <th>${esc(t("prn_live_col_seat"))}</th>
-            <th>${esc(t("prn_live_col_status"))}</th>
-            <th>${esc(t("prn_live_col_leader"))}</th>
-            <th>${esc(t("prn_live_col_coal"))}</th>
-            <th>${esc(t("prn_live_col_maj"))}</th>
+            <th class="col-code">${esc(t("prn_live_col_code"))}</th>
+            <th class="col-seat">${esc(t("prn_live_col_seat"))}</th>
+            <th class="col-status">${esc(t("prn_live_col_status"))}</th>
+            <th class="col-leader">${esc(t("prn_live_col_leader"))}</th>
+            <th class="col-bloc">${esc(t("prn_live_col_coal"))}</th>
+            <th class="col-maj">${esc(t("prn_live_col_maj"))}</th>
           </tr>
         </thead>
         <tbody>${body}</tbody>
@@ -6291,10 +6436,11 @@ function bentoStateTilesHTML(name) {
   const econ = stateEconRows(name);
   const govTile = bentoGovTileHTML(name);
   const totalSeats = st ? st.seats.length : 0;
-  // Same seats-by-coalition donut as the normal state bento (always). Live tallies
-  // — when present — appear as a small line under the legend, not a different card.
-  const liveNow = bentoElectionMode() && state.prnLive && state.prnLive.phase && state.prnLive.phase !== "campaign"
-    && state.prnLive.tally && Object.keys(state.prnLive.tally).length;
+  // Same seats-by-coalition donut as the normal state bento (always). During the
+  // count, a "who's leading now" line appears under the legend — derived from the
+  // live seats (declared/leading per coalition), not the poller's optional .tally.
+  const ls = bentoElectionMode() ? prnLiveStats() : null;
+  const liveNow = ls && (ls.declared > 0 || ls.leading > 0);
   const liveLine = liveNow
     ? `<div class="bento-live-under muted">${prnLiveTallyHTML()}</div>`
     : "";
@@ -6661,11 +6807,9 @@ BENTO.addEventListener("click", (ev) => {
   // live seat table filters
   const liveChip = ev.target.closest("[data-live-filter]");
   if (liveChip) {
-    const next = liveChip.dataset.liveFilter || "all";
-    if (next !== bentoLiveFilter) {
-      bentoLiveFilter = next;
-      renderStateBento();
-    }
+    ev.preventDefault();
+    ev.stopPropagation();
+    setLiveSeatFilter(liveChip.getAttribute("data-live-filter") || liveChip.dataset.liveFilter || "all");
     return;
   }
   // live table row → spotlight (same as map click)
@@ -6989,12 +7133,12 @@ PANEL_STATE.addEventListener("click", (e) => {
     openAllCandidatesBrowser();
     return;
   }
-  // mobile live board: filter chips re-render just the board; a row opens its seat
+  // mobile live board: filter chips (All / BN / PH / …)
   const liveChip = e.target.closest("[data-live-filter]");
   if (liveChip) {
-    bentoLiveFilter = liveChip.dataset.liveFilter || "all";
-    const board = document.getElementById("mobile-live-board");
-    if (board && state.openState) board.innerHTML = bentoLiveTableHTML(state.openState);
+    e.preventDefault();
+    e.stopPropagation();
+    setLiveSeatFilter(liveChip.getAttribute("data-live-filter") || liveChip.dataset.liveFilter || "all");
     return;
   }
   const liveRow = e.target.closest(".bento-live-row[data-code]");
@@ -7116,4 +7260,15 @@ function openFallbackYbBento(e, root, fallbackCode) {
   return true;
 }
 PANEL_STATE.addEventListener("click", (e) => { openFallbackYbBento(e, PANEL_STATE, state.selected); });
+// Capture-phase: filter chips must win even if a parent stops bubbling (iOS flex overflow quirks)
+if (MAP_INSPECT_TRAY) {
+  MAP_INSPECT_TRAY.addEventListener("click", (e) => {
+    const liveChip = e.target.closest("[data-live-filter]");
+    if (!liveChip || !MAP_INSPECT_TRAY.contains(liveChip)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setLiveSeatFilter(liveChip.getAttribute("data-live-filter") || "all");
+  }, true);
+}
+
 BENTO.addEventListener("click", (e) => { openFallbackYbBento(e, BENTO, bentoSeat); });
