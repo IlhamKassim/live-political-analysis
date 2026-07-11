@@ -6,7 +6,7 @@ import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSe
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues, swatchTextColor,
   competitivenessFromMajorityPct, withCurrentAffiliation } from "./lib.js?v=145";
-import { I18N } from "./i18n.js?v=145";
+import { I18N } from "./i18n.js?v=152";
 
 const SVG = document.getElementById("map");
 const STATE_OUTLINES = document.getElementById("state-outlines");
@@ -2951,10 +2951,11 @@ function syncStageLabelPosition() {
 }
 // The big name centred above the map: hover state in overview, locked state once isolated.
 // When the label IS the open state's name, a small tier chip (DUN / Parliament) rides
-// along so drilling into DUN level always says which layer you're in.
+// along so drilling into DUN level always says which layer you're in — and is tappable
+// to flip that state's layer without leaving the isolated view.
 function setStageLabel(text) {
   const chip = text && text === state.openState ? t(state.tier === "dun" ? "tier_dun" : "tier_parlimen") : "";
-  const memo = text ? `${text}|${chip}` : text;
+  const memo = text ? `${text}|${chip}|${state.tier}` : text;
   if (memo === labelText) return;
   labelText = memo;
   if (!STATE_LABEL) return;
@@ -2977,9 +2978,22 @@ function setStageLabel(text) {
     }
     main.appendChild(document.createTextNode(text));
     if (chip) {
-      const s = document.createElement("span");
+      const next = state.tier === "dun" ? "parlimen" : "dun";
+      const nextLabel = t(next === "dun" ? "tier_dun" : "tier_parlimen");
+      const s = document.createElement("button");
+      s.type = "button";
       s.className = "label-tier";
       s.textContent = chip;
+      s.dataset.tierToggle = next;
+      s.setAttribute("aria-label", t("tier_toggle_aria", { tier: nextLabel }));
+      s.title = t("tier_toggle_aria", { tier: nextLabel });
+      // Disable when we already know the other layer has no seats here (e.g. W.P. → DUN).
+      const other = state.data[next];
+      if (other && !other.seats.some((seat) => seat.state === text)) {
+        s.disabled = true;
+        s.title = t("tier_toggle_unavailable");
+        s.setAttribute("aria-label", t("tier_toggle_unavailable"));
+      }
       main.appendChild(s);
     }
     const sub = document.createElement("span");
@@ -2992,6 +3006,102 @@ function setStageLabel(text) {
     STATE_LABEL.replaceChildren();
     document.documentElement.style.removeProperty("--state-label-top");
   }
+}
+
+// Flip Parliament ⇄ DUN while a state stays open (label-tier chip). Keeps isolation,
+// refreshes the bottom card / map, and leaves PRN when the layer changes.
+let openStateTierBusy = false;
+async function switchOpenStateTier() {
+  if (openStateTierBusy || !state.openState) return;
+  const name = state.openState;
+  const next = state.tier === "dun" ? "parlimen" : "dun";
+  openStateTierBusy = true;
+  try {
+    // Leaving the election view when the user explicitly changes layer.
+    if (state.prnMode) {
+      state.prnMode = false;
+      clearTimeout(prnLiveTimer);
+      document.body.classList.remove("prn-mode");
+      prnOptOut = true;
+    }
+    if (next === "parlimen") prnOptOut = true;
+
+    const prev = state.tier;
+    document.querySelectorAll("#tier button").forEach((x) => setOn(x, x.dataset.tier === next));
+    state.tier = next;
+    state.selected = null;
+    clearSelectedDistrict();
+    const cached = !!state.data[next];
+    if (!cached) showLoading();
+    try {
+      await render(next);
+    } catch (err) {
+      console.error("switchOpenStateTier: render failed", err);
+      state.tier = prev;
+      document.querySelectorAll("#tier button").forEach((x) => setOn(x, x.dataset.tier === prev));
+      showLoadError();
+      return;
+    }
+
+    const d = state.data[next];
+    const seats = d ? d.seats.filter((s) => s.state === name) : [];
+    if (!seats.length) {
+      // Revert — e.g. federal territory has no DUN layer.
+      state.tier = prev;
+      document.querySelectorAll("#tier button").forEach((x) => setOn(x, x.dataset.tier === prev));
+      try { await render(prev); } catch (_) { /* keep previous if rebuild fails */ }
+      state.openState = name;
+      SEATS.classList.add("isolated");
+      document.body.classList.add("state-open");
+      highlightState(name);
+      labelText = null;
+      setStageLabel(name);
+      refitOpenStateMap();
+      return;
+    }
+
+    state.openState = name;
+    document.getElementById("state-name").textContent = name;
+    const countKey = "state_count_" + (next === "parlimen" ? "parlimen" : "dun") + (seats.length === 1 ? "_one" : "");
+    document.getElementById("state-count").textContent = t(countKey, { n: seats.length });
+    STATE_INFO.innerHTML = stateSummaryHTML(name);
+    labelText = null;
+    subLabelText = null;
+    setStageLabel(name);
+    SEATS.classList.add("isolated");
+    document.body.classList.add("state-open");
+    suppressMapRefit = true;
+    try {
+      setMapInspect(MOBILE_MAP_INSPECT_MQ.matches);
+    } finally {
+      suppressMapRefit = false;
+    }
+    highlightState(name);
+    paint();
+    zoomToState(name);
+    if (BENTO_MQ.matches) showStateBento(name);
+    else hideStateBento();
+    renderSummary();
+    renderMapInspectTray();
+    syncLiveBadge();
+    syncSidebar();
+    writeHash();
+    requestAnimationFrame(() => {
+      syncMapToCard();
+      refitOpenStateMap();
+    });
+  } finally {
+    openStateTierBusy = false;
+  }
+}
+if (STATE_LABEL) {
+  STATE_LABEL.addEventListener("click", (e) => {
+    const btn = e.target.closest && e.target.closest("button.label-tier");
+    if (!btn || btn.disabled) return;
+    e.preventDefault();
+    e.stopPropagation();
+    void switchOpenStateTier();
+  });
 }
 // The hovered district name, shown smaller beneath the locked state name (isolated view,
 // mouse only). Its space is reserved (CSS min-height) so the state name never jumps.
@@ -4274,8 +4384,12 @@ function renderMapInspectTray() {
   const districtRow = state.prnMode
     ? ""
     : districtSwitchRowHTML(state.selected || "", !!seat);
+  // Landing only: current YB / coalition breakdown (same idea as the home nat-glance bar).
+  // Hidden once a district is open so the YB overview owns the tray.
+  const makeupGlance = !seat ? stateMakeupGlanceHTML(state.openState) : "";
   MAP_INSPECT_TRAY.innerHTML = `
     <div class="map-inspect-choice">
+      ${makeupGlance}
       ${prnRow}
       ${mapInspectPrnSummaryHTML()}
       ${mapInspectOverviewHTML(seat)}
@@ -4618,6 +4732,26 @@ function stateStats(name, tier = state.tier) {
   if (voteN) votesStat = stat("state_winner_votes", `<span class="mono">${fmtInt(voteSum)}</span>`, t("state_winner_count", { n: voteN }));
   if (candidateN) candidatesStat = stat("state_avg_candidates", `<span class="mono">${(candidateSum / candidateN).toFixed(1)}</span>`, t("state_per_seat"));
   return { seats, ents, bar, key, leaderStat, turnoutStat, closestStat, largestStat, votesStat, candidatesStat };
+}
+
+// Compact coalition share bar for mobile state landing — same idea as #nat-glance
+// on the home card (coloured line + bloc counts). Uses current YB affiliations.
+function stateMakeupGlanceHTML(name) {
+  const st = stateStats(name);
+  if (!st || !st.ents.length) return "";
+  const label = state.prnMode ? t("prn_incumbent") : t("state_makeup");
+  const summary = st.ents.map(([c, n]) => `${c} ${n}`).join(" · ");
+  const bar = st.ents.map(([c, n]) =>
+    `<span style="flex:${n};background:${partyColor(c)}" title="${esc(c)} ${n}"></span>`
+  ).join("");
+  const key = st.ents.map(([c, n]) =>
+    `<span class="sk"><span class="sw" style="background:${partyColor(c)}"></span>${esc(c)} <b>${n}</b></span>`
+  ).join("");
+  return `<section class="state-makeup-glance" tabindex="0" aria-label="${esc(label)}. ${esc(summary)}">
+    <div class="state-makeup-glance-h muted">${esc(label)} · ${st.seats.length}</div>
+    <div class="sharebar state-makeup-bar">${bar}</div>
+    <div class="sharebar-key">${key}</div>
+  </section>`;
 }
 
 function stateSeatCountText(tier, n) {
@@ -5647,8 +5781,8 @@ function prnSpotRunnersHTML(entry, seatCode) {
 // Per-seat "tonight's count" line — empty until Rick/Sinar publish votes for this seat.
 // When live.candidates[] has votes, paint a share bar over the SPR field; otherwise
 // show leader + majority (manual call) with runners still listed as awaiting.
-function prnSpotTonightHTML(seatCode, entry) {
-  if (!bentoElectionMode()) return "";
+function prnSpotTonightHTML(seatCode, entry, headingKey = "prn_tonight") {
+  if (!liveElection() || !state.prnLive) return "";
   const lr = prnLiveForSeat(seatCode);
   const meta = prnLiveStatusMeta(lr);
   const hasCall = !!(lr && lr.status && lr.status !== "counting");
@@ -5735,7 +5869,7 @@ function prnSpotTonightHTML(seatCode, entry) {
 
   return `<div class="prn-tonight" data-seat="${esc(seatCode)}">
     <div class="prn-tonight-h">
-      <span class="prn-inc-kicker">${esc(t("prn_tonight"))}</span>
+      <span class="prn-inc-kicker">${esc(t(headingKey))}</span>
       ${statusChip}
     </div>
     ${body}
@@ -5804,11 +5938,14 @@ function stateSpotlightHTML() {
   if (prnEntry && prnEntry.incumbent_2022) {
     const em = prnEntry.electorate ? [`${prnEntry.electorate.toLocaleString()} ${esc(t("prn_electorate"))}`] : [];
     // PRN night board: runners + Rick-fed tonight count between holder and 2022 recap
+    const liveResult = prnLiveForSeat(seat.code);
+    const hasPublishedResult = !!(liveResult && ["leading", "won", "official"].includes(liveResult.status));
     const race = bentoElectionMode()
       ? `${prnSpotRunnersHTML(prnEntry, seat.code)}${prnSpotTonightHTML(seat.code, prnEntry)}`
-      : "";
-    return `${head(em)}${incumbentBlockHTML(prnEntry, seat.code)}${race}${lastResultHTML(prnEntry)}
-      <div class="src-line muted">${esc(t(bentoElectionMode() ? "prn_source" : "src_johor2022"))}</div>`;
+      : (hasPublishedResult ? prnSpotTonightHTML(seat.code, prnEntry, "prn_result_2026") : "");
+    const prior = hasPublishedResult ? "" : lastResultHTML(prnEntry);
+    return `${head(em)}${incumbentBlockHTML(prnEntry, seat.code)}${race}${prior}
+      <div class="src-line muted">${esc((bentoElectionMode() || hasPublishedResult) ? t("prn_source") : t("src_johor2022"))}</div>`;
   }
   const r = seatResultOf(seat, spotTier);
   if (!r) {
@@ -6978,7 +7115,9 @@ BENTO_MQ.addEventListener("change", () => {
 function syncLiveBadge() {
   const el = document.getElementById("live-badge");
   if (!el) return;
-  el.hidden = !(liveElection() && !state.openState);
+  // permanent "PRN Johor 2026" shortcut into the concluded DUN result; hide only
+  // while that view is already open so it isn't redundant.
+  el.hidden = state.openState === "Johor" && state.tier === "dun";
 }
 
 function openStateCard(name) {
@@ -7230,7 +7369,15 @@ STATE_SEATS.addEventListener("click", (e) => {
   if (t2) showDistrict(t2.dataset.code);
 });
 document.getElementById("state-back")?.addEventListener("click", goBack);
-document.getElementById("live-badge")?.addEventListener("click", () => openPrnMode());
+document.getElementById("live-badge")?.addEventListener("click", async () => {
+  // shortcut → the Johor DUN (state assembly) result view
+  closePoliticians({ silent: true });
+  hideInfo();
+  if (state.tier !== "dun") await setTier("dun");
+  if (state.openState !== "Johor") openStateCard("Johor");
+  syncSidebar();
+  writeHash();
+});
 PANEL_STATE.addEventListener("click", (e) => {
   if (handleCandidateCardClick(e)) return;
   if (e.target.closest("#prn-open") || e.target.closest("#prn-open-tray")) {
