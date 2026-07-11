@@ -6744,6 +6744,8 @@ function syncLiveBadge() {
 function openStateCard(name) {
   if (!name) return;
   closeNewsPage({ silent: true });   // opening a state leaves the news full page (no overlap)
+  // cancel a pending home→Parliament rebuild so it doesn't yank the layer mid-open
+  if (homeTierResetTimer) { clearTimeout(homeTierResetTimer); homeTierResetTimer = null; }
   clearTimeout(stateExitTimer);
   SEATS.classList.remove("returning");
   const firstMap = SVG.getBoundingClientRect();
@@ -6794,6 +6796,8 @@ function openStateCard(name) {
   writeHash();
 }
 let revealTimer = null, settleTimer = null, stateExitTimer = null;
+// deferred DUN→Parliament rebuild after home (see deferHomeTierReset)
+let homeTierResetTimer = null;
 function revealStateCard(options = {}) {
   const firstMap = options.firstMap || SVG.getBoundingClientRect();
   setPanelView("state");
@@ -6881,12 +6885,36 @@ function goBack() {
   }
 }
 
+// Home resets the map layer to Parliament — but NOT on the critical path of the
+// back gesture. Rebuilding all seat paths is the main lag when leaving a DUN state.
+function deferHomeTierReset() {
+  if (homeTierResetTimer) {
+    clearTimeout(homeTierResetTimer);
+    homeTierResetTimer = null;
+  }
+  const run = () => {
+    homeTierResetTimer = null;
+    if (state.openState) return;           // user drilled in again
+    if (state.tier === "parlimen") return;
+    void setTier("parlimen");
+  };
+  // Wait a frame so overview paint is on screen, then run when idle (or soon).
+  requestAnimationFrame(() => {
+    if (typeof requestIdleCallback === "function") {
+      requestIdleCallback(run, { timeout: 280 });
+    } else {
+      homeTierResetTimer = setTimeout(run, 60);
+    }
+  });
+}
+
 function backToControls(options = {}) {
   const wasBento = document.body.classList.contains("bento-on");
   const closingState = state.openState;
-  // panel (non-bento) exit still zooms out; bento exit uses a center pop instead
-  // (stage was display:none under the dashboard, so a pan-zoom looked like a side slide)
-  const animateStateExit = !wasBento && !!closingState && SEATS.classList.contains("isolated")
+  const mobile = MOBILE_MAP_INSPECT_MQ.matches;
+  // Mobile: snap home instantly (no 220ms zoom + no waiting on isolation cleanup).
+  // Desktop panel exit keeps a short zoom; bento uses a center pop.
+  const animateStateExit = !mobile && !wasBento && !!closingState && SEATS.classList.contains("isolated")
     && !ANIM_OFF && !REDUCE_MOTION.matches;
   const firstMap = animateStateExit ? SVG.getBoundingClientRect() : null;
   if (state.prnMode) closePrnMode({ silent: true });   // leaving the state leaves the election view
@@ -6899,7 +6927,9 @@ function backToControls(options = {}) {
   renderMapInspectTray();
   syncMapInspectButton();
   state.selected = null;
-  if (!animateStateExit) state.openState = null;
+  // Always clear openState immediately so chrome/hash aren't stuck mid-exit
+  // (desktop animated path used to delay this until the zoom finished).
+  state.openState = null;
   setStageLabel(null);
   clearTimeout(revealTimer);
   clearTimeout(settleTimer);
@@ -6909,48 +6939,34 @@ function backToControls(options = {}) {
   PANEL_EMPTY.getAnimations().forEach((a) => a.cancel());   // clear the held minimize → overview shows full again
   document.body.classList.remove("state-open");
   clearSelectedDistrict();
-  if (animateStateExit) SEATS.classList.add("returning");
+  highlightState(null);
+  SEATS.classList.remove("isolated", "returning");
   setPanelView("overview");
   syncMapToCard();            // state closed → release --map-h, map grows back to full height
   if (wasBento) {
     // full country, centered pop — no lateral camera glide from the last state frame
-    highlightState(null);
-    SEATS.classList.remove("isolated", "returning");
-    state.openState = null;
     setViewBoxNow(FULL.slice());
     requestAnimationFrame(() => {
       syncMapToCard();
       playMapCenterPop();
     });
-    syncLiveBadge();
   } else if (animateStateExit) {
     const lastMap = SVG.getBoundingClientRect();
     setViewBoxPreservingScreen(firstMap, lastMap);
     animateTo(FULL.slice(), STATE_EXIT_MS, STATE_EXIT_EASE_FN);
-    stateExitTimer = setTimeout(() => {
-      if (state.openState !== closingState || !PANEL.classList.contains("empty")) return;
-      state.openState = null;
-      highlightState(null);
-      SEATS.classList.remove("isolated", "returning");
-      syncLiveBadge();
-      syncSidebar();   // openState clears HERE on the animated exit — re-mark "Map" active
-      writeHash();
-    }, STATE_EXIT_MS + 32);
   } else {
-    highlightState(null);
-    SEATS.classList.remove("isolated", "returning");
-    zoomFull();                 // zoom back out to the whole country
+    // mobile / reduced-motion: snap the camera home now
+    setViewBoxNow(FULL.slice());
   }
+  syncLiveBadge();
   clearMatches();
   setFindStatus(null);
   syncSidebar();
-  // The landing map is the citizen's national Parliament view. Explicit deep
-  // links still honour their requested tier during boot; only returning home
-  // resets the view to the product default. keepLayer callers (deselect() during
-  // a tier switch) skip the reset — it would instantly revert the switch.
+  // Landing defaults: Party mode immediately (cheap paint). Parliament tier is
+  // deferred so a DUN→home tap is not blocked by rebuilding every path.
   if (!options.keepLayer) {
     if (state.mode !== "parti") setMode("parti");
-    if (state.tier !== "parlimen") void setTier("parlimen");
+    if (state.tier !== "parlimen") deferHomeTierReset();
   }
   writeHash();
 }
