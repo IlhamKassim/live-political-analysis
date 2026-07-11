@@ -9,7 +9,8 @@ WorkingDirectory=/docker/hermes-agent-nefo/data/projects/mypolitik
 EnvironmentFile=-/docker/hermes-agent-nefo/data/projects/mypolitik/.env.live
 Environment=SINAR_LIVE=1
 Environment=SINAR_WORKERS=10
-# Default: live phase, redeploy prod every cycle (~60s)
+# Default: live phase, redeploy prod every cycle (~60s). The poller refuses a
+# deploy when this checkout's app.js/styles.css differ from production.
 ExecStart=/usr/bin/python3 /docker/hermes-agent-nefo/data/projects/mypolitik/pipeline/live/johor_poller.py --watch 60 --phase live --deploy prod
 Restart=always
 RestartSec=15

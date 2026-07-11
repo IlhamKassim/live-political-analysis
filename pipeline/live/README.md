@@ -7,7 +7,7 @@
 | `pipeline/live/manual.csv` | **Guaranteed path** — type winners as SPR announces |
 | `pipeline/live/johor_poller.py` | Merges sources → `public/data/live-johor.json` |
 | `pipeline/live/fixtures/midcount.json` | Dress rehearsal |
-| `/api/live/johor` | Worker endpoint (KV optional, else baked JSON) |
+| `/api/live/johor` | Worker endpoint (KV-backed, data-only PUT publishing) |
 
 ## Manual CSV
 
@@ -60,7 +60,8 @@ On the VPS, **systemd keeps the poller alive**:
 
 ```bash
 systemctl status mypolitik-johor-live   # should be active
-# every 60s: Sinar live-fetch 56 seats → merge → write live-johor.json → wrangler deploy prod
+# every 60s: Sinar live-fetch 56 seats → merge → atomic write + authenticated PUT to KV
+# no Worker/app deploy occurs per cycle; LIVE_PUBLISH_TOKEN is required
 ```
 
 - Unit: `pipeline/live/mypolitik-johor-live.service`

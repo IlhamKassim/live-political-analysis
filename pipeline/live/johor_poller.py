@@ -36,7 +36,6 @@ import hashlib
 import json
 import os
 import re
-import subprocess
 import sys
 import time
 import urllib.error
@@ -51,6 +50,8 @@ LOG_DIR = os.path.join(ROOT, "pipeline", "live", "log")
 MANUAL = os.path.join(ROOT, "pipeline", "live", "manual.csv")
 SINAR_URLS = os.path.join(ROOT, "pipeline", "live", "sinar_urls.txt")
 SINAR_CACHE = os.path.join(ROOT, "pipeline", "raw", "sinar_undian")
+PROD_BASE_URL = os.environ.get("LIVE_PROD_BASE_URL", "https://mypolitik.krackeddevs.com").rstrip("/")
+STAGING_BASE_URL = os.environ.get("LIVE_STAGING_BASE_URL", "https://staging.mypolitik.krackeddevs.com").rstrip("/")
 
 # night-of recon fills this in (see docstring); leave None to skip the source
 THESTAR_URL = os.environ.get("THESTAR_URL") or None
@@ -97,6 +98,44 @@ def log_snapshot(source, payload):
     }
     with open(os.path.join(LOG_DIR, f"snapshots-{day}.jsonl"), "a") as f:
         f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+
+
+def assert_prod_checkout_current():
+    """Refuse a prod asset deploy if this poller checkout has stale app code."""
+    for filename in ("app.js", "styles.css"):
+        local_path = os.path.join(ROOT, "public", filename)
+        with open(local_path, "rb") as f:
+            local_hash = hashlib.sha256(f.read()).hexdigest()
+        url = f"{PROD_BASE_URL}/{filename}?live_guard={int(time.time())}"
+        remote_hash = hashlib.sha256(http_get(url, timeout=20).encode("utf-8")).hexdigest()
+        if remote_hash != local_hash:
+            raise RuntimeError(
+                f"refusing prod deploy: {filename} differs from {PROD_BASE_URL}; "
+                "sync this checkout before restarting the poller"
+            )
+
+
+def publish_remote_live(body, deploy):
+    """Publish the mutable result document without redeploying Worker assets."""
+    token = os.environ.get("LIVE_PUBLISH_TOKEN")
+    if not token:
+        raise RuntimeError("LIVE_PUBLISH_TOKEN is required for data-only live publishing")
+    base = PROD_BASE_URL if deploy == "prod" else STAGING_BASE_URL
+    payload = json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    req = urllib.request.Request(
+        f"{base}/api/live/johor",
+        data=payload,
+        method="PUT",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+            "User-Agent": UA,
+        },
+    )
+    with urllib.request.urlopen(req, timeout=20) as response:
+        result = json.loads(response.read().decode("utf-8", "replace"))
+    if not isinstance(result, dict) or result.get("ok") is not True:
+        raise RuntimeError(f"live publish rejected by {base}: {result}")
 
 
 # ---- sources: each returns {code: {status, coalition, party, name, majority}} ----
@@ -434,19 +473,20 @@ def publish(phase, seats, prn, deploy=None, source_label=None):
         "tally": tally,
         "seats": seats,
     }
-    with open(OUT, "w") as f:
+    # Replace in one filesystem operation so the worker never observes a
+    # partially-written live file during a polling cycle.
+    tmp_out = f"{OUT}.tmp"
+    with open(tmp_out, "w") as f:
         json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp_out, OUT)
     declared = sum(1 for r in seats.values() if r.get("status") in ("won", "official"))
     print(f"[{now_iso()}] published phase={phase} declared={declared}/56 tally={tally}")
     if deploy:
-        # wrangler multi-env configs warn if --env is omitted; prod is top-level (empty env name)
-        env_args = ["--env", "staging"] if deploy == "staging" else ["--env", ""]
-        subprocess.run(
-            ["npx", "wrangler", "deploy", *env_args],
-            cwd=ROOT, check=True,
-            stdout=subprocess.DEVNULL,
-            env={**os.environ, **({} if deploy == "staging" else {})},
-        )
+        if deploy == "prod":
+            assert_prod_checkout_current()
+        publish_remote_live(out, deploy)
         print(f"[{now_iso()}] deployed to {deploy}")
 
 
