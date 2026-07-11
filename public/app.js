@@ -1558,8 +1558,13 @@ async function render(tier) {
   LOADING.hidden = true;
   syncMapToCard();
   requestAnimationFrame(syncMapToCard);
-  animateIn(SEATS, 0);   // the map arrives with a soft fade (opacity only on the group)
+  // soft fade in — EXCEPT when a caller is about to isolate a state right after
+  // (the Johor pill switching tier): fading the whole recoloured national map in
+  // first reads as "reloading the map", so skip it and just recolour in place.
+  if (skipMapFade) { skipMapFade = false; SEATS.style.opacity = ""; }
+  else animateIn(SEATS, 0);   // opacity-only on the group
 }
+let skipMapFade = false;
 
 // A DUN seat's OWN state-election (PRN) result, when we have one (the states in
 // results-dun.json). Undefined for parlimen tier or an uncovered DUN seat.
@@ -7370,10 +7375,16 @@ STATE_SEATS.addEventListener("click", (e) => {
 });
 document.getElementById("state-back")?.addEventListener("click", goBack);
 document.getElementById("live-badge")?.addEventListener("click", async () => {
-  // shortcut → the Johor DUN (state assembly) result view
+  // shortcut → the Johor DUN (state assembly) result view. Preload the DUN geometry
+  // first so setTier shows no loading veil, and skip the map fade so the switch
+  // recolours in place and zooms to Johor instead of looking like a reload.
   closePoliticians({ silent: true });
   hideInfo();
-  if (state.tier !== "dun") await setTier("dun");
+  if (state.tier !== "dun") {
+    await loadTier("dun");
+    skipMapFade = true;
+    await setTier("dun");
+  }
   if (state.openState !== "Johor") openStateCard("Johor");
   syncSidebar();
   writeHash();
