@@ -4763,10 +4763,13 @@ function prnSummaryHTML() {
   ].map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("");
   const head = `<div class="prn-banner-h"><span class="live-dot" aria-hidden="true"></span>🗳️ ${esc(e.name)}${liveNow ? ` <span class="prn-live-chip">${esc(t(state.prnLive.phase === "final" ? "prn_phase_final" : "prn_phase_live"))}</span>` : ""}</div>`;
   if (liveNow) {
-    // polling night: the tally IS the card
+    // polling night: the tally leads, then the full 56-seat live board (same
+    // renderer as the desktop bento) so phones see every race, not just the map
     return `<div class="prn-summary">
       ${head}
       ${prnLiveTallyHTML()}
+      <div id="mobile-live-board" class="mobile-live-board">${bentoLiveTableHTML(state.openState)}</div>
+      <button id="prn-all-candidates" class="prn-pledges-btn" type="button">👥 ${esc(t("prn_all_cands", { n: total }))} →</button>
       <p class="state-tap-hint muted">${esc(t("prn_tap_hint"))}</p>
       <p class="src-line muted">${esc(t("prn_source"))}</p>
       <button id="prn-close" class="prn-close-btn" type="button">${esc(t("prn_close"))}</button>
@@ -4804,6 +4807,7 @@ function prnSummaryHTML() {
     </div>
     ${newsStripHTML()}
     ${prnFinder ? "" : `<p class="state-tap-hint muted">${esc(t("prn_tap_hint"))}</p>`}
+    <button id="prn-all-candidates" class="prn-pledges-btn" type="button">👥 ${esc(t("prn_all_cands", { n: total }))} →</button>
     <a class="prn-check" href="${esc(e.check_voter_url)}" target="_blank" rel="noopener">${esc(t("prn_check"))}</a>
     <p class="src-line muted">${esc(t("prn_source"))}</p>
     <button id="prn-close" class="prn-close-btn" type="button">${esc(t("prn_close"))}</button>
@@ -5833,6 +5837,43 @@ function closeCandidateModal() {
     candidateModalReturnTo = null;
     if (returnTo && document.contains(returnTo)) returnTo.focus({ preventScroll: true });
   }
+}
+// the full field, one screen: every 2026 candidate grouped by seat. Seat headers
+// carry data-candidate-seat, so the modal's existing delegation closes the browser
+// and opens that seat — no new handlers needed for navigation.
+function openAllCandidatesBrowser() {
+  const p = state.prn16, e = liveElection();
+  if (!p || !e || !CAND_MODAL) return;
+  const entries = Object.entries(p.seats || {}).sort((a, b) =>
+    String(a[1].ncode || a[0]).localeCompare(String(b[1].ncode || b[0]), undefined, { numeric: true }));
+  const groups = entries.map(([code, s]) => {
+    const cands = (s.candidates || []).map((c) => {
+      const col = prnCoalColor(c.coalition);
+      const profile = profileForCandidate(code, c.name);
+      const party = c.party && c.party !== c.coalition ? `${esc(c.coalition)} · ${esc(c.party)}` : esc(c.coalition);
+      return `<li class="prn-all-cand">
+        ${personPhotoHTML(c.name, profile && profile.photo_url, "prn-all-photo")}
+        <span class="prn-all-name">${esc(c.name)}</span>
+        <span class="pill" style="${pillStyle(col.bg)}">${party}</span>
+      </li>`;
+    }).join("");
+    return `<section class="prn-all-seat">
+      <button type="button" class="prn-all-seathead" data-candidate-seat="${esc(code)}">
+        <b>${esc(s.ncode || code)}</b> ${esc(s.name)} <span class="muted">· ${(s.candidates || []).length}</span>
+      </button>
+      <ul class="prn-all-list">${cands}</ul>
+    </section>`;
+  }).join("");
+  CAND_MODAL.setAttribute("aria-label", t("prn_all_cands", { n: prnContestTotal(p) }));
+  delete CAND_MODAL.dataset.polBento;
+  CAND_MODAL.innerHTML = `<div class="pol-modal-shell prn-all-shell">
+    <button type="button" class="pol-modal-close" aria-label="✕">✕</button>
+    <h2 class="prn-all-title">🗳️ ${esc(e.name)} · ${esc(t("prn_all_cands", { n: prnContestTotal(p) }))}</h2>
+    <div class="prn-all-groups">${groups}</div>
+  </div>`;
+  if (typeof CAND_MODAL.showModal === "function") CAND_MODAL.showModal();
+  else CAND_MODAL.setAttribute("open", "");
+  CAND_MODAL.querySelector(".pol-modal-close")?.focus();
 }
 function openCandidateModal(seatCode, candidateName, returnTo = null) {
   if (!CAND_MODAL) return;
@@ -6926,6 +6967,23 @@ PANEL_STATE.addEventListener("click", (e) => {
   if (handleCandidateCardClick(e)) return;
   if (e.target.closest("#prn-open") || e.target.closest("#prn-open-tray")) {
     openPrnMode();
+    return;
+  }
+  if (e.target.closest("#prn-all-candidates")) {
+    openAllCandidatesBrowser();
+    return;
+  }
+  // mobile live board: filter chips re-render just the board; a row opens its seat
+  const liveChip = e.target.closest("[data-live-filter]");
+  if (liveChip) {
+    bentoLiveFilter = liveChip.dataset.liveFilter || "all";
+    const board = document.getElementById("mobile-live-board");
+    if (board && state.openState) board.innerHTML = bentoLiveTableHTML(state.openState);
+    return;
+  }
+  const liveRow = e.target.closest(".bento-live-row[data-code]");
+  if (liveRow) {
+    showDistrict(liveRow.dataset.code);
     return;
   }
   if (e.target.closest("#prn-close")) {

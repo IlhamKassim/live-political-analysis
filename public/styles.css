@@ -3288,6 +3288,31 @@ body.news-open #topbar .topbar-context { pointer-events: auto; }
 }
 .prn-pledges-btn:hover { border-color: var(--line-2); background: color-mix(in oklab, var(--bg-2) 85%, var(--ink) 15%); }
 .prn-pledges-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* mobile election panel: the 56-seat live board (reuses the bento table renderer) */
+.mobile-live-board { display: grid; gap: 8px; }
+.mobile-live-board .bento-livetable-scroll { max-height: min(300px, 44vh); }
+/* all-candidates browser: 172 runners grouped by seat inside the candidate dialog */
+.prn-all-shell { padding: 18px; }
+.prn-all-title { font-family: var(--font-display); font-size: 18px; font-weight: 700; margin: 0 40px 12px 0; }
+.prn-all-groups { display: grid; gap: 16px; max-height: min(72vh, 640px); overflow-y: auto; padding-right: 4px; }
+.prn-all-seat { display: grid; gap: 8px; }
+.prn-all-seathead {
+  display: flex; align-items: center; gap: 6px; width: 100%; min-height: 40px;
+  font: inherit; font-size: 13px; color: var(--ink); text-align: left; cursor: pointer;
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px;
+}
+.prn-all-seathead b { font-family: var(--mono); font-size: 11.5px; color: var(--accent); }
+.prn-all-seathead:hover { border-color: var(--line-2); }
+.prn-all-seathead:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.prn-all-list { list-style: none; margin: 0; padding: 0 2px; display: grid; gap: 6px; }
+.prn-all-cand { display: flex; align-items: center; gap: 10px; font-size: 13px; min-width: 0; }
+/* personPhotoHTML puts the class on the img/monogram itself, not a wrapper */
+.prn-all-cand .prn-all-photo {
+  width: 32px; height: 32px; border-radius: 50%; flex: 0 0 auto;
+  object-fit: cover; font-size: 11px;
+}
+.prn-all-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prn-all-cand .pill { flex: 0 0 auto; }
 .prn-pledges { display: grid; gap: 12px; }
 .prn-pledge-coal { border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px; background: var(--surface-soft); }
 .prn-pledge-h { display: flex; align-items: center; gap: 8px; font-size: 12.5px; margin-bottom: 8px; }
