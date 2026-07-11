@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues, swatchTextColor,
-  competitivenessFromMajorityPct, withCurrentAffiliation } from "./lib.js?v=129";
-import { I18N } from "./i18n.js?v=129";
+  competitivenessFromMajorityPct, withCurrentAffiliation } from "./lib.js?v=131";
+import { I18N } from "./i18n.js?v=131";
 
 const SVG = document.getElementById("map");
 const STATE_OUTLINES = document.getElementById("state-outlines");
@@ -2272,8 +2272,8 @@ function stateSeatCardHTML(seat) {
   if (state.prnMode && liveElection() && seat.state === liveElection().state && state.tier === liveElection().tier) {
     const entry = state.prn16.seats && state.prn16.seats[seat.code];
     if (entry) {
-      const switcher = state.openState && MOBILE_MAP_INSPECT_MQ.matches ? seatDistrictSwitcherHTML(seat.code) : "";
-      return `<div class="seat-detail-main">${prnSeatCardHTML(seat, entry)}</div>${switcher}`;
+      // No mobile seat-picker under PRN cards (confusing vs normal Johor search)
+      return `<div class="seat-detail-main">${prnSeatCardHTML(seat, entry)}</div>`;
     }
   }
   return seatCardHTML(seat, {
@@ -4229,12 +4229,17 @@ function renderMapInspectTray() {
   const prnRow = prnActiveForState(state.openState) && !state.prnMode
     ? `<button id="prn-open-tray" class="prn-open-btn prn-open-compact" type="button">🗳️ ${esc(t("prn_open"))} →</button>`
     : "";
+  // PRN election view: no district/candidate search on mobile — the live table +
+  // map are enough; search stays available in normal Johor (non-PRN) mode.
+  const districtRow = state.prnMode
+    ? ""
+    : districtSwitchRowHTML(state.selected || "", !!seat);
   MAP_INSPECT_TRAY.innerHTML = `
     <div class="map-inspect-choice">
       ${prnRow}
       ${mapInspectPrnSummaryHTML()}
       ${mapInspectOverviewHTML(seat)}
-      ${districtSwitchRowHTML(state.selected || "", !!seat)}
+      ${districtRow}
     </div>
   `;
   // the YB overview answers a NEW selection with a small rise-in (causality, not noise:
@@ -5269,8 +5274,23 @@ function stateMapTileSVG(name) {
 // ---- election-night bento: live strip + 56-seat table ----
 function bentoLiveStripHTML() {
   if (!bentoElectionMode()) return "";
-  const { e, live, declared, leading, majority, total } = prnLiveStats();
+  const { e, live, declared, leading, won, lead, majority, total } = prnLiveStats();
   if (!e) return "";
+  // per-coalition "who's ahead" bar under the metrics: won (bold) + leading (+N).
+  // Before declarations start it shows pure leading counts, so it's live all night.
+  const provisional = declared === 0;
+  const counts = provisional ? lead : won;
+  const barOrder = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const aheadBar = barOrder.length
+    ? `<div class="bento-live-ahead">
+        <div class="sharebar prn-live-bar">${barOrder.map(([c, n]) =>
+          `<span style="width:${(100 * n / total).toFixed(2)}%;background:${prnCoalColor(c).bg}"></span>`).join("")}</div>
+        <div class="sharebar-key">${barOrder.map(([c, n]) => {
+          const extra = !provisional && lead[c] ? ` <span class="muted">+${lead[c]}</span>` : "";
+          return `<span class="state-bloc"><span class="sw" style="background:${prnCoalColor(c).bg}"></span>${esc(c)} <b>${n}</b>${extra}</span>`;
+        }).join("")}</div>
+      </div>`
+    : "";
   const hot = prnLiveIsHot(live);
   const days = prnDaysToPolling(e);
   const today = days <= 0;
@@ -5310,6 +5330,7 @@ function bentoLiveStripHTML() {
         <b>${majority}</b>
       </div>
     </div>
+    ${aheadBar}
     <div class="bento-live-meta">
       <div class="bento-live-legend">${legend}</div>
       <span class="bento-live-updated muted">${updated ? esc(t("prn_live_updated", { t: updated })) : esc(t("prn_live_watching"))}${live && live.source ? ` · ${esc(live.source)}` : ""}</span>

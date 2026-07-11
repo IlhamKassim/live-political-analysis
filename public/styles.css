@@ -421,9 +421,10 @@ body.state-open #state-label {
   box-shadow: 0 6px 24px rgba(0,0,0,.35); opacity: 0; pointer-events: none;
   transition: opacity .2s, transform .2s; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
-/* Keep live flashes above the tall PRN sheet on phones */
+/* Live flashes: sheet is full-screen on PRN mobile, so toast sits mid-upper */
 body.map-inspect.prn-mode .toast {
-  bottom: max(24px, calc(min(80dvh, 920px) + 10px));
+  bottom: auto;
+  top: calc(18% + env(safe-area-inset-top, 0px));
 }
 @media (prefers-reduced-motion: reduce) { .toast { transition: opacity .2s; } }
 
@@ -2076,14 +2077,27 @@ body.state-open #panel-state {
    * Nested flex:1 + overflow:hidden collapses children on WebKit and paints
    * later siblings (All candidates / hint / district picker) ON TOP of the table.
    * Use one tall scroll sheet (block flow) instead.
+   * Map is hidden — election board owns the screen; map returns when PRN exits.
    */
+  body.map-inspect.prn-mode #stage,
+  body.map-inspect.prn-mode #map,
+  body.map-inspect.prn-mode #state-label,
+  body.map-inspect.prn-mode #live-badge,
+  body.map-inspect.prn-mode #reset,
+  body.map-inspect.prn-mode #tap-hint {
+    visibility: hidden;
+    pointer-events: none;
+  }
   body.map-inspect.prn-mode #panel {
     padding: 0;
+    top: 0;
+    bottom: 0;
+    align-items: stretch;
   }
   body.map-inspect.prn-mode #panel-state {
     max-width: none;
     width: 100%;
-    height: auto;
+    height: 100%;
     max-height: none;
     padding: 0;
     border: 0;
@@ -2094,18 +2108,26 @@ body.state-open #panel-state {
   }
   body.map-inspect.prn-mode #panel-state #map-inspect-tray {
     display: block;
-    height: auto;
-    max-height: min(80dvh, 920px);   /* cover most of the screen; map stays a strip above */
+    height: 100%;
+    max-height: none;
+    min-height: 100%;
     overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    border-radius: 16px 16px 0 0;
+    border-radius: 0;
     border: 0;
-    border-top: 1.5px solid rgba(255, 100, 100, .5);
-    background: linear-gradient(180deg, rgba(255, 70, 70, .18), rgba(14, 15, 18, .96) 22%, #0e0f12 100%);
-    box-shadow: 0 -8px 28px rgba(0, 0, 0, .35);
+    border-top: 0;
+    /* solid fill — no map showing through */
+    background: #0e0f12;
+    background-image: linear-gradient(180deg, rgba(255, 70, 70, .14), #0e0f12 18%);
+    box-shadow: none;
+    /* topbar stays; sheet fills under it so no map peeks through */
+    padding-top: calc(58px + env(safe-area-inset-top, 0px));
     padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+  body.map-inspect.prn-mode #topbar {
+    z-index: 40;
   }
   body.map-inspect.prn-mode #map-inspect-tray,
   body.map-inspect.prn-mode .map-inspect-choice {
@@ -2151,8 +2173,8 @@ body.state-open #panel-state {
   body.map-inspect.prn-mode .mobile-live-board .bento-livetable-scroll,
   body.map-inspect.prn-mode .prn-mobile-board .bento-livetable-scroll {
     display: block;
-    max-height: min(48dvh, 480px);
-    min-height: 200px;
+    max-height: min(58dvh, 560px);
+    min-height: 240px;
     overflow-x: auto;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
@@ -4151,6 +4173,13 @@ body.news-open #topbar .topbar-context { pointer-events: auto; }
 .bento-live-metric .muted { font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
 .bento-live-metric b { font-family: var(--font-display, var(--sans)); font-size: clamp(22px, 3vw, 32px); line-height: 1; letter-spacing: -.02em; }
 .bento-live-metric b small { font-size: .55em; color: var(--ink-dim); font-weight: 600; }
+/* per-coalition "who's ahead" bar in the election-night strip, under the metrics */
+.bento-live-ahead { display: grid; gap: 7px; margin-top: 4px; }
+.bento-live-ahead .sharebar { height: 9px; border-radius: 999px; overflow: hidden; display: flex; }
+.bento-live-ahead .sharebar > span { display: block; height: 100%; }
+.bento-live-ahead .sharebar-key { display: flex; flex-wrap: wrap; gap: 5px 14px; font-size: 12.5px; }
+.bento-live-ahead .state-bloc { display: inline-flex; align-items: center; gap: 6px; }
+.bento-live-ahead .state-bloc .sw { width: 10px; height: 10px; border-radius: 2px; flex: 0 0 auto; }
 .bento-live-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
 .bento-live-legend { display: flex; flex-wrap: wrap; gap: 10px; }
 .bento-live-leg { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink-dim); }
