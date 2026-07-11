@@ -5834,7 +5834,9 @@ function stateSpotlightHTML() {
     <div class="prn-inc bento-spot-result">
       <div class="prn-inc-top"><span class="prn-inc-kicker">${esc(t("bento_last_result"))}</span>${badge}</div>
       ${bar}
-      ${bits.length ? `<div class="prn-inc-stat muted">${esc(bits.join(" · "))}</div>` : ""}
+      ${bits.length
+        ? `<div class="prn-inc-stat muted">${esc(bits.join(" · "))}</div>`
+        : (r.pending ? `<div class="prn-inc-stat muted">${esc(t("prn_count_pending"))}</div>` : "")}
       ${runner}
     </div>
     ${resultSourceLine(r, !isP && !!(state.resultsDun && state.resultsDun[seat.code]))}`;
