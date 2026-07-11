@@ -550,8 +550,15 @@ def publish(phase, seats, prn, deploy=None, source_label=None):
     declared = sum(1 for r in seats.values() if r.get("status") in ("won", "official"))
     print(f"[{now_iso()}] published phase={phase} declared={declared}/56 tally={tally}")
     if deploy:
+        # publish_remote_live is a DATA-ONLY KV PUT (/api/live/johor) — it never
+        # ships app.js/styles.css, so the stale-checkout guard cannot cause an
+        # asset regression here. Keep it as a non-fatal warning (useful signal
+        # that the checkout drifted) but never let it block the live results.
         if deploy == "prod":
-            assert_prod_checkout_current()
+            try:
+                assert_prod_checkout_current()
+            except RuntimeError as e:
+                print(f"[{now_iso()}] WARN {e} — publishing live data anyway (KV is data-only)", file=sys.stderr)
         publish_remote_live(out, deploy)
         print(f"[{now_iso()}] deployed to {deploy}")
 
