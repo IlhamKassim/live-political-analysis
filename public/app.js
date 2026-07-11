@@ -5,8 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues, swatchTextColor,
-  competitivenessFromMajorityPct, withCurrentAffiliation } from "./lib.js?v=131";
-import { I18N } from "./i18n.js?v=131";
+  competitivenessFromMajorityPct, withCurrentAffiliation } from "./lib.js?v=145";
+import { I18N } from "./i18n.js?v=145";
 
 const SVG = document.getElementById("map");
 const STATE_OUTLINES = document.getElementById("state-outlines");
@@ -73,8 +73,8 @@ const SEAT_TABS = ["overview", "results", "candidates", "voting"];
 const isSeatTab = (tab) => SEAT_TABS.includes(tab);
 const LOAD_GATED_SCORES = false;
 const THEME_KEY = "mypolitik-theme";
-const THEMES = ["dark", "light"];
-let theme = document.documentElement.dataset.theme === "light" ? "light" : "dark";
+const THEMES = ["dark"]; // light mode disabled — PRN + map chrome were unreadable
+let theme = "dark";
 
 // ---- i18n (English default, Bahasa Melayu toggle) ----
 // The I18N string table now lives in ./i18n.js (one tested source of truth;
@@ -95,28 +95,27 @@ function t(key, params) {
 }
 
 function syncThemeControls() {
-  const next = theme === "light" ? "dark" : "light";
-  const label = t(next === "light" ? "theme_switch_light" : "theme_switch_dark");
+  // Theme toggle hidden while dark-only; keep attrs consistent if markup stays.
   document.querySelectorAll("[data-theme-toggle]").forEach((btn) => {
-    btn.setAttribute("aria-label", label);
-    btn.setAttribute("title", label);
-    btn.setAttribute("aria-pressed", theme === "light" ? "true" : "false");
+    btn.hidden = true;
+    btn.setAttribute("aria-hidden", "true");
+    btn.setAttribute("tabindex", "-1");
   });
-  if (THEME_META) THEME_META.setAttribute("content", theme === "light" ? "#f5f7fa" : "#0e0f12");
+  if (THEME_META) THEME_META.setAttribute("content", "#0e0f12");
 }
 
 function setTheme(next, persist = true) {
-  if (!THEMES.includes(next)) return;
-  theme = next;
-  document.documentElement.dataset.theme = theme;
+  // Always dark — ignore light requests until light theme is reworked.
+  theme = "dark";
+  document.documentElement.dataset.theme = "dark";
   if (persist) {
-    try { localStorage.setItem(THEME_KEY, theme); } catch (_) {}
+    try { localStorage.setItem(THEME_KEY, "dark"); } catch (_) {}
   }
   syncThemeControls();
 }
 
 function toggleTheme() {
-  setTheme(theme === "light" ? "dark" : "light");
+  setTheme("dark");
 }
 
 function applyStatic() {
@@ -1557,6 +1556,7 @@ async function render(tier) {
   SEATS.appendChild(frag);
   paint();
   LOADING.hidden = true;
+  syncMapToCard();
   requestAnimationFrame(syncMapToCard);
   animateIn(SEATS, 0);   // the map arrives with a soft fade (opacity only on the group)
 }
@@ -1697,13 +1697,13 @@ function searchSeatsAndReps(seats, q, tier) {
 
 function seatValueColor(seat) {
   const data = state.data[state.tier];
-  // live-election view: the contested state's seats are "not yet voted" neutral
-  // until results flow in on polling night (grey → leading translucent → won solid).
+  // live-election view: paint by tonight's leader/winner (grey until a result lands).
   if (state.prnMode && liveElection() && seat.state === liveElection().state && state.tier === liveElection().tier) {
-    const lr = state.prnLive && state.prnLive.seats && state.prnLive.seats[seat.code];
+    const lr = (typeof prnLiveForSeat === "function" ? prnLiveForSeat(seat.code) : null)
+      || (state.prnLive && state.prnLive.seats && state.prnLive.seats[seat.code]);
     const p = state.paths.get(seat.code);
     if (lr && (lr.coalition || lr.party)) {
-      if (p) p.style.fillOpacity = lr.status === "leading" ? "0.45" : "";
+      if (p) p.style.fillOpacity = lr.status === "leading" ? "0.55" : "";
       return prnCoalColor(lr.coalition || lr.party).bg;
     }
     if (p) p.style.fillOpacity = "";
@@ -3106,7 +3106,10 @@ SVG.addEventListener("pointerdown", (e) => {
 
 let mapDrag = null;
 let suppressMapClickUntil = 0;
+// When a state is open the map camera is locked — user must not be able to drag/pan
+// the isolated state around the screen (mobile map-inspect used to allow this).
 SVG.addEventListener("pointerdown", (e) => {
+  if (state.openState) return;
   if (!mapInspectActive() || !e.isPrimary) return;
   mapDrag = {
     id: e.pointerId,
@@ -3120,6 +3123,7 @@ SVG.addEventListener("pointerdown", (e) => {
   // itself, so a mouse-tap on a district read as an empty-space tap and closed the state.
 });
 SVG.addEventListener("pointermove", (e) => {
+  if (state.openState) { mapDrag = null; return; }
   if (!mapDrag || e.pointerId !== mapDrag.id) return;
   const dx = e.clientX - mapDrag.x;
   const dy = e.clientY - mapDrag.y;
@@ -3453,6 +3457,29 @@ async function setTier(tier) {
   renderSummary();
   writeHash();
 }
+// Quiet layer swap for openPrnMode only: load DUN without deselect()/home flash.
+// setTier() would paint the whole country as DUN (different colours/shapes) for a
+// frame before isolating Johor — that's the "click Johor and everything turns DUN".
+async function ensureTierQuiet(tier) {
+  if (tier === state.tier) return true;
+  const prev = state.tier;
+  document.querySelectorAll("#tier button").forEach((x) => setOn(x, x.dataset.tier === tier));
+  state.tier = tier;
+  state.selected = null;
+  const cached = !!state.data[tier];
+  if (!cached) showLoading();
+  try {
+    await render(tier);
+  } catch (err) {
+    console.error("ensureTierQuiet: render failed", err);
+    state.tier = prev;
+    document.querySelectorAll("#tier button").forEach((x) => setOn(x, x.dataset.tier === prev));
+    showLoadError();
+    return false;
+  }
+  // No deselect / writeHash — caller (openPrnMode) isolates next
+  return true;
+}
 function setMode(mode) {
   const b = document.querySelector(`#mode button[data-mode="${mode}"]`);
   if (!b || b.disabled) return;
@@ -3761,6 +3788,8 @@ document.getElementById("sidebar")?.addEventListener("click", (ev) => {
   setTheme(theme, false);
   document.querySelectorAll("#lang button").forEach((x) => setOn(x, x.dataset.lang === lang));
   applyStatic();
+  // Measure the empty card early so --map-h is close before paths paint
+  try { syncMapToCard(); } catch (_) {}
   const bootHash = location.hash;   // captured before writeHash() normalises it
   const h = parseHash();
   const tier = h && (h.tier === "dun" || h.tier === "parlimen") ? h.tier : "parlimen";
@@ -3778,7 +3807,9 @@ document.getElementById("sidebar")?.addEventListener("click", (ev) => {
   if (typeof requestIdleCallback === "function") requestIdleCallback(warmOther, { timeout: 1800 });
   else setTimeout(warmOther, 250);
   renderSummary();
-  await loadOptional();           // results/scores ready → modes can be restored
+  try {
+    await loadOptional();           // results/scores ready → modes can be restored
+  } catch (_) { /* optional layers must never blank the map */ }
   renderSidebarStates();
   syncSidebar();                  // PRN entry + lang state need the loaded data
   if (h && h.mode === "negeri") setMode("negeri");
@@ -3794,8 +3825,10 @@ document.getElementById("sidebar")?.addEventListener("click", (ev) => {
     if (data.seats.some((s) => s.state === h.stateName)) openStateCard(h.stateName);
   }
   if (h && h.prn && liveElection()) {
-    await openPrnMode();     // deep-linked election view (#dun/parti[/seat]/prn)
-    if (h.code && state.data[state.tier].byCode.has(h.code)) showDistrict(h.code);
+    try {
+      await openPrnMode();     // deep-linked election view (#dun/parti[/seat]/prn)
+      if (h.code && state.data[state.tier].byCode.has(h.code)) showDistrict(h.code);
+    } catch (_) {}
   }
   syncLiveBadge();
   refreshPrnLive();
@@ -3805,6 +3838,9 @@ document.getElementById("sidebar")?.addEventListener("click", (ev) => {
   if (bootHash === "#politicians" && state.politicians) await openPoliticians();  // deep-linked directory
   if (bootHash === "#news") openNewsPage();   // deep-linked news page
   maybeShowHint();   // fresh visit, nothing selected → nudge that seats are tappable
+  try { syncMapToCard(); } catch (_) {}
+  // body.sb-collapsed is set above; drop the html pre-paint hint
+  document.documentElement.classList.remove("sb-pref-collapsed");
 })();
 
 /* ===== top-bar icon actions ===== */
@@ -3981,6 +4017,7 @@ function seatDistrictSwitcherHTML(selectedCode = "") {
   `;
 }
 
+let districtPickerIgnoreCloseUntil = 0;
 function setDistrictPickerOpen(open, focusOption = false) {
   const picker = document.getElementById("map-inspect-district-picker");
   if (!picker) return;
@@ -3989,9 +4026,12 @@ function setDistrictPickerOpen(open, focusOption = false) {
   if (!toggle || !list) return;
   const next = !!open;
   picker.classList.toggle("open", next);
+  document.body.classList.toggle("district-picker-open", next);
   toggle.setAttribute("aria-expanded", next ? "true" : "false");
   list.hidden = !next;
   if (next) {
+    // Ignore the same-gesture document click that would immediately re-close on iOS
+    districtPickerIgnoreCloseUntil = Date.now() + 400;
     // opening: reset any prior filter, then put the cursor in the search box so the
     // user can type straight away (arrow-down hops into the options list).
     const search = list.querySelector("#map-inspect-search");
@@ -4983,6 +5023,9 @@ function prnPledgesHTML(entry) {
 // user turned the election view off for this visit — don't auto re-enter it on every
 // seat click within the state; reset when the state is left entirely (backToControls)
 let prnOptOut = false;
+// Bumped when the user navigates away mid-open so a slow setTier() can't yank them
+// back into Johor PRN after they tapped Sarawak / another state.
+let prnOpenGen = 0;
 // default the election view ON only while it matters: up to polling day, or while
 // results are still flowing on the night
 function prnUpcomingOrLive(e) {
@@ -5005,16 +5048,34 @@ async function openPrnMode() {
   // bail only when the election view is already showing ITS state — a leaked
   // prn flag with another state open must not dead-end the click
   if (!e || (state.prnMode && state.openState === e.state)) return;
+  const gen = ++prnOpenGen;
   closeNewsPage({ silent: true });
   const preSel = state.selected;   // openStateCard clears the selection — keep it for the bento spotlight
-  if (state.tier !== e.tier) await setTier(e.tier);   // before the flag — setTier exits PRN mode
-  enterPrnMode();
-  openStateCard(e.state);   // isolation choreography + (on wide screens) the bento
-  if (BENTO_MQ.matches && preSel && state.data.dun && state.data.dun.byCode.has(preSel)) {
-    bentoSeat = preSel;
-    updateBentoSpotlight();
+  // Hide map while swapping Parliament → DUN so the national DUN recolour never flashes
+  document.body.classList.add("tier-switching");
+  try {
+    if (state.tier !== e.tier) {
+      // Quiet path — never setTier() here (that deselects and shows full-country DUN)
+      const ok = await ensureTierQuiet(e.tier);
+      if (!ok) return;
+    }
+    // Race guard: user opened another state (or cancelled) while we awaited render
+    if (gen !== prnOpenGen) return;
+    enterPrnMode();
+    openStateCard(e.state);   // isolation choreography + (on wide screens) the bento
+    if (gen !== prnOpenGen) return;
+    if (BENTO_MQ.matches && preSel && state.data.dun && state.data.dun.byCode.has(preSel)) {
+      bentoSeat = preSel;
+      updateBentoSpotlight();
+    }
+    writeHash();
+  } finally {
+    // Reveal after isolation has applied so first paint is Johor DUN, not Malaysia DUN
+    requestAnimationFrame(() => {
+      document.body.classList.remove("tier-switching");
+      try { syncMapToCard(); } catch (_) {}
+    });
   }
-  writeHash();
 }
 function closePrnMode(options = {}) {
   if (!state.prnMode) return;
@@ -5367,21 +5428,25 @@ function bentoLiveTableHTML(name) {
     if (!liveSeatMatchesFilter(lr, st, filter)) return "";
     const leader = (lr && lr.name) || "—";
     const maj = lr && lr.majority != null && lr.majority !== "" ? lr.majority : "—";
-    const col = coal ? prnCoalColor(coal) : null;
+    // Party of whoever is leading / won this seat
+    const party = (lr && (lr.party || lr.coalition)) || coal || "—";
+    const col = coal ? prnCoalColor(coal) : (party !== "—" ? prnCoalColor(party) : null);
     const sw = col ? `<span class="sw" style="background:${col.bg}"></span>` : "";
     const sel = s.code === bentoSeat ? " is-sel" : "";
     const flash = (prnFlashCodes || []).includes(s.code) ? " just-called" : "";
+    const codeLabel = s.dun_code || s.code.replace(/^1_/, "");
     return `<tr class="bento-live-row st-${st.key}${sel}${flash}" data-code="${esc(s.code)}" tabindex="0" role="button">
-      <td class="col-code mono">${esc(s.dun_code || s.code.replace(/^1_/, ""))}</td>
+      <td class="col-code mono">${esc(codeLabel)}</td>
       <td class="col-seat"><span class="bento-live-cell">${esc(s.name)}</span></td>
       <td class="col-status"><span class="bento-live-st st-${st.key}">${esc(st.label)}</span></td>
       <td class="col-leader"><span class="bento-live-cell">${esc(leader)}</span></td>
+      <td class="col-party bento-live-coal">${sw}<span class="bento-live-cell">${esc(party)}</span></td>
       <td class="col-bloc bento-live-coal">${sw}<span class="bento-live-cell">${esc(coal || "—")}</span></td>
       <td class="col-maj mono">${esc(String(maj))}</td>
     </tr>`;
   }).filter(Boolean).join("");
 
-  const body = rows || `<tr><td colspan="6" class="muted bento-live-empty">${esc(t("prn_live_empty"))}</td></tr>`;
+  const body = rows || `<tr><td colspan="7" class="muted bento-live-empty">${esc(t("prn_live_empty"))}</td></tr>`;
   return `<div class="bento-tile bento-livetable">
     <div class="bento-livetable-head">
       <div class="bento-kicker">${esc(t("prn_live_table"))} · ${seats.length}</div>
@@ -5394,6 +5459,7 @@ function bentoLiveTableHTML(name) {
           <col class="col-seat" />
           <col class="col-status" />
           <col class="col-leader" />
+          <col class="col-party" />
           <col class="col-bloc" />
           <col class="col-maj" />
         </colgroup>
@@ -5403,6 +5469,7 @@ function bentoLiveTableHTML(name) {
             <th class="col-seat">${esc(t("prn_live_col_seat"))}</th>
             <th class="col-status">${esc(t("prn_live_col_status"))}</th>
             <th class="col-leader">${esc(t("prn_live_col_leader"))}</th>
+            <th class="col-party">${esc(t("prn_live_col_party"))}</th>
             <th class="col-bloc">${esc(t("prn_live_col_coal"))}</th>
             <th class="col-maj">${esc(t("prn_live_col_maj"))}</th>
           </tr>
@@ -5726,8 +5793,10 @@ function stateSpotlightHTML() {
       ${line.length ? `<span class="bento-spot-meta muted">${line.join(" · ")}</span>` : ""}
     </div>`;
   };
-  // Johor DUN: assembly dissolved for the PRN — richest data is the prn16 incumbent
-  const prnEntry = !isP && state.prn16 && state.prn16.seats && state.prn16.seats[seat.code];
+  // Johor DUN: DURING the live PRN (assembly dissolved) the richest data is the
+  // prn16 incumbent block. Once the election concludes (liveElection() null), fall
+  // through to the seat's own 2026 result in results-dun.json like any other state.
+  const prnEntry = !isP && liveElection() && state.prn16 && state.prn16.seats && state.prn16.seats[seat.code];
   if (prnEntry && prnEntry.incumbent_2022) {
     const em = prnEntry.electorate ? [`${prnEntry.electorate.toLocaleString()} ${esc(t("prn_electorate"))}`] : [];
     // PRN night board: runners + Rick-fed tonight count between holder and 2022 recap
@@ -6908,6 +6977,19 @@ function syncLiveBadge() {
 
 function openStateCard(name) {
   if (!name) return;
+  // From the main map (or any open), Johor during election night → PRN mode so
+  // DUN seats paint by current live leaders, not GE15 / state-hue colours.
+  // openPrnMode switches to DUN, enters PRN, then re-enters here with prnMode on.
+  const election = prnActiveForState(name);
+  // Opening ANY non-election state cancels an in-flight openPrnMode (setTier await)
+  // and leaves PRN chrome — otherwise Sarawak can flash then get replaced by Johor.
+  if (!election) {
+    prnOpenGen++;
+    if (state.prnMode) closePrnMode({ silent: true });
+  } else if (!state.prnMode && !prnOptOut && prnUpcomingOrLive(election)) {
+    openPrnMode();
+    return;
+  }
   closeNewsPage({ silent: true });   // opening a state leaves the news full page (no overlap)
   // cancel a pending home→Parliament rebuild so it doesn't yank the layer mid-open
   if (homeTierResetTimer) { clearTimeout(homeTierResetTimer); homeTierResetTimer = null; }
@@ -6949,14 +7031,12 @@ function openStateCard(name) {
   }
   revealStateCard({ firstMap, animateState: true });
   // wide screens: the state opens as a bento dashboard (map+panel keep rendering
-  // underneath so narrow viewports and resize-down land on a coherent view). A live
-  // election for this state defaults the election layout ON until polling day,
-  // unless the user toggled it off this visit.
-  if (BENTO_MQ.matches) {
-    const e = prnActiveForState(name);
-    if (e && !state.prnMode && !prnOptOut && state.tier === e.tier && prnUpcomingOrLive(e)) enterPrnMode();
-    showStateBento(name);
-  }
+  // underneath so narrow viewports and resize-down land on a coherent view).
+  // PRN auto-enter is handled at the top of openStateCard for all viewports.
+  if (BENTO_MQ.matches) showStateBento(name);
+  // Ensure live choropleth after isolation (enterPrnMode already paint()s; this
+  // covers open when prnMode was already on and live data just arrived).
+  if (state.prnMode) paint();
   syncSidebar();
   writeHash();
 }
@@ -7082,7 +7162,8 @@ function backToControls(options = {}) {
   const animateStateExit = !mobile && !wasBento && !!closingState && SEATS.classList.contains("isolated")
     && !ANIM_OFF && !REDUCE_MOTION.matches;
   const firstMap = animateStateExit ? SVG.getBoundingClientRect() : null;
-  if (state.prnMode) closePrnMode({ silent: true });   // leaving the state leaves the election view
+  prnOpenGen++;                                     // cancel in-flight openPrnMode (setTier race)
+  if (state.prnMode) closePrnMode({ silent: true }); // leaving the state leaves the election view
   hideStateBento();          // leaving the state closes its dashboard
   bentoSeat = null;
   bentoState = null;
@@ -7194,11 +7275,15 @@ PANEL_STATE.addEventListener("click", (e) => {
   }
   const districtToggle = e.target.closest("#map-inspect-district-toggle");
   if (districtToggle) {
+    e.preventDefault();
+    e.stopPropagation();
     setDistrictPickerOpen(!districtPickerOpen());
     return;
   }
   const districtOption = e.target.closest("[data-map-inspect-district]");
   if (districtOption) {
+    e.preventDefault();
+    e.stopPropagation();
     chooseMapInspectDistrict(districtOption.dataset.mapInspectDistrict);
     return;
   }
@@ -7266,7 +7351,9 @@ PANEL_STATE.addEventListener("keydown", (e) => {
   setSeatTab(next, true);
 });
 document.addEventListener("click", (e) => {
-  if (!e.target.closest("#map-inspect-district-picker")) setDistrictPickerOpen(false);
+  if (Date.now() < districtPickerIgnoreCloseUntil) return;
+  if (e.target.closest("#map-inspect-district-picker")) return;
+  if (districtPickerOpen()) setDistrictPickerOpen(false);
 });
 
 // Some state-level YB cards are rendered without the compact bento metadata.

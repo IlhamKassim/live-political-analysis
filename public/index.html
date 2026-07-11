@@ -25,16 +25,33 @@
 <script src="https://cdn.jsdelivr.net/npm/fluid-bg" defer></script>
 <script>
 (() => {
+  // Product is dark-only for now — light mode had unreadable PRN / map chrome.
   try {
-    const saved = localStorage.getItem("mypolitik-theme");
-    const prefersLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
-    document.documentElement.dataset.theme = saved === "light" || saved === "dark" ? saved : (prefersLight ? "light" : "dark");
+    document.documentElement.dataset.theme = "dark";
+    localStorage.setItem("mypolitik-theme", "dark");
   } catch (_) {
     document.documentElement.dataset.theme = "dark";
   }
+  // Approximate map band before app.js measures the card — kills the "map under
+  // the final map" flash when --map-h/--map-top jump on first syncMapToCard.
+  try {
+    const vh = window.innerHeight || 700;
+    const top = Math.round(Math.max(12, 0) + 58);
+    const card = Math.round(Math.min(240, Math.max(160, vh * 0.30)));
+    const mapH = Math.max(140, Math.floor(vh - top - card - 28));
+    const root = document.documentElement.style;
+    root.setProperty("--map-top", top + "px");
+    root.setProperty("--map-h", mapH + "px");
+    root.setProperty("--panel-card-max-h", card + "px");
+    if (window.matchMedia && window.matchMedia("(min-width: 640px)").matches) {
+      document.documentElement.classList.add("sb-pref-collapsed");
+    } else if (localStorage.getItem("mp-sb-collapsed") === "1") {
+      document.documentElement.classList.add("sb-pref-collapsed");
+    }
+  } catch (_) {}
 })();
 </script>
-<link rel="stylesheet" href="styles.css?v=132" />
+<link rel="stylesheet" href="styles.css?v=147" />
 </head>
 <body>
 <aside id="sidebar" aria-label="Navigation">
@@ -160,14 +177,16 @@
   <aside id="panel" class="empty">
     <div id="panel-empty">
       <div class="search-row">
-        <div class="search">
-          <input id="q" type="search" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="results" aria-expanded="false" data-i18n-aria="search_aria" aria-label="Search a seat" data-i18n-ph="search_ph_home" placeholder="Search your seat…" autocomplete="off" spellcheck="false" />
-          <div id="results" class="results" role="listbox" data-i18n-aria="results_aria" aria-label="Search results" hidden></div>
-        </div>
-        <div class="find-actions">
+        <div class="search-main">
+          <div class="search">
+            <input id="q" type="search" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="results" aria-expanded="false" data-i18n-aria="search_aria" aria-label="Search a seat" data-i18n-ph="search_ph_home" placeholder="Search your seat…" autocomplete="off" spellcheck="false" />
+            <div id="results" class="results" role="listbox" data-i18n-aria="results_aria" aria-label="Search results" hidden></div>
+          </div>
           <button id="loc-btn" class="loc-fab" type="button" data-i18n-title="find_loc" title="Use my location" aria-label="Use my location">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="2" x2="5" y1="12" y2="12"/><line x1="19" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="5"/><line x1="12" x2="12" y1="19" y2="22"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>
           </button>
+        </div>
+        <div class="find-actions">
           <div class="seg chip" id="tier" role="tablist" data-i18n-aria="aria_tier" aria-label="Seat layer">
             <button data-tier="parlimen" class="on" role="tab" aria-selected="true" data-i18n="tier_parlimen">Parliament</button>
             <button data-tier="dun" role="tab" aria-selected="false" data-i18n="tier_dun">DUN</button>
@@ -243,6 +262,7 @@
   </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 </div>
-<script type="module" src="app.js?v=132"></script>
+<script type="module" src="app.js?v=147"></script>
 </body>
 </html>
+ 
