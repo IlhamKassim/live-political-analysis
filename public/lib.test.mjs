@@ -28,6 +28,18 @@ const RESULTS_DUN = JSON.parse(
   readFileSync(fileURLToPath(new URL("./data/results-dun.json", import.meta.url)), "utf8")
 );
 
+const LIVE_JOHOR = JSON.parse(
+  readFileSync(fileURLToPath(new URL("./data/live-johor.json", import.meta.url)), "utf8")
+);
+
+const PRN16_JOHOR = JSON.parse(
+  readFileSync(fileURLToPath(new URL("./data/prn16-johor.json", import.meta.url)), "utf8")
+);
+
+const BERNAMA_JOHOR = JSON.parse(
+  readFileSync(fileURLToPath(new URL("../pipeline/johor_prn16_bernama.json", import.meta.url)), "utf8")
+);
+
 const CURRENT_AFFILIATIONS = JSON.parse(
   readFileSync(fileURLToPath(new URL("./data/current-affiliations.json", import.meta.url)), "utf8")
 );
@@ -794,15 +806,18 @@ test("results-dun.json: the 7 by-election overlays hold (incl. Nenggiri PN→BN 
 });
 
 // ---- DUN (PRN) results: full coverage after the MECO other-states bake ----
-test("results-dun.json: 600/600 seats across 13 states, 358 election-labelled, turnout null", () => {
+test("results-dun.json: 600/600 seats across 13 states, Johor turnout is sourced", () => {
   assert.equal(Object.keys(RESULTS_DUN).length, 600);
   const states = new Set(Object.values(RESULTS_DUN).map((v) => v.state));
   assert.equal(states.size, 13);
   // MECO states + by-election overlays carry an `election` label; six-state PRN entries don't
   const withElection = Object.values(RESULTS_DUN).filter((v) => v.election).length;
   assert.equal(withElection, 358);
-  // turnout isn't in either source → must be null on every entry (card omits the row)
-  assert.ok(Object.values(RESULTS_DUN).every((v) => v.turnout === null));
+  // Johor's official PRN 2026 feed includes turnout; the historical rows remain null.
+  const johor = Object.entries(RESULTS_DUN).filter(([k]) => k.startsWith("1_"));
+  assert.equal(johor.length, 56);
+  assert.ok(johor.every(([, v]) => Number.isFinite(v.turnout)));
+  assert.ok(Object.entries(RESULTS_DUN).every(([k, v]) => k.startsWith("1_") || v.turnout === null));
 });
 
 // ---- GE15 results: parliament by-election overlays (current holder doctrine) ----
