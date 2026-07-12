@@ -3,8 +3,9 @@
 
 Per-term ADUN membership is too patchily modelled on Wikidata for a roster query
 (most items don't even carry the assembly seat), so this resolves each seat's
-CURRENT holder — the winner in results-dun.json, or Johor's 2022 incumbent in
-prn16-johor.json — by NAME, with strict validation before accepting:
+CURRENT holder — the winner in results-dun.json, with the preserved Johor 2022
+incumbent used only when no current Johor result exists — by NAME, with strict
+validation before accepting:
 
   required: human (P31=Q5) · has a Commons portrait (P18) · name-key match
             between the official name and the entity label/alias
@@ -189,7 +190,7 @@ def current_holders():
             holders[code] = (v["name"], v["state"])
     prn = json.load(open(PRN16))
     for code, e in prn["seats"].items():
-        if e.get("incumbent_2022") and code in seats:
+        if code not in holders and e.get("incumbent_2022") and code in seats:
             holders[code] = (e["incumbent_2022"], "Johor")
     return holders
 

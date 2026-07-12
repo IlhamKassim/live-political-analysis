@@ -11,12 +11,13 @@ the 600 DUN seats. The other DUN states held their assembly elections on other
 dates and are NOT in that file, so we bake them from the Malaysian Election
 Corpus (github.com/Thevesh/paper-meco-results, peer-reviewed) below — each state's
 MOST RECENT state general election, plus any by-election won since (the true
-current assemblyman). Johor is deliberately excluded here: its assembly is
-dissolved for PRN 11 Jul 2026, so it is served from prn16-johor.json instead.
+current assemblyman). Johor is loaded from Bernama's official 2026 result page,
+which attributes its figures to SPR.
 
   Baked from MECO: Sabah (2025), Sarawak (2021), Melaka (2021),
   Perak/Pahang/Perlis (2022) — the remaining ~299 seats, so results-dun.json now
-  covers ~544 of 600. (Only Johor's 56 stay out, by design.)
+  covers ~544 of 600. Johor's 56 official 2026 results are then loaded from the
+  normalized Bernama/SPR snapshot produced by pipeline/johor_results.py.
 
     python3 pipeline/03_results_dun.py
 
@@ -24,13 +25,16 @@ Output public/data/results-dun.json:
   { "10_N.01": {state,name,party,party_full,coalition,coalition_full,votes,
                 vote_pct,majority,majority_pct,turnout,n_candidates,
                 runner_up:{name,party,votes}}, ... }
-  (keyed on seats-dun.json `code` = "{state_code}_{dun_code}"; turnout is null —
-   PRN registered-voter counts aren't in this source.)
+  (keyed on seats-dun.json `code` = "{state_code}_{dun_code}"; turnout is null
+   where the older source lacks registered-voter counts; Johor has official %.)
 """
 import csv
 import json
 import os
 import urllib.request
+
+from johor_results import SNAPSHOT as JOHOR_SNAPSHOT
+from johor_results import results_rows_from_snapshot, validate_snapshot
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 RAW = os.path.join(HERE, "raw")
@@ -288,6 +292,15 @@ def main():
     seat_names = {s["code"]: s["name"] for s in seats}
     overlaid = apply_byelection_overlays(out, st2code, seat_names)
 
+    # Official PRN Johor 2026 result (Bernama page, explicitly sourced to SPR).
+    # Keep the normalized snapshot in git so an offline rebuild cannot silently
+    # fall back to the dissolved 2022 assembly or election-night placeholders.
+    johor_snapshot = json.load(open(JOHOR_SNAPSHOT))
+    prn16 = json.load(open(os.path.join(OUT, "prn16-johor.json")))
+    validate_snapshot(johor_snapshot, prn16)
+    johor = results_rows_from_snapshot(johor_snapshot)
+    out.update(johor)
+
     path = os.path.join(OUT, "results-dun.json")
     with open(path, "w") as f:
         json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
@@ -296,7 +309,7 @@ def main():
     dist = Counter(v["coalition"] for v in out.values())
     states = Counter(v["state"] for v in out.values())
     print(f"  → results-dun.json  ({len(out)} of 600 DUN seats, {os.path.getsize(path)/1024:.0f} KB)")
-    print(f"  PRN-2023 six-state: {prn23} seats | MECO other states: {len(meco)} seats")
+    print(f"  PRN-2023 six-state: {prn23} seats | MECO other states: {len(meco)} seats | Johor 2026: {len(johor)} seats")
     print(f"  MECO states: " + ", ".join(f"{s} {n}" for s, n in added.items()))
     print(f"  by-election overlays (current holder): {len(overlaid)}")
     for o in overlaid:

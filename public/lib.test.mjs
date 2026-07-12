@@ -820,6 +820,58 @@ test("results-dun.json: 600/600 seats across 13 states, Johor turnout is sourced
   assert.ok(Object.entries(RESULTS_DUN).every(([k, v]) => k.startsWith("1_") || v.turnout === null));
 });
 
+test("Bernama/SPR Johor snapshot: 56 seats, 172 candidates, all ballot totals reconcile", () => {
+  const seats = Object.values(BERNAMA_JOHOR.seats);
+  assert.equal(BERNAMA_JOHOR.source_url, "https://prn.bernama.com/johor/keputusan/official/index.php");
+  assert.equal(BERNAMA_JOHOR.source_updated, "2026-07-12T00:58:33+08:00");
+  assert.equal(seats.length, 56);
+  assert.equal(seats.reduce((total, seat) => total + seat.candidates.length, 0), 172);
+  assert.deepEqual(BERNAMA_JOHOR.tally, { BN: 48, PH: 8 });
+
+  const partyCounts = {};
+  for (const seat of seats) {
+    for (const candidate of seat.candidates) {
+      partyCounts[candidate.source_party] = (partyCounts[candidate.source_party] || 0) + 1;
+    }
+    const ranked = [...seat.candidates].sort((a, b) => b.votes - a.votes);
+    const winners = seat.candidates.filter((candidate) => candidate.winner);
+    assert.equal(winners.length, 1);
+    assert.equal(winners[0].name, ranked[0].name);
+    assert.equal(seat.majority, ranked[0].votes - ranked[1].votes);
+    assert.equal(
+      seat.votes_cast,
+      seat.candidates.reduce((sum, candidate) => sum + candidate.votes, 0)
+        + seat.rejected_ballots + seat.unreturned_ballots
+    );
+  }
+  assert.deepEqual(partyCounts, {
+    BN: 56, PH: 56, PN: 33, BERSAMA: 15, MUDA: 4, PSM: 1, BEBAS: 6, ASLI: 1,
+  });
+});
+
+test("Johor official result parity: source snapshot, live document and permanent DUN rows", () => {
+  assert.equal(LIVE_JOHOR.phase, "final");
+  assert.deepEqual(LIVE_JOHOR.tally, { BN: 48, PH: 8 });
+  assert.equal(Object.keys(LIVE_JOHOR.seats).length, 56);
+
+  for (const [code, sourceSeat] of Object.entries(BERNAMA_JOHOR.seats)) {
+    const sourceWinner = sourceSeat.candidates.find((candidate) => candidate.winner);
+    const result = RESULTS_DUN[code];
+    const live = LIVE_JOHOR.seats[code];
+    assert.ok(result && !result.pending, `${code}: permanent result missing/pending`);
+    assert.equal(result.name, sourceWinner.name);
+    assert.equal(result.votes, sourceWinner.votes);
+    assert.equal(result.majority, sourceSeat.majority);
+    assert.equal(result.source_url, BERNAMA_JOHOR.source_url);
+    assert.equal(live.status, "official");
+    assert.equal(live.name, sourceWinner.name);
+    assert.equal(live.votes, sourceWinner.votes);
+    assert.equal(live.candidates.length, sourceSeat.candidates.length);
+    assert.match(PRN16_JOHOR.seats[code].last_field_year, /^20\d{2}$/);
+    assert.ok(Object.hasOwn(PRN16_JOHOR.seats[code], "incumbent_2022"));
+  }
+});
+
 // ---- GE15 results: parliament by-election overlays (current holder doctrine) ----
 test("results-ge15.json: 4 by-election overlays, coalition tally unchanged", () => {
   const byel = Object.entries(RESULTS).filter(([, v]) => v._byelection);
