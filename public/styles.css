@@ -114,6 +114,10 @@ a:hover { text-decoration: underline; }
 .results button:hover,
 .results button.active { background: var(--bg-2); }
 .results .code { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); }
+/* search-match highlight: dim the result text so the typed letters (bright white,
+   bold) stand out — same in the main list and the bento results. */
+.results button > span, .bento-result { color: var(--ink-dim); }
+.q-hl { color: #fff; font-weight: 700; }
 /* a state row jumps to the whole dashboard — tag it with the accent so it reads as a
    distinct action from the seat rows */
 .results .result-state .code {
@@ -4318,13 +4322,34 @@ body.news-open #topbar .topbar-context { pointer-events: auto; }
 .bento-map-controls {
   display: flex; align-items: center; gap: 10px;
   flex: 0 0 auto; min-width: 0;
+  position: relative;
+  z-index: 6; /* above the map SVG so the open results list isn't covered */
 }
-.bento-search { position: relative; flex: 1 1 auto; min-width: 0; }
+.bento-search { position: relative; flex: 1 1 auto; min-width: 0; z-index: 1; }
 .bento-q { width: 100%; min-height: 44px; font: inherit; font-size: 12.5px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg-2); color: var(--ink); }
 .bento-q:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-color: var(--focus); }
 .bento-q::placeholder { color: var(--ink-faint); }
 .bento-q.is-hover-preview::placeholder { color: var(--ink); opacity: 1; }
-.bento-results { position: absolute; top: calc(100% + 5px); left: 0; right: 0; z-index: 8; background: var(--panel); border: 1px solid var(--line-2); border-radius: 12px; box-shadow: 0 14px 34px rgba(0,0,0,.55); max-height: 264px; overflow-y: auto; }
+/* Open UP over the map (search sits at the bottom of the explore card). Opening
+   downward was clipped/blocked by the stats tile below (later in DOM paint order). */
+.bento-results {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  top: auto;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  box-shadow: 0 14px 34px rgba(0,0,0,.55);
+  max-height: min(280px, 42vh);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  pointer-events: auto;
+}
 .bento-result { display: block; width: 100%; text-align: left; font: inherit; font-size: 12.5px; padding: 9px 13px; background: none; border: 0; color: var(--ink); cursor: pointer; }
 .bento-result b { color: var(--accent); font-weight: 600; margin-right: 7px; }
 .bento-result:hover { background: var(--bg-2); }
@@ -4560,10 +4585,10 @@ body.news-open #topbar .topbar-context { pointer-events: auto; }
 @media (prefers-reduced-motion: reduce) {
   .bento-live-strip .live-chip, .bento-live-row.just-called, .bento-seat.just-called { animation: none; }
 }
-.bento-explore { min-height: 0; }
-.bento-explore-inner { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 20px; }
-.bento-explore-map { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 9px; }
-.bento-explore-map .bento-map-wrap { min-height: 240px; }
+.bento-explore { min-height: 0; position: relative; z-index: 3; overflow: visible; }
+.bento-explore-inner { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 20px; overflow: visible; }
+.bento-explore-map { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 9px; overflow: visible; position: relative; }
+.bento-explore-map .bento-map-wrap { min-height: 240px; z-index: 0; }
 .bento-explore-spot { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 9px; border-left: 1px solid var(--line); padding-left: 20px; }
 .bento-explore-spot #bento-spot-body { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
 /* stats card: key numbers + economy side by side */

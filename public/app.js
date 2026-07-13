@@ -174,6 +174,15 @@ const $ = (sel, el = document) => el.querySelector(sel);
 // toggle a tab/segment button's active class AND its ARIA selected state together
 const setOn = (el, on) => { el.classList.toggle("on", on); el.setAttribute("aria-selected", on ? "true" : "false"); };
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+// escape `text`, wrapping the first case-insensitive occurrence of the typed
+// query in <span class="q-hl"> so the matched letters stand out (bright white).
+function highlightMatch(text, q) {
+  const s = String(text == null ? "" : text);
+  if (!q) return esc(s);
+  const i = s.toLowerCase().indexOf(String(q).toLowerCase());
+  if (i < 0) return esc(s);
+  return esc(s.slice(0, i)) + '<span class="q-hl">' + esc(s.slice(i, i + q.length)) + "</span>" + esc(s.slice(i + q.length));
+}
 const pillStyle = (bg, fg) => `background:${bg};color:${fg || swatchTextColor(bg)}`;
 
 // stateHues() now lives in lib.js (pure, tested) — imported above.
@@ -309,22 +318,94 @@ function johorExcoForSeat(code) {
 }
 
 // ---- politician profiles (federal MPs + ADUN portrait records) ----
-function politicianFor(seat) {
-  if (!seat) return null;
-  // parliament: the full MP roster (P.xxx). DUN: the slimmer ADUN portrait records
-  // from aduns.json ({name, photo, photo_credit, ballot_name?, wikidata}) — never
-  // the parent MP, who is a different person than the ADUN.
-  if (state.tier === "parlimen") {
-    return (state.politicians && state.politicians.mps && state.politicians.mps[seat.code]) || null;
-  }
-  return (state.aduns && state.aduns[seat.code]) || null;
-}
 // loose person-name key (drops bin/binti/a-l/a-p/titles) — to tell whether the
 // ballot name differs meaningfully from the common name
 function namekeyLoose(s) {
   return String(s || "").toLowerCase()
-    .replace(/\b(bin|binti|binte|bt|a\/l|a\/p|al|ap|anak|@|dato|datuk|seri|haji|hj|ir|dr|tan|sri)\b/g, " ")
+    .replace(/\b(bin|binti|binte|bt|a\/l|a\/p|al|ap|anak|@|dato|datuk|seri|haji|hj|ir|dr|tan|sri|yb|yab)\b/g, " ")
     .replace(/[^a-z0-9]/g, "");
+}
+// Significant name tokens (drops titles / bin / mohd / single-letter initials).
+function personNameTokens(s) {
+  return String(s || "").toLowerCase()
+    .replace(/\b(bin|binti|binte|bt|a\/l|a\/p|al|ap|anak|@|dato|datuk|seri|haji|hj|ir|dr|tan|sri|yb|yab|mohd|muhammad|mohammad|muhamad|md)\b/g, " ")
+    .match(/[a-z]{3,}/g) || [];
+}
+// True when an aduns.json portrait is safe to attach to the seat's current winner.
+// Seat-keyed photos alone are wrong after seat flips (e.g. Maszlee card showing Amira).
+function adunPhotoMatchesPerson(adunName, personName) {
+  if (!adunName || !personName) return false;
+  const ak = namekeyLoose(adunName), bk = namekeyLoose(personName);
+  if (!ak || !bk) return false;
+  if (ak === bk) return true;
+  // strip Mohd/Md prefix so "Md Israk" ≡ "Mohd Israk Abdullah"
+  const stripHonor = (k) => k.replace(/^(mohd|muhammad|mohammad|muhamad|md)+/, "");
+  const ca = stripHonor(ak), cb = stripHonor(bk);
+  if (ca && cb && ca === cb) return true;
+  if (ca.length >= 6 && cb.length >= 6 && (ca.includes(cb) || cb.includes(ca))) return true;
+  // spelling variants: Muszaide / Muszaidee, Abd / Abdul (after keying)
+  if (ca.length >= 8 && cb.length >= 8 && Math.abs(ca.length - cb.length) <= 2 && ca.slice(0, 6) === cb.slice(0, 6)) {
+    return true;
+  }
+  if (namesLikelySamePerson(adunName, personName)) return true;
+  const ta = personNameTokens(adunName);
+  const tb = personNameTokens(personName);
+  if (!ta.length || !tb.length) return false;
+  const setA = new Set(ta), setB = new Set(tb);
+  const shared = ta.filter((t) => setB.has(t));
+  // two shared tokens, or one long distinctive one (e.g. "rugendran")
+  if (shared.length >= 2) return true;
+  if (shared.length === 1 && shared[0].length >= 6) {
+    // reject weak family-name-only hits when both sides have other long unique tokens
+    // ("Yusof" alone must not pair Youzaimi Yusof with Md Yusof Dawam)
+    const onlyA = ta.filter((t) => !setB.has(t) && t.length >= 5);
+    const onlyB = tb.filter((t) => !setA.has(t) && t.length >= 5);
+    if (onlyA.length && onlyB.length) return false;
+    return true;
+  }
+  // initialism form: "V Rugendran" / "R Kumaran" / "K Raven Kumar" vs full ballot name
+  const shorter = ta.length <= tb.length ? ta : tb;
+  const longerKey = ta.length <= tb.length ? bk : ak;
+  if (shorter.length >= 1 && shorter.every((t) => t.length >= 4 && longerKey.includes(t))) {
+    // require the shared core to be at least one 5+ letter token
+    return shorter.some((t) => t.length >= 5);
+  }
+  return false;
+}
+// DUN portrait record for a seat code, bound to the CURRENT winner (results-dun).
+// If aduns.json still has the previous ADUN's face, discard the photo and prefer
+// the PRN profile portrait for the winner; monogram if neither matches.
+function adunPoliticianFor(code) {
+  if (!code) return null;
+  const ad = state.aduns && state.aduns[code];
+  const result = state.resultsDun && state.resultsDun[code];
+  const winnerName = result && result.name ? result.name : null;
+  if (ad && (!winnerName || adunPhotoMatchesPerson(ad.name, winnerName))) {
+    return ad;
+  }
+  if (winnerName) {
+    const prof = profileForCandidate(code, winnerName);
+    if (prof) {
+      return {
+        name: prof.name || titleCaseName(winnerName),
+        photo: prof.photo_url || null,
+        photo_credit: prof.photo_credit || null,
+        ballot_name: prof.ballot_name || null,
+      };
+    }
+    // Stale aduns row: never return its photo under the new winner's name.
+    return { name: titleCaseName(winnerName), photo: null };
+  }
+  return ad || null;
+}
+function politicianFor(seat) {
+  if (!seat) return null;
+  // parliament: the full MP roster (P.xxx). DUN: seat portraits bound to the current
+  // winner — never the parent MP, who is a different person than the ADUN.
+  if (state.tier === "parlimen") {
+    return (state.politicians && state.politicians.mps && state.politicians.mps[seat.code]) || null;
+  }
+  return adunPoliticianFor(seat.code);
 }
 function politicianAge(dob) {
   if (!dob) return null;
@@ -480,7 +561,7 @@ function adunList() {
   for (const seat of dd.seats) {
     const r = adunEntryFor(seat.code);
     if (!r) continue;
-    const ad = state.aduns && state.aduns[seat.code];
+    const ad = adunPoliticianFor(seat.code);
     out.push({
       code: seat.code, dunCode: seat.dun_code,
       name: (ad && ad.name) || titleCaseName(r.name),
@@ -999,7 +1080,7 @@ function adunBentoBundle(code) {
   const seat = state.data.dun && state.data.dun.byCode.get(code);
   const entry = adunEntryFor(code);
   if (!seat || !entry) return null;
-  const ad = state.aduns && state.aduns[code];
+  const ad = adunPoliticianFor(code);
   const name = (ad && ad.name) || titleCaseName(entry.name);
   const official = namekeyLoose(name) !== namekeyLoose(entry.name) ? titleCaseName(entry.name) : "";
   const own = state.resultsDun && state.resultsDun[code];
@@ -1615,7 +1696,7 @@ function politicianOf(seat, tier) {
   if (tier === "parlimen") {
     return (state.politicians && state.politicians.mps && state.politicians.mps[seat.code]) || null;
   }
-  return (state.aduns && state.aduns[seat.code]) || null;
+  return adunPoliticianFor(seat && seat.code);
 }
 function currentAffiliationFor(seat, tier = state.tier) {
   if (!seat || !state.currentAffiliations) return null;
@@ -2110,10 +2191,15 @@ function ybCardHTML(seat, r, partyLabel, blocUnit, polOverride, opts = {}) {
     : "";
   const openCls = openCode ? " is-openable" : "";
   const compactCls = compact ? " is-compact" : "";
+  // Never attach a portrait unless the roster name matches the YB on the card
+  // (guards stale seat-keyed aduns after seat flips).
+  const ybPhoto = pol && pol.photo && adunPhotoMatchesPerson(pol.name || ybName, ybName)
+    ? pol.photo
+    : null;
   return pol
     ? `<div class="seat-yb-card has-profile${compactCls}${openCls}"${openAttrs}>
          <div class="yb-head">
-           ${personPhotoHTML(ybName, pol.photo, "yb-photo")}
+           ${personPhotoHTML(ybName, ybPhoto, "yb-photo")}
            <div class="yb-id">
              <span class="yb-kicker">${esc(t("card_current_yb"))}</span>
              <strong>${esc(ybName)}</strong>
@@ -3361,13 +3447,13 @@ Q.addEventListener("input", () => {
   let i = -1;
   const stateRows = stateHits.slice(0, 4).map((st) => {
     const n = data.seats.filter((s) => s.state === st).length;
-    return `<button id="result-opt-${++i}" role="option" aria-selected="false" data-state="${esc(st)}" class="result-state"><span>${esc(st)} <span class="muted" style="font-size:11px">${n} ${esc(t("bento_donut_seats"))}</span></span><span class="code">${esc(t("search_state"))}</span></button>`;
+    return `<button id="result-opt-${++i}" role="option" aria-selected="false" data-state="${esc(st)}" class="result-state"><span>${highlightMatch(st, q)} <span class="muted" style="font-size:11px">${n} ${esc(t("bento_donut_seats"))}</span></span><span class="code">${esc(t("search_state"))}</span></button>`;
   });
   const seatRows = seatHits.slice(0, Math.max(4, 8 - stateRows.length)).map((s) => {
     const code = displayCode(s, state.tier);
     const rep = repNameForSeat(s);           // show the YB so a name match is obvious
-    const sub = rep ? `${esc(rep)} <span style="opacity:.6">· ${esc(s.state)}</span>` : esc(s.state);
-    return `<button id="result-opt-${++i}" role="option" aria-selected="false" data-code="${esc(s.code)}"><span>${esc(s.name)} <span class="muted" style="font-size:11px">${sub}</span></span><span class="code">${esc(code)}</span></button>`;
+    const sub = rep ? `${highlightMatch(rep, q)} <span style="opacity:.6">· ${highlightMatch(s.state, q)}</span>` : highlightMatch(s.state, q);
+    return `<button id="result-opt-${++i}" role="option" aria-selected="false" data-code="${esc(s.code)}"><span>${highlightMatch(s.name, q)} <span class="muted" style="font-size:11px">${sub}</span></span><span class="code">${highlightMatch(code, q)}</span></button>`;
   });
   RESULTS.innerHTML = stateRows.concat(seatRows).join("");
   setActiveResult(-1);            // fresh list: nothing highlighted yet
@@ -5017,12 +5103,15 @@ function prnLiveTallyHTML(opts = {}) {
   const note = provisional
     ? t("prn_live_provisional")
     : t("prn_majority", { n: majority });
+  const popular = !provisional && live.popular_vote && live.popular_vote.BN && live.popular_vote.PH
+    ? `<span class="prn-popular-vote">${esc(t("prn_popular_vote", { bn: live.popular_vote.BN.pct, ph: live.popular_vote.PH.pct }))}</span>`
+    : "";
   const headCls = opts.compact ? "prn-live-tally-h muted" : "state-info-h muted";
   const headStyle = opts.compact ? "" : ' style="margin-top:14px"';
   return `<div class="${headCls}"${headStyle}>${esc(title)}</div>
     <div class="sharebar prn-live-bar">${bar}</div>
     <div class="sharebar-key">${key || `<span class="muted">${esc(t("prn_live_waiting"))}</span>`}</div>
-    <p class="prn-majority muted">${esc(note)}${updated ? ` · ${esc(t("prn_live_updated", { t: updated }))}` : ""}${live.source ? ` · ${esc(live.source)}` : ""}</p>`;
+    <p class="prn-majority muted">${esc(note)}${updated ? ` · ${esc(t("prn_live_updated", { t: updated }))}` : ""}${live.source ? ` · ${esc(live.source)}` : ""}</p>${popular}`;
 }
 
 // the PRN summary card (replaces the state make-up while the election view is on)
@@ -5701,12 +5790,13 @@ function incumbentBlockHTML(entry, seatCode) {
     const mp = majorityPct2022(entry);
     bits.push(t("prn_won_by", { n: entry.majority_2022 }) + (mp != null ? ` (${mp}%)` : ""));
   }
-  // portrait: prefer localised PRN profile photo, else aduns.json
+  // portrait: profile for the incumbent name first; aduns only if name matches
   const prof = seatCode ? profileForCandidate(seatCode, entry.incumbent_2022) : null;
   const adun = seatCode && state.aduns && state.aduns[seatCode];
-  const photoUrl = (prof && prof.photo_url) || (adun && adun.photo) || "";
+  const adunOk = adun && adun.photo && adunPhotoMatchesPerson(adun.name, entry.incumbent_2022);
+  const photoUrl = (prof && prof.photo_url) || (adunOk ? adun.photo : "") || "";
   const photo = photoUrl ? personPhotoHTML(entry.incumbent_2022, photoUrl, "prn-inc-photo") : "";
-  const photoCredit = (prof && prof.photo_credit) || (adun && adun.photo_credit) || "";
+  const photoCredit = (prof && prof.photo_credit) || (adunOk ? adun.photo_credit : "") || "";
   return `<div class="prn-inc${photo ? " has-photo" : ""}">
     <div class="prn-inc-top"><span class="prn-inc-kicker">${esc(t("prn_incumbent"))}</span>${badge}</div>
     <div class="prn-inc-row">
@@ -6916,8 +7006,8 @@ function bentoSeatPersons(seat) {
   if (entry.incumbent_2022) names.push(entry.incumbent_2022);
   return names;
 }
-function bentoResultRow({ seat, tier, who }) {
-  return `<button type="button" role="option" class="bento-result" data-code="${esc(seat.code)}"><b>${esc(displayCode(seat, tier) || seat.code)}</b> ${esc(seat.name)}${who ? ` <span class="muted">· ${esc(who)}</span>` : ""}</button>`;
+function bentoResultRow({ seat, tier, who }, q) {
+  return `<button type="button" role="option" class="bento-result" data-code="${esc(seat.code)}"><b>${highlightMatch(displayCode(seat, tier) || seat.code, q)}</b> ${highlightMatch(seat.name, q)}${who ? ` <span class="muted">· ${highlightMatch(who, q)}</span>` : ""}</button>`;
 }
 function bentoResultsHTML(query) {
   const q = (typeof query === "string" ? query : "").trim().toLowerCase();
@@ -6934,7 +7024,7 @@ function bentoResultsHTML(query) {
       if (hit) person.push({ seat: s, tier: state.tier, who: hit });
     }
     const rows = base.map((s) => ({ seat: s, tier: state.tier, who: bentoSeatPersons(s)[0] || "" })).concat(person);
-    return rows.slice(0, 8).map(bentoResultRow).join("");
+    return rows.slice(0, 8).map((r) => bentoResultRow(r, q)).join("");
   }
   // state dashboard: BOTH layers of the open state are searchable (MPs and ADUNs),
   // the map's current tier listed first
@@ -6953,7 +7043,7 @@ function bentoResultsHTML(query) {
       if (who && who.toLowerCase().includes(q)) rows.push({ seat: sd, tier, who });
     }
   }
-  return rows.slice(0, 8).map(bentoResultRow).join("");
+  return rows.slice(0, 8).map((r) => bentoResultRow(r, q)).join("");
 }
 function bentoSearchClose() {
   const box = document.getElementById("bento-results");
@@ -7110,9 +7200,25 @@ BENTO.addEventListener("keydown", (ev) => {
     bentoSearchClose();
   }
 });
-// let a click register before hiding the dropdown on blur
+// Keep focus on the search field while the user scrolls or clicks the results
+// list — otherwise focusout closes the dropdown before mousedown/scroll lands
+// (felt like a "blocked" list you couldn't scroll or pick from).
+BENTO.addEventListener("mousedown", (ev) => {
+  if (ev.target.closest && ev.target.closest("#bento-results")) {
+    ev.preventDefault();
+  }
+});
+// Close only when focus truly leaves search + results (not when interacting with the list)
 BENTO.addEventListener("focusout", (ev) => {
-  if (ev.target.id === "bento-q") setTimeout(bentoSearchClose, 150);
+  if (ev.target.id !== "bento-q") return;
+  setTimeout(() => {
+    const box = document.getElementById("bento-results");
+    const q = document.getElementById("bento-q");
+    const active = document.activeElement;
+    if (q && active === q) return;
+    if (box && !box.hidden && box.contains(active)) return;
+    bentoSearchClose();
+  }, 150);
 });
 // keep the bento in sync with the viewport crossing the wide breakpoint: any open
 // state gets the dashboard on wide screens; narrow lands on the panel underneath
