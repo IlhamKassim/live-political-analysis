@@ -31,6 +31,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PIPELINE = os.path.join(ROOT, "pipeline")
 PUBLIC_DATA = os.path.join(ROOT, "public", "data")
 SOURCE_URL = "https://prn.bernama.com/johor/keputusan/official/index.php"
+POPULAR_VOTE_URL = "https://www.thestar.com.my/news/nation/2026/07/12/interactive-explore-the-johor-poll-results-here"
+ANALYSIS_URL = "https://berita.rtm.gov.my/mandat/senarai-berita-mandat/senarai-artikel/prn-johor-2026-undi-meningkat-persaingan-empat-blok-mengecil-kepada-dua/"
 SNAPSHOT = os.path.join(PIPELINE, "johor_prn16_bernama.json")
 PRN16 = os.path.join(PUBLIC_DATA, "prn16-johor.json")
 RESULTS_DUN = os.path.join(PUBLIC_DATA, "results-dun.json")
@@ -328,6 +330,24 @@ def live_from_snapshot(snapshot):
         "source": snapshot["source"],
         "source_url": snapshot["source_url"],
         "tally": snapshot["tally"],
+        "popular_vote": {
+            "approximate": True,
+            "total_ballots": 1870000,
+            "BN": {"votes": 1120000, "pct": 59.7},
+            "PH": {"votes": 611000, "pct": 32.6},
+            "source_url": POPULAR_VOTE_URL,
+        },
+        "margin_extremes": {
+            "closest": {"code": "1_N.13", "name": "Nazri Abd Rahman", "margin": 170},
+            "largest": {"code": "1_N.43", "name": "Baharudin Mohamed Taib", "margin": 29505},
+            "source_url": ANALYSIS_URL,
+        },
+        "deposit_losses": {
+            "total": 55,
+            "candidates": 172,
+            "by_group": {"PN": 21, "PH": 7, "BEBAS": 6, "MUDA": 4},
+            "source_url": ANALYSIS_URL,
+        },
         "seats": seats,
     }
 

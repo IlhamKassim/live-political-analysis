@@ -820,6 +820,19 @@ test("results-dun.json: 600/600 seats across 13 states, Johor turnout is sourced
   assert.ok(Object.entries(RESULTS_DUN).every(([k, v]) => k.startsWith("1_") || v.turnout === null));
 });
 
+test("live-johor.json: final result analysis is source-linked and internally bounded", () => {
+  assert.equal(LIVE_JOHOR.phase, "final");
+  assert.deepEqual(LIVE_JOHOR.tally, { BN: 48, PH: 8 });
+  assert.equal(LIVE_JOHOR.popular_vote.approximate, true);
+  assert.equal(LIVE_JOHOR.popular_vote.BN.pct, 59.7);
+  assert.equal(LIVE_JOHOR.popular_vote.PH.pct, 32.6);
+  assert.ok(/^https:\/\//.test(LIVE_JOHOR.popular_vote.source_url));
+  assert.equal(LIVE_JOHOR.margin_extremes.closest.margin, 170);
+  assert.equal(LIVE_JOHOR.margin_extremes.largest.margin, 29505);
+  assert.equal(LIVE_JOHOR.deposit_losses.total, 55);
+  assert.ok(LIVE_JOHOR.deposit_losses.total <= LIVE_JOHOR.deposit_losses.candidates);
+});
+
 test("Bernama/SPR Johor snapshot: 56 seats, 172 candidates, all ballot totals reconcile", () => {
   const seats = Object.values(BERNAMA_JOHOR.seats);
   assert.equal(BERNAMA_JOHOR.source_url, "https://prn.bernama.com/johor/keputusan/official/index.php");
