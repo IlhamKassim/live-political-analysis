@@ -226,7 +226,14 @@ def voting_guide():
 
 def main():
     write_json("candidates-ge15.json", bake_ge15_candidates())
-    write_json("candidates-dun-prn15.json", bake_prn15_candidates())
+    prn15 = bake_prn15_candidates()
+    # Negeri Sembilan's official PRN 2026 field replaces its dissolved 2023 rows
+    # (same rebuild-preservation doctrine as 03_results_dun.py's result layers).
+    import n9_results
+    n9_snapshot = json.load(open(n9_results.SNAPSHOT))
+    n9_results.validate_snapshot(n9_snapshot)
+    prn15.update(n9_results.candidates_entries_from_snapshot(n9_snapshot))
+    write_json("candidates-dun-prn15.json", prn15)
     write_json("voting-guide.json", voting_guide())
 
 

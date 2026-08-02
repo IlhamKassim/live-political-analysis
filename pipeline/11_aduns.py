@@ -72,6 +72,31 @@ def namekey(s):
     return re.sub(r"[^a-z0-9]", "", s)
 
 
+def name_tokens(s):
+    s = re.sub(HONORIFICS, " ", (s or "").lower())
+    s = re.sub(r"\b(bin|binti|binte|bt|a/l|a/p|al|ap|anak|@)\b", " ", s)
+    return {t for t in re.findall(r"[a-z0-9]+", s) if len(t) >= 4}
+
+
+def same_holder(official, *record_names):
+    """True when a previously shipped aduns record still names the seat's current
+    holder. Deliberately strict: ONE shared token must not match — generic Malay
+    name elements (Mohd/Abdul/Muhammad/…) survive the honorific strip, so a
+    single-token rule keeps the DEFEATED holder's photo whenever a seat flips
+    between two 'Mohd X' holders. Match only on namekey equality, namekey
+    containment (short form of the same name), or >=2 shared long tokens."""
+    ok, otoks = namekey(official), name_tokens(official)
+    for cand in record_names:
+        ck = namekey(cand)
+        if not ck or not ok:
+            continue
+        if ck == ok or ck in ok or ok in ck:
+            return True
+        if len(otoks & name_tokens(cand)) >= 2:
+            return True
+    return False
+
+
 def entity_batch(qids):
     """claims (P31/P18) + aliases for up to 50 entities in one call."""
     out = {}
@@ -198,8 +223,9 @@ def current_holders():
 def main():
     os.makedirs(CACHE, exist_ok=True)
     overrides = json.load(open(OVERRIDES)) if os.path.exists(OVERRIDES) else {}
+    existing = json.load(open(OUT)) if os.path.exists(OUT) else {}
     holders = current_holders()
-    out, matched, blocked = {}, 0, 0
+    out, matched, blocked, kept = {}, 0, 0, 0
     total = len(holders)
     done = 0
     for code, (name, st) in sorted(holders.items()):
@@ -211,6 +237,17 @@ def main():
             label, img = entity_photo(overrides[code])
             qid = overrides[code]
         else:
+            # Preserve shipped records for the SAME holder — several were hand-
+            # curated from official portraits (e.g. Dewan Negeri Johor) that a
+            # fresh Wikidata/Commons resolve would drop or downgrade.
+            prev = existing.get(code)
+            if (prev and prev.get("photo")
+                    and same_holder(name, prev.get("name"), prev.get("ballot_name"))
+                    and os.path.exists(os.path.join(ROOT, "public", prev["photo"]))):
+                out[code] = prev
+                matched += 1
+                kept += 1
+                continue
             qid, label, img = resolve(name, st)
         if not qid or not img:
             continue
@@ -229,6 +266,7 @@ def main():
         json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
     kb = os.path.getsize(OUT) // 1024
     print(f"ADUN portraits: {matched}/{total} seats matched"
+          + (f" ({kept} kept from shipped records)" if kept else "")
           + (f", {blocked} blocked" if blocked else "")
           + f" -> {os.path.relpath(OUT, ROOT)} ({kb} KB)")
 

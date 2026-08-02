@@ -40,6 +40,10 @@ const BERNAMA_JOHOR = JSON.parse(
   readFileSync(fileURLToPath(new URL("../pipeline/johor_prn16_bernama.json", import.meta.url)), "utf8")
 );
 
+const BERNAMA_N9 = JSON.parse(
+  readFileSync(fileURLToPath(new URL("../pipeline/n9_prn16_bernama.json", import.meta.url)), "utf8")
+);
+
 const CURRENT_AFFILIATIONS = JSON.parse(
   readFileSync(fileURLToPath(new URL("./data/current-affiliations.json", import.meta.url)), "utf8")
 );
@@ -779,18 +783,30 @@ test("tallyCoalitions: GE15 results match the frozen PH82·PN74·BN30·GPS23·GR
 
 // ---- DUN (PRN) results: the 2023 six-state tally invariant (now a subset) ----
 // 3 of the 245 PRN-2023 rows are superseded by later by-elections (Nenggiri,
-// Sungai Bakap, Kuala Kubu Baharu) — those carry an `election` label and drop
-// out of the unlabelled subset, so it's 242 = 245 - 3 with PN 146→144, PH 80→79.
-test("results-dun.json: 2023 six-state PRN subset tally is PN144·PH79·BN19 = 242 (3 by-election overlays)", () => {
-  // six-state PRN entries are the ones WITHOUT an `election` label (MECO states + by-elections carry one)
+// Sungai Bakap, Kuala Kubu Baharu) and Negeri Sembilan's 36 by the official
+// PRN 2026 result — all of those carry an `election` label and drop out of the
+// unlabelled subset, so it's 206 = 245 - 3 - 36 across the remaining 5 states
+// with PN 146→139 (N9-2023 had PN 5), PH 80→62 (N9-2023 PH 17), BN 19→5.
+test("results-dun.json: 2023 PRN subset tally is PN139·PH62·BN5 = 206 (by-elections + N9 2026 superseded)", () => {
+  // 2023 PRN entries are the ones WITHOUT an `election` label (MECO states, by-elections and Johor/N9 2026 carry one)
   const prn23 = Object.fromEntries(Object.entries(RESULTS_DUN).filter(([, v]) => !v.election));
   const counts = tallyCoalitions(prn23);
-  assert.equal(counts.PN, 144);
-  assert.equal(counts.PH, 79);
-  assert.equal(counts.BN, 19);
-  assert.equal(Object.keys(prn23).length, 242);
+  assert.equal(counts.PN, 139);
+  assert.equal(counts.PH, 62);
+  assert.equal(counts.BN, 5);
+  assert.equal(Object.keys(prn23).length, 206);
   const states = new Set(Object.values(prn23).map((v) => v.state));
-  assert.equal(states.size, 6);
+  assert.equal(states.size, 5);
+});
+
+// ---- DUN (PRN) results: official PRN N9 2026 replaces the 2023 rows ----
+test("results-dun.json: Negeri Sembilan tally is the official PRN 2026 BN18·PH11·PN7", () => {
+  const n9 = Object.fromEntries(
+    Object.entries(RESULTS_DUN).filter(([, v]) => v.state === "Negeri Sembilan")
+  );
+  assert.equal(Object.keys(n9).length, 36);
+  assert.ok(Object.values(n9).every((v) => v.election === "PRN Negeri Sembilan 2026"));
+  assert.deepEqual(tallyCoalitions(n9), { BN: 18, PH: 11, PN: 7 });
 });
 
 // ---- DUN (PRN) results: by-election overlays = the CURRENT holder of each seat ----
@@ -810,14 +826,18 @@ test("results-dun.json: 600/600 seats across 13 states, Johor turnout is sourced
   assert.equal(Object.keys(RESULTS_DUN).length, 600);
   const states = new Set(Object.values(RESULTS_DUN).map((v) => v.state));
   assert.equal(states.size, 13);
-  // MECO states + by-election overlays carry an `election` label; six-state PRN entries don't
+  // MECO states, by-election overlays and the official Johor/N9 2026 feeds carry
+  // an `election` label; the remaining 2023 six-state PRN entries don't
   const withElection = Object.values(RESULTS_DUN).filter((v) => v.election).length;
-  assert.equal(withElection, 358);
-  // Johor's official PRN 2026 feed includes turnout; the historical rows remain null.
-  const johor = Object.entries(RESULTS_DUN).filter(([k]) => k.startsWith("1_"));
-  assert.equal(johor.length, 56);
-  assert.ok(johor.every(([, v]) => Number.isFinite(v.turnout)));
-  assert.ok(Object.entries(RESULTS_DUN).every(([k, v]) => k.startsWith("1_") || v.turnout === null));
+  assert.equal(withElection, 394);
+  // The official Bernama PRN 2026 feeds (Johor, N9) include turnout; the
+  // historical rows remain null.
+  const official = Object.entries(RESULTS_DUN).filter(([k]) => k.startsWith("1_") || k.startsWith("5_"));
+  assert.equal(official.length, 92);
+  assert.ok(official.every(([, v]) => Number.isFinite(v.turnout)));
+  assert.ok(Object.entries(RESULTS_DUN).every(
+    ([k, v]) => k.startsWith("1_") || k.startsWith("5_") || v.turnout === null
+  ));
 });
 
 test("live-johor.json: final result analysis is source-linked and internally bounded", () => {
@@ -883,6 +903,64 @@ test("Johor official result parity: source snapshot, live document and permanent
     assert.match(PRN16_JOHOR.seats[code].last_field_year, /^20\d{2}$/);
     assert.ok(Object.hasOwn(PRN16_JOHOR.seats[code], "incumbent_2022"));
   }
+});
+
+test("Bernama/SPR N9 snapshot: 36 seats, 103 candidates, all ballot totals reconcile", () => {
+  const seats = Object.values(BERNAMA_N9.seats);
+  assert.equal(BERNAMA_N9.source_url, "https://prn.bernama.com/n9/keputusan/official/index.php");
+  assert.equal(seats.length, 36);
+  assert.equal(seats.reduce((total, seat) => total + seat.candidates.length, 0), 103);
+  assert.deepEqual(BERNAMA_N9.tally, { BN: 18, PH: 11, PN: 7 });
+
+  const badgeCounts = {};
+  for (const seat of seats) {
+    for (const candidate of seat.candidates) {
+      badgeCounts[candidate.source_party] = (badgeCounts[candidate.source_party] || 0) + 1;
+    }
+    const ranked = [...seat.candidates].sort((a, b) => b.votes - a.votes);
+    const winners = seat.candidates.filter((candidate) => candidate.winner);
+    assert.equal(winners.length, 1);
+    assert.equal(winners[0].name, ranked[0].name);
+    assert.equal(seat.majority, ranked[0].votes - ranked[1].votes);
+    assert.equal(
+      seat.votes_cast,
+      seat.candidates.reduce((sum, candidate) => sum + candidate.votes, 0)
+        + seat.rejected_ballots + seat.unreturned_ballots
+    );
+  }
+  // BERSATU ran outside PN in this election (24 candidates, zero winners);
+  // the PN badge covered PAS + WAWASAN candidates.
+  assert.deepEqual(badgeCounts, {
+    BN: 25, PH: 36, BERSATU: 24, PN: 11, BEBAS: 4, ASLI: 1, BERJASA: 1, PSM: 1,
+  });
+});
+
+test("N9 official result parity: source snapshot, permanent DUN rows and candidate field", () => {
+  const CANDIDATES_DUN = JSON.parse(
+    readFileSync(fileURLToPath(new URL("./data/candidates-dun-prn15.json", import.meta.url)), "utf8")
+  );
+  const winnerParties = {};
+  for (const [code, sourceSeat] of Object.entries(BERNAMA_N9.seats)) {
+    const sourceWinner = sourceSeat.candidates.find((candidate) => candidate.winner);
+    const result = RESULTS_DUN[code];
+    assert.ok(result && !result.pending, `${code}: permanent result missing/pending`);
+    assert.equal(result.name, sourceWinner.name);
+    assert.equal(result.votes, sourceWinner.votes);
+    assert.equal(result.majority, sourceSeat.majority);
+    assert.equal(result.election, "PRN Negeri Sembilan 2026");
+    assert.equal(result.source_url, BERNAMA_N9.source_url);
+    // the seat card's Candidates tab shows the same official 2026 field
+    const field = CANDIDATES_DUN[code];
+    assert.equal(field.election, "PRN 2026", `${code}: candidate field still 2023`);
+    assert.equal(field.candidates.length, sourceSeat.candidates.length);
+    assert.equal(field.candidates[0].name, sourceWinner.name);
+    assert.equal(field.candidates[0].result, "won");
+    winnerParties[sourceWinner.party] = (winnerParties[sourceWinner.party] || 0) + 1;
+  }
+  // BN 18 = UMNO 16 + MCA 2 · PH 11 = DAP 9 + PKR 2 · PN 7 = PAS 4 + WAWASAN 3
+  assert.deepEqual(winnerParties, {
+    UMNO: 16, MCA: 2, DAP: 9, PKR: 2, PAS: 4, WAWASAN: 3,
+  });
 });
 
 // ---- GE15 results: parliament by-election overlays (current holder doctrine) ----

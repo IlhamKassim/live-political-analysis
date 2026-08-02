@@ -31,15 +31,17 @@ MyPolitik is a static/Workers web app showing Malaysian parliamentary and DUN se
 2. Toggle `Parliament`/`DUN` and `State`/`Party` (the map controls). These live **beside the
    search** in the bottom card on desktop, and in the **mobile menu** on mobile (relocated by
    viewport via `placeMapControls`), so they stay reachable when a state is isolated.
-3. Tap a state/seat to isolate the state. Wide screens open a **bento dashboard**; a live
-   election (PRN Johor) defaults to election mode until polling day.
+3. Tap a state/seat to isolate the state. Wide screens open a **bento dashboard**. (A live
+   election used to default that state into election mode — both 2026 PRNs have concluded
+   and the config is parked; see `PRN-PLAYBOOK.md` before reviving it.)
 4. On mobile, the isolated state becomes the main map. The bottom card becomes the interaction surface for selecting districts and opening details.
 
 The current design direction is a dark, dense, map-first product UI:
 
 - Top-left: MyPolitik logo. **Wide screens (≥1240px): a left sidebar** owns nav
   (Map / Politicians / News / PRN / Manifesto pledges / States).
-- Top-right of the map: a floating live-election badge (PRN Johor); the topbar has no solid strip.
+- The topbar has no solid strip. (The floating PRN live-election badge and its later
+  "PRN Johor 2026" pill were retired 2026-08-02 — both elections concluded.)
 - Bottom: floating **centered** card with search + locate + the map controls, or state/district detail.
 - Party mode is the default.
 - State name is shown above the isolated map, so the card should avoid repeating unnecessary state information.

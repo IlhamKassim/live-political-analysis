@@ -17,7 +17,9 @@ which attributes its figures to SPR.
   Baked from MECO: Sabah (2025), Sarawak (2021), Melaka (2021),
   Perak/Pahang/Perlis (2022) — the remaining ~299 seats, so results-dun.json now
   covers ~544 of 600. Johor's 56 official 2026 results are then loaded from the
-  normalized Bernama/SPR snapshot produced by pipeline/johor_results.py.
+  normalized Bernama/SPR snapshot produced by pipeline/johor_results.py, and
+  Negeri Sembilan's 36 seats are finally replaced with the official PRN 2026
+  results from pipeline/n9_results.py (overriding its 2023 six-state PRN rows).
 
     python3 pipeline/03_results_dun.py
 
@@ -35,6 +37,7 @@ import urllib.request
 
 from johor_results import SNAPSHOT as JOHOR_SNAPSHOT
 from johor_results import results_rows_from_snapshot, validate_snapshot
+import n9_results
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 RAW = os.path.join(HERE, "raw")
@@ -301,6 +304,14 @@ def main():
     johor = results_rows_from_snapshot(johor_snapshot)
     out.update(johor)
 
+    # Official PRN Negeri Sembilan 2026 result (same Bernama/SPR doctrine as
+    # Johor): replace the dissolved 2023 rows baked above with the committed
+    # normalized snapshot so an offline rebuild cannot silently regress.
+    n9_snapshot = json.load(open(n9_results.SNAPSHOT))
+    n9_results.validate_snapshot(n9_snapshot)
+    n9 = n9_results.results_rows_from_snapshot(n9_snapshot)
+    out.update(n9)
+
     path = os.path.join(OUT, "results-dun.json")
     with open(path, "w") as f:
         json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
@@ -309,7 +320,8 @@ def main():
     dist = Counter(v["coalition"] for v in out.values())
     states = Counter(v["state"] for v in out.values())
     print(f"  → results-dun.json  ({len(out)} of 600 DUN seats, {os.path.getsize(path)/1024:.0f} KB)")
-    print(f"  PRN-2023 six-state: {prn23} seats | MECO other states: {len(meco)} seats | Johor 2026: {len(johor)} seats")
+    print(f"  PRN-2023 six-state: {prn23} seats | MECO other states: {len(meco)} seats | "
+          f"Johor 2026: {len(johor)} seats | N9 2026: {len(n9)} seats")
     print(f"  MECO states: " + ", ".join(f"{s} {n}" for s, n in added.items()))
     print(f"  by-election overlays (current holder): {len(overlaid)}")
     for o in overlaid:

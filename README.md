@@ -9,7 +9,7 @@ Self-contained, no build step. `public/` is a static app served by a tiny
 Cloudflare Worker.
 
 ```
-npm run data      # rebuild all data layers (pipeline/*.py)
+npm run data      # rebuild the core data layers (pipeline/01-04 only; 05-15 run standalone)
 npm run dev       # python http.server on :4178  -> http://localhost:4178
 npm run deploy:staging   # wrangler deploy --env staging
 npm run deploy           # prod
@@ -44,15 +44,20 @@ npm run deploy           # prod
 |---|---|---|---|
 | 1 | `01_boundaries.py` | DOSM `electoral_0_parlimen` / `electoral_1_dun` | `seats-parlimen.json`, `seats-dun.json` |
 | 2 | `02_results.py` | Thevesh `candidates_ge15` / `results_parlimen_ge15` | `results-ge15.json` |
-| 3 | `03_results_dun.py` | Thevesh `candidates_prn15` (2023 six-state PRN) | `results-dun.json` |
-| 4 | `04_verified_content.py` | Thevesh candidate CSVs + official SPR/MySPR links | `candidates-ge15.json`, `candidates-dun-prn15.json`, `voting-guide.json` |
-| 5 | `04_scores.py` *(WIP)* | Hansard via Sinar pardocs / parlimen.gov.my | `scores.json` |
+| 3 | `03_results_dun.py` | Thevesh `candidates_prn15` (2023 PRN) + MECO (other states) + Bernama/SPR official snapshots via `johor_results.py` / `n9_results.py` | `results-dun.json` |
+| 4 | `04_verified_content.py` | Thevesh candidate CSVs + official SPR/MySPR links + the N9 2026 snapshot via `n9_results.py` | `candidates-ge15.json`, `candidates-dun-prn15.json`, `voting-guide.json` |
+| 5 | `15_hansard.py` | hansard.parlimen.gov.my Digital Hansard (owned scrape) | `hansard-dewan.json` |
 
-**DUN coverage:** `candidates_prn15.csv` is the **2023 six-state PRN** (Selangor, Kelantan,
-Pulau Pinang, Kedah, Negeri Sembilan, Terengganu) — **245 of 600** DUN seats. The other 7
-DUN states voted on different dates and aren't in this file, so the frontend (per-seat,
-`loadOptional()`) shows their DUN seats' parent-Parliament GE15 result with a "PRN coming
-soon" note. A DUN seat with an entry in `results-dun.json` shows its own state-election result.
+(Scripts 05-14 bake further layers standalone — PRN configs, news, state context/econ,
+politicians, gov photos, ADUN portraits, profiles, OG card. `johor_results.py` and
+`n9_results.py` import each election's official Bernama/SPR result and are re-applied
+on every 03/04 rebuild so official rows can't silently regress.)
+
+**DUN coverage: all 600 seats.** `results-dun.json` layers the 2023 six-state PRN, each
+other state's most recent state election from MECO (Sabah 2025, Sarawak 2021, Melaka 2021,
+Perak/Pahang/Perlis 2022), by-election overlays, and the official Bernama/SPR PRN 2026
+results for Johor (56) and Negeri Sembilan (36). Every DUN seat shows its own
+state-election result — there is no parent-Parliament fallback anymore.
 
 Raw downloads are cached in `pipeline/raw/` (delete to refresh).
 
@@ -92,8 +97,10 @@ instead of being swallowed by the SPA asset fallback.
 - ✅ GE15 results layer: winner, party/bloc choropleth, majority, turnout, runner-up
 - ✅ **State dashboard (bento)** on wide screens: government/economy/key-numbers + seat spotlight
 - ✅ **Politicians directory** (`#politicians`) — 222 MPs + ADUNs, searchable/filterable, Wikidata photos + bios
-- ✅ **PRN Johor 2026 election mode** — countdown, candidates by coalition, per-seat candidate cards,
-  manifesto pledges, live-results seam (`/api/live/johor` + KV); N9 reuses the same rig
+- ✅ **PRN Johor 2026 election mode** (concluded; config parked) — countdown, candidates by
+  coalition, per-seat candidate cards, manifesto pledges, live-results seam (`/api/live/johor`
+  + KV). **N9 2026 did NOT use this rig** — its official results were imported post-hoc via
+  `pipeline/n9_results.py`; see `PRN-PLAYBOOK.md` before standing the rig up for a new election
 - ✅ **News** — a Johor-election news strip + a "News" nav entry + a see-all modal (owned static pipeline)
 - ✅ **Controls** (Parliament/DUN · State/Party) live beside the search on desktop and in the
   mobile menu; **wide-screen sidebar** nav (Map / Politicians / News / PRN / Manifesto pledges / States)
@@ -101,6 +108,7 @@ instead of being swallowed by the SPA asset fallback.
 - ✅ i18n: **English default + Bahasa Melayu toggle** (EN/BM, persisted in localStorage).
   Strings live in `I18N` in `public/i18n.js`; static markup uses `data-i18n` / `data-i18n-ph` / `data-i18n-title`.
   `public/lib.test.mjs` asserts EN/MS key-set parity.
-- ✅ DUN (PRN) results — 2023 six-state election (245/600 seats); other states fall back to
-  the parent Parliament result
-- ⏳ Performance scoring from Hansard (own, transparent method) · DUN for the remaining 7 states
+- ✅ DUN (PRN) results — **all 600 seats** (2023 six-state PRN + MECO state elections +
+  by-elections + official PRN 2026 Johor and Negeri Sembilan)
+- ✅ **Hansard "In Parliament"** — per-seat Dewan Rakyat activity tab + `#dewan` league table
+- ⏳ Performance scoring from Hansard (own, transparent method)

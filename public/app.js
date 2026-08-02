@@ -69,8 +69,10 @@ let viewBox = FULL.slice();
 // COALITION_COLORS + partyColor() now live in lib.js (one tested source of
 // truth for legend/pills/seat-fill/share-card). COALITION_ORDER stays here.
 const COALITION_ORDER = ["PH", "PN", "BN", "GPS", "GRS", "WARISAN", "KDM", "PBM", "STAR", "UPKO", "PSB", "BEBAS"];
-const SEAT_TABS = ["overview", "results", "candidates", "voting"];
+const SEAT_TABS = ["overview", "results", "candidates", "voting", "dewan"];
 const isSeatTab = (tab) => SEAT_TABS.includes(tab);
+// Hansard covers the federal chamber only — the Dewan tab exists just for the Parliament tier
+const seatTabsFor = () => SEAT_TABS.filter((tab) => tab !== "dewan" || state.tier === "parlimen");
 const LOAD_GATED_SCORES = false;
 const THEME_KEY = "mypolitik-theme";
 const THEMES = ["dark"]; // light mode disabled — PRN + map chrome were unreadable
@@ -166,6 +168,7 @@ function setLang(l) {
   }
   renderSidebarStates();                                                // sidebar state list (election badge)
   if (document.body.classList.contains("news-open")) openNewsPage();    // news full page
+  if (document.body.classList.contains("dewan-open")) renderDewanPage(); // Hansard league table
   if (PLEDGES_MODAL && PLEDGES_MODAL.open) openPledgesModal();
 }
 
@@ -301,6 +304,11 @@ async function loadOptional() {
     // federal MP roster: photo + bio + socials per P.xxx (pipeline/09_politicians.py)
     const pl = await fetch("data/politicians.json");
     if (pl.ok) state.politicians = await pl.json();
+  } catch (_) {}
+  try {
+    // per-seat Dewan Rakyat activity from the official Hansard (pipeline/15_hansard.py)
+    const hd = await fetch("data/hansard-dewan.json");
+    if (hd.ok) state.hansard = await hd.json();
   } catch (_) {}
   return state;
 }
@@ -900,6 +908,7 @@ function renderPoliticiansDirectory(keepQuery = "") {
 async function openPoliticians() {
   if (!state.politicians) return;
   closeNewsPage({ silent: true });     // the directory and the news page are mutually exclusive
+  closeDewanPage({ silent: true });    // …and so is the Dewan activity page
   if (state.prnMode) closePrnMode();   // leave the election dashboard before the directory takes over
   if (!state.data.parlimen) { try { await loadTier("parlimen"); } catch (_) {} }
   if (polTier !== "parlimen" && polTier !== "pledges" && !state.data.dun) {
@@ -1513,7 +1522,7 @@ function syncMapToCard() {
   const cardTop = PANEL.getBoundingClientRect().bottom - panelPadBottom - activeCard.offsetHeight;
   const mapH = Math.max(0, Math.floor(cardTop - stageRect.top - topInset - gap));
   root.style.setProperty("--map-h", `${mapH}px`);
-  requestAnimationFrame(() => { syncStageLabelPosition(); syncSelectedTexture(); syncLiveBadge(); });
+  requestAnimationFrame(() => { syncStageLabelPosition(); syncSelectedTexture(); });
 }
 
 function mobileMenuOpen() {
@@ -1876,7 +1885,6 @@ function animateTo(target, ms = 260, ease = (t) => 1 - Math.pow(1 - t, 3)) {
     SVG.setAttribute("viewBox", viewBox.map((n) => n.toFixed(2)).join(" "));
     syncStageLabelPosition();
     syncSelectedTexture();
-    syncLiveBadge();
     return;
   }
   const start = viewBox.slice();
@@ -1903,7 +1911,6 @@ function animateTo(target, ms = 260, ease = (t) => 1 - Math.pow(1 - t, 3)) {
     else {
       syncStageLabelPosition();
       syncSelectedTexture();
-      syncLiveBadge();
     }
   }
   animId = requestAnimationFrame(step);
@@ -2035,14 +2042,38 @@ if (window.visualViewport) visualViewport.addEventListener("resize", () => { syn
 // Lift the panel by the keyboard inset (--kb-inset, see styles.css) and keep the page
 // pinned at origin so the app never displaces.
 let keyboardInset = 0;
+let appliedKbLift = "";   // last transform this code applied — write-on-change only
+// Only a focused text-entry element can mean an on-screen keyboard. visualViewport
+// resize/scroll ALSO fire for toolbar collapse/expand, pinch-zoom and rubber-band
+// pans — and during those the inset math can go briefly positive, so the old
+// unconditional lift yanked the panel (and scrollTo'd) in the middle of a touch
+// scroll. iOS cancels the gesture when the scroller moves under the finger — that
+// was the mobile "seat card scrolls down but not back up" bug.
+function textEntryFocused() {
+  const ae = document.activeElement;
+  if (!ae) return false;
+  if (ae.isContentEditable) return true;
+  const tag = ae.tagName;
+  if (tag === "TEXTAREA" || tag === "SELECT") return true;
+  if (tag !== "INPUT") return false;
+  return !/^(?:button|checkbox|radio|range|color|file|submit|reset|image)$/i.test(ae.type || "");
+}
 function syncKeyboardInset() {
   const vv = window.visualViewport;
   if (!vv) return;
-  keyboardInset = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+  keyboardInset = textEntryFocused()
+    ? Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop))
+    : 0;
   document.documentElement.style.setProperty("--kb-inset", `${keyboardInset}px`);
   // iOS freezes position:fixed anchoring while the keyboard is open — a bottom offset
   // is visually ignored there. A compositor transform is not: lift the whole panel.
-  PANEL.style.transform = keyboardInset > 0 ? `translateY(-${keyboardInset}px)` : "";
+  // Write only on change: PANEL.style.transform is shared with the sheet-drag gesture,
+  // and an unconditional "" write from a stray viewport event would snap the sheet.
+  const lift = keyboardInset > 0 ? `translateY(-${keyboardInset}px)` : "";
+  if (lift !== appliedKbLift) {
+    PANEL.style.transform = lift;
+    appliedKbLift = lift;
+  }
   if (keyboardInset > 0 && (window.scrollY || window.scrollX)) window.scrollTo(0, 0);
   syncMapToCard();
   kbDebugHud();
@@ -2051,6 +2082,8 @@ if (window.visualViewport) {
   visualViewport.addEventListener("resize", syncKeyboardInset);
   visualViewport.addEventListener("scroll", syncKeyboardInset);
 }
+// keyboard dismissed by blur: iOS sometimes closes it without a final viewport event
+document.addEventListener("focusout", () => requestAnimationFrame(syncKeyboardInset));
 // iOS viewport events around the keyboard are flaky (some fire mid-animation, some not
 // at all on certain versions) — while the search box is focused, FOLLOW the visual
 // viewport every frame instead of trusting events. Cheap: runs only while typing.
@@ -2062,7 +2095,7 @@ function kbFollowLoop() {
     if (kb !== keyboardInset) {
       syncKeyboardInset();          // full re-layout only when the inset actually changes
     } else if (kb > 0) {
-      PANEL.style.transform = `translateY(-${kb}px)`;   // re-pin in case anything cleared it
+      PANEL.style.transform = appliedKbLift = `translateY(-${kb}px)`;   // re-pin in case anything cleared it
       if (window.scrollY || window.scrollX) window.scrollTo(0, 0);
     }
   }
@@ -2228,6 +2261,7 @@ function seatCardHTML(seat, options = {}) {
   const showStateLine = options.showStateLine !== false;
   if (!isSeatTab(state.seatTab)) state.seatTab = "overview";
   const isP = state.tier === "parlimen";
+  if (state.seatTab === "dewan" && !isP) state.seatTab = "overview";   // Dewan tab is P-only
   const kicker = isP ? `${t("kicker_parlimen")} · ${seat.code}` : `DUN · ${seat.dun_code}`;
   const r = resultFor(seat);
   const ownDun = !!ownDunResult(seat);          // a real PRN result (not the parent fallback)?
@@ -2315,6 +2349,8 @@ function seatCardHTML(seat, options = {}) {
     panelHTML = candidatesHTML(seat);
   } else if (active === "voting") {
     panelHTML = votingGuideHTML();
+  } else if (active === "dewan") {
+    panelHTML = dewanActivityHTML(seat);
   } else {
     panelHTML = moduleEmptyHTML(active);
   }
@@ -2376,7 +2412,7 @@ function stateSeatCardHTML(seat) {
 function seatTabsHTML(active) {
   return `
     <div class="seat-tabs" role="tablist" aria-label="${esc(t("seat_tabs_aria"))}">
-      ${SEAT_TABS.map((tab) => `
+      ${seatTabsFor().map((tab) => `
         <button id="seat-tab-${esc(tab)}" class="seat-tab${tab === active ? " on" : ""}" type="button"
           role="tab" aria-selected="${tab === active ? "true" : "false"}" tabindex="${tab === active ? "0" : "-1"}"
           data-seat-tab="${esc(tab)}">
@@ -2385,6 +2421,55 @@ function seatTabsHTML(active) {
       `).join("")}
     </div>
   `;
+}
+
+// ---- "In the Dewan" tab: per-seat activity from the official Hansard ----
+// Data baked by pipeline/15_hansard.py from hansard.parlimen.gov.my (P15 Dewan
+// Rakyat sittings). Counts are transcript facts, not scores — every excerpt
+// deep-links to the official reader for provenance.
+const HANSARD_READER = "https://hansard.parlimen.gov.my/hansard/dewan-rakyat/";
+function dewanDate(iso) {
+  const d = new Date(iso + "T00:00:00");
+  if (isNaN(d)) return iso;
+  return d.toLocaleDateString(lang === "ms" ? "ms-MY" : "en-MY", { day: "numeric", month: "short", year: "numeric" });
+}
+function dewanActivityHTML(seat) {
+  const hd = state.hansard;
+  if (!hd || !hd.meta) return moduleEmptyHTML("dewan");
+  const rec = hd.seats && hd.seats[seat.code];
+  const total = hd.meta.sittings || 0;
+  const coverage = `<div class="note dewan-coverage">${esc(t("dewan_coverage", {
+    from: dewanDate(hd.meta.from), to: dewanDate(hd.meta.to), n: total,
+  }))}</div>`;
+  const source = `<div class="note">${esc(t("dewan_source"))}</div>`;
+  if (!rec) {
+    return `
+      <div class="dewan-activity">
+        <p class="muted dewan-none">${esc(t("dewan_none_body"))}</p>
+        ${coverage}${source}
+      </div>`;
+  }
+  const pct = total ? Math.round((rec.sittings / total) * 100) : 0;
+  const excerpts = (rec.excerpts || []).map((e) => `
+    <blockquote class="dewan-excerpt">
+      <div class="dewan-excerpt-head">
+        <span class="muted">${esc(dewanDate(e.d))}</span>
+        <a href="${esc(HANSARD_READER + e.d)}" target="_blank" rel="noopener">${esc(t("dewan_open"))} ↗</a>
+      </div>
+      ${e.sec ? `<div class="dewan-excerpt-sec">${esc(e.sec)}</div>` : ""}
+      <p>${esc(e.t)}</p>
+    </blockquote>`).join("");
+  return `
+    <div class="dewan-activity">
+      <dl class="rows">
+        <dt>${esc(t("dewan_spoke"))}</dt><dd class="mono"><b>${rec.sittings}</b> / ${total} · ${pct}%</dd>
+        <dt>${esc(t("dewan_turns"))}</dt><dd class="mono">${rec.turns}</dd>
+        <dt>${esc(t("dewan_qa"))}</dt><dd class="mono">${rec.qa}</dd>
+        <dt>${esc(t("dewan_last"))}</dt><dd>${esc(dewanDate(rec.last))}</dd>
+      </dl>
+      ${excerpts ? `<div class="state-info-h muted">${esc(t("dewan_recent"))}</div>${excerpts}` : ""}
+      ${coverage}${source}
+    </div>`;
 }
 
 function moduleEmptyHTML(tab) {
@@ -2813,7 +2898,7 @@ function drawSeatCard(seat) {
   ctx.fillText("MyPolitik / public electoral data", 72, CARD_H - 94);
   ctx.fillStyle = "#5d6b7d";
   ctx.font = "400 23px 'Space Grotesk', system-ui, sans-serif";
-  if (r) ctx.fillText(t(ownDun ? "src_prn15" : "src_ge15"), 72, CARD_H - 56);
+  if (r) ctx.fillText(resultSourceText(r, ownDun), 72, CARD_H - 56);
   return cv;
 }
 let sharingCard = false;
@@ -3178,7 +3263,6 @@ async function switchOpenStateTier() {
     else hideStateBento();
     renderSummary();
     renderMapInspectTray();
-    syncLiveBadge();
     syncSidebar();
     writeHash();
     requestAnimationFrame(() => {
@@ -3861,12 +3945,14 @@ function syncSidebar() {
   const sb = document.getElementById("sidebar");
   if (!sb) return;
   const pol = document.body.classList.contains("politicians-open");
-  sb.querySelector("#sb-map")?.classList.toggle("on", !state.openState && !pol);
+  const dw = document.body.classList.contains("dewan-open");
+  sb.querySelector("#sb-map")?.classList.toggle("on", !state.openState && !pol && !dw);
   sb.querySelector("#sb-politicians")?.classList.toggle("on", pol);
+  sb.querySelector("#sb-dewan")?.classList.toggle("on", dw);
   // live election is highlighted on its state row (e.g. Johor), not a separate PRN nav item
   const e = liveElection();
   sb.querySelectorAll("[data-sb-state]").forEach((b) => {
-    const isOpen = !pol && state.openState === b.dataset.sbState;
+    const isOpen = !pol && !dw && state.openState === b.dataset.sbState;
     const isLiveState = !!(e && e.state === b.dataset.sbState);
     b.classList.toggle("on", isOpen);
     b.classList.toggle("is-election", isLiveState);
@@ -3879,6 +3965,7 @@ function syncSidebar() {
 // layer, so switch tiers when the current layer has no seats for it
 async function sidebarOpenState(name) {
   closePoliticians({ silent: true });
+  closeDewanPage({ silent: true });
   hideInfo();
   // live election state (Johor) → open the PRN dashboard; other states open normally
   const e = liveElection();
@@ -3933,7 +4020,6 @@ function setSidebarCollapsed(v) {
   document.body.classList.toggle("sb-collapsed", !!v);
   try { localStorage.setItem("mp-sb-collapsed", v ? "1" : "0"); } catch (_) {}
   requestAnimationFrame(syncMapToCard);          // map band re-measures at the new width
-  setTimeout(syncLiveBadge, 160);                // badge re-pins after the transition
   if (v) clearSbAutoTimer();
   else scheduleSidebarAutoCollapse();            // expanded → start idle collapse
 }
@@ -3979,9 +4065,10 @@ document.getElementById("sidebar")?.addEventListener("click", (ev) => {
     return;
   }
   if (ev.target.closest("#sb-brand") || ev.target.closest("#sb-map")) {
-    closePoliticians({ silent: true }); closeNewsPage({ silent: true }); hideInfo(); backToControls(); syncSidebar(); return;
+    closePoliticians({ silent: true }); closeNewsPage({ silent: true }); closeDewanPage({ silent: true }); hideInfo(); backToControls(); syncSidebar(); return;
   }
   if (ev.target.closest("#sb-politicians")) { hideInfo(); openPoliticians(); setTimeout(syncSidebar, 60); return; }
+  if (ev.target.closest("#sb-dewan")) { hideInfo(); openDewanPage(); setTimeout(syncSidebar, 60); return; }
   if (ev.target.closest("#sb-about")) { showInfo(); return; }
   if (ev.target.closest("#sb-share")) { shareApp(); return; }
   const st = ev.target.closest("[data-sb-state]");
@@ -4034,14 +4121,13 @@ document.getElementById("sidebar")?.addEventListener("click", (ev) => {
       await openPrnMode();     // deep-linked election view (#dun/parti[/seat]/prn)
       if (h.code && state.data[state.tier].byCode.has(h.code)) showDistrict(h.code);
     } catch (_) {}
-  }
-  syncLiveBadge();
-  refreshPrnLive();
+  }  refreshPrnLive();
   writeHash();       // normalise URL to the actually-active state — a gated mode (Skor) or bad seat
                      // code in the deep link gets dropped so a re-shared link can't misrepresent state
                      // (replaceState → no extra history entry)
   if (bootHash === "#politicians" && state.politicians) await openPoliticians();  // deep-linked directory
   if (bootHash === "#news") openNewsPage();   // deep-linked news page
+  if (bootHash === "#dewan" && state.hansard) await openDewanPage();   // deep-linked Dewan activity
   maybeShowHint();   // fresh visit, nothing selected → nudge that seats are tappable
   try { syncMapToCard(); } catch (_) {}
   // body.sb-collapsed is set above; drop the html pre-paint hint
@@ -4077,6 +4163,7 @@ document.getElementById("top-map")?.addEventListener("click", showWholeMap);
 document.getElementById("top-info")?.addEventListener("click", showInfo);
 document.getElementById("top-share")?.addEventListener("click", shareApp);
 document.getElementById("top-politicians")?.addEventListener("click", () => openPoliticians());
+document.getElementById("top-dewan")?.addEventListener("click", () => openDewanPage());
 // mobile-menu nav parity with the wide-screen sidebar (each shown only when relevant)
 POL_VIEW?.addEventListener("click", (e) => {
   if (e.target.closest("a")) return;   // a social-icon link — let it open, don't pop the profile
@@ -4102,6 +4189,179 @@ window.addEventListener("popstate", () => {
   else if (document.body.classList.contains("politicians-open")) closePoliticians({ silent: true });
   if (location.hash === "#news") openNewsPage();
   else if (document.body.classList.contains("news-open")) closeNewsPage({ silent: true });
+  if (location.hash === "#dewan") { if (state.hansard) openDewanPage(); }
+  else if (document.body.classList.contains("dewan-open")) closeDewanPage({ silent: true });
+});
+
+/* ===== Dewan activity page: the Hansard league table (its own full page) ===== */
+// Same shell pattern as the Politicians directory: body.dewan-open swaps the map
+// chrome for #dewan-view, "#dewan" is a pushState'd, deep-linkable route, and
+// every row walks back to the seat on the map. Data = state.hansard (baked by
+// pipeline/15_hansard.py) joined client-side to the MP roster + seat layer.
+const DEWAN_VIEW = document.getElementById("dewan-view");
+let dewanSort = "turns";
+let dewanCoal = "";
+const DEWAN_SORTS = {
+  turns: (a, b) => b.turns - a.turns,
+  qa: (a, b) => b.qa - a.qa,
+  pct: (a, b) => b.pct - a.pct,
+  recent: (a, b) => (b.last || "").localeCompare(a.last || ""),
+};
+
+function dewanRows() {
+  const hd = state.hansard;
+  const seatsData = state.data.parlimen;
+  if (!hd || !hd.meta || !seatsData) return [];
+  const total = hd.meta.sittings || 0;
+  const mps = (state.politicians && state.politicians.mps) || {};
+  const rows = [];
+  for (const seat of seatsData.seats) {
+    const rec = hd.seats[seat.code];
+    const mp = mps[seat.code] || {};
+    rows.push({
+      code: seat.code,
+      seatName: seat.name,
+      state: seat.state,
+      mp: mp.name || "",
+      coalition: mp.coalition || mp.party || "",
+      turns: rec ? rec.turns : 0,
+      qa: rec ? rec.qa : 0,
+      sittings: rec ? rec.sittings : 0,
+      pct: rec && total ? Math.round((rec.sittings / total) * 100) : 0,
+      last: rec ? rec.last : "",
+    });
+  }
+  return rows;
+}
+
+function renderDewanRows(query = "") {
+  const host = document.getElementById("dewan-rows");
+  const count = document.getElementById("dewan-count");
+  if (!host) return;
+  const fold = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const q = fold(query);
+  let rows = dewanRows();
+  if (dewanCoal) rows = rows.filter((r) => r.coalition === dewanCoal);
+  if (q) rows = rows.filter((r) => fold(`${r.mp} ${r.code} ${r.seatName} ${r.state}`).includes(q));
+  rows.sort(DEWAN_SORTS[dewanSort] || DEWAN_SORTS.turns);
+  if (count) count.textContent = t("dewan_count", { n: rows.length });
+  host.innerHTML = rows.length ? rows.map((r, i) => `
+    <button class="dewan-tr" type="button" data-dewan-seat="${esc(r.code)}"
+      title="${esc(t("pol_view_mp_seat", { c: r.code }))}">
+      <span class="dewan-rank mono">${i + 1}</span>
+      <span class="dewan-mp">
+        <b>${esc(r.mp || t("pol_seat_vacant"))}</b>
+        <span class="muted">${esc(r.code)} · ${esc(r.seatName)} · ${esc(r.state)}</span>
+      </span>
+      <span class="dewan-coal"><span class="pill" style="${pillStyle(partyColor(r.coalition))}">${esc(r.coalition || "—")}</span></span>
+      <span class="dewan-num mono">${r.turns.toLocaleString()}</span>
+      <span class="dewan-num dewan-col-qa mono">${r.qa.toLocaleString()}</span>
+      <span class="dewan-num mono">${r.pct}%</span>
+      <span class="dewan-num dewan-col-last mono">${r.last ? esc(dewanDate(r.last)) : "—"}</span>
+    </button>`).join("")
+    : `<p class="pol-dir-empty">${esc(t("pol_no_match"))}</p>`;
+}
+
+function renderDewanPage() {
+  const hd = state.hansard;
+  if (!DEWAN_VIEW || !hd || !hd.meta) return;
+  const total = hd.meta.sittings || 0;
+  const all = dewanRows();
+  const top = all.slice().sort(DEWAN_SORTS.turns)[0];
+  const sorted = all.map((r) => r.turns).sort((a, b) => a - b);
+  const median = sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0;
+  const coalitions = [...new Set(all.map((r) => r.coalition).filter(Boolean))].sort();
+  DEWAN_VIEW.innerHTML = `
+    <div class="pol-dir dewan-page">
+      <div class="pol-dir-head">
+        <button class="pol-back" type="button" data-dewan-back>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+          <span>${esc(t("pol_back"))}</span>
+        </button>
+        <h1>${esc(t("dewan_page_title"))}</h1>
+        <p class="pol-dir-sub">${esc(t("dewan_page_sub", {
+          from: dewanDate(hd.meta.from), to: dewanDate(hd.meta.to), n: total,
+        }))}</p>
+      </div>
+      <div class="dewan-tiles">
+        <div class="dewan-tile"><span class="muted">${esc(t("dewan_tile_sittings"))}</span><b class="mono">${total}</b></div>
+        <div class="dewan-tile"><span class="muted">${esc(t("dewan_tile_top"))}</span><b>${esc(top ? top.mp : "—")}</b><span class="muted mono">${top ? top.turns.toLocaleString() : ""}</span></div>
+        <div class="dewan-tile"><span class="muted">${esc(t("dewan_tile_median"))}</span><b class="mono">${median.toLocaleString()}</b></div>
+      </div>
+      <div class="pol-dir-controls dewan-controls">
+        <input id="dewan-search" class="pol-dir-search" type="search" autocomplete="off" spellcheck="false"
+          placeholder="${esc(t("dewan_search_ph"))}" />
+        <select id="dewan-coal" class="pol-dir-select" aria-label="${esc(t("pol_all_coal"))}">
+          <option value="">${esc(t("pol_all_coal"))}</option>
+          ${coalitions.map((c) => `<option value="${esc(c)}"${c === dewanCoal ? " selected" : ""}>${esc(c)}</option>`).join("")}
+        </select>
+        <div class="seg chip dewan-sorts" role="group" aria-label="${esc(t("dewan_sort_aria"))}">
+          ${["turns", "qa", "pct", "recent"].map((s) => `
+            <button type="button" data-dewan-sort="${s}" class="${s === dewanSort ? "on" : ""}">${esc(t("dewan_sort_" + s))}</button>`).join("")}
+        </div>
+      </div>
+      <div id="dewan-count" class="pol-dir-count"></div>
+      <div class="dewan-table">
+        <div class="dewan-tr dewan-th">
+          <span class="dewan-rank">#</span>
+          <span>${esc(t("dewan_col_mp"))}</span>
+          <span class="dewan-coal"></span>
+          <span class="dewan-num">${esc(t("dewan_col_turns"))}</span>
+          <span class="dewan-num dewan-col-qa">${esc(t("dewan_col_qa"))}</span>
+          <span class="dewan-num">${esc(t("dewan_col_pct"))}</span>
+          <span class="dewan-num dewan-col-last">${esc(t("dewan_col_last"))}</span>
+        </div>
+        <div id="dewan-rows"></div>
+      </div>
+      <div class="note dewan-page-note">${esc(t("dewan_page_method"))}</div>
+      <p class="pol-dir-src">${esc(t("dewan_source"))} · ${esc(t("dewan_coverage", {
+        from: dewanDate(hd.meta.from), to: dewanDate(hd.meta.to), n: total,
+      }))}</p>
+    </div>`;
+  renderDewanRows();
+  document.getElementById("dewan-search")?.addEventListener("input", (e) => renderDewanRows(e.target.value));
+  document.getElementById("dewan-coal")?.addEventListener("change", (e) => {
+    dewanCoal = e.target.value;
+    renderDewanRows((document.getElementById("dewan-search") || {}).value || "");
+  });
+}
+
+async function openDewanPage() {
+  if (!state.hansard) return;
+  closePoliticians({ silent: true });
+  closeNewsPage({ silent: true });
+  if (state.prnMode) closePrnMode();
+  if (!state.data.parlimen) { try { await loadTier("parlimen"); } catch (_) {} }
+  document.body.classList.add("dewan-open");
+  renderDewanPage();
+  syncSidebar();
+  if (location.hash !== "#dewan") history.pushState(null, "", "#dewan");
+  DEWAN_VIEW.querySelector(".pol-dir")?.scrollTo?.(0, 0);
+}
+function closeDewanPage(options = {}) {
+  if (!document.body.classList.contains("dewan-open")) return;
+  document.body.classList.remove("dewan-open");
+  if (DEWAN_VIEW) DEWAN_VIEW.innerHTML = "";
+  syncSidebar();
+  if (!options.silent) writeHash();
+}
+
+DEWAN_VIEW?.addEventListener("click", (e) => {
+  if (e.target.closest("[data-dewan-back]")) { closeDewanPage({ silent: true }); backToControls(); syncSidebar(); return; }
+  const sortBtn = e.target.closest("[data-dewan-sort]");
+  if (sortBtn) {
+    dewanSort = sortBtn.dataset.dewanSort;
+    DEWAN_VIEW.querySelectorAll("[data-dewan-sort]").forEach((b) => setOn(b, b === sortBtn));
+    renderDewanRows((document.getElementById("dewan-search") || {}).value || "");
+    return;
+  }
+  const row = e.target.closest("[data-dewan-seat]");
+  if (row) {
+    const code = row.dataset.dewanSeat;
+    closeDewanPage({ silent: true });
+    const go = () => { const d = state.data.parlimen; if (d && d.byCode.has(code)) select(code); };
+    if (state.tier !== "parlimen") setTier("parlimen").then(go); else go();
+  }
 });
 
 /* ===== state-first drill: main map = states; tap a state to open its district mini-map in the card ===== */
@@ -4574,9 +4834,7 @@ function setViewBoxNow(vb) {
   viewBox = vb.slice();
   SVG.setAttribute("viewBox", viewBox.map((n) => n.toFixed(2)).join(" "));
   syncStageLabelPosition();
-  syncSelectedTexture();
-  syncLiveBadge();
-}
+  syncSelectedTexture();}
 
 // Leave the bento: full map pops up from center (scale+fade) instead of a side-pan
 // zoom out from the last state camera — that read as the map "coming from the side".
@@ -5271,9 +5529,7 @@ function enterPrnMode() {
   if (!e || state.prnMode) return;
   state.prnMode = true;
   document.body.classList.add("prn-mode");
-  paint();
-  syncLiveBadge();
-  refreshPrnLive();
+  paint();  refreshPrnLive();
 }
 async function openPrnMode() {
   const e = liveElection();
@@ -5327,9 +5583,7 @@ function closePrnMode(options = {}) {
   // (the PRN toggle just went OFF); otherwise the bento goes away entirely
   if (state.openState && BENTO_MQ.matches) renderStateBento();
   else hideStateBento();
-  paint();
-  syncLiveBadge();
-  writeHash();
+  paint();  writeHash();
 }
 // polling-night data. While PRN mode is open we re-poll continuously so a tab left
 // open through campaign → live flips automatically. Interval tightens to ~15s once
@@ -6079,7 +6333,27 @@ function stateSpotlightHTML() {
         : (r.pending ? `<div class="prn-inc-stat muted">${esc(t("prn_count_pending"))}</div>` : "")}
       ${runner}
     </div>
-    ${resultSourceLine(r, !isP && !!(state.resultsDun && state.resultsDun[seat.code]))}`;
+    ${resultSourceLine(r, !isP && !!(state.resultsDun && state.resultsDun[seat.code]))}
+    ${isP ? dewanSpotHTML(seat) : ""}`;
+}
+
+// Compact Hansard strip for the desktop bento spotlight (Parliament seats only) —
+// the full breakdown lives in the seat card's Dewan tab on the card surfaces.
+function dewanSpotHTML(seat) {
+  const hd = state.hansard;
+  const rec = hd && hd.meta && hd.seats && hd.seats[seat.code];
+  if (!rec) return "";
+  const total = hd.meta.sittings || 0;
+  const pct = total ? Math.round((rec.sittings / total) * 100) : 0;
+  return `<div class="prn-inc bento-spot-dewan">
+    <div class="prn-inc-top">
+      <span class="prn-inc-kicker">${esc(t("dewan_spot_kicker"))}</span>
+      <a class="dewan-spot-link" href="${esc(HANSARD_READER + rec.last)}" target="_blank" rel="noopener">${esc(t("dewan_open"))} ↗</a>
+    </div>
+    <div class="prn-inc-stat muted">${esc(t("dewan_spot_line", {
+      s: rec.sittings, n: total, pct, turns: rec.turns, qa: rec.qa,
+    }))}</div>
+  </div>`;
 }
 
 // "how this seat voted last time" — the previous contest's top candidates as a
@@ -7226,15 +7500,6 @@ BENTO_MQ.addEventListener("change", () => {
   if (state.openState && BENTO_MQ.matches) showStateBento(state.openState);
   else hideStateBento();
 });
-// Topbar live-election shortcut beside the theme toggle.
-function syncLiveBadge() {
-  const el = document.getElementById("live-badge");
-  if (!el) return;
-  // permanent "PRN Johor 2026" shortcut into the concluded DUN result; hide only
-  // while that view is already open so it isn't redundant.
-  el.hidden = state.openState === "Johor" && state.tier === "dun";
-}
-
 function openStateCard(name) {
   if (!name) return;
   // From the main map (or any open), Johor during election night → PRN mode so
@@ -7463,9 +7728,7 @@ function backToControls(options = {}) {
   } else {
     // mobile / reduced-motion: snap the camera home now
     setViewBoxNow(FULL.slice());
-  }
-  syncLiveBadge();
-  clearMatches();
+  }  clearMatches();
   setFindStatus(null);
   syncSidebar();
   // Landing defaults: Party mode immediately (cheap paint). Parliament tier is
@@ -7484,21 +7747,6 @@ STATE_SEATS.addEventListener("click", (e) => {
   if (t2) showDistrict(t2.dataset.code);
 });
 document.getElementById("state-back")?.addEventListener("click", goBack);
-document.getElementById("live-badge")?.addEventListener("click", async () => {
-  // shortcut → the Johor DUN (state assembly) result view. Preload the DUN geometry
-  // first so setTier shows no loading veil, and skip the map fade so the switch
-  // recolours in place and zooms to Johor instead of looking like a reload.
-  closePoliticians({ silent: true });
-  hideInfo();
-  if (state.tier !== "dun") {
-    await loadTier("dun");
-    skipMapFade = true;
-    await setTier("dun");
-  }
-  if (state.openState !== "Johor") openStateCard("Johor");
-  syncSidebar();
-  writeHash();
-});
 PANEL_STATE.addEventListener("click", (e) => {
   if (handleCandidateCardClick(e)) return;
   if (e.target.closest("#prn-open") || e.target.closest("#prn-open-tray")) {
@@ -7613,13 +7861,15 @@ PANEL_STATE.addEventListener("keydown", (e) => {
   }
   const tab = e.target.closest("[data-seat-tab]");
   if (!tab) return;
-  const i = SEAT_TABS.indexOf(tab.dataset.seatTab);
+  // cycle only the tabs actually rendered for this tier (no hidden dewan tab on DUN)
+  const tabs = seatTabsFor();
+  const i = tabs.indexOf(tab.dataset.seatTab);
   if (i === -1) return;
   let next = null;
-  if (e.key === "ArrowRight") next = SEAT_TABS[(i + 1) % SEAT_TABS.length];
-  else if (e.key === "ArrowLeft") next = SEAT_TABS[(i - 1 + SEAT_TABS.length) % SEAT_TABS.length];
-  else if (e.key === "Home") next = SEAT_TABS[0];
-  else if (e.key === "End") next = SEAT_TABS[SEAT_TABS.length - 1];
+  if (e.key === "ArrowRight") next = tabs[(i + 1) % tabs.length];
+  else if (e.key === "ArrowLeft") next = tabs[(i - 1 + tabs.length) % tabs.length];
+  else if (e.key === "Home") next = tabs[0];
+  else if (e.key === "End") next = tabs[tabs.length - 1];
   if (!next) return;
   e.preventDefault();
   setSeatTab(next, true);

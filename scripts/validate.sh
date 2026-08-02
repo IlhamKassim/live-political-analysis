@@ -88,6 +88,13 @@ else
   cat /tmp/mypolitik-ge15-tally.log
 fi
 
+if python3 pipeline/n9_results.py --check >/tmp/mypolitik-n9-check.log 2>&1; then
+  pass "n9_results.py --check (official N9 2026 layers in sync)"
+else
+  fail "n9_results.py --check"
+  cat /tmp/mypolitik-n9-check.log
+fi
+
 if node <<'NODE' >/tmp/mypolitik-politicians.log 2>&1
 const fs = require("fs");
 const p = "public/data/politicians.json";
