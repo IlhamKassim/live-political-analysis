@@ -60,17 +60,20 @@ def build_seat_baselines(
         tally = votes.setdefault(code, {})
         tally[coalition] = tally.get(coalition, 0.0) + float(row["votes"])
 
-    return [
-        SeatBaseline(
-            code=code,
-            name=name,
-            state=state,
-            vote_share=_as_shares(votes[code]),
-            margin=_margin(_as_shares(votes[code])),
-            demographics=demographics_by_seat.get(code, {}),
+    baselines = []
+    for code, (name, state) in seats.items():
+        shares = _as_shares(votes[code])
+        baselines.append(
+            SeatBaseline(
+                code=code,
+                name=name,
+                state=state,
+                vote_share=shares,
+                margin=_margin(shares),
+                demographics=demographics_by_seat.get(code, {}),
+            )
         )
-        for code, (name, state) in seats.items()
-    ]
+    return baselines
 
 
 def _split_seat(parlimen: str) -> tuple[str, str]:
@@ -103,7 +106,12 @@ def _as_shares(votes: Mapping[Coalition, float]) -> dict[Coalition, float]:
 
 
 def _margin(shares: Mapping[Coalition, float]) -> float:
-    """The winner's lead over the runner-up. Unopposed Seats have a full margin."""
+    """The winner's lead over the runner-up, at Coalition level.
+
+    A Seat where every candidate rolls up to one Coalition has no Coalition
+    runner-up, and so a full margin — correct for a Coalition-level Baseline
+    even where the ballot itself was contested.
+    """
     ranked: Sequence[float] = sorted(shares.values(), reverse=True)
     return ranked[0] - ranked[1] if len(ranked) > 1 else ranked[0]
 
@@ -128,6 +136,14 @@ def main() -> None:
         fetch_parliamentary_census(),
         party_to_coalition(config),
     )
+
+    expected = config["total_seats"]
+    if len(baselines) != expected:
+        raise ValueError(
+            f"expected a Baseline for all {expected} Seats, built {len(baselines)} "
+            "— the upstream dataset may have changed or the fetch was truncated"
+        )
+
     written = save_seat_baselines(connect(), baselines)
     print(f"Wrote {written} Seat Baselines.")
 

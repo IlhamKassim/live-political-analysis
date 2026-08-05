@@ -18,6 +18,9 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/lpa"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"data/coalitions.json" = "lpa/data/coalitions.json"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]

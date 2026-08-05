@@ -4,7 +4,7 @@ Fixture rows are trimmed copies of the real column layout, so the tests pin the
 transform without reaching the network.
 """
 
-from pytest import approx
+from pytest import approx, fixture
 
 from lpa.baseline_loader import build_seat_baselines
 
@@ -48,9 +48,15 @@ CENSUS = [
 ]
 
 
-def test_rolls_candidate_votes_up_to_coalition_vote_share_per_seat():
-    baselines = {b.code: b for b in build_seat_baselines(CANDIDATES, CENSUS, PARTY_TO_COALITION)}
+@fixture
+def baselines() -> dict[str, object]:
+    return {
+        b.code: b
+        for b in build_seat_baselines(CANDIDATES, CENSUS, PARTY_TO_COALITION)
+    }
 
+
+def test_rolls_candidate_votes_up_to_coalition_vote_share_per_seat(baselines):
     padang_besar = baselines["P.001"]
     assert padang_besar.name == "Padang Besar"
     assert padang_besar.state == "Perlis"
@@ -58,34 +64,26 @@ def test_rolls_candidate_votes_up_to_coalition_vote_share_per_seat():
     assert padang_besar.winner == "PN"
 
 
-def test_a_party_contesting_under_its_own_banner_counts_towards_its_coalition():
+def test_a_party_contesting_under_its_own_banner_counts_towards_its_coalition(baselines):
     # DAP stood separately from the PH banner in some seats. Its 2000 votes
     # belong to PH's 3000, making PH the winner on 5000 of 10000.
-    baselines = {b.code: b for b in build_seat_baselines(CANDIDATES, CENSUS, PARTY_TO_COALITION)}
-
     kangar = baselines["P.002"]
     assert kangar.vote_share == {"PH": 0.5, "PN": 0.3, "BEBAS": 0.2}
     assert kangar.winner == "PH"
 
 
-def test_an_unmapped_party_keeps_its_own_short_code_rather_than_joining_a_bloc():
+def test_an_unmapped_party_keeps_its_own_short_code_rather_than_joining_a_bloc(baselines):
     # BEBAS (independents) is absent from the map. Folding it into a catch-all
     # bloc would invent a contender that never stood.
-    baselines = {b.code: b for b in build_seat_baselines(CANDIDATES, CENSUS, PARTY_TO_COALITION)}
-
     assert "BEBAS" in baselines["P.002"].vote_share
 
 
-def test_margin_is_the_winners_lead_over_the_runner_up_in_vote_share():
-    baselines = {b.code: b for b in build_seat_baselines(CANDIDATES, CENSUS, PARTY_TO_COALITION)}
-
+def test_margin_is_the_winners_lead_over_the_runner_up_in_vote_share(baselines):
     assert baselines["P.001"].margin == approx(0.2)  # PN 0.60 - PH 0.40
     assert baselines["P.002"].margin == approx(0.2)  # PH 0.50 - PN 0.30
 
 
-def test_demographics_are_carried_through_from_the_census():
-    baselines = {b.code: b for b in build_seat_baselines(CANDIDATES, CENSUS, PARTY_TO_COALITION)}
-
+def test_demographics_are_carried_through_from_the_census(baselines):
     assert baselines["P.001"].demographics == {
         "ethnicity_proportion_bumi": 89.8,
         "ethnicity_proportion_chinese": 5.6,
