@@ -25,6 +25,9 @@ class AggregatedSentiment:
     article_counts: Mapping[Coalition, int] = field(default_factory=dict)
     total_articles: int = 0
     sources: Sequence[str] = field(default_factory=list)
+    """Every outlet read, whether or not its coverage named a Coalition —
+    user story 5 asks which sources feed the score, and an outlet that was
+    read and found nothing political is still part of that answer."""
 
 
 def aggregate_sentiment(
@@ -43,9 +46,9 @@ def aggregate_sentiment(
 
     for article, scores in scored_articles:
         total_articles += 1
+        sources.add(article.source)
         if not scores:
             continue
-        sources.add(article.source)
         for coalition, score in scores.items():
             totals[coalition] = totals.get(coalition, 0.0) + score
             counts[coalition] = counts.get(coalition, 0) + 1

@@ -21,7 +21,7 @@ from lpa.domain import (
     StateElectionSignal,
     SwingModelConfig,
 )
-from lpa.sentiment import score_article
+from lpa.sentiment import Classifier, score_article
 from lpa.swing_model import swing_model
 
 
@@ -34,8 +34,8 @@ into one row of the dashboard's trend line.
 """
 
 
-def today_in_malaysia() -> date:
-    return datetime.now(MALAYSIA_TIME).date()
+def today_in_malaysia(now: Callable[[timezone], datetime] = datetime.now) -> date:
+    return now(MALAYSIA_TIME).date()
 
 
 @dataclass(frozen=True)
@@ -44,14 +44,13 @@ class PipelineResult:
 
     projection: Projection
     sentiment: AggregatedSentiment
-    articles: Sequence[Article]
 
 
 def run_pipeline(
     *,
     outlets: Iterable[Outlet],
     fetch: Callable[[Iterable[Outlet]], Sequence[Article]],
-    classify,
+    classify: Classifier,
     aliases: Mapping[Coalition, Sequence[str]],
     baseline: Sequence[SeatBaseline],
     state_election_signals: Sequence[StateElectionSignal],
@@ -77,9 +76,7 @@ def run_pipeline(
         config,
         computed_at,
     )
-    return PipelineResult(
-        projection=projection, sentiment=sentiment, articles=articles
-    )
+    return PipelineResult(projection=projection, sentiment=sentiment)
 
 
 def main() -> None:
@@ -115,9 +112,15 @@ def main() -> None:
             computed_at=today_in_malaysia(),
         )
 
-    save_snapshot(engine, result.projection, result.sentiment)
-
     projection, sentiment = result.projection, result.sentiment
+    if sentiment.total_articles == 0:
+        raise SystemExit(
+            "No Articles scraped — refusing to store. Writing this run would "
+            "replace today's real snapshot with an empty one built from the "
+            "State Election Signal alone."
+        )
+    save_snapshot(engine, projection, sentiment)
+
     print(f"Read {sentiment.total_articles} Articles from {', '.join(sentiment.sources)}")
     print("\nSentiment per Coalition:")
     for coalition, score in sorted(sentiment.scores.items(), key=lambda kv: -kv[1]):

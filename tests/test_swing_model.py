@@ -217,10 +217,13 @@ def test_an_exact_tie_is_held_by_the_baseline_winner_not_decided_by_name():
     assert projection.government_majority is True
 
 
-def test_signals_from_two_state_elections_are_averaged_not_last_one_wins():
-    # Selangor's Baseline averages PH 0.50, Johor's PH 0.40. A Selangor result
-    # of 0.28 is a 22pp Swing away from PH; a Johor result of 0.62 is a 22pp
-    # Swing towards it. Averaged the two cancel and the Baseline stands.
+def test_a_state_election_moves_only_that_states_seats():
+    # Johor's 2026 result cannot tell you what Sarawak will do. Selangor's
+    # Baseline averages PH 0.50 and Johor's PH 0.40, so a Selangor result of
+    # 0.28 is -22pp there and a Johor result of 0.62 is +22pp there. Halved by
+    # the weighting each applies to its own state alone: Selangor's four seats
+    # all fall to PN at -11pp, while Johor's swing the other way and three of
+    # its four go to PH.
     selangor = StateElectionSignal(
         state="Selangor", held_on=date(2026, 3, 1), vote_share={PH: 0.28, PN: 0.72}
     )
@@ -228,22 +231,32 @@ def test_signals_from_two_state_elections_are_averaged_not_last_one_wins():
         state="Johor", held_on=date(2026, 4, 1), vote_share={PH: 0.62, PN: 0.38}
     )
 
-    both = swing_model(
+    projection = swing_model(
         baseline=two_state_seats(),
         sentiment={},
         state_election_signals=[selangor, johor],
         config=government_config(majority_threshold=5),
         computed_at=date(2026, 8, 6),
     )
-    # Selangor alone leaves a -22pp Swing, halved to -11pp by the weighting,
-    # which is enough to take every Seat PH holds.
-    selangor_only = swing_model(
+
+    assert projection.coalition_seat_totals == {PH: 3, PN: 5}
+
+
+def test_a_state_with_no_election_of_its_own_is_left_to_sentiment_alone():
+    # Only Selangor voted, so Johor's Seats must move on Sentiment only —
+    # a 4pp swing to PN, which takes P205 (48/52 at Baseline) and no more.
+    selangor = StateElectionSignal(
+        state="Selangor", held_on=date(2026, 3, 1), vote_share={PH: 0.28, PN: 0.72}
+    )
+
+    projection = swing_model(
         baseline=two_state_seats(),
-        sentiment={},
+        sentiment={PH: -0.4, PN: 0.4},
         state_election_signals=[selangor],
         config=government_config(majority_threshold=5),
         computed_at=date(2026, 8, 6),
     )
 
-    assert both.coalition_seat_totals == {PH: 2, PN: 6}
-    assert selangor_only.coalition_seat_totals == {PH: 0, PN: 8}
+    # Selangor: all four to PN at -11pp - 2pp = -13pp. Johor: PH loses none it
+    # held (it held none) and takes nothing, so all four stay PN.
+    assert projection.coalition_seat_totals == {PH: 0, PN: 8}

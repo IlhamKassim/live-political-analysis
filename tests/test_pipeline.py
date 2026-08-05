@@ -10,7 +10,7 @@ from datetime import date, datetime, timezone
 
 from fixtures import PH, PN, government_config, two_coalition_seats
 from lpa.domain import Article, Outlet
-from lpa.pipeline import run_pipeline
+from lpa.pipeline import run_pipeline, today_in_malaysia
 from lpa.storage import (
     connect,
     load_projections,
@@ -191,12 +191,10 @@ def test_the_sentiment_snapshot_records_what_it_was_built_from():
     assert stored.sources == ["Test Outlet"]
 
 
-def test_snapshots_are_dated_by_the_malaysian_day_not_utc():
+def test_the_run_is_dated_by_the_malaysian_day_not_utc():
     # 00:30 on 7 August in Kuala Lumpur is still 6 August in UTC. Dating by UTC
     # would file a Malaysian day's coverage under the day before.
-    from lpa.pipeline import MALAYSIA_TIME
+    instant = datetime(2026, 8, 6, 16, 30, tzinfo=timezone.utc)
 
-    just_after_midnight = datetime(2026, 8, 7, 0, 30, tzinfo=MALAYSIA_TIME)
-
-    assert just_after_midnight.date() == date(2026, 8, 7)
-    assert just_after_midnight.astimezone(timezone.utc).date() == date(2026, 8, 6)
+    assert today_in_malaysia(now=lambda tz: instant.astimezone(tz)) == date(2026, 8, 7)
+    assert instant.date() == date(2026, 8, 6)  # what UTC would have given
