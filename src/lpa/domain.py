@@ -115,3 +115,11 @@ class Article:
     title: str
     text: str
     """The article body as plain text, ready for the Sentiment Scorer."""
+
+
+@dataclass(frozen=True)
+class Outlet:
+    """A news outlet and the feed the Scraper reads it from."""
+
+    name: str
+    feed_url: str

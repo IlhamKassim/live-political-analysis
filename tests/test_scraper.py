@@ -1,15 +1,25 @@
-"""The Scraper's pure seam: a feed's XML -> Article records.
+"""The Scraper's pure seam: a feed's XML -> Article records, plus the politeness
+rules around fetching.
 
-Tested against a fixture copy of Free Malaysia Today's real feed, so CI never
-touches the network (issue #1's Testing Decisions).
+Parsing is tested against a fixture copy of Free Malaysia Today's real feed, so
+CI never touches the network (issue #1's Testing Decisions).
 """
 
 from datetime import datetime, timezone
 from pathlib import Path
 
+import httpx
 from pytest import fixture, raises
 
-from lpa.scraper import Outlet, RobotsPolicy, Scraper, parse_feed, strip_html
+from lpa.domain import Outlet
+from lpa.scraper import (
+    RateLimiter,
+    RobotsPolicy,
+    Scraper,
+    UnreadableFeed,
+    parse_feed,
+    strip_html,
+)
 
 FIXTURE = Path(__file__).parent / "fixtures" / "fmt_feed.xml"
 
@@ -17,6 +27,9 @@ FIXTURE = Path(__file__).parent / "fixtures" / "fmt_feed.xml"
 @fixture
 def articles():
     return parse_feed(FIXTURE.read_bytes(), "Free Malaysia Today")
+
+
+# --- parsing ---------------------------------------------------------------
 
 
 def test_every_item_in_the_feed_becomes_an_article(articles):
@@ -33,10 +46,18 @@ def test_an_article_carries_source_url_published_at_title_and_text(articles):
     assert article.text
 
 
-def test_published_at_is_read_from_the_feed_not_the_clock(articles):
-    # The fixture is a frozen copy, so its dates must not drift with today's.
-    assert all(a.published_at < datetime.now(timezone.utc) for a in articles)
-    assert all(a.published_at.year == 2026 for a in articles)
+def test_published_at_is_the_feeds_own_timestamp():
+    # Pinned to the exact value in the feed, so a published_at taken from the
+    # clock instead could not pass.
+    feed = """<rss><channel><item>
+        <title>T</title><link>https://x/1</link>
+        <pubDate>Wed, 05 Aug 2026 16:13:00 +0000</pubDate>
+        <description>body</description>
+    </item></channel></rss>"""
+
+    assert parse_feed(feed, "X")[0].published_at == datetime(
+        2026, 8, 5, 16, 13, tzinfo=timezone.utc
+    )
 
 
 def test_article_text_is_plain_text_with_no_markup_left(articles):
@@ -45,10 +66,15 @@ def test_article_text_is_plain_text_with_no_markup_left(articles):
         assert "&nbsp;" not in article.text
 
 
-def test_strip_html_collapses_markup_and_entities_to_readable_text():
-    html = "<p>PH  said  it   was   <b>fine</b>&nbsp;&amp; fair.</p>"
+def test_entities_are_decoded_and_markup_removed():
+    markup = "<p>PH  said  it   was   <b>fine</b>&nbsp;&amp; fair&#8230;</p>"
 
-    assert strip_html(html) == 'PH said it was fine & fair.'
+    assert strip_html(markup) == "PH said it was fine & fair…"
+
+
+def test_escaped_markup_does_not_survive_as_live_markup():
+    # Decoding entities after stripping tags would turn this back into "<b>".
+    assert "<" not in strip_html("&lt;b&gt;bold&lt;/b&gt;")
 
 
 def test_an_item_without_a_date_is_skipped_rather_than_guessed_at():
@@ -64,8 +90,61 @@ def test_an_item_without_a_date_is_skipped_rather_than_guessed_at():
     assert [a.title for a in parse_feed(feed, "X")] == ["Dated"]
 
 
+def test_an_atom_feed_is_read_too():
+    feed = """<feed xmlns="http://www.w3.org/2005/Atom">
+      <entry>
+        <title>Atom piece</title>
+        <link href="https://x/1"/>
+        <published>2026-08-05T16:13:00+00:00</published>
+        <content>&lt;p&gt;PH was praised.&lt;/p&gt;</content>
+      </entry>
+    </feed>"""
+
+    article = parse_feed(feed, "X")[0]
+
+    assert article.title == "Atom piece"
+    assert article.url == "https://x/1"
+    assert article.text == "PH was praised."
+
+
+def test_a_document_that_is_not_a_feed_raises_rather_than_reading_as_no_news():
+    # An outlet that quietly changed format would otherwise be indistinguishable
+    # from an outlet with nothing to report.
+    with raises(UnreadableFeed):
+        parse_feed("<html><body>Not a feed</body></html>", "X")
+
+
+# --- politeness ------------------------------------------------------------
+
+
+class FakeClock:
+    """A clock that only moves when something sleeps."""
+
+    def __init__(self):
+        self.now, self.slept = 0.0, []
+
+    def sleep(self, seconds):
+        self.slept.append(seconds)
+        self.now += seconds
+
+
+class StubResponse:
+    def __init__(self, status_code, text=""):
+        self.status_code, self.text = status_code, text
+
+
+class RecordingClient:
+    def __init__(self, response=None):
+        self.response = response or StubResponse(200, "")
+        self.requested = []
+
+    def get(self, url):
+        self.requested.append(url)
+        return self.response
+
+
 class StubRobots:
-    def __init__(self, allowed: bool, delay: float | None = None):
+    def __init__(self, allowed, delay=None):
         self.allowed, self.delay = allowed, delay
 
     def is_allowed(self, url):
@@ -75,65 +154,21 @@ class StubRobots:
         return self.delay
 
 
-def test_a_feed_robots_txt_disallows_is_not_fetched():
-    def explode(*args, **kwargs):
-        raise AssertionError("fetched a URL robots.txt disallows")
-
-    scraper = Scraper(client=type("C", (), {"get": explode})(), robots=StubRobots(False))
-
-    assert scraper.fetch(Outlet("Blocked", "https://x/feed/")) == []
+def feed_response(content=b"<rss><channel/></rss>"):
+    return type(
+        "R", (), {"content": content, "raise_for_status": lambda self: None}
+    )()
 
 
-def test_requests_are_spaced_out_by_the_configured_minimum():
-    slept, clock = [], iter([0.0, 0.5, 0.5])
-
-    class Client:
-        def get(self, url):
-            return type("R", (), {"content": b"<rss><channel/></rss>", "raise_for_status": lambda s: None})()
-
-    scraper = Scraper(
-        client=Client(), robots=StubRobots(True), min_interval=2.0,
-        sleep=slept.append, now=lambda: next(clock),
-    )
-    outlet = Outlet("X", "https://x/feed/")
-
-    scraper.fetch(outlet)
-    scraper.fetch(outlet)
-
-    assert slept == [1.5]  # 2.0s floor, 0.5s already elapsed
-
-
-def test_an_outlets_own_crawl_delay_wins_when_it_is_the_stricter_one():
-    slept, clock = [], iter([0.0, 0.0, 0.0])
-
-    class Client:
-        def get(self, url):
-            return type("R", (), {"content": b"<rss><channel/></rss>", "raise_for_status": lambda s: None})()
-
-    scraper = Scraper(
-        client=Client(), robots=StubRobots(True, delay=10.0), min_interval=2.0,
-        sleep=slept.append, now=lambda: next(clock),
-    )
-    outlet = Outlet("X", "https://x/feed/")
-
-    scraper.fetch(outlet)
-    scraper.fetch(outlet)
-
-    assert slept == [10.0]
-
-
-class StubResponse:
-    def __init__(self, status_code, text=""):
-        self.status_code, self.text = status_code, text
-
-
-class RecordingClient:
-    def __init__(self, response):
-        self.response, self.requested = response, []
-
+class FeedClient:
     def get(self, url):
-        self.requested.append(url)
-        return self.response
+        return feed_response()
+
+
+def limiter_on(clock, min_interval=2.0):
+    return RateLimiter(
+        min_interval=min_interval, sleep=clock.sleep, now=lambda: clock.now
+    )
 
 
 def test_robots_txt_is_fetched_with_our_own_declared_user_agent():
@@ -153,6 +188,13 @@ def test_a_forbidden_robots_txt_is_treated_as_a_refusal():
     assert policy.is_allowed("https://x/feed/") is False
 
 
+def test_an_outlet_erroring_on_robots_txt_is_left_alone():
+    # A 503 means the outlet is unwell, not that it has no rules.
+    policy = RobotsPolicy(client=RecordingClient(StubResponse(503)))
+
+    assert policy.is_allowed("https://x/feed/") is False
+
+
 def test_a_missing_robots_txt_means_there_are_no_rules_to_break():
     policy = RobotsPolicy(client=RecordingClient(StubResponse(404)))
 
@@ -160,10 +202,92 @@ def test_a_missing_robots_txt_means_there_are_no_rules_to_break():
 
 
 def test_a_disallowed_path_in_robots_txt_is_refused():
-    client = RecordingClient(
-        StubResponse(200, "User-agent: *\nDisallow: /private/\n")
-    )
+    client = RecordingClient(StubResponse(200, "User-agent: *\nDisallow: /private/\n"))
     policy = RobotsPolicy(user_agent="test-agent", client=client)
 
     assert policy.is_allowed("https://x/private/feed/") is False
     assert policy.is_allowed("https://x/feed/") is True
+
+
+def test_the_robots_txt_request_is_itself_rate_limited():
+    # Checking robots.txt and then fetching the feed is two requests to the
+    # same host; skipping the spacing on the first defeats the point.
+    clock = FakeClock()
+    limiter = limiter_on(clock)
+    robots = RobotsPolicy(
+        user_agent="test-agent",
+        client=RecordingClient(StubResponse(200, "User-agent: *\nAllow: /\n")),
+        limiter=limiter,
+    )
+
+    Scraper(client=FeedClient(), robots=robots, limiter=limiter).fetch(
+        Outlet("X", "https://x/feed/")
+    )
+
+    assert clock.slept == [2.0]  # robots.txt, then a full interval before the feed
+
+
+def test_the_first_request_to_a_host_does_not_wait():
+    clock = FakeClock()
+
+    limiter_on(clock).wait_turn("https://x/feed/")
+
+    assert clock.slept == []
+
+
+def test_a_second_request_to_the_same_host_waits_out_the_interval():
+    clock = FakeClock()
+    limiter = limiter_on(clock)
+
+    limiter.wait_turn("https://x/feed/")
+    limiter.wait_turn("https://x/feed/")
+    limiter.wait_turn("https://x/feed/")
+
+    assert clock.slept == [2.0, 2.0]
+
+
+def test_one_outlets_pace_is_not_imposed_on_another_host():
+    clock = FakeClock()
+    limiter = limiter_on(clock)
+
+    limiter.wait_turn("https://x/feed/")
+    limiter.wait_turn("https://y/feed/")
+
+    assert clock.slept == []
+
+
+def test_an_outlets_own_crawl_delay_wins_when_it_is_the_stricter_one():
+    clock = FakeClock()
+    limiter = limiter_on(clock)
+
+    limiter.wait_turn("https://x/feed/", crawl_delay=10.0)
+    limiter.wait_turn("https://x/feed/", crawl_delay=10.0)
+
+    assert clock.slept == [10.0]
+
+
+def test_a_feed_robots_txt_disallows_is_not_fetched():
+    def explode(*args, **kwargs):
+        raise AssertionError("fetched a URL robots.txt disallows")
+
+    scraper = Scraper(client=type("C", (), {"get": explode})(), robots=StubRobots(False))
+
+    assert scraper.fetch(Outlet("Blocked", "https://x/feed/")) == []
+
+
+def test_one_failing_outlet_does_not_cost_the_run_the_others():
+    # The daily job is unattended: an outage at one outlet must not take the
+    # whole day's coverage with it.
+    class HalfBrokenClient:
+        def get(self, url):
+            if "broken" in url:
+                raise httpx.ConnectError("down")
+            return feed_response(FIXTURE.read_bytes())
+
+    scraper = Scraper(client=HalfBrokenClient(), robots=StubRobots(True))
+
+    articles = scraper.fetch_all(
+        [Outlet("Broken", "https://broken/feed/"), Outlet("Fine", "https://fine/feed/")]
+    )
+
+    assert [a.source for a in articles] == ["Fine"] * 3
