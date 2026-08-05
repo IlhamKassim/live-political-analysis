@@ -10,6 +10,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+sentiment = ["transformers>=4.40", "torch>=2.0", "sentencepiece>=0.2", "protobuf>=4.0"]
 
 [build-system]
 requires = ["hatchling"]
@@ -24,3 +25,7 @@ packages = ["src/lpa"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+addopts = "-m 'not model'"
+markers = [
+    "model: needs the self-hosted sentiment model; downloads weights and runs CPU inference",
+]

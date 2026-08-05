@@ -23,6 +23,11 @@ def party_to_coalition(config: Mapping[str, Any]) -> Mapping[str, Coalition]:
     return config["party_to_coalition"]
 
 
+def coalition_aliases(config: Mapping[str, Any]) -> Mapping[Coalition, list[str]]:
+    """How each Coalition is named in coverage, for the Sentiment Scorer."""
+    return config["coalition_aliases"]
+
+
 def swing_model_config(config: Mapping[str, Any], **overrides: Any) -> SwingModelConfig:
     """Build the Swing Model's config from the Coalition configuration file."""
     settings: dict[str, Any] = {
