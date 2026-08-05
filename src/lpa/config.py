@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
-from lpa.domain import Coalition, SwingModelConfig
+from lpa.domain import Coalition, Outlet, SwingModelConfig
 
 DEFAULT_CONFIG_PATH = Path(__file__).resolve().parents[2] / "data" / "coalitions.json"
 
@@ -36,3 +36,12 @@ def swing_model_config(config: Mapping[str, Any], **overrides: Any) -> SwingMode
     }
     settings.update(overrides)
     return SwingModelConfig(**settings)
+
+
+DEFAULT_OUTLETS_PATH = DEFAULT_CONFIG_PATH.with_name("outlets.json")
+
+
+def load_outlets(path: Path | None = None) -> list[Outlet]:
+    """The outlets the Scraper reads, from `data/outlets.json`."""
+    config = json.loads((path or DEFAULT_OUTLETS_PATH).read_text())
+    return [Outlet(name=o["name"], feed_url=o["feed_url"]) for o in config["outlets"]]

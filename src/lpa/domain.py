@@ -7,7 +7,7 @@ State Election Signal, Projection, Government Coalition.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
 from typing import Mapping
 
 Coalition = str
@@ -102,3 +102,24 @@ class Projection:
     coalition_seat_totals: Mapping[Coalition, int]
     government_majority: bool
     computed_at: date
+
+
+@dataclass(frozen=True)
+class Article:
+    """One piece of coverage, as the Scraper produces it."""
+
+    source: str
+    """The outlet's name, e.g. "Free Malaysia Today"."""
+    url: str
+    published_at: datetime
+    title: str
+    text: str
+    """The article body as plain text, ready for the Sentiment Scorer."""
+
+
+@dataclass(frozen=True)
+class Outlet:
+    """A news outlet and the feed the Scraper reads it from."""
+
+    name: str
+    feed_url: str
