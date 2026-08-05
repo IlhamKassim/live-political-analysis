@@ -1,0 +1,28 @@
+{
+  "_comment": [
+    "Coalition membership as data, not code (issue #1, story 20; ADR 0001).",
+    "party_to_coalition rolls a GE15 ballot party name up to the Coalition it",
+    "contested under. Parties absent from this map keep their own bracketed",
+    "short code as their Coalition, so a minor party is never silently merged",
+    "into a bloc it does not belong to.",
+    "government_coalitions is the Government Coalition as of August 2026 and is",
+    "the value to edit if the coalition realigns — e.g. DAP's 16 Aug 2026",
+    "congress on remaining in PH. Nothing in the Swing Model needs to change."
+  ],
+  "party_to_coalition": {
+    "PAKATAN HARAPAN (PH)": "PH",
+    "PARTI TINDAKAN DEMOKRATIK (DAP)": "PH",
+    "PERIKATAN NASIONAL (PN)": "PN",
+    "PARTI ISLAM SE MALAYSIA (PAS)": "PN",
+    "BARISAN NASIONAL (BN)": "BN",
+    "GABUNGAN PARTI SARAWAK (GPS)": "GPS",
+    "PARTI GABUNGAN RAKYAT SABAH (GRS)": "GRS",
+    "PARTI BERSATU RAKYAT SABAH (PBRS)": "GRS",
+    "PARTI PERPADUAN RAKYAT SABAH (PPRS)": "GRS",
+    "PARTI PEJUANG TANAHAIR (PEJUANG)": "GTA",
+    "PARTI BUMIPUTERA PERKASA MALAYSIA (PUTRA)": "GTA"
+  },
+  "government_coalitions": ["PH", "BN", "GPS", "GRS"],
+  "majority_threshold": 112,
+  "total_seats": 222
+}

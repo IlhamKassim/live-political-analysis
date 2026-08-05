@@ -24,10 +24,19 @@ class SeatBaseline:
     """One Seat's GE15 result — the fixed starting point for a Projection."""
 
     code: str
+    """The Seat's official code, e.g. "P.001"."""
     name: str
     state: str
     vote_share: Mapping[Coalition, float]
     """GE15 vote share per Coalition, as fractions of the valid vote."""
+    margin: float = 0.0
+    """The winner's GE15 lead over the runner-up, in vote share."""
+    demographics: Mapping[str, float] = field(default_factory=dict)
+    """Census profile of the Seat — ethnicity, age and income proportions.
+
+    Carried for the Seat-Level Projection deferred by ADR 0001; the current
+    Coalition-level Swing Model does not read it.
+    """
 
     @property
     def winner(self) -> Coalition:
