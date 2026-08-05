@@ -22,6 +22,32 @@
     "PARTI PEJUANG TANAHAIR (PEJUANG)": "GTA",
     "PARTI BUMIPUTERA PERKASA MALAYSIA (PUTRA)": "GTA"
   },
+  "_aliases_comment": [
+    "How each Coalition is named in Malaysian coverage, English and Bahasa",
+    "Malaysia, including the component parties whose names stand in for the",
+    "Coalition in a headline. Matched case-insensitively on word boundaries.",
+    "Leaders' personal names are deliberately excluded: coverage of a person",
+    "is not reliably coverage of their Coalition."
+  ],
+  "coalition_aliases": {
+    "PH": [
+      "Pakatan Harapan", "Pakatan", "PH", "DAP", "PKR", "Keadilan",
+      "Parti Keadilan Rakyat", "Amanah", "Parti Amanah Negara"
+    ],
+    "BN": [
+      "Barisan Nasional", "Barisan", "BN", "UMNO", "MCA", "MIC"
+    ],
+    "PN": [
+      "Perikatan Nasional", "Perikatan", "PN", "Bersatu", "PAS",
+      "Parti Islam Se-Malaysia", "Gerakan"
+    ],
+    "GPS": [
+      "Gabungan Parti Sarawak", "GPS", "PBB", "SUPP", "PRS", "PDP"
+    ],
+    "GRS": [
+      "Gabungan Rakyat Sabah", "Parti Gabungan Rakyat Sabah", "GRS"
+    ]
+  },
   "government_coalitions": ["PH", "BN", "GPS", "GRS"],
   "majority_threshold": 112,
   "total_seats": 222
