@@ -7,10 +7,11 @@ realignment is a config edit (issue #1, story 20).
 from __future__ import annotations
 
 import json
+from datetime import date
 from pathlib import Path
 from typing import Any, Mapping
 
-from lpa.domain import Coalition, Outlet, SwingModelConfig
+from lpa.domain import Coalition, Outlet, StateElectionSignal, SwingModelConfig
 
 DEFAULT_CONFIG_PATH = Path(__file__).resolve().parents[2] / "data" / "coalitions.json"
 
@@ -45,3 +46,19 @@ def load_outlets(path: Path | None = None) -> list[Outlet]:
     """The outlets the Scraper reads, from `data/outlets.json`."""
     config = json.loads((path or DEFAULT_OUTLETS_PATH).read_text())
     return [Outlet(name=o["name"], feed_url=o["feed_url"]) for o in config["outlets"]]
+
+
+DEFAULT_STATE_ELECTIONS_PATH = DEFAULT_CONFIG_PATH.with_name("state_elections.json")
+
+
+def load_state_election_signals(path: Path | None = None) -> list[StateElectionSignal]:
+    """State elections held since GE15, from `data/state_elections.json`."""
+    config = json.loads((path or DEFAULT_STATE_ELECTIONS_PATH).read_text())
+    return [
+        StateElectionSignal(
+            state=entry["state"],
+            held_on=date.fromisoformat(entry["held_on"]),
+            vote_share=entry["vote_share"],
+        )
+        for entry in config["state_elections"]
+    ]
