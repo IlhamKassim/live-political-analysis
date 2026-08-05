@@ -22,6 +22,7 @@ packages = ["src/lpa"]
 [tool.hatch.build.targets.wheel.force-include]
 "data/coalitions.json" = "lpa/data/coalitions.json"
 "data/outlets.json" = "lpa/data/outlets.json"
+"data/state_elections.json" = "lpa/data/state_elections.json"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

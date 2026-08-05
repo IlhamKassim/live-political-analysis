@@ -1,0 +1,25 @@
+{
+  "_comment": [
+    "State Election Signal: results of state elections held after GE15, used",
+    "as a leading indicator into the Swing Model (CONTEXT.md).",
+    "Maintained by hand — state elections are occasional events, not a feed.",
+    "Add a new entry when one is held; the Swing Model measures each result",
+    "against the GE15 Baseline shares of that same state's Seats.",
+    "Vote shares are fractions of the valid vote and need not sum to 1: a",
+    "Coalition the result does not report is read as having no observed swing.",
+    "Malacca's 2026 election is due on or before November 2026 and had not",
+    "been held as of 6 August 2026, so there is no entry for it yet."
+  ],
+  "state_elections": [
+    {
+      "state": "Johor",
+      "held_on": "2026-07-11",
+      "source": "https://en.wikipedia.org/wiki/2026_Johor_state_election",
+      "vote_share": {
+        "BN": 0.5966,
+        "PH": 0.3264,
+        "PN": 0.0545
+      }
+    }
+  ]
+}
