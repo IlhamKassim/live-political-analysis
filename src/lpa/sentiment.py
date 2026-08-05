@@ -22,7 +22,18 @@ from lpa.domain import Coalition
 Classifier = Callable[[Sequence[str]], Sequence[float]]
 """Scores a batch of sentences, each as a polarity in [-1.0, 1.0]."""
 
-_SENTENCE = re.compile(r"(?<=[.!?])\s+|\n+")
+_ABBREVIATIONS = (
+    "Dr", "Datuk", "Dato", "Datin", "Tun", "Tan", "Sri", "Hj", "Mr", "Mrs", "Ms",
+    "Sdn", "Bhd", "No", "St", "vs", "etc",
+)
+_SENTENCE = re.compile(
+    # A sentence ends at .!? — optionally through a closing quote — but not
+    # after a title or initial, which in Malaysian coverage is constant:
+    # "Datuk Seri Anwar", "Dr. Mahathir", "S. Subramaniam".
+    r"(?<!\b" + r")(?<!\b".join(_ABBREVIATIONS) + r")"
+    r"(?<![A-Z])"
+    r"[.!?][\"\u2019\u201d)]*\s+|\n+"
+)
 
 
 def attribute_sentences(
@@ -30,8 +41,11 @@ def attribute_sentences(
 ) -> dict[Coalition, list[str]]:
     """Group the sentences of `text` by the Coalitions each one names.
 
-    Matching is case-insensitive and bounded to whole words, so "PHone" is not
-    a mention of PH. A sentence naming two Coalitions counts for both.
+    Matching is case-sensitive and bounded to whole words. Case matters
+    because every alias is a proper noun while several are also ordinary
+    Bahasa Malaysia words — "pas ni kita kena kerja" is not about PAS.
+    Word bounds mean "PHone" is not a mention of PH. A sentence naming two
+    Coalitions counts for both.
     """
     patterns = _alias_patterns(aliases)
     found: dict[Coalition, list[str]] = {}
@@ -57,7 +71,12 @@ def score_article(
         return None
 
     sentences = list(dict.fromkeys(s for group in by_coalition.values() for s in group))
-    scores = dict(zip(sentences, classify(sentences)))
+    scored = classify(sentences)
+    if len(scored) != len(sentences):
+        raise ValueError(
+            f"classifier returned {len(scored)} scores for {len(sentences)} sentences"
+        )
+    scores = dict(zip(sentences, scored))
     return {
         coalition: sum(scores[s] for s in group) / len(group)
         for coalition, group in by_coalition.items()
@@ -73,8 +92,7 @@ def _alias_patterns(
 ) -> dict[Coalition, re.Pattern[str]]:
     return {
         coalition: re.compile(
-            r"(?<!\w)(?:" + "|".join(re.escape(a) for a in names) + r")(?!\w)",
-            re.IGNORECASE,
+            r"(?<![\w-])(?:" + "|".join(re.escape(a) for a in names) + r")(?![\w-])"
         )
         for coalition, names in aliases.items()
     }
@@ -127,4 +145,10 @@ class TransformerClassifier:
         ends of the range and a neutral or torn one lands near zero.
         """
         by_label = {s["label"].lower(): s["score"] for s in scores}
+        if "positive" not in by_label and "negative" not in by_label:
+            raise ValueError(
+                f"model returned unusable labels {sorted(by_label)}; expected "
+                "positive/negative/neutral. A checkpoint emitting LABEL_0/1/2 "
+                "would otherwise score every sentence a silent 0.0."
+            )
         return by_label.get("positive", 0.0) - by_label.get("negative", 0.0)

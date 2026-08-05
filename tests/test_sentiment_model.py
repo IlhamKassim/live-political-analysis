@@ -13,7 +13,7 @@ that this model is weaker than an LLM on sarcasm and code-switching.
 
 import pytest
 
-from lpa.config import load_coalition_config
+from lpa.config import coalition_aliases, load_coalition_config
 from lpa.sentiment import TransformerClassifier, score_article
 
 pytestmark = pytest.mark.model
@@ -26,7 +26,7 @@ MALAY_ATTACK = "Pakatan Harapan dikecam kerana skandal rasuah yang teruk dan men
 
 @pytest.fixture(scope="module")
 def aliases():
-    return load_coalition_config()["coalition_aliases"]
+    return coalition_aliases(load_coalition_config())
 
 
 @pytest.fixture(scope="module")

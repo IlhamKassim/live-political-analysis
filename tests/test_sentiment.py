@@ -75,7 +75,30 @@ def test_an_alias_inside_a_longer_word_is_not_a_mention():
     assert attribute_sentences("The PHone rang with PASsion.", ALIASES) == {}
 
 
-def test_matching_ignores_case_and_works_across_bahasa_malaysia_text():
-    text = "Kerajaan pakatan harapan dipuji rakyat."
+def test_a_coalition_is_found_in_bahasa_malaysia_text():
+    text = "Kerajaan Pakatan Harapan dipuji rakyat kerana belanjawan itu."
 
     assert attribute_sentences(text, ALIASES) == {"PH": [text]}
+
+
+def test_an_alias_that_is_also_an_ordinary_malay_word_needs_its_capitals():
+    # "pas" is everyday Bahasa Malaysia; PAS is a party. Case is what tells
+    # them apart, and a false mention moves a Coalition's score for no reason.
+    assert attribute_sentences("pas ni kita kena kerja lebih.", ALIASES) == {}
+    assert attribute_sentences("PAS won the seat.", ALIASES) == {"PN": ["PAS won the seat."]}
+
+
+def test_a_hyphenated_word_built_on_an_alias_is_not_a_mention():
+    # "PAS-ti" ("surely") is not coverage of PAS.
+    assert attribute_sentences("PAS-ti menang pada pilihan raya.", ALIASES) == {}
+
+
+def test_a_title_before_a_name_does_not_end_the_sentence():
+    # Malaysian coverage is dense with "Dr.", "Datuk", "Dato'". Splitting there
+    # would tear a mention away from the words carrying its sentiment.
+    text = "Dr. Mahathir criticised PH sharply. UMNO stayed quiet."
+
+    attributed = attribute_sentences(text, ALIASES)
+
+    assert attributed["PH"] == ["Dr. Mahathir criticised PH sharply"]
+    assert attributed["BN"] == ["UMNO stayed quiet."]
