@@ -16,6 +16,11 @@ Method — uniform national swing, per ADR 0001:
 
 Step 3 re-calls Seats internally but only Coalition-level totals are published;
 Seat-Level Projection is deferred until the model is validated (ADR 0001).
+
+Known limitation: projected shares are not clamped or renormalised, so a large
+Swing can drive a trailing Coalition below zero. That cannot affect which
+Coalition leads a Seat, and so cannot affect a Projection — but it must be
+addressed before any projected margin is published.
 """
 
 from __future__ import annotations
@@ -26,6 +31,7 @@ from typing import Mapping, Sequence
 
 from lpa.domain import (
     Coalition,
+    leading_coalition,
     Projection,
     SeatBaseline,
     StateElectionSignal,
@@ -69,25 +75,25 @@ def _national_swing(
 ) -> dict[Coalition, float]:
     """Blend the Sentiment-implied Swing with any observed State Election Swing.
 
-    Where no State Election Signal is available the Sentiment Swing carries
-    full weight, so an empty signal list leaves the Sentiment Swing untouched.
+    Where no state election is measurable the Sentiment Swing carries full
+    weight. Once one is, the weighting applies to every Coalition alike — a
+    Coalition the state result omits is read as having no observed Swing, not
+    as exempt from the blend, so no Coalition moves further than its rivals
+    for a purely structural reason.
     """
     sentiment_swing = {
         coalition: score * config.sentiment_sensitivity
         for coalition, score in sentiment.items()
     }
-    if not state_election_signals:
+    state_swing = _observed_state_swing(baseline, state_election_signals)
+    if not state_swing:
         return sentiment_swing
 
-    state_swing = _observed_state_swing(baseline, state_election_signals)
     weight = config.state_signal_weight
-    coalitions = set(sentiment_swing) | set(state_swing)
     return {
         coalition: (1 - weight) * sentiment_swing.get(coalition, 0.0)
-        + weight * state_swing[coalition]
-        if coalition in state_swing
-        else sentiment_swing.get(coalition, 0.0)
-        for coalition in coalitions
+        + weight * state_swing.get(coalition, 0.0)
+        for coalition in set(sentiment_swing) | set(state_swing)
     }
 
 
@@ -118,4 +124,4 @@ def _projected_winner(
         coalition: share + swing.get(coalition, 0.0)
         for coalition, share in seat.vote_share.items()
     }
-    return max(projected, key=lambda c: (projected[c], c))
+    return leading_coalition(projected, tie_break=seat.winner)

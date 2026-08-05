@@ -31,7 +31,24 @@ class SeatBaseline:
 
     @property
     def winner(self) -> Coalition:
-        return max(self.vote_share, key=lambda c: (self.vote_share[c], c))
+        """The Coalition that took this Seat at GE15."""
+        return leading_coalition(self.vote_share)
+
+
+def leading_coalition(
+    vote_share: Mapping[Coalition, float],
+    tie_break: Coalition | None = None,
+) -> Coalition:
+    """The Coalition leading a Seat, with exact ties resolved deterministically.
+
+    `tie_break` — normally the Seat's Baseline winner — keeps a Seat that lands
+    on a dead heat, since a tie is no evidence it changed hands. Ties among
+    Coalitions that includes no `tie_break` fall back to name order so the
+    result never depends on dict insertion order.
+    """
+    lead = max(vote_share.values())
+    tied = sorted(c for c, share in vote_share.items() if share == lead)
+    return tie_break if tie_break in tied else tied[0]
 
 
 @dataclass(frozen=True)
@@ -44,7 +61,10 @@ class StateElectionSignal:
 
     state: str
     held_on: date
+    """When the election was held. Recorded for provenance; the Swing Model
+    weighs every signal equally rather than by recency."""
     vote_share: Mapping[Coalition, float]
+    """Result per Coalition. May omit Coalitions the result does not report."""
 
 
 @dataclass(frozen=True)

@@ -6,7 +6,9 @@ from fixtures import (
     PH,
     PN,
     government_config,
+    partially_reported_signal_seats,
     three_coalition_seats,
+    two_state_seats,
     two_coalition_seats,
 )
 from lpa.domain import StateElectionSignal
@@ -29,7 +31,7 @@ def test_neutral_sentiment_and_no_state_signal_reproduces_the_baseline():
 
 def test_sentiment_against_the_government_flips_the_marginal_seats():
     # Sensitivity 0.10 turns a -0.4 / +0.4 Sentiment split into a 4pp swing from
-    # PH to PN, so the seats PH held by 6pp and 2pp fall and the rest hold:
+    # PH to PN, so the seats PH held by 6pp and 4pp fall and the rest hold:
     # P001 56/44 PH, P002 51/49 PH, P003 49/51 PN, P004 48/52 PN, P005 and P006 PN.
     projection = swing_model(
         baseline=two_coalition_seats(),
@@ -171,3 +173,77 @@ def test_a_state_election_signal_with_no_baseline_seats_is_ignored():
     )
 
     assert projection.coalition_seat_totals == {PH: 2, PN: 4}
+
+
+def test_a_coalition_the_state_result_omits_is_still_weighted_the_same_way():
+    # The Selangor result reports only PH and PN, so BN has no observed state
+    # Swing. BN's Sentiment Swing must still be halved by state_signal_weight,
+    # exactly as PH's and PN's are — otherwise BN would move twice as far as
+    # its rivals for a purely structural reason. Selangor's Baseline means are
+    # PH 0.40 / PN 0.25, so the reported 0.32 / 0.32 is -8pp PH, +7pp PN.
+    # Blended half-and-half with a -4pp / +4pp / 0 Sentiment Swing that gives
+    # PH -6pp, BN +2pp, PN +3.5pp, and S002 stays PH at 39 to BN's 38.
+    projection = swing_model(
+        baseline=partially_reported_signal_seats(),
+        sentiment={PH: -0.4, BN: 0.4, PN: 0.0},
+        state_election_signals=[
+            StateElectionSignal(
+                state="Selangor",
+                held_on=date(2026, 3, 1),
+                vote_share={PH: 0.32, PN: 0.32},
+            )
+        ],
+        config=government_config(majority_threshold=3),
+        computed_at=date(2026, 8, 6),
+    )
+
+    assert projection.coalition_seat_totals == {PH: 2, BN: 2, PN: 0}
+
+
+def test_an_exact_tie_is_held_by_the_baseline_winner_not_decided_by_name():
+    # A 2pp Swing lands P004 (52/48 at Baseline) on exactly 50/50. A dead heat
+    # is not evidence the Seat changed hands, so the Baseline holder keeps it —
+    # the alternative, ordering by Coalition name, would hand PN a Seat and with
+    # it the Majority call, on nothing but the alphabet.
+    projection = swing_model(
+        baseline=two_coalition_seats(),
+        sentiment={PH: -0.2, PN: 0.2},
+        state_election_signals=[],
+        config=government_config(),
+        computed_at=date(2026, 8, 6),
+    )
+
+    assert projection.coalition_seat_totals == {PH: 4, PN: 2}
+    assert projection.government_majority is True
+
+
+def test_signals_from_two_state_elections_are_averaged_not_last_one_wins():
+    # Selangor's Baseline averages PH 0.50, Johor's PH 0.40. A Selangor result
+    # of 0.28 is a 22pp Swing away from PH; a Johor result of 0.62 is a 22pp
+    # Swing towards it. Averaged the two cancel and the Baseline stands.
+    selangor = StateElectionSignal(
+        state="Selangor", held_on=date(2026, 3, 1), vote_share={PH: 0.28, PN: 0.72}
+    )
+    johor = StateElectionSignal(
+        state="Johor", held_on=date(2026, 4, 1), vote_share={PH: 0.62, PN: 0.38}
+    )
+
+    both = swing_model(
+        baseline=two_state_seats(),
+        sentiment={},
+        state_election_signals=[selangor, johor],
+        config=government_config(majority_threshold=5),
+        computed_at=date(2026, 8, 6),
+    )
+    # Selangor alone leaves a -22pp Swing, halved to -11pp by the weighting,
+    # which is enough to take every Seat PH holds.
+    selangor_only = swing_model(
+        baseline=two_state_seats(),
+        sentiment={},
+        state_election_signals=[selangor],
+        config=government_config(majority_threshold=5),
+        computed_at=date(2026, 8, 6),
+    )
+
+    assert both.coalition_seat_totals == {PH: 2, PN: 6}
+    assert selangor_only.coalition_seat_totals == {PH: 0, PN: 8}

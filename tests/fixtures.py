@@ -35,6 +35,38 @@ def two_coalition_seats() -> list[SeatBaseline]:
     ]
 
 
+def partially_reported_signal_seats() -> list[SeatBaseline]:
+    """Four Selangor seats whose state-wide means are PH 0.40 / BN 0.35 / PN 0.25.
+
+    S002's 9pp PH-over-BN margin sits inside the gap between a correctly and an
+    incorrectly weighted blend, so it flips only if BN escapes the weighting.
+    """
+    return [
+        seat("S001", "Selangor", PH=0.50, BN=0.30, PN=0.20),
+        seat("S002", "Selangor", PH=0.45, BN=0.36, PN=0.19),
+        seat("S003", "Selangor", PH=0.29, BN=0.40, PN=0.31),
+        seat("S004", "Selangor", PH=0.36, BN=0.38, PN=0.26),
+    ]
+
+
+def two_state_seats() -> list[SeatBaseline]:
+    """Eight seats over two states, for signals from more than one state election.
+
+    Selangor's four average PH 0.50 / PN 0.50 and split PH 2 / PN 2; Johor's four
+    average PH 0.40 / PN 0.60 and all go PN. Baseline totals: PH 2, PN 6.
+    """
+    return [
+        seat("P201", "Selangor", PH=0.60, PN=0.40),
+        seat("P202", "Selangor", PH=0.56, PN=0.44),
+        seat("P203", "Selangor", PH=0.44, PN=0.56),
+        seat("P204", "Selangor", PH=0.40, PN=0.60),
+        seat("P205", "Johor", PH=0.48, PN=0.52),
+        seat("P206", "Johor", PH=0.44, PN=0.56),
+        seat("P207", "Johor", PH=0.40, PN=0.60),
+        seat("P208", "Johor", PH=0.28, PN=0.72),
+    ]
+
+
 def three_coalition_seats() -> list[SeatBaseline]:
     """Ten seats across two states: PH wins five, BN two, PN three.
 
