@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "Outlets the Scraper reads, as data so adding one is a config edit.",
+    "Feed URLs only — the Scraper does not crawl article pages (issue #1,",
+    "story 21: respect robots.txt and rate limits). Issue #1 names FMT, Malay",
+    "Mail, NST, The Star, The Vibes, Sinar Daily and Bernama; only outlets",
+    "whose feed has been verified to work are listed here."
+  ],
+  "outlets": [
+    {
+      "name": "Free Malaysia Today",
+      "feed_url": "https://www.freemalaysiatoday.com/feed/"
+    }
+  ]
+}

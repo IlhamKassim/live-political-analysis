@@ -1,0 +1,57 @@
+<?xml version='1.0' encoding='utf-8'?>
+<rss xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:ns0="http://www.w3.org/2005/Atom" xmlns:ns1="http://purl.org/rss/1.0/modules/syndication/" version="2.0">
+  <channel>
+    <title>Free Malaysia Today</title>
+    <ns0:link href="https://www.freemalaysiatoday.com/feed" rel="self" type="application/rss+xml" />
+    <ns0:link href="https://www.freemalaysiatoday.com/api/websub-callback" rel="hub" type="application/rss+xml" />
+    <ns0:link href="https://pubsubhubbub.appspot.com/" rel="hub" type="application/rss+xml" />
+    <ns0:link href="https://dev-v4.freemalaysiatoday.com/api/websub-callback" rel="hub" type="application/rss+xml" />
+    <link>https://www.freemalaysiatoday.com</link>
+    <description>Explore 24/7 news on politics, economy, and more with Free Malaysia Today. Your source for unbiased Malaysian news in English / Malay since 2009.</description>
+    <lastBuildDate>Wed, 05 Aug 2026 16:18:17 +0000</lastBuildDate>
+    <pubDate>Wed, 05 Aug 2026 16:18:17 +0000</pubDate>
+    <language>en-US</language>
+    <ns1:updatePeriod>hourly</ns1:updatePeriod>
+    <ns1:updateFrequency>1</ns1:updateFrequency>
+    <generator>https://wordpress.org/?v=5.9</generator>
+    <ttl>20</ttl>
+    <image>
+      <url>https://media.freemalaysiatoday.com/wp-content/uploads/2018/09/logo-white-fmt-800x500.jpg</url>
+      <title>Free Malaysia Today</title>
+      <link>https://www.freemalaysiatoday.com</link>
+    </image>
+  <item>
+    <title>Iran, Oman agree route for ships transiting Strait of Hormuz</title>
+    <link>https://www.freemalaysiatoday.com/category/world/2026/08/06/iran-oman-agree-route-for-ships-transiting-strait-of-hormuz</link>
+    <dc:creator>AFP</dc:creator>
+    <pubDate>Wed, 05 Aug 2026 16:13:00 +0000</pubDate>
+    <category>World</category>
+      <category>Top World</category>
+    <guid isPermaLink="false">https://www.freemalaysiatoday.com/category/world/2026/08/06/iran-oman-agree-route-for-ships-transiting-strait-of-hormuz</guid>
+    <description>Iranian foreign ministry spokesman Esmaeil Baqaei said talks with Oman were moving forward, but any agreement would not make the Strait of Hormuz safe for all vessels.</description>
+    <content:encoded>&lt;figure class="aligncenter wp-caption" data-media-id="734271"&gt;&lt;img src="https://media.freemalaysiatoday.com/wp-content/uploads/2026/04/3ad170f7-strait-of-hormuz-1.jpg" alt="hormuz" class="size-large wp-image-734271" width="1600" height="1000" /&gt;&lt;figcaption class="wp-caption-text"&gt;Before the Iran war, the Strait of Hormuz handled around one-fifth of global oil and liquefied natural gas exports. (EP</content:encoded>
+    </item>
+  <item>
+    <title>Israeli military strikes southern Lebanon after evacuation warning to village</title>
+    <link>https://www.freemalaysiatoday.com/category/world/2026/08/05/israeli-military-strikes-southern-lebanon-after-evacuation-warning-to-village</link>
+    <dc:creator>Reuters</dc:creator>
+    <pubDate>Wed, 05 Aug 2026 15:52:45 +0000</pubDate>
+    <category>World</category>
+      <category>Top World</category>
+    <guid isPermaLink="false">https://www.freemalaysiatoday.com/category/world/2026/08/05/israeli-military-strikes-southern-lebanon-after-evacuation-warning-to-village</guid>
+    <description>Israeli strike on the southern town of Tibnin killed one person and wounded 12 others, says the Lebanese health ministry.</description>
+    <content:encoded>&lt;figure class="aligncenter wp-caption" data-media-id="3007423"&gt;&lt;img src="https://media.freemalaysiatoday.com/v3/2026/08/00e54380-c5dc-477a-9ddb-7c914901941e-AFP__20260615__B77874E__v1__HighRes__LebanonIranIsraelUsWar_cropped_1-1-.webp" alt="A man inspects his destroyed house upon his return to his home village of Tibnin in southern Lebanon on June 15, 2026. Iran's foreign ministry on June 15 said </content:encoded>
+    </item>
+  <item>
+    <title>3 wanita Malaysia ditahan bawa dadah di lapangan terbang Jakarta</title>
+    <link>https://www.freemalaysiatoday.com/category/bahasa/tempatan/2026/08/05/3-wanita-malaysia-ditahan-bawa-dadah-di-lapangan-terbang-jakarta</link>
+    <dc:creator>Bernama</dc:creator>
+    <pubDate>Wed, 05 Aug 2026 15:40:40 +0000</pubDate>
+    <category>Tempatan</category>
+      <category>Top BM</category>
+    <guid isPermaLink="false">https://www.freemalaysiatoday.com/category/bahasa/tempatan/2026/08/05/3-wanita-malaysia-ditahan-bawa-dadah-di-lapangan-terbang-jakarta</guid>
+    <description>Dadah disembunyikan dalam bagasi dan kasut selepas mereka tiba menerusi penerbangan dari Kota Kinabalu.</description>
+    <content:encoded>&lt;figure class="aligncenter wp-caption" data-media-id="3006842"&gt;&lt;img src="https://storage.googleapis.com/fmt-media-ecb9/v3/2026/07/ebfd512e-8ab7-4483-a4f7-017c15bfbb6a-Lapangan-Terbang-Soekarno-Hatta-wiki-pic-310726.webp" alt="Lapangan Terbang Soekarno-Hatta" class="size-large wp-image-3006842" width="1600" height="1000" /&gt;&lt;figcaption class="wp-caption-text"&gt;Tiga wanita berkenaan ditahan di Lapanga</content:encoded>
+    </item>
+  </channel>
+</rss>
