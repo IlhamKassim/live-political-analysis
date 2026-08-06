@@ -61,6 +61,35 @@ class LeaderRating:
     note: str | None = None
     """Why the attribution above is what it is, where it took a judgement."""
 
+    @classmethod
+    def from_mapping(cls, values: Mapping[str, object]) -> LeaderRating:
+        """Build a rating from a JSON object, from the data file or Storage.
+
+        Paired with `as_mapping` and kept on the type rather than written out
+        at each end, so a new field is added in one place instead of three —
+        and so a field the transcription carries can never be silently
+        dropped on its way through Storage.
+        """
+        return cls(
+            leader=values["leader"],  # type: ignore[arg-type]
+            satisfied=values["satisfied"],  # type: ignore[arg-type]
+            dissatisfied=values["dissatisfied"],  # type: ignore[arg-type]
+            party=values.get("party"),  # type: ignore[arg-type]
+            coalition=values.get("coalition"),  # type: ignore[arg-type]
+            note=values.get("note"),  # type: ignore[arg-type]
+        )
+
+    def as_mapping(self) -> dict[str, object]:
+        """The rating as a JSON object, for the Storage column."""
+        return {
+            "leader": self.leader,
+            "satisfied": self.satisfied,
+            "dissatisfied": self.dissatisfied,
+            "party": self.party,
+            "coalition": self.coalition,
+            "note": self.note,
+        }
+
     @property
     def net_approval(self) -> float:
         """Approval minus disapproval, as a fraction from -1.0 to +1.0.
@@ -114,11 +143,13 @@ class CalibrationScores:
 
     scores: Mapping[Coalition, float] = field(default_factory=dict)
     leader_counts: Mapping[Coalition, int] = field(default_factory=dict)
-    unattributed: Sequence[str] = field(default_factory=tuple)
+    unattributed: Sequence[LeaderRating] = field(default_factory=tuple)
     """Leaders the report rated who belonged to no Coalition at fieldwork.
 
-    Named rather than counted, because the reason a leader is here is always
-    particular and the dashboard says it out loud.
+    Carried whole rather than as names, because the reason a leader is here is
+    always particular: the dashboard prints their published percentages and
+    the note explaining the attribution, and a list of names would send it
+    back to the report to find them again.
     """
 
 
@@ -131,11 +162,11 @@ def coalition_net_approval(ratings: Iterable[LeaderRating]) -> CalibrationScores
     """
     totals: dict[Coalition, float] = {}
     counts: dict[Coalition, int] = {}
-    unattributed: list[str] = []
+    unattributed: list[LeaderRating] = []
 
     for rating in ratings:
         if rating.coalition is None:
-            unattributed.append(rating.leader)
+            unattributed.append(rating)
             continue
         totals[rating.coalition] = (
             totals.get(rating.coalition, 0.0) + rating.net_approval
@@ -157,11 +188,16 @@ def main() -> None:
     Ingesting the same report again corrects it rather than duplicating it,
     the same rule the daily snapshot follows.
     """
-    from lpa.config import load_coalition_config, load_poll_calibrations
+    # Imported here rather than at module level, and not only for the reason
+    # the other `main`s do it: `lpa.config` imports the record types above, so
+    # a top-level import of it here would be a cycle. The types have to sit on
+    # this side of that edge — they are the domain of Poll Calibration, and
+    # `config` is the module that reads the file into them.
+    from lpa.config import load_coalition_config, load_transcribed_polls
     from lpa.storage import connect, save_poll_calibrations
 
     config = load_coalition_config()
-    reports = load_poll_calibrations(known_coalitions=set(config["coalition_aliases"]))
+    reports = load_transcribed_polls(known_coalitions=set(config["coalition_aliases"]))
     if not reports:
         raise SystemExit(
             "No reports in data/poll_calibration.json. See "
@@ -181,7 +217,8 @@ def main() -> None:
             leaders = derived.leader_counts[coalition]
             print(f"  {coalition:5s} {score:+.3f}  ({leaders} leader(s) rated)")
         if derived.unattributed:
-            print(f"  unattributed: {', '.join(derived.unattributed)}")
+            names = ", ".join(rating.leader for rating in derived.unattributed)
+            print(f"  unattributed: {names}")
 
 
 if __name__ == "__main__":

@@ -135,7 +135,7 @@ against fixtures with no network, so CI stays fast and offline.
 | `lpa/aggregate.py` | The day's Articles → one Sentiment per Coalition |
 | `lpa/poll_calibration.py` | Published survey reports → net approval per Coalition |
 | `lpa/pipeline.py` | Wires all of the above and stores a snapshot |
-| `lpa/storage.py` | Baseline table plus daily Projection/Sentiment snapshots |
+| `lpa/storage.py` | Baseline table, daily Projection/Sentiment snapshots, Poll Calibration points |
 | `lpa/dashboard.py` | Streamlit page rendering the latest stored Projection |
 | `lpa/config.py` | Loads everything under `data/` |
 

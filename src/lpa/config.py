@@ -65,11 +65,15 @@ def load_outlets(path: Path | None = None) -> list[Outlet]:
 DEFAULT_POLL_CALIBRATION_PATH = data_file("poll_calibration.json")
 
 
-def load_poll_calibrations(
+def load_transcribed_polls(
     path: Path | None = None,
     known_coalitions: Collection[Coalition] | None = None,
 ) -> list[PollCalibration]:
     """Transcribed Merdeka Center reports, from `data/poll_calibration.json`.
+
+    Named for the transcription rather than for the record type, so it does
+    not read the same as `storage.load_poll_calibrations` — the two return the
+    same records from opposite ends of ingestion, and `main` calls both.
 
     `known_coalitions` — normally the Coalitions `coalitions.json` names — is
     checked rather than used: a report attributes a leader to a Coalition, and
@@ -90,14 +94,7 @@ def load_poll_calibrations(
             sample_size=entry["sample_size"],
             margin_of_error=entry.get("margin_of_error"),
             leader_ratings=tuple(
-                LeaderRating(
-                    leader=rating["leader"],
-                    satisfied=rating["satisfied"],
-                    dissatisfied=rating["dissatisfied"],
-                    party=rating.get("party"),
-                    coalition=rating.get("coalition"),
-                    note=rating.get("note"),
-                )
+                LeaderRating.from_mapping(rating)
                 for rating in entry["leader_ratings"]
             ),
         )

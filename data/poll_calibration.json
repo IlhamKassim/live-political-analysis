@@ -18,6 +18,11 @@
     "as unattributed rather than guessed at — absence of evidence, not evidence",
     "of neutrality, the same rule the Sentiment aggregate follows.",
     "",
+    "`title` is the report's own cover title, not the name Merdeka Center's",
+    "site files it under — the same March 2026 report is listed there as",
+    "'Survey Report March-April 2026 Poll'. The cover title says what the",
+    "report is about; report_url still points at that listing page.",
+    "",
     "Reports are keyed on fieldwork_end, so re-ingesting one corrects it rather",
     "than storing a second answer for the same survey."
   ],

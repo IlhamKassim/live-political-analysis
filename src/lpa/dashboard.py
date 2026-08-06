@@ -451,6 +451,12 @@ def render_calibration(
         )
         return
 
+    # Storage orders by fieldwork end, so this is the most recently *fielded*
+    # report, not the most recently published one. Deliberate: fieldwork end
+    # is the date a poll is plotted at and the date the nearest Sentiment day
+    # is measured from, so "latest" has to mean the same thing here as it does
+    # on the chart. The two orderings can differ — reports are published two
+    # or three months after fieldwork closes, and not always in order.
     report = calibrations[-1]
     error = (
         f", margin of error ±{report.margin_of_error}%"
@@ -517,9 +523,7 @@ def render_calibration(
         },
     )
 
-    unattributed = [
-        rating for rating in report.leader_ratings if rating.coalition is None
-    ]
+    unattributed = coalition_net_approval(report.leader_ratings).unattributed
     if unattributed:
         st.markdown(
             "**Rated but not attributed to a Coalition.** A leader counts "

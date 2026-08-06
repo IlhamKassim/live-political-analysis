@@ -252,15 +252,7 @@ def save_poll_calibrations(
                     "sample_size": report.sample_size,
                     "margin_of_error": report.margin_of_error,
                     "leader_ratings": [
-                        {
-                            "leader": rating.leader,
-                            "satisfied": rating.satisfied,
-                            "dissatisfied": rating.dissatisfied,
-                            "party": rating.party,
-                            "coalition": rating.coalition,
-                            "note": rating.note,
-                        }
-                        for rating in report.leader_ratings
+                        rating.as_mapping() for rating in report.leader_ratings
                     ],
                 },
             )
@@ -288,14 +280,7 @@ def load_poll_calibrations(engine: Engine) -> Sequence[PollCalibration]:
                 sample_size=row["sample_size"],
                 margin_of_error=row["margin_of_error"],
                 leader_ratings=tuple(
-                    LeaderRating(
-                        leader=rating["leader"],
-                        satisfied=rating["satisfied"],
-                        dissatisfied=rating["dissatisfied"],
-                        party=rating["party"],
-                        coalition=rating["coalition"],
-                        note=rating["note"],
-                    )
+                    LeaderRating.from_mapping(rating)
                     for rating in row["leader_ratings"]
                 ),
             )

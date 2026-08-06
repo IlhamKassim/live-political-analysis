@@ -11,7 +11,7 @@ from datetime import date
 
 from pytest import approx, raises
 
-from lpa.config import load_coalition_config, load_poll_calibrations
+from lpa.config import load_coalition_config, load_transcribed_polls
 from lpa.poll_calibration import LeaderRating, coalition_net_approval
 
 
@@ -52,19 +52,16 @@ def test_a_coalitions_leaders_are_averaged_unweighted():
     assert scores.leader_counts["PN"] == 3
 
 
-def test_a_leader_with_no_coalition_is_named_rather_than_scored():
+def test_a_leader_with_no_coalition_is_reported_rather_than_scored():
     # Khairy Jamaluddin belonged to no Coalition during the March 2026
-    # fieldwork. His 50% must not reach BN, and must not vanish either.
-    scores = coalition_net_approval(
-        [
-            rating("Ahmad Zahid Hamidi", 24, 61, "BN"),
-            rating("Khairy Jamaluddin", 50, 31),
-        ]
-    )
+    # fieldwork. His 50% must not reach BN, and must not vanish either — the
+    # published pair comes through whole, because the dashboard prints it.
+    khairy = rating("Khairy Jamaluddin", 50, 31)
+    scores = coalition_net_approval([rating("Ahmad Zahid Hamidi", 24, 61, "BN"), khairy])
 
     assert scores.scores == {"BN": approx(-0.37)}
     assert scores.leader_counts == {"BN": 1}
-    assert scores.unattributed == ("Khairy Jamaluddin",)
+    assert scores.unattributed == (khairy,)
 
 
 def test_a_coalition_the_report_did_not_rate_is_absent_not_zero():
@@ -85,7 +82,7 @@ def test_a_report_that_rated_nobody_yields_no_scores():
 def test_the_shipped_transcription_is_the_real_march_2026_report():
     # Verified against the published PDF (merdeka.org/91060-2/): 1,209
     # respondents, fielded 12 March to 9 April 2026, margin of error 2.82%.
-    reports = load_poll_calibrations()
+    reports = load_transcribed_polls()
 
     report = next(r for r in reports if r.fieldwork_end == date(2026, 4, 9))
     assert report.publisher == "Merdeka Center"
@@ -103,14 +100,14 @@ def test_every_transcribed_coalition_is_one_the_config_names(tmp_path):
     # ones, looking exactly like a Coalition nobody had heard of doing badly.
     known = set(load_coalition_config()["coalition_aliases"])
 
-    assert load_poll_calibrations(known_coalitions=known)
+    assert load_transcribed_polls(known_coalitions=known)
 
     typo = tmp_path / "poll_calibration.json"
     typo.write_text(
         _report_json(coalition="PHH", fieldwork_start="2026-03-12"),
     )
     with raises(ValueError, match="PHH"):
-        load_poll_calibrations(typo, known_coalitions=known)
+        load_transcribed_polls(typo, known_coalitions=known)
 
 
 def test_a_report_cannot_close_its_fieldwork_before_it_opens(tmp_path):
@@ -120,7 +117,7 @@ def test_a_report_cannot_close_its_fieldwork_before_it_opens(tmp_path):
     backwards.write_text(_report_json(coalition="PH", fieldwork_start="2026-05-01"))
 
     with raises(ValueError, match="before it starts"):
-        load_poll_calibrations(backwards)
+        load_transcribed_polls(backwards)
 
 
 def _report_json(*, coalition: str, fieldwork_start: str) -> str:
@@ -147,4 +144,4 @@ def test_a_report_without_a_margin_of_error_still_loads(tmp_path):
     path = tmp_path / "poll_calibration.json"
     path.write_text(_report_json(coalition="PH", fieldwork_start="2026-03-12"))
 
-    assert load_poll_calibrations(path)[0].margin_of_error is None
+    assert load_transcribed_polls(path)[0].margin_of_error is None
