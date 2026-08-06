@@ -22,3 +22,12 @@ def test_component_parties_that_stood_alone_roll_up_to_their_coalition():
 
     assert mapping["PARTI TINDAKAN DEMOKRATIK (DAP)"] == "PH"
     assert mapping["PARTI ISLAM SE MALAYSIA (PAS)"] == "PN"
+
+
+def test_every_shipped_data_file_is_findable():
+    # The wheel carries these beside the package while a checkout keeps them at
+    # the repo root; resolving only the checkout layout broke installs.
+    from lpa.config import data_file
+
+    for name in ("coalitions.json", "outlets.json", "state_elections.json"):
+        assert data_file(name).exists(), name

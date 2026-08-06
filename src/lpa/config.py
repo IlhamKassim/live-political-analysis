@@ -13,7 +13,20 @@ from typing import Any, Mapping
 
 from lpa.domain import Coalition, Outlet, StateElectionSignal, SwingModelConfig
 
-DEFAULT_CONFIG_PATH = Path(__file__).resolve().parents[2] / "data" / "coalitions.json"
+def data_file(name: str) -> Path:
+    """Locate a file from `data/`, installed or in a checkout.
+
+    An installed wheel carries these alongside the package; a checkout keeps
+    them at the repo root, where they are easier to find and edit. The
+    packaged copy wins so an install never silently reads a stale checkout.
+    """
+    packaged = Path(__file__).resolve().parent / "data" / name
+    if packaged.exists():
+        return packaged
+    return Path(__file__).resolve().parents[2] / "data" / name
+
+
+DEFAULT_CONFIG_PATH = data_file("coalitions.json")
 
 
 def load_coalition_config(path: Path | None = None) -> Mapping[str, Any]:
@@ -39,7 +52,7 @@ def swing_model_config(config: Mapping[str, Any], **overrides: Any) -> SwingMode
     return SwingModelConfig(**settings)
 
 
-DEFAULT_OUTLETS_PATH = DEFAULT_CONFIG_PATH.with_name("outlets.json")
+DEFAULT_OUTLETS_PATH = data_file("outlets.json")
 
 
 def load_outlets(path: Path | None = None) -> list[Outlet]:
@@ -48,7 +61,7 @@ def load_outlets(path: Path | None = None) -> list[Outlet]:
     return [Outlet(name=o["name"], feed_url=o["feed_url"]) for o in config["outlets"]]
 
 
-DEFAULT_STATE_ELECTIONS_PATH = DEFAULT_CONFIG_PATH.with_name("state_elections.json")
+DEFAULT_STATE_ELECTIONS_PATH = data_file("state_elections.json")
 
 
 def load_state_election_signals(path: Path | None = None) -> list[StateElectionSignal]:

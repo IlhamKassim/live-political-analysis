@@ -87,11 +87,15 @@ class SwingModelConfig:
     government_coalitions: frozenset[Coalition]
     majority_threshold: int = 112
     sentiment_sensitivity: float = 0.10
-    """Vote-share swing, in fractions, produced by a Sentiment score of 1.0."""
-    state_signal_weight: float = 0.5
-    """Weight given to the State Election Signal where one exists, 0.0-1.0.
+    """Vote-share swing, in fractions, produced by a Sentiment score of 1.0.
 
-    The remaining weight goes to the News/Poll Sentiment swing.
+    Provisional and uncalibrated — see ADR 0003.
+    """
+    state_signal_weight: float = 0.5
+    """Weight given to the State Election Signal within the state that voted,
+    0.0-1.0. The remaining weight goes to the News/Poll Sentiment swing.
+
+    Provisional and uncalibrated — see ADR 0003.
     """
 
 
