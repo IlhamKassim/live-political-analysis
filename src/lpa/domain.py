@@ -108,6 +108,23 @@ class Projection:
     computed_at: date
 
 
+def government_seat_total(
+    coalition_seat_totals: Mapping[Coalition, int], config: SwingModelConfig
+) -> int:
+    """Seats held between them by the Coalitions that form the government.
+
+    Lives here rather than in either caller because both the Swing Model
+    deciding the Majority and the Dashboard reporting it must count the same
+    Seats — and which Coalitions those are is config that can change under
+    them (issue #1, story 20).
+    """
+    return sum(
+        seats
+        for coalition, seats in coalition_seat_totals.items()
+        if coalition in config.government_coalitions
+    )
+
+
 @dataclass(frozen=True)
 class Article:
     """One piece of coverage, as the Scraper produces it."""

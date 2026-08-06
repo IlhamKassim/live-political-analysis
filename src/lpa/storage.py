@@ -14,6 +14,8 @@ therefore leaves 222 rows, not 444.
 from __future__ import annotations
 
 import os
+from dataclasses import dataclass
+from datetime import date
 from typing import Iterable, Sequence
 
 from sqlalchemy import (
@@ -70,6 +72,19 @@ sentiment_snapshot = Table(
     Column("total_articles", Integer, nullable=False),
     Column("sources", JSON, nullable=False),
 )
+
+
+@dataclass(frozen=True)
+class SentimentSnapshot:
+    """One stored day of Sentiment: the aggregate plus the day it belongs to.
+
+    `AggregatedSentiment` is the pure result of aggregating a day's Articles
+    and carries no date of its own; a Projection does. The date is added back
+    on read because a trend line is exactly the pairing of the two.
+    """
+
+    computed_at: date
+    sentiment: AggregatedSentiment
 
 
 def connect(database_url: str | None = None) -> Engine:
@@ -179,18 +194,21 @@ def load_projections(engine: Engine) -> Sequence[Projection]:
         ]
 
 
-def load_sentiment_snapshots(engine: Engine) -> Sequence[AggregatedSentiment]:
+def load_sentiment_snapshots(engine: Engine) -> Sequence[SentimentSnapshot]:
     """Every stored Sentiment snapshot, oldest first."""
     with engine.connect() as connection:
         rows = connection.execute(
             select(sentiment_snapshot).order_by(sentiment_snapshot.c.computed_at)
         ).mappings()
         return [
-            AggregatedSentiment(
-                scores=row["scores"],
-                article_counts=row["article_counts"],
-                total_articles=row["total_articles"],
-                sources=row["sources"],
+            SentimentSnapshot(
+                computed_at=row["computed_at"],
+                sentiment=AggregatedSentiment(
+                    scores=row["scores"],
+                    article_counts=row["article_counts"],
+                    total_articles=row["total_articles"],
+                    sources=row["sources"],
+                ),
             )
             for row in rows
         ]

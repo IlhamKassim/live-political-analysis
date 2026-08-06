@@ -35,6 +35,7 @@ from typing import Mapping, Sequence
 
 from lpa.domain import (
     Coalition,
+    government_seat_total,
     leading_coalition,
     Projection,
     SeatBaseline,
@@ -63,12 +64,11 @@ def swing_model(
     totals.update(
         _projected_winner(seat, swing_by_state[seat.state]) for seat in baseline
     )
-    government_seats = sum(
-        count for c, count in totals.items() if c in config.government_coalitions
-    )
     return Projection(
         coalition_seat_totals=dict(totals),
-        government_majority=government_seats >= config.majority_threshold,
+        government_majority=(
+            government_seat_total(totals, config) >= config.majority_threshold
+        ),
         computed_at=computed_at,
     )
 

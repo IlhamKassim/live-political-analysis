@@ -145,7 +145,7 @@ def test_re_running_a_day_corrects_it_rather_than_recording_it_twice():
 
     stored = load_sentiment_snapshots(engine)
     assert len(stored) == 1
-    assert stored[0].scores == {PH: 0.4}  # the second run's answer, not the first
+    assert stored[0].sentiment.scores == {PH: 0.4}  # the second run's, not the first
 
 
 def test_snapshots_from_different_days_both_survive_for_the_trend_line():
@@ -186,9 +186,10 @@ def test_the_sentiment_snapshot_records_what_it_was_built_from():
     save_snapshot(engine, result.projection, result.sentiment)
     stored = load_sentiment_snapshots(engine)[0]
 
-    assert stored.total_articles == 2
-    assert stored.article_counts == {PH: 1}
-    assert stored.sources == ["Test Outlet"]
+    assert stored.computed_at == date(2026, 8, 6)
+    assert stored.sentiment.total_articles == 2
+    assert stored.sentiment.article_counts == {PH: 1}
+    assert stored.sentiment.sources == ["Test Outlet"]
 
 
 def test_the_run_is_dated_by_the_malaysian_day_not_utc():
