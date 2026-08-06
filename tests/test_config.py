@@ -29,5 +29,10 @@ def test_every_shipped_data_file_is_findable():
     # the repo root; resolving only the checkout layout broke installs.
     from lpa.config import data_file
 
-    for name in ("coalitions.json", "outlets.json", "state_elections.json"):
+    for name in (
+        "coalitions.json",
+        "outlets.json",
+        "state_elections.json",
+        "poll_calibration.json",
+    ):
         assert data_file(name).exists(), name

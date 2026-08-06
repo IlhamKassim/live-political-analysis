@@ -9,9 +9,10 @@ from __future__ import annotations
 import json
 from datetime import date
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Collection, Mapping
 
 from lpa.domain import Coalition, Outlet, StateElectionSignal, SwingModelConfig
+from lpa.poll_calibration import LeaderRating, PollCalibration
 
 def data_file(name: str) -> Path:
     """Locate a file from `data/`, installed or in a checkout.
@@ -59,6 +60,69 @@ def load_outlets(path: Path | None = None) -> list[Outlet]:
     """The outlets the Scraper reads, from `data/outlets.json`."""
     config = json.loads((path or DEFAULT_OUTLETS_PATH).read_text())
     return [Outlet(name=o["name"], feed_url=o["feed_url"]) for o in config["outlets"]]
+
+
+DEFAULT_POLL_CALIBRATION_PATH = data_file("poll_calibration.json")
+
+
+def load_poll_calibrations(
+    path: Path | None = None,
+    known_coalitions: Collection[Coalition] | None = None,
+) -> list[PollCalibration]:
+    """Transcribed Merdeka Center reports, from `data/poll_calibration.json`.
+
+    `known_coalitions` — normally the Coalitions `coalitions.json` names — is
+    checked rather than used: a report attributes a leader to a Coalition, and
+    a typo there would otherwise invent a Coalition that scores alongside the
+    real ones on the dashboard and is never noticed. Nothing about a stored
+    report is derived from current configuration; a leader's Coalition is a
+    historical fact about the fieldwork window (ADR 0004).
+    """
+    config = json.loads((path or DEFAULT_POLL_CALIBRATION_PATH).read_text())
+    reports = [
+        PollCalibration(
+            publisher=entry["publisher"],
+            title=entry["title"],
+            report_url=entry["report_url"],
+            published_on=date.fromisoformat(entry["published_on"]),
+            fieldwork_start=date.fromisoformat(entry["fieldwork_start"]),
+            fieldwork_end=date.fromisoformat(entry["fieldwork_end"]),
+            sample_size=entry["sample_size"],
+            margin_of_error=entry.get("margin_of_error"),
+            leader_ratings=tuple(
+                LeaderRating(
+                    leader=rating["leader"],
+                    satisfied=rating["satisfied"],
+                    dissatisfied=rating["dissatisfied"],
+                    party=rating.get("party"),
+                    coalition=rating.get("coalition"),
+                    note=rating.get("note"),
+                )
+                for rating in entry["leader_ratings"]
+            ),
+        )
+        for entry in config["reports"]
+    ]
+
+    if known_coalitions is not None:
+        for report in reports:
+            for rating in report.leader_ratings:
+                if rating.coalition is not None and (
+                    rating.coalition not in known_coalitions
+                ):
+                    raise ValueError(
+                        f"{report.title!r} attributes {rating.leader!r} to "
+                        f"Coalition {rating.coalition!r}, which is not one of "
+                        f"{sorted(known_coalitions)}"
+                    )
+    for report in reports:
+        if report.fieldwork_end < report.fieldwork_start:
+            raise ValueError(
+                f"{report.title!r} ends its fieldwork on "
+                f"{report.fieldwork_end}, before it starts on "
+                f"{report.fieldwork_start}"
+            )
+    return reports
 
 
 DEFAULT_STATE_ELECTIONS_PATH = data_file("state_elections.json")

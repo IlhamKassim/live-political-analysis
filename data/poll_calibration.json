@@ -1,0 +1,89 @@
+{
+  "_comment": [
+    "Poll Calibration: Merdeka Center's published survey results, transcribed by",
+    "hand (issue #10). Merdeka Center publishes PDFs and has no API, so a new",
+    "report is added here by a person reading it — see docs/poll-calibration.md",
+    "for the process, and ADR 0004 for why leader approval is the signal used.",
+    "",
+    "Every number under leader_ratings is copied verbatim from the report and is",
+    "never adjusted, rebased or interpolated. `satisfied` and `dissatisfied` are",
+    "the published percentages; they need not sum to 100 because the report also",
+    "reports neutral and unsure/refused answers.",
+    "",
+    "`coalition` is the Coalition the leader's party belonged to DURING the",
+    "fieldwork window, and is recorded here rather than derived from",
+    "coalitions.json because it is a historical fact about the poll: a later",
+    "realignment must not retroactively re-attribute a survey already taken.",
+    "A leader with no Coalition at fieldwork time carries null and is reported",
+    "as unattributed rather than guessed at — absence of evidence, not evidence",
+    "of neutrality, the same rule the Sentiment aggregate follows.",
+    "",
+    "Reports are keyed on fieldwork_end, so re-ingesting one corrects it rather",
+    "than storing a second answer for the same survey."
+  ],
+  "reports": [
+    {
+      "publisher": "Merdeka Center",
+      "title": "Perceptions Towards Economy, Leadership & Current Issues (March 2026)",
+      "report_url": "https://merdeka.org/91060-2/",
+      "published_on": "2026-06-25",
+      "fieldwork_start": "2026-03-12",
+      "fieldwork_end": "2026-04-09",
+      "sample_size": 1209,
+      "margin_of_error": 2.82,
+      "leader_ratings": [
+        {
+          "leader": "Anwar Ibrahim",
+          "party": "PKR",
+          "coalition": "PH",
+          "satisfied": 52,
+          "dissatisfied": 44
+        },
+        {
+          "leader": "Khairy Jamaluddin",
+          "party": null,
+          "coalition": null,
+          "satisfied": 50,
+          "dissatisfied": 31,
+          "note": "The report names him only by a former post, 'ex-Chief of UMNO Youth'. He was expelled from UMNO in January 2023 and readmitted on 17 April 2026, after this fieldwork closed on 9 April, so he belonged to no Coalition while the survey ran."
+        },
+        {
+          "leader": "Muhyiddin Yassin",
+          "party": "Parti Pribumi Bersatu Malaysia",
+          "coalition": "PN",
+          "satisfied": 36,
+          "dissatisfied": 55
+        },
+        {
+          "leader": "Rafizi Ramli",
+          "party": "PKR",
+          "coalition": "PH",
+          "satisfied": 32,
+          "dissatisfied": 44,
+          "note": "The report names him only as 'former Minister of Economy'. He was still a PKR member throughout the fieldwork window and left the party on 17 May 2026, five weeks after it closed, so this rating is PH's."
+        },
+        {
+          "leader": "Ahmad Samsuri Mokhtar",
+          "party": "PAS",
+          "coalition": "PN",
+          "satisfied": 28,
+          "dissatisfied": 29
+        },
+        {
+          "leader": "Abdul Hadi Awang",
+          "party": "PAS",
+          "coalition": "PN",
+          "satisfied": 25,
+          "dissatisfied": 55
+        },
+        {
+          "leader": "Ahmad Zahid Hamidi",
+          "party": "UMNO",
+          "coalition": "BN",
+          "satisfied": 24,
+          "dissatisfied": 61
+        }
+      ]
+    }
+  ]
+}

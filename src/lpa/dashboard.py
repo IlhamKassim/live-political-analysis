@@ -28,6 +28,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Mapping, Sequence
 
+import altair as alt
 import pandas as pd
 import streamlit as st
 
@@ -40,9 +41,11 @@ from lpa.domain import (
     SwingModelConfig,
 )
 from lpa.pipeline import today_in_malaysia
+from lpa.poll_calibration import PollCalibration, coalition_net_approval
 from lpa.storage import (
     SentimentSnapshot,
     connect,
+    load_poll_calibrations,
     load_projections,
     load_seat_baselines,
     load_sentiment_snapshots,
@@ -72,6 +75,7 @@ class DashboardData:
     baseline: Sequence[SeatBaseline]
     projections: Sequence[Projection]
     snapshots: Sequence[SentimentSnapshot]
+    calibrations: Sequence[PollCalibration]
 
 
 @st.cache_resource
@@ -90,6 +94,7 @@ def load_dashboard_data() -> DashboardData:
         baseline=load_seat_baselines(engine),
         projections=load_projections(engine),
         snapshots=load_sentiment_snapshots(engine),
+        calibrations=load_poll_calibrations(engine),
     )
 
 
@@ -147,6 +152,116 @@ def sentiment_trend(snapshots: Sequence[SentimentSnapshot]) -> pd.DataFrame:
             for snapshot in snapshots
             for coalition, score in sorted(snapshot.sentiment.scores.items())
         ]
+    )
+
+
+def calibration_points(
+    calibrations: Sequence[PollCalibration],
+) -> pd.DataFrame:
+    """Stored Poll Calibration as one row per report per Coalition.
+
+    Long form and named `Score` to match `sentiment_trend`'s shape, so the two
+    can be layered on one chart against one axis. A Coalition the report rated
+    no leader of is simply absent, exactly as a Coalition no Article named is
+    absent from the trend.
+    """
+    return pd.DataFrame(
+        [
+            {
+                "Day": report.fieldwork_end,
+                "Coalition": coalition,
+                "Score": score,
+                "Publisher": report.publisher,
+                "Report": report.title,
+                "Leaders rated": derived.leader_counts[coalition],
+                "Sample": report.sample_size,
+            }
+            for report in calibrations
+            for derived in [coalition_net_approval(report.leader_ratings)]
+            for coalition, score in sorted(derived.scores.items())
+        ],
+        columns=[
+            "Day",
+            "Coalition",
+            "Score",
+            "Publisher",
+            "Report",
+            "Leaders rated",
+            "Sample",
+        ],
+    )
+
+
+def calibrations_within(
+    calibrations: Sequence[PollCalibration], snapshots: Sequence[SentimentSnapshot]
+) -> list[PollCalibration]:
+    """The reports whose fieldwork ended inside the span the trend line covers.
+
+    A poll from months before the stored history would stretch the chart's x
+    axis back to meet it and squash the Sentiment line into the right-hand
+    edge — the trend, which is the thing the chart is for, would become
+    unreadable in order to show one point. Those reports are reported in the
+    comparison below instead, where their distance from the history can be
+    stated rather than drawn.
+    """
+    if not snapshots:
+        return []
+    first, last = snapshots[0].computed_at, snapshots[-1].computed_at
+    return [
+        report for report in calibrations if first <= report.fieldwork_end <= last
+    ]
+
+
+def nearest_snapshot(
+    snapshots: Sequence[SentimentSnapshot], day: date
+) -> SentimentSnapshot | None:
+    """The stored Sentiment day closest to `day`, or None if there is none.
+
+    Closest rather than same-day: Poll Calibration is periodic and its
+    fieldwork usually closed before the daily pipeline was ever running, so
+    insisting on an exact date would mean never comparing the two at all. How
+    far away it is gets said wherever the comparison is shown.
+    """
+    if not snapshots:
+        return None
+    return min(snapshots, key=lambda s: abs((s.computed_at - day).days))
+
+
+def calibration_comparison(
+    report: PollCalibration, snapshot: SentimentSnapshot | None
+) -> pd.DataFrame:
+    """Poll net approval against News Sentiment, per Coalition.
+
+    Coalitions the poll did not rate are left out rather than shown blank: the
+    row would say nothing about the poll, which is what this table is for.
+    """
+    derived = coalition_net_approval(report.leader_ratings)
+    sentiment = snapshot.sentiment.scores if snapshot else {}
+    rows = []
+    for coalition, score in sorted(derived.scores.items(), key=lambda kv: -kv[1]):
+        news = sentiment.get(coalition)
+        rows.append(
+            {
+                "Coalition": coalition,
+                "Poll Calibration": score,
+                "Leaders rated": derived.leader_counts[coalition],
+                "News Sentiment": news,
+                # None rather than a difference against a missing number: a
+                # Coalition no Article named that day has no Sentiment, and
+                # subtracting from nothing would print a value that looks
+                # measured.
+                "Difference": None if news is None else score - news,
+            }
+        )
+    return pd.DataFrame(
+        rows,
+        columns=[
+            "Coalition",
+            "Poll Calibration",
+            "Leaders rated",
+            "News Sentiment",
+            "Difference",
+        ],
     )
 
 
@@ -243,7 +358,10 @@ def render_breakdown(
     )
 
 
-def render_trend(snapshots: Sequence[SentimentSnapshot]) -> None:
+def render_trend(
+    snapshots: Sequence[SentimentSnapshot],
+    calibrations: Sequence[PollCalibration],
+) -> None:
     st.subheader("Sentiment over time")
     trend = sentiment_trend(snapshots)
 
@@ -257,12 +375,166 @@ def render_trend(snapshots: Sequence[SentimentSnapshot]) -> None:
         st.bar_chart(trend, x="Coalition", y="Sentiment", horizontal=True)
         return
 
-    st.line_chart(trend, x="Day", y="Sentiment", color="Coalition")
-    st.caption(
+    # Drawn with Altair rather than `st.line_chart` so the Poll Calibration
+    # points can sit on the same axes as the line. Both layers carry a column
+    # named `Score`, which is what holds the two to one shared y scale.
+    line_data = trend.rename(columns={"Sentiment": "Score"})
+    plotted = calibrations_within(calibrations, snapshots)
+    points = calibration_points(plotted)
+
+    axes = (
+        alt.X("Day:T", title=None),
+        alt.Color("Coalition:N", title="Coalition"),
+    )
+    chart = alt.Chart(line_data).mark_line().encode(
+        *axes, alt.Y("Score:Q", title="Sentiment (−1 to +1)")
+    )
+    if not points.empty:
+        chart += (
+            alt.Chart(points)
+            .mark_point(shape="diamond", size=160, filled=True, opacity=1.0)
+            .encode(
+                *axes,
+                alt.Y("Score:Q"),
+                tooltip=[
+                    "Publisher",
+                    "Report",
+                    "Coalition",
+                    alt.Tooltip("Score:Q", title="Net approval", format="+.2f"),
+                    "Leaders rated",
+                    "Sample",
+                ],
+            )
+        )
+    st.altair_chart(chart, use_container_width=True)
+
+    caption = (
         f"{len(snapshots)} days of history. Sentiment runs from −1 (wholly "
         "negative coverage) to +1 (wholly positive), averaged over the "
         "Articles that named each Coalition that day."
     )
+    if not points.empty:
+        caption += (
+            " Diamonds are Poll Calibration — a published survey's net "
+            "approval, plotted at the last day of its fieldwork. It measures "
+            "something different from news tone; see below."
+        )
+    elif calibrations:
+        caption += (
+            " No Poll Calibration point falls inside this window, so none is "
+            "drawn; the latest report is compared below instead."
+        )
+    st.caption(caption)
+
+
+def render_calibration(
+    calibrations: Sequence[PollCalibration],
+    snapshots: Sequence[SentimentSnapshot],
+) -> None:
+    """The latest published survey, set against the News Sentiment near it.
+
+    Comparison, never correction. Poll Calibration exists to sanity-check News
+    Sentiment (CONTEXT.md), and the two are different measurements: one is the
+    tone of coverage naming a Coalition, the other is how many people told a
+    pollster they approve of that Coalition's leaders. They share a −1..+1
+    scale and nothing else, so the page shows both numbers and their gap and
+    stops there — it does not blend them, and a wide gap is a prompt to look,
+    not a verdict on either.
+    """
+    st.subheader("Poll Calibration")
+
+    if not calibrations:
+        st.info(
+            "No Poll Calibration in Storage. Transcribe a published Merdeka "
+            "Center report into `data/poll_calibration.json` and run "
+            "`python -m lpa.poll_calibration` — see `docs/poll-calibration.md`."
+        )
+        return
+
+    report = calibrations[-1]
+    error = (
+        f", margin of error ±{report.margin_of_error}%"
+        if report.margin_of_error is not None
+        else ""
+    )
+    st.caption(
+        f"[{report.title}]({report.report_url}) — {report.publisher}. "
+        f"Fielded {report.fieldwork_start:%-d %B} to "
+        f"{report.fieldwork_end:%-d %B %Y}, {report.sample_size:,} "
+        f"respondents{error}. Published "
+        f"{report.published_on:%-d %B %Y}."
+    )
+
+    snapshot = nearest_snapshot(snapshots, report.fieldwork_end)
+    if snapshot is None:
+        st.warning(
+            "No stored Sentiment to compare this against yet. Run "
+            "`python -m lpa.pipeline`."
+        )
+    else:
+        gap = abs((snapshot.computed_at - report.fieldwork_end).days)
+        # Said plainly rather than hidden in a column header: the daily
+        # pipeline and a quarterly survey rarely land on the same day, and how
+        # far apart they are decides how much the comparison is worth.
+        if gap == 0:
+            st.caption(
+                "Compared against the News Sentiment of the same day, "
+                f"{snapshot.computed_at:%-d %B %Y}."
+            )
+        else:
+            st.caption(
+                f"The nearest stored News Sentiment is "
+                f"{snapshot.computed_at:%-d %B %Y}, **{gap} days** from the "
+                "close of fieldwork. The further apart they are, the less the "
+                "comparison says."
+            )
+
+    st.dataframe(
+        calibration_comparison(report, snapshot),
+        hide_index=True,
+        use_container_width=True,
+        column_config={
+            "Poll Calibration": st.column_config.NumberColumn(
+                format="%+.2f",
+                help="Mean of (satisfied − dissatisfied) across the "
+                "Coalition's leaders the report rated, as a fraction.",
+            ),
+            "News Sentiment": st.column_config.NumberColumn(
+                format="%+.2f",
+                help="The model's mean tone of Articles naming the Coalition "
+                "on the day above. Blank if none named it.",
+            ),
+            "Difference": st.column_config.NumberColumn(
+                format="%+.2f",
+                help="Poll Calibration minus News Sentiment. Positive means "
+                "the survey is warmer than the coverage.",
+            ),
+            "Leaders rated": st.column_config.NumberColumn(
+                help="How many of the Coalition's leaders the report rated. "
+                "A score from one leader is a thinner signal than one from "
+                "three."
+            ),
+        },
+    )
+
+    unattributed = [
+        rating for rating in report.leader_ratings if rating.coalition is None
+    ]
+    if unattributed:
+        st.markdown(
+            "**Rated but not attributed to a Coalition.** A leader counts "
+            "towards the Coalition their party sat in while the survey was in "
+            "the field; where that was none, the rating is reported and left "
+            "out of the scores above rather than guessed at (ADR 0004)."
+        )
+        st.markdown(
+            "\n".join(
+                f"- {rating.leader} — {rating.satisfied:g}% satisfied, "
+                f"{rating.dissatisfied:g}% dissatisfied."
+                + (f" {rating.note}" if rating.note else "")
+                for rating in unattributed
+            )
+        )
 
 
 def freshness(updated: date, today: date) -> str:
@@ -341,6 +613,7 @@ def main() -> None:
 
     data = load_dashboard_data()
     baseline, projections, snapshots = data.baseline, data.projections, data.snapshots
+    calibrations = data.calibrations
 
     if not baseline:
         st.warning(
@@ -375,7 +648,9 @@ def main() -> None:
     st.divider()
     render_breakdown(baseline_totals, latest, config)
     st.divider()
-    render_trend(snapshots)
+    render_trend(snapshots, calibrations)
+    st.divider()
+    render_calibration(calibrations, snapshots)
     st.divider()
     render_sources(snapshot)
 
