@@ -35,7 +35,26 @@
     "that are not about a Coalition at all. A missed mention only shrinks the",
     "sample; a false one moves a Coalition's score for no reason.",
     "Leaders' personal names are deliberately excluded: coverage of a person",
-    "is not reliably coverage of their Coalition."
+    "is not reliably coverage of their Coalition.",
+    "",
+    "Reading Malay outlets (issue #13) made two of these wrong, in opposite",
+    "directions:",
+    "",
+    "- 'PBB' is gone from GPS, replaced by the party's full name. In Bahasa",
+    "  Malaysia PBB is overwhelmingly Pertubuhan Bangsa-Bangsa Bersatu, the",
+    "  United Nations. It scored a Hiroshima anniversary story as GPS",
+    "  sentiment on the first Berita Harian run. GPS draws few mentions, so a",
+    "  handful of UN stories would have dominated its score outright.",
+    "- 'Umno' joins 'UMNO' for BN. Mixed case is house style at NST, FMT and",
+    "  Bernama, so case-sensitive matching was already missing most of BN's",
+    "  strongest alias in English coverage; the Malay papers write UMNO.",
+    "  Unlike the excluded words, 'umno' is not a word in either language, so",
+    "  the case rule buys nothing here.",
+    "",
+    "'Pas' and 'Bersatu' stay out for the reason above even though Utusan and",
+    "NST use both for the parties: 'pas' is a permit and 'bersatu' is 'united'",
+    "— capitalised freely at the start of a sentence, in headline case, and in",
+    "company names ('Afijay Bersatu'), all seen in one day's feeds."
   ],
   "coalition_aliases": {
     "PH": [
@@ -43,14 +62,15 @@
       "Parti Amanah Negara"
     ],
     "BN": [
-      "Barisan Nasional", "BN", "UMNO", "MCA", "MIC"
+      "Barisan Nasional", "BN", "UMNO", "Umno", "MCA", "MIC"
     ],
     "PN": [
       "Perikatan Nasional", "PN", "PAS", "Parti Islam Se-Malaysia",
       "Parti Pribumi Bersatu Malaysia"
     ],
     "GPS": [
-      "Gabungan Parti Sarawak", "GPS", "PBB", "SUPP", "PRS", "PDP"
+      "Gabungan Parti Sarawak", "GPS", "Parti Pesaka Bumiputera Bersatu",
+      "SUPP", "PRS", "PDP"
     ],
     "GRS": [
       "Gabungan Rakyat Sabah", "Parti Gabungan Rakyat Sabah", "GRS"

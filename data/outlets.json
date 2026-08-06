@@ -17,11 +17,25 @@
     "  agent but Facebook's. Story 21 says we respect that, so there is",
     "  nothing to do here unless they change the rules.",
     "",
-    "Every feed here is an English edition, so there is no Bahasa Malaysia",
-    "coverage despite the model being multilingual (story 22). Bernama's",
-    "Malay edition is the only Malay feed among the outlets story 9 names,",
-    "and /bm/rssfeed.php — the one URL its own site advertises — answers 500",
-    "consistently. Closing that gap needs an outlet story 9 does not name.",
+    "Berita Harian and Utusan Malaysia are read in Bahasa Malaysia (issue",
+    "#13, story 22), and are the two outlets here that story 9 does not name.",
+    "It names only one Malay edition, Bernama's, and /bm/rssfeed.php — the one",
+    "URL Bernama's own Malay site advertises — still answers 500 with an empty",
+    "body, re-checked 6 Aug 2026. Its English feed below is unaffected.",
+    "",
+    "The pair is two publishers on purpose. Berita Harian is NSTP's Malay",
+    "daily and Utusan Malaysia is a separate newsroom with a different",
+    "political lean, so the Malay half of the sample is not one editorial",
+    "line. Harian Metro was verified working too and deliberately left out:",
+    "it is NSTP's third feed after Berita Harian and NST, it syndicates the",
+    "same political copy as Berita Harian nearly verbatim, and Sentiment is",
+    "an unweighted mean over articles — so adding it would weight one",
+    "newsroom three times rather than widen the sample.",
+    "",
+    "Both allow every user agent at the feed path. Utusan's robots.txt",
+    "disallows only /wp-admin/. Berita Harian's names a list of AI crawlers",
+    "and allows the rest; the Scraper is none of them, declares its own",
+    "user agent, reads only feeds, and trains nothing.",
     "",
     "Bernama dates no item in its feed, so its Articles carry no",
     "published_at. Why that is kept rather than guessed at is on the field",
@@ -47,6 +61,14 @@
     {
       "name": "Bernama",
       "feed_url": "https://www.bernama.com/en/rssfeed.php"
+    },
+    {
+      "name": "Berita Harian",
+      "feed_url": "https://www.bharian.com.my/feed"
+    },
+    {
+      "name": "Utusan Malaysia",
+      "feed_url": "https://www.utusan.com.my/feed/"
     }
   ]
 }

@@ -28,7 +28,7 @@ _Avoid_: Historical data (too vague — Baseline specifically means the GE15 sna
 The measured public political mood, tagged per Coalition/party, derived from two sources: continuous News Sentiment (see below) and periodic Poll Calibration (see below). The input signal the Swing Model consumes.
 
 **News Sentiment**:
-Sentiment computed from an open-source, self-hosted multilingual sentiment model run as local CPU inference (no external API) against headlines/articles scraped from major Malaysian outlets (FMT, Malay Mail, NST, The Star, The Vibes, Sinar Daily, Bernama). The continuous, day-to-day component of Sentiment. Zero-cost by requirement — see ADR 0002.
+Sentiment computed from an open-source, self-hosted multilingual sentiment model run as local CPU inference (no external API) against headlines/articles scraped from major Malaysian outlets, in English and Bahasa Malaysia alike (FMT, Malay Mail, NST, The Star, The Vibes, Sinar Daily, Bernama, Berita Harian, Utusan Malaysia). The continuous, day-to-day component of Sentiment. Zero-cost by requirement — see ADR 0002. Which of those are actually read, and why the rest are not, is `data/outlets.json`.
 
 **Poll Calibration**:
 Merdeka Center's periodically published survey results (approval ratings, etc.), ingested whenever a new report drops to sanity-check News Sentiment against real survey data. Not continuous — there is no API, reports appear every few months.
