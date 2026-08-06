@@ -12,15 +12,20 @@
     "- The Star: no working feed. Its own RSS directory page at",
     "  /news/nation/rss advertises ~30 feeds, and every one of them returns",
     "  404 — the directory is stale, not our request. Verified not to be",
-    "  User-Agent dependent: a browser Agent gets the same 404.",
-    "- Sinar Daily: robots.txt disallows /rss and /rssFeed/* for every Agent",
-    "  but Facebook's. Story 21 says we respect that, so there is nothing to",
-    "  do here unless they change the rules.",
+    "  user-agent dependent: a browser user agent gets the same 404.",
+    "- Sinar Daily: robots.txt disallows /rss and /rssFeed/* for every user",
+    "  agent but Facebook's. Story 21 says we respect that, so there is",
+    "  nothing to do here unless they change the rules.",
     "",
-    "Bernama is present but dates nothing: no item in its feed carries a",
-    "pubDate, so every Bernama Article has published_at = None. That is",
-    "recorded honestly rather than guessed (issue #11). Nothing reads",
-    "published_at today; anything that starts to must handle None."
+    "Every feed here is an English edition, so there is no Bahasa Malaysia",
+    "coverage despite the model being multilingual (story 22). Bernama's",
+    "Malay edition is the only Malay feed among the outlets story 9 names,",
+    "and /bm/rssfeed.php — the one URL its own site advertises — answers 500",
+    "consistently. Closing that gap needs an outlet story 9 does not name.",
+    "",
+    "Bernama dates no item in its feed, so its Articles carry no",
+    "published_at. Why that is kept rather than guessed at is on the field",
+    "itself, in domain.py."
   ],
   "outlets": [
     {

@@ -1,9 +1,10 @@
 """Scraper: recent coverage from Malaysian outlets, as Article records.
 
 Reads each outlet's feed rather than crawling article pages. The feed carries
-title, canonical URL, publication time and the full body in one request
-instead of one per article — kinder to the outlet, less to go wrong, and no
-HTML layout to track. RSS and Atom are both understood, so adding an outlet
+title, canonical URL, the full body and usually a publication time in one
+request instead of one per article — kinder to the outlet, less to go wrong,
+and no HTML layout to track. "Usually" because Bernama's dates nothing; see
+`Article.published_at`. RSS and Atom are both understood, so adding an outlet
 stays a config edit.
 
 Parsing is pure and tested against a fixture feed. The fetching half checks
@@ -53,6 +54,12 @@ def parse_feed(feed_xml: str | bytes, source: str) -> list[Article]:
     absent one misdates nothing, and Bernama's feed dates no item at all.
     A document in neither format raises, because an outlet that has quietly
     changed format would otherwise look like an outlet with no news.
+
+    Known limitation: because the rule is applied to every outlet rather than
+    per-outlet, an outlet that changes its date format now looks exactly like
+    one that never dated anything — the undated item is no longer the signal
+    that date parsing broke. Nothing reads `published_at` today, so nothing
+    goes wrong quietly; whatever starts reading it will want that signal back.
     """
     root = ElementTree.fromstring(feed_xml)
     if root.tag == f"{ATOM}feed":
@@ -276,7 +283,7 @@ def main() -> None:
                     "url": article.url,
                     "published_at": (
                         article.published_at.isoformat()
-                        if article.published_at
+                        if article.published_at is not None
                         else None
                     ),
                     "title": article.title,
