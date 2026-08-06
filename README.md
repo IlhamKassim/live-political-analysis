@@ -150,6 +150,9 @@ touching model logic. Each file carries a `_comment` explaining its rules.
 - **`outlets.json`** — the feeds the Scraper reads.
 - **`state_elections.json`** — state elections held since GE15, maintained by
   hand. Currently Johor 2026; Malacca's is due by November 2026.
+- **`election_status.json`** — whether GE16 has been called, and the polling
+  date once the Election Commission sets one. Edit it the day the Dewan Rakyat
+  is dissolved; the dashboard states what it says under the headline Projection.
 - **`poll_calibration.json`** — Merdeka Center reports, transcribed by hand.
   Each entry carries the published percentages verbatim plus the provenance
   to go and check them, and records which Coalition each rated leader sat in

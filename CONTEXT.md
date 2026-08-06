@@ -39,6 +39,10 @@ The estimated shift in vote or seat share for a Coalition, derived from Sentimen
 **State Election Signal**:
 Results from state elections held before GE16 (e.g. the 2026 Johor and Malacca elections) — a leading-indicator input into the Swing Model. Distinct from the Baseline, which stays fixed at GE15 federal results.
 
+**Election Status**:
+Whether GE16 has been called yet, and the polling date once one is set. "Called" means the Dewan Rakyat has been dissolved — the act that starts a Malaysian general election; the Election Commission announces polling afterwards, so called-with-no-polling-date is a real state. Maintained by hand in `data/election_status.json`. Context for reading a Projection, not an input to one.
+_Avoid_: Election date (ambiguous — dissolution, nomination and polling are three different days)
+
 **Swing Model**:
 The (not-yet-built) method for turning Sentiment into a per-Seat or per-Coalition Swing. The hard, research-grade part of this project — distinguish from the Baseline, which is just historical fact.
 

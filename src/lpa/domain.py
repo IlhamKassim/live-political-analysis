@@ -77,6 +77,49 @@ class StateElectionSignal:
 
 
 @dataclass(frozen=True)
+class ElectionStatus:
+    """Whether GE16 has been called, and the dates that say when it lands.
+
+    The Projection is an estimate of an election that may or may not have been
+    scheduled yet, and those are very different things to be reading (issue
+    #1, story 8). Nothing else in the package derives from this — it is
+    context for the reader, not an input to the Swing Model.
+
+    "Called" means the Dewan Rakyat has been dissolved, the act that starts a
+    Malaysian general election. The Election Commission sets the polling day
+    afterwards, so `dissolved_on` set with `polling_date` still `None` is a
+    real state and not a half-filled record. Both are `None` until a
+    dissolution happens.
+    """
+
+    constitutional_deadline: date
+    """The last day GE16 can be held if the Dewan Rakyat is never dissolved
+    early.
+
+    A fixed consequence of GE15 rather than a projection of when the election
+    will be: dissolving early is the ordinary case, and that is `dissolved_on`.
+    """
+    source: str
+    """Where the dates were taken from, so a reader can check them."""
+    dissolved_on: date | None = None
+    """When the Dewan Rakyat was dissolved, which is what calling an election
+    means here. `None` until it happens, and the field `called` reads."""
+    polling_date: date | None = None
+    """When polling is held. `None` while the Election Commission has not
+    announced it — including in the interval after dissolution, which is why
+    it is not derived from `dissolved_on`."""
+
+    @property
+    def called(self) -> bool:
+        """Whether GE16 has been called.
+
+        Derived from the dissolution rather than stored beside it, so a record
+        cannot say it has been called and carry no date for when.
+        """
+        return self.dissolved_on is not None
+
+
+@dataclass(frozen=True)
 class SwingModelConfig:
     """Tunables and Government Coalition membership, supplied as data.
 
