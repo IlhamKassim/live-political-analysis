@@ -19,8 +19,18 @@ available — Merdeka Center's periodic polls — arrives every few months.
 
 Decision: ship the constants as provisional, tunable config rather than
 hardcoded values, and state plainly wherever the Projection is presented that
-it is model-driven and uncalibrated. Calibration against published polling is
-issue #10, and it changes config, not model logic.
+it is model-driven and uncalibrated. Calibration against published polling
+changes config, not model logic.
+
+**Still true as of issue #10.** #10 built the ingestion and the comparison —
+Merdeka Center's reports now reach Storage as Poll Calibration and sit beside
+News Sentiment on the dashboard, which is the series that was missing to
+calibrate *against*. It fitted neither constant, and nothing reads a poll into
+a Projection. Fitting needs a daily Sentiment history long enough to overlap
+several reports, and reports arrive every few months, so what remains is
+elapsed time rather than code. See
+[ADR 0004](0004-leader-approval-as-the-coalition-poll-signal.md), "What this
+does not do".
 
 A related lesson is already fixed rather than deferred. An earlier version
 averaged state election results into a *national* uniform Swing. Run against

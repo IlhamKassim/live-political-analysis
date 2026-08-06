@@ -36,6 +36,7 @@ from sqlalchemy.engine import Engine
 
 from lpa.aggregate import AggregatedSentiment
 from lpa.domain import Projection, SeatBaseline
+from lpa.poll_calibration import LeaderRating, PollCalibration
 
 DEFAULT_DATABASE_URL = "sqlite+pysqlite:///lpa.db"
 
@@ -71,6 +72,30 @@ sentiment_snapshot = Table(
     Column("article_counts", JSON, nullable=False),
     Column("total_articles", Integer, nullable=False),
     Column("sources", JSON, nullable=False),
+)
+
+
+poll_calibration_snapshot = Table(
+    "poll_calibration_snapshot",
+    metadata,
+    # Keyed on the last day of fieldwork rather than on publication: that is
+    # the day the poll measures and the day it is plotted at, and re-ingesting
+    # a corrected transcription of the same survey should replace it rather
+    # than leave two answers for one poll. Two surveys by one publisher do not
+    # share a fieldwork end date; two publishers might, so the publisher is
+    # part of the key.
+    Column("publisher", String, primary_key=True),
+    Column("fieldwork_end", Date, primary_key=True),
+    Column("title", String, nullable=False),
+    Column("report_url", String, nullable=False),
+    Column("published_on", Date, nullable=False),
+    Column("fieldwork_start", Date, nullable=False),
+    Column("sample_size", Integer, nullable=False),
+    Column("margin_of_error", Float, nullable=True),
+    # The published figures verbatim, not the per-Coalition scores derived
+    # from them. The derivation is this project's interpretation (ADR 0004)
+    # and can be revisited; the percentages Merdeka Center printed cannot.
+    Column("leader_ratings", JSON, nullable=False),
 )
 
 
@@ -189,6 +214,75 @@ def load_projections(engine: Engine) -> Sequence[Projection]:
                 coalition_seat_totals=row["coalition_seat_totals"],
                 government_majority=row["government_majority"],
                 computed_at=row["computed_at"],
+            )
+            for row in rows
+        ]
+
+
+def save_poll_calibrations(
+    engine: Engine, reports: Iterable[PollCalibration]
+) -> int:
+    """Store `reports` as Poll Calibration points. Returns the count written.
+
+    Each report replaces any stored one for the same publisher and fieldwork
+    end date, so re-ingesting a report after fixing a transcription error
+    corrects it. Unlike the Baseline this is not a wholesale replacement:
+    reports accumulate over the years, and the data file being edited down to
+    one report must not delete the history already ingested from it.
+    """
+    written = 0
+    with engine.begin() as connection:
+        for report in reports:
+            connection.execute(
+                delete(poll_calibration_snapshot).where(
+                    poll_calibration_snapshot.c.publisher == report.publisher,
+                    poll_calibration_snapshot.c.fieldwork_end
+                    == report.fieldwork_end,
+                )
+            )
+            connection.execute(
+                poll_calibration_snapshot.insert(),
+                {
+                    "publisher": report.publisher,
+                    "fieldwork_end": report.fieldwork_end,
+                    "title": report.title,
+                    "report_url": report.report_url,
+                    "published_on": report.published_on,
+                    "fieldwork_start": report.fieldwork_start,
+                    "sample_size": report.sample_size,
+                    "margin_of_error": report.margin_of_error,
+                    "leader_ratings": [
+                        rating.as_mapping() for rating in report.leader_ratings
+                    ],
+                },
+            )
+            written += 1
+    return written
+
+
+def load_poll_calibrations(engine: Engine) -> Sequence[PollCalibration]:
+    """Every stored Poll Calibration point, oldest fieldwork first."""
+    with engine.connect() as connection:
+        rows = connection.execute(
+            select(poll_calibration_snapshot).order_by(
+                poll_calibration_snapshot.c.fieldwork_end,
+                poll_calibration_snapshot.c.publisher,
+            )
+        ).mappings()
+        return [
+            PollCalibration(
+                publisher=row["publisher"],
+                title=row["title"],
+                report_url=row["report_url"],
+                published_on=row["published_on"],
+                fieldwork_start=row["fieldwork_start"],
+                fieldwork_end=row["fieldwork_end"],
+                sample_size=row["sample_size"],
+                margin_of_error=row["margin_of_error"],
+                leader_ratings=tuple(
+                    LeaderRating.from_mapping(rating)
+                    for rating in row["leader_ratings"]
+                ),
             )
             for row in rows
         ]

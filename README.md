@@ -56,6 +56,20 @@ table. Re-running the same day corrects that day rather than adding a second
 answer for it. The Baseline must be loaded first; the pipeline refuses to run
 without it, and refuses to store a run that scraped nothing.
 
+Poll Calibration is separate and periodic. Merdeka Center publishes a survey
+report every few months, as a PDF and behind no API, so a person transcribes
+one into `data/poll_calibration.json` and runs:
+
+```sh
+.venv/bin/python -m lpa.poll_calibration   # ingests every transcribed report
+```
+
+It prints the net approval it derives per Coalition and which leaders it could
+not attribute to one. Re-running corrects a report rather than duplicating it,
+and never deletes reports the data file no longer lists. The full process —
+finding the report, which chart to read, and how to attribute a leader to a
+Coalition — is [`docs/poll-calibration.md`](docs/poll-calibration.md).
+
 To see the Scraper alone:
 
 ```sh
@@ -85,6 +99,12 @@ SQLite and never overwrites a day that already has a snapshot, so it cannot
 displace a real pipeline run. Local development only; never seed the
 database the dashboard publishes from.
 
+Poll Calibration points are drawn on the Sentiment trend as diamonds, but only
+where a report's fieldwork closed inside the span of stored daily history —
+otherwise one point months back would stretch the x axis and flatten the trend
+it is there to show. The comparison table below the chart always shows the
+latest report, whether or not it could be drawn.
+
 Reads are cached for 15 minutes, so a pipeline run that finishes while a tab
 is open takes up to that long to appear.
 
@@ -113,8 +133,9 @@ against fixtures with no network, so CI stays fast and offline.
 | `lpa/scraper.py` | Outlet feeds → Article records, robots.txt-aware |
 | `lpa/sentiment.py` | Self-hosted model, scored per Coalition |
 | `lpa/aggregate.py` | The day's Articles → one Sentiment per Coalition |
+| `lpa/poll_calibration.py` | Published survey reports → net approval per Coalition |
 | `lpa/pipeline.py` | Wires all of the above and stores a snapshot |
-| `lpa/storage.py` | Baseline table plus daily Projection/Sentiment snapshots |
+| `lpa/storage.py` | Baseline table, daily Projection/Sentiment snapshots, Poll Calibration points |
 | `lpa/dashboard.py` | Streamlit page rendering the latest stored Projection |
 | `lpa/config.py` | Loads everything under `data/` |
 
@@ -129,14 +150,24 @@ touching model logic. Each file carries a `_comment` explaining its rules.
 - **`outlets.json`** — the feeds the Scraper reads.
 - **`state_elections.json`** — state elections held since GE15, maintained by
   hand. Currently Johor 2026; Malacca's is due by November 2026.
+- **`poll_calibration.json`** — Merdeka Center reports, transcribed by hand.
+  Each entry carries the published percentages verbatim plus the provenance
+  to go and check them, and records which Coalition each rated leader sat in
+  *at the time of the fieldwork* — a historical fact about the poll, not
+  something derived from current membership.
 
 ## Model status — read before trusting a number
 
 The Projection is model-driven and **not calibrated**. Two constants in
 `SwingModelConfig` were chosen by judgement, not fitted to anything:
-`sentiment_sensitivity` (0.10) and `state_signal_weight` (0.5). Calibrating
-them against published polling is [issue #10](https://github.com/IlhamKassim/live-political-analysis/issues/10).
+`sentiment_sensitivity` (0.10) and `state_signal_weight` (0.5).
 See [ADR 0003](docs/adr/0003-provisional-swing-constants.md).
+
+Poll Calibration now supplies the published series to check them against, and
+the dashboard shows it beside News Sentiment — but nothing is fitted yet, and
+no Projection reads a poll. Fitting needs a daily Sentiment history long
+enough to overlap several reports, and reports arrive every few months, so
+this is waiting on elapsed time rather than on code.
 
 Other known limitations, each documented at its site in the code:
 
