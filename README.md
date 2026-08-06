@@ -18,12 +18,17 @@ Python 3.11+.
 
 ```sh
 uv venv .venv
-uv pip install --python .venv/bin/python -e ".[dev,sentiment]"
+uv pip install --python .venv/bin/python -e ".[dev,sentiment,dashboard]"
 ```
 
 The `sentiment` extra pulls `torch`, `transformers`, `sentencepiece` and
 `protobuf`. All four are needed: the XLM-RoBERTa tokeniser fails without
 `sentencepiece` *and* `protobuf`, with an error that only mentions the first.
+
+The `dashboard` extra pulls `streamlit` and `pandas`. It is separate from
+`sentiment` because the two never run together: the pipeline scores articles
+and needs no dashboard, and the dashboard only reads Storage and need not
+carry `torch`.
 
 ## Running it
 
@@ -57,12 +62,42 @@ To see the Scraper alone:
 .venv/bin/python -m lpa.scraper             # prints Article records as JSON
 ```
 
+## The dashboard
+
+Read-only — it renders whatever the pipeline last stored, and never scrapes
+or projects itself.
+
+```sh
+.venv/bin/streamlit run src/lpa/dashboard.py
+```
+
+The Sentiment trend needs at least two days of history to draw a line; with
+one day it says so and shows that day's scores as bars instead. A fresh
+database has exactly one day, so to see the trend, backfill some:
+
+```sh
+.venv/bin/python scripts/seed_dev_snapshots.py --days 14
+```
+
+Those days carry invented Sentiment — a seeded random walk — run through the
+real Swing Model against the real Baseline. It refuses to touch anything but
+SQLite and never overwrites a day that already has a snapshot, so it cannot
+displace a real pipeline run. Local development only; never seed the
+database the dashboard publishes from.
+
+Reads are cached for 15 minutes, so a pipeline run that finishes while a tab
+is open takes up to that long to appear.
+
 ## Tests
 
 ```sh
 .venv/bin/python -m pytest                  # fast; no network, no model
 .venv/bin/python -m pytest -m model         # loads the real model, ~10s cached
 ```
+
+The Dashboard has no automated tests. Per issue #1 it is verified by running
+the pipeline end to end and looking at the page — including its thin-history
+and empty-database states, which are the ones a fresh deployment hits first.
 
 The default run excludes tests marked `model`. Those download model weights on
 first use (a few hundred MB) and do real CPU inference; everything else runs
@@ -80,6 +115,7 @@ against fixtures with no network, so CI stays fast and offline.
 | `lpa/aggregate.py` | The day's Articles → one Sentiment per Coalition |
 | `lpa/pipeline.py` | Wires all of the above and stores a snapshot |
 | `lpa/storage.py` | Baseline table plus daily Projection/Sentiment snapshots |
+| `lpa/dashboard.py` | Streamlit page rendering the latest stored Projection |
 | `lpa/config.py` | Loads everything under `data/` |
 
 ## Configuration is data, not code

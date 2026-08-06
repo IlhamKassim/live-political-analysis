@@ -11,6 +11,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
 sentiment = ["transformers>=4.40", "torch>=2.0", "sentencepiece>=0.2", "protobuf>=4.0"]
+dashboard = ["streamlit>=1.37", "pandas>=2.0"]
 
 [build-system]
 requires = ["hatchling"]
