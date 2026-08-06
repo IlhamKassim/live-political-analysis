@@ -26,7 +26,7 @@ def write_status(tmp_path, **fields):
     status = {
         "dissolved_on": None,
         "polling_date": None,
-        "constitutional_deadline": "2028-02-17",
+        "constitutional_deadline": DEADLINE.isoformat(),
         "source": "https://www.parlimen.gov.my/",
     }
     status.update(fields)

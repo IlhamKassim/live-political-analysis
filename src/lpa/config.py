@@ -135,11 +135,11 @@ def load_election_status(path: Path | None = None) -> ElectionStatus:
     """Whether GE16 has been called, from `data/election_status.json`.
 
     The two date fields are checked against each other rather than trusted.
-    This file is edited by hand at exactly one moment — the day Parliament is
-    dissolved, probably in a hurry — and it is the only input to a statement
-    the Dashboard makes in its own voice near the headline. A polling date
-    with no dissolution behind it would have the page announce an election
-    that constitutionally cannot have been called yet.
+    This file is edited by hand at exactly one moment — the day the Dewan
+    Rakyat is dissolved, probably in a hurry — and it is the only input to a
+    statement the Dashboard makes in its own voice near the headline. A
+    polling date with no dissolution behind it would have the page announce
+    an election that constitutionally cannot have been called yet.
     """
     config = json.loads((path or DEFAULT_ELECTION_STATUS_PATH).read_text())
     dissolved_on = _optional_date(config["dissolved_on"])
@@ -151,12 +151,13 @@ def load_election_status(path: Path | None = None) -> ElectionStatus:
             "dissolution date. Polling is announced after the Dewan Rakyat is "
             "dissolved, so set dissolved_on too."
         )
-    if dissolved_on is not None and polling_date is not None:
-        if polling_date < dissolved_on:
-            raise ValueError(
-                f"election status polls on {polling_date}, before the "
-                f"dissolution on {dissolved_on}."
-            )
+    if dissolved_on is not None and polling_date is not None and (
+        polling_date < dissolved_on
+    ):
+        raise ValueError(
+            f"election status polls on {polling_date}, before the "
+            f"dissolution on {dissolved_on}."
+        )
 
     return ElectionStatus(
         constitutional_deadline=date.fromisoformat(config["constitutional_deadline"]),
@@ -167,7 +168,13 @@ def load_election_status(path: Path | None = None) -> ElectionStatus:
 
 
 def _optional_date(raw: str | None) -> date | None:
-    return date.fromisoformat(raw) if raw else None
+    """A date field that may be `null`, and only `null`.
+
+    Distrusts the file like the checks above it: an empty string reaches
+    `fromisoformat` and raises, rather than passing as "no date" and having
+    the Dashboard report an election nobody has called.
+    """
+    return date.fromisoformat(raw) if raw is not None else None
 
 
 DEFAULT_STATE_ELECTIONS_PATH = data_file("state_elections.json")

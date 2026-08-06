@@ -93,7 +93,8 @@ class ElectionStatus:
     """
 
     constitutional_deadline: date
-    """The last day GE16 can be held if Parliament is never dissolved early.
+    """The last day GE16 can be held if the Dewan Rakyat is never dissolved
+    early.
 
     A fixed consequence of GE15 rather than a projection of when the election
     will be: dissolving early is the ordinary case, and that is `dissolved_on`.
@@ -101,6 +102,8 @@ class ElectionStatus:
     source: str
     """Where the dates were taken from, so a reader can check them."""
     dissolved_on: date | None = None
+    """When the Dewan Rakyat was dissolved, which is what calling an election
+    means here. `None` until it happens, and the field `called` reads."""
     polling_date: date | None = None
     """When polling is held. `None` while the Election Commission has not
     announced it — including in the interval after dissolution, which is why

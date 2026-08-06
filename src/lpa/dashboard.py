@@ -321,34 +321,42 @@ def election_status_statement(status: ElectionStatus, today: date) -> str:
     and can be reasoned about; the Dashboard has no automated tests (issue #1)
     and this is the branchiest thing on the page.
     """
+    # The Dewan Rakyat rather than Parliament throughout: dissolution applies
+    # to the elected chamber, and the Dewan Negara is not dissolved with it.
+    # CONTEXT.md defines the Seats being projected as that chamber's.
+    if status.dissolved_on is None:  # i.e. not status.called, and the state
+        return (  # a fresh deployment is in until GE16 is finally called.
+            "**GE16 has not been called.** The Dewan Rakyat is sitting, and "
+            "the election must be held by "
+            f"**{status.constitutional_deadline:%-d %B %Y}** at the latest."
+        )
+
+    # Every branch below has a dissolution to name, which is what makes this
+    # one date safe to format once up here.
+    dissolved = f"{status.dissolved_on:%-d %B %Y}"
+
     if status.polling_date is not None:
         days = (status.polling_date - today).days
-        when = f"{status.polling_date:%-d %B %Y}"
+        polls = f"{status.polling_date:%-d %B %Y}"
         if days > 0:
             return (
-                f"**GE16 has been called.** Polling is on **{when}**, "
-                f"{days} day{'s' if days != 1 else ''} away. Parliament was "
-                f"dissolved on {status.dissolved_on:%-d %B %Y}."
+                f"**GE16 has been called.** Polling is on **{polls}**, "
+                f"{days} day{'s' if days != 1 else ''} away. The Dewan Rakyat "
+                f"was dissolved on {dissolved}."
             )
         if days == 0:
             return (
-                f"**GE16 is being held today, {when}.** Parliament was "
-                f"dissolved on {status.dissolved_on:%-d %B %Y}."
+                f"**GE16 is being held today, {polls}.** The Dewan Rakyat was "
+                f"dissolved on {dissolved}."
             )
         return (
-            f"**GE16 was held on {when}.** This page projects an election "
+            f"**GE16 was held on {polls}.** This page projects an election "
             "that has already happened; it is no longer a forecast."
         )
-    if status.called:
-        return (
-            f"**GE16 has been called.** Parliament was dissolved on "
-            f"**{status.dissolved_on:%-d %B %Y}**. The Election Commission "
-            "has not yet announced a polling date."
-        )
     return (
-        "**GE16 has not been called.** Parliament is sitting, and the "
-        "election must be held by "
-        f"**{status.constitutional_deadline:%-d %B %Y}** at the latest."
+        f"**GE16 has been called.** The Dewan Rakyat was dissolved on "
+        f"**{dissolved}**. The Election Commission has not yet announced "
+        "a polling date."
     )
 
 
@@ -703,9 +711,13 @@ def main() -> None:
     latest, snapshot = projections[-1], snapshots[-1]
     baseline_totals = baseline_seat_totals(baseline)
     config = swing_model_config(load_coalition_config())
+    # Read outside the cached Storage pass on purpose: it is one small file,
+    # and the day it changes is the day it most needs to reach the page —
+    # not up to CACHE_SECONDS later.
+    status = load_election_status()
 
     render_headline(latest, total_seats, config)
-    render_election_status(load_election_status(), today_in_malaysia())
+    render_election_status(status, today_in_malaysia())
     render_summary(latest, baseline_totals, snapshot, total_seats, config)
     st.divider()
     render_breakdown(baseline_totals, latest, config)
