@@ -1,6 +1,11 @@
-"""The shipped Coalition configuration is data the Swing Model depends on, so
-it is checked against the documented Government Coalition rather than left to
-be discovered wrong at run time.
+"""The shipped configuration under `data/` is checked here rather than left to
+be discovered wrong at run time — it is data the Swing Model and the Sentiment
+Scorer depend on, and a bad edit to it breaks neither import nor type check.
+
+Coalition membership is checked against the documented Government Coalition.
+The aliases are checked by running the real Scorer's attribution over them,
+because an alias is only correct with respect to the prose it has to match;
+these sentences are taken from outlet feeds rather than invented.
 """
 
 from lpa.config import (
@@ -31,10 +36,13 @@ def test_component_parties_that_stood_alone_roll_up_to_their_coalition():
     assert mapping["PARTI ISLAM SE MALAYSIA (PAS)"] == "PN"
 
 
+SHIPPED_ALIASES = coalition_aliases(load_coalition_config())
+
+
 def test_the_shipped_aliases_read_bahasa_malaysia_coverage():
     # Issue #13: the Malay outlets are only worth reading if the aliases find
     # the Coalitions in Malay prose, which is where these sentences come from.
-    aliases = coalition_aliases(load_coalition_config())
+    aliases = SHIPPED_ALIASES
 
     assert "BN" in attribute_sentences(
         "Kemenangan Barisan Nasional (BN) pada dua Pilihan Raya Negeri.", aliases
@@ -49,33 +57,35 @@ def test_the_shipped_aliases_read_bahasa_malaysia_coverage():
 
 def test_the_united_nations_is_not_coverage_of_gps():
     # "PBB" was a GPS alias until issue #13. In Bahasa Malaysia it is almost
-    # always Pertubuhan Bangsa-Bangsa Bersatu, and this sentence — from Berita
-    # Harian's feed on the first run that read it — scored a Hiroshima
-    # anniversary as GPS sentiment. GPS is named rarely enough that a few UN
-    # stories would have been most of its score.
-    aliases = coalition_aliases(load_coalition_config())
-
-    attributed = attribute_sentences(
+    # always Pertubuhan Bangsa-Bangsa Bersatu, the United Nations, and this
+    # sentence — from Berita Harian's feed on the first run that read it —
+    # scored a Hiroshima anniversary as GPS sentiment. Over that whole run it
+    # was the only thing any GPS alias matched in 320 Articles, so the short
+    # form was matching nothing true and this one thing false.
+    united_nations = (
         "Dalam mesej bagi pihak Setiausaha Agung Pertubuhan Bangsa-Bangsa "
         "Bersatu (PBB) António Guterres, Wakil Tinggi PBB berkata Hiroshima "
-        "terus menjadi lambang keamanan.",
-        aliases,
+        "terus menjadi lambang keamanan."
     )
+    sarawak = "Gabungan Parti Sarawak mempertahankan semua kerusinya."
 
-    assert attributed == {}
-
-
-def test_umno_is_found_in_the_mixed_case_most_outlets_write_it_in():
-    # NST, FMT and Bernama all write "Umno", not "UMNO". Matching is
-    # case-sensitive, so listing only the shouted form missed BN's commonest
-    # alias in exactly the outlets that use it most.
-    aliases = coalition_aliases(load_coalition_config())
-
-    assert "BN" in attribute_sentences("Umno and DAP maintain cordial ties.", aliases)
-    assert "BN" in attribute_sentences("UMNO menang 16 kerusi DUN.", aliases)
+    assert "GPS" not in attribute_sentences(united_nations, SHIPPED_ALIASES)
+    # Paired with a sentence that must still attribute, so an alias list that
+    # had lost GPS entirely could not pass this test quietly.
+    assert "GPS" in attribute_sentences(sarawak, SHIPPED_ALIASES)
 
 
-def test_the_scraper_reads_at_least_one_bahasa_malaysia_outlet():
+def test_umno_is_found_in_the_mixed_case_as_well_as_the_shouted_one():
+    # NST, FMT and Bernama write "Umno"; the Malay papers write "UMNO".
+    # Matching is case-sensitive, so listing only the shouted form missed BN's
+    # commonest alias in exactly the outlets that use the other one.
+    assert "BN" in attribute_sentences(
+        "Umno and DAP maintain cordial ties.", SHIPPED_ALIASES
+    )
+    assert "BN" in attribute_sentences("UMNO menang 16 kerusi DUN.", SHIPPED_ALIASES)
+
+
+def test_the_scraper_reads_the_bahasa_malaysia_outlets():
     # Issue #13's standing risk is regression by deletion: drop these two and
     # News Sentiment goes back to being blind to Malay coverage silently.
     names = {outlet.name for outlet in load_outlets()}
