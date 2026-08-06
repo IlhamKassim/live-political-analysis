@@ -32,9 +32,10 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-from lpa.config import load_coalition_config, swing_model_config
+from lpa.config import load_coalition_config, load_election_status, swing_model_config
 from lpa.domain import (
     Coalition,
+    ElectionStatus,
     government_seat_total,
     Projection,
     SeatBaseline,
@@ -304,6 +305,62 @@ def render_headline(
             "left them; the Majority call above re-counts them under the "
             "current membership. The next pipeline run reconciles the two."
         )
+
+
+def election_status_statement(status: ElectionStatus, today: date) -> str:
+    """Whether GE16 has been called, in one sentence, as of `today`.
+
+    Four states, because the reader's question is different in each: an
+    election nobody has called yet, one called with no polling day announced,
+    one with a day to count towards, and one already polled. The last matters
+    even though this is a forecasting tool — the moment polling passes, the
+    page stops being a forecast, and a stale data file must not have it
+    counting down to a date in the past.
+
+    `today` is passed in rather than read here so the phrasing has one input
+    and can be reasoned about; the Dashboard has no automated tests (issue #1)
+    and this is the branchiest thing on the page.
+    """
+    if status.polling_date is not None:
+        days = (status.polling_date - today).days
+        when = f"{status.polling_date:%-d %B %Y}"
+        if days > 0:
+            return (
+                f"**GE16 has been called.** Polling is on **{when}**, "
+                f"{days} day{'s' if days != 1 else ''} away. Parliament was "
+                f"dissolved on {status.dissolved_on:%-d %B %Y}."
+            )
+        if days == 0:
+            return (
+                f"**GE16 is being held today, {when}.** Parliament was "
+                f"dissolved on {status.dissolved_on:%-d %B %Y}."
+            )
+        return (
+            f"**GE16 was held on {when}.** This page projects an election "
+            "that has already happened; it is no longer a forecast."
+        )
+    if status.called:
+        return (
+            f"**GE16 has been called.** Parliament was dissolved on "
+            f"**{status.dissolved_on:%-d %B %Y}**. The Election Commission "
+            "has not yet announced a polling date."
+        )
+    return (
+        "**GE16 has not been called.** Parliament is sitting, and the "
+        "election must be held by "
+        f"**{status.constitutional_deadline:%-d %B %Y}** at the latest."
+    )
+
+
+def render_election_status(status: ElectionStatus, today: date) -> None:
+    """The temporal context for the Projection, directly under the headline.
+
+    Placed here rather than in the footer because it changes what the numbers
+    above mean: a Projection for an election with a date is a forecast of a
+    known event, and one for an election nobody has called is a reading of the
+    present (issue #1, story 8).
+    """
+    st.markdown(election_status_statement(status, today))
 
 
 def render_summary(
@@ -648,6 +705,7 @@ def main() -> None:
     config = swing_model_config(load_coalition_config())
 
     render_headline(latest, total_seats, config)
+    render_election_status(load_election_status(), today_in_malaysia())
     render_summary(latest, baseline_totals, snapshot, total_seats, config)
     st.divider()
     render_breakdown(baseline_totals, latest, config)

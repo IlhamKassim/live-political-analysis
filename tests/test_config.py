@@ -103,5 +103,6 @@ def test_every_shipped_data_file_is_findable():
         "outlets.json",
         "state_elections.json",
         "poll_calibration.json",
+        "election_status.json",
     ):
         assert data_file(name).exists(), name

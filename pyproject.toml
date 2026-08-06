@@ -25,6 +25,7 @@ packages = ["src/lpa"]
 "data/outlets.json" = "lpa/data/outlets.json"
 "data/state_elections.json" = "lpa/data/state_elections.json"
 "data/poll_calibration.json" = "lpa/data/poll_calibration.json"
+"data/election_status.json" = "lpa/data/election_status.json"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
