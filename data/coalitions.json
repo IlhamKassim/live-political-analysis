@@ -28,14 +28,39 @@
     "Coalition in a headline.",
     "Matched case-SENSITIVELY on word boundaries, because every entry is a",
     "proper noun and several are also ordinary Bahasa Malaysia words: pas",
-    "('quite'), bersatu ('united'), keadilan ('justice'), amanah ('trust'),",
-    "gerakan ('movement'), barisan ('row'), perikatan ('alliance').",
+    "('a pass, a permit'), bersatu ('united'), keadilan ('justice'), amanah",
+    "('trust'), gerakan ('movement'), barisan ('row'), perikatan ('alliance').",
     "For the same reason the bare one-word forms of the Coalition names are",
     "not listed — 'Pakatan' and 'Barisan' alone open the door to sentences",
     "that are not about a Coalition at all. A missed mention only shrinks the",
     "sample; a false one moves a Coalition's score for no reason.",
     "Leaders' personal names are deliberately excluded: coverage of a person",
-    "is not reliably coverage of their Coalition."
+    "is not reliably coverage of their Coalition.",
+    "",
+    "Reading Malay outlets (issue #13) made two of these wrong, in opposite",
+    "directions:",
+    "",
+    "- 'PBB' is gone from GPS, replaced by the party's full name. In Bahasa",
+    "  Malaysia PBB is overwhelmingly Pertubuhan Bangsa-Bangsa Bersatu, the",
+    "  United Nations. It scored a Hiroshima anniversary story as GPS",
+    "  sentiment on the first Berita Harian run — and across all 320 Articles",
+    "  of that run it was the only match any GPS alias made, so the short form",
+    "  was earning nothing true and that one thing false. The trade is real",
+    "  and one-directional: English coverage of Sarawak does write 'PBB' for",
+    "  the party, and those mentions are now missed. Peninsular outlets carry",
+    "  little Sarawak politics either way, and the rule above settles it.",
+    "- 'Umno' joins 'UMNO' for BN. Mixed case is house style at NST, FMT and",
+    "  Bernama, so case-sensitive matching was already missing most of BN's",
+    "  strongest alias in English coverage; the Malay papers write UMNO.",
+    "  Unlike the excluded words, 'umno' is not a word in either language, so",
+    "  the case rule buys nothing here.",
+    "",
+    "The short forms 'Pas', 'Bersatu' and 'Amanah' stay out for the same",
+    "reason, even though Utusan and NST use all three for the parties. Each is",
+    "capitalised freely where it is not a party — at the start of a sentence,",
+    "in headline case, and inside longer proper nouns. One day's feeds carried",
+    "'Afijay Bersatu' (a company) and 'Majlis Amanah Rakyat' (a government",
+    "agency), either of which would have scored as a Coalition."
   ],
   "coalition_aliases": {
     "PH": [
@@ -43,14 +68,15 @@
       "Parti Amanah Negara"
     ],
     "BN": [
-      "Barisan Nasional", "BN", "UMNO", "MCA", "MIC"
+      "Barisan Nasional", "BN", "UMNO", "Umno", "MCA", "MIC"
     ],
     "PN": [
       "Perikatan Nasional", "PN", "PAS", "Parti Islam Se-Malaysia",
       "Parti Pribumi Bersatu Malaysia"
     ],
     "GPS": [
-      "Gabungan Parti Sarawak", "GPS", "PBB", "SUPP", "PRS", "PDP"
+      "Gabungan Parti Sarawak", "GPS", "Parti Pesaka Bumiputera Bersatu",
+      "SUPP", "PRS", "PDP"
     ],
     "GRS": [
       "Gabungan Rakyat Sabah", "Parti Gabungan Rakyat Sabah", "GRS"
