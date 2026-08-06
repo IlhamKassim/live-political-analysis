@@ -24,6 +24,7 @@ Run it with `streamlit run src/lpa/dashboard.py`.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import date
 from typing import Mapping, Sequence
 
@@ -31,7 +32,14 @@ import pandas as pd
 import streamlit as st
 
 from lpa.config import load_coalition_config, swing_model_config
-from lpa.domain import Coalition, Projection, SeatBaseline, SwingModelConfig
+from lpa.domain import (
+    Coalition,
+    government_seat_total,
+    Projection,
+    SeatBaseline,
+    SwingModelConfig,
+)
+from lpa.pipeline import today_in_malaysia
 from lpa.storage import (
     SentimentSnapshot,
     connect,
@@ -51,7 +59,19 @@ MINIMUM_TREND_DAYS = 2
 # decides how quickly a fresh run reaches an already-open browser tab.
 CACHE_SECONDS = 900
 
-TOTAL_SEATS = 222
+
+@dataclass(frozen=True)
+class DashboardData:
+    """Everything one render of the page reads, fetched in a single pass.
+
+    Held together because the page is meaningless with only part of it, and
+    because Streamlit reruns the whole script per interaction — one cached
+    read beats three.
+    """
+
+    baseline: Sequence[SeatBaseline]
+    projections: Sequence[Projection]
+    snapshots: Sequence[SentimentSnapshot]
 
 
 @st.cache_resource
@@ -64,14 +84,12 @@ def _engine():
 
 
 @st.cache_data(ttl=CACHE_SECONDS)
-def _stored() -> tuple[
-    Sequence[SeatBaseline], Sequence[Projection], Sequence[SentimentSnapshot]
-]:
+def load_dashboard_data() -> DashboardData:
     engine = _engine()
-    return (
-        load_seat_baselines(engine),
-        load_projections(engine),
-        load_sentiment_snapshots(engine),
+    return DashboardData(
+        baseline=load_seat_baselines(engine),
+        projections=load_projections(engine),
+        snapshots=load_sentiment_snapshots(engine),
     )
 
 
@@ -81,16 +99,6 @@ def baseline_seat_totals(baseline: Sequence[SeatBaseline]) -> dict[Coalition, in
     for seat in baseline:
         totals[seat.winner] = totals.get(seat.winner, 0) + 1
     return totals
-
-
-def government_seats(
-    totals: Mapping[Coalition, int], config: SwingModelConfig
-) -> int:
-    return sum(
-        seats
-        for coalition, seats in totals.items()
-        if coalition in config.government_coalitions
-    )
 
 
 def seat_breakdown(
@@ -108,10 +116,11 @@ def seat_breakdown(
     rows = [
         {
             "Coalition": coalition,
-            "Bloc": (
-                "Government"
-                if coalition in config.government_coalitions
-                else "Opposition"
+            # CONTEXT.md's glossary has no word for "not in government", and
+            # tells us to avoid "bloc" and "opposition"; membership of the
+            # Government Coalition is the distinction it does define.
+            "Government Coalition": (
+                "Member" if coalition in config.government_coalitions else "—"
             ),
             "Baseline (GE15)": baseline_totals.get(coalition, 0),
             "Projected (GE16)": projected.get(coalition, 0),
@@ -141,31 +150,56 @@ def sentiment_trend(snapshots: Sequence[SentimentSnapshot]) -> pd.DataFrame:
     )
 
 
-def render_headline(projection: Projection, config: SwingModelConfig) -> None:
-    seats = government_seats(projection.coalition_seat_totals, config)
+def render_headline(
+    projection: Projection, total_seats: int, config: SwingModelConfig
+) -> None:
+    """The majority call and the seat count behind it, derived together.
+
+    The call is recomputed from the stored Seat totals rather than read from
+    `projection.government_majority`, so that the headline and the number
+    under it can never disagree. They could otherwise: the stored boolean was
+    decided against whatever Government Coalition membership `data/` held when
+    the pipeline ran, and that membership is deliberately editable (issue #1,
+    story 20 — DAP's congress is the live example). Edit it, and until the
+    next run a stored `True` would sit above a seat count well short of the
+    threshold. Where the two do diverge the page says so rather than quietly
+    picking one.
+    """
+    seats = government_seat_total(projection.coalition_seat_totals, config)
     threshold = config.majority_threshold
-    if projection.government_majority:
+    retains = seats >= threshold
+
+    if retains:
         st.success(
             f"### Government Coalition retains its Majority\n"
-            f"Projected **{seats} of {TOTAL_SEATS}** Seats — "
+            f"Projected **{seats} of {total_seats}** Seats — "
             f"{threshold} needed, a margin of {seats - threshold}."
         )
     else:
         st.error(
             f"### Government Coalition loses its Majority\n"
-            f"Projected **{seats} of {TOTAL_SEATS}** Seats — "
+            f"Projected **{seats} of {total_seats}** Seats — "
             f"{threshold} needed, short by {threshold - seats}."
+        )
+
+    if retains != projection.government_majority:
+        st.warning(
+            "Government Coalition membership has changed since this "
+            "Projection was computed. The Seat totals are as the Swing Model "
+            "left them; the Majority call above re-counts them under the "
+            "current membership. The next pipeline run reconciles the two."
         )
 
 
 def render_summary(
     projection: Projection,
     baseline_totals: Mapping[Coalition, int],
-    sentiment: SentimentSnapshot,
+    snapshot: SentimentSnapshot,
+    total_seats: int,
     config: SwingModelConfig,
 ) -> None:
-    projected = government_seats(projection.coalition_seat_totals, config)
-    at_ge15 = government_seats(baseline_totals, config)
+    projected = government_seat_total(projection.coalition_seat_totals, config)
+    at_ge15 = government_seat_total(baseline_totals, config)
     left, middle, right = st.columns(3)
     left.metric(
         "Government Coalition Seats",
@@ -176,11 +210,11 @@ def render_summary(
     middle.metric(
         "Majority threshold",
         config.majority_threshold,
-        help=f"More than half of the {TOTAL_SEATS} Seats in the Dewan Rakyat.",
+        help=f"More than half of the {total_seats} Seats in the Dewan Rakyat.",
     )
     right.metric(
         "Articles read",
-        sentiment.sentiment.total_articles,
+        snapshot.sentiment.total_articles,
         help="Coverage behind the latest Sentiment score. A Projection built "
         "on a handful of articles is a weaker signal than one built on many.",
     )
@@ -231,12 +265,35 @@ def render_trend(snapshots: Sequence[SentimentSnapshot]) -> None:
     )
 
 
-def render_sources(sentiment: SentimentSnapshot, updated: date) -> None:
-    st.subheader("Sources and method")
-    st.caption(f"Last updated **{updated:%-d %B %Y}** (Malaysian date).")
+def freshness(updated: date, today: date) -> str:
+    """How stale the last run is, in words.
 
-    sources = sentiment.sentiment.sources
-    counts = sentiment.sentiment.article_counts
+    Snapshots are dated to the day and carry no clock time, so "today" is the
+    most precise thing that can honestly be said of a fresh one. Days elapsed
+    is what story 4 actually wants from a daily pipeline anyway: it answers
+    whether a run has been missed.
+    """
+    days = (today - updated).days
+    if days <= 0:
+        return "today"
+    if days == 1:
+        return "yesterday"
+    return f"{days} days ago"
+
+
+def render_sources(snapshot: SentimentSnapshot) -> None:
+    st.subheader("Sources and method")
+    # Dated from the Sentiment snapshot itself, not from the Projection: these
+    # are the outlets that snapshot was built from, and mislabelling them with
+    # another day's date would be worse than showing no date at all.
+    st.caption(
+        f"Last updated **{snapshot.computed_at:%-d %B %Y}** "
+        f"({freshness(snapshot.computed_at, today_in_malaysia())}, "
+        "by the Malaysian day)."
+    )
+
+    sources = snapshot.sentiment.sources
+    counts = snapshot.sentiment.article_counts
     left, right = st.columns(2)
     with left:
         st.markdown("**Outlets read**")
@@ -281,13 +338,10 @@ are recorded in `docs/adr/`.
 def main() -> None:
     st.set_page_config(page_title="GE16 Projection", page_icon="🇲🇾", layout="wide")
     st.title("GE16 Projection")
-    st.caption(
-        "Malaysian political sentiment, tracked daily, projected onto the "
-        "222 Seats of the Dewan Rakyat. A model estimate, not an official "
-        "forecast."
-    )
 
-    baseline, projections, snapshots = _stored()
+    data = load_dashboard_data()
+    baseline, projections, snapshots = data.baseline, data.projections, data.snapshots
+
     if not baseline:
         st.warning(
             "No Seat Baseline in Storage. Run `python -m lpa.baseline_loader` "
@@ -301,18 +355,29 @@ def main() -> None:
         )
         return
 
-    latest, sentiment = projections[-1], snapshots[-1]
+    # The Seats counted, taken from the Baseline rather than written as 222:
+    # the Baseline is one row per Seat, and the Election Commission redraws
+    # the boundaries. A future redelineation should move this number by
+    # reloading the Baseline, not by editing the Dashboard.
+    total_seats = len(baseline)
+    st.caption(
+        f"Malaysian political sentiment, tracked daily, projected onto the "
+        f"{total_seats} Seats of the Dewan Rakyat. A model estimate, not an "
+        "official forecast."
+    )
+
+    latest, snapshot = projections[-1], snapshots[-1]
     baseline_totals = baseline_seat_totals(baseline)
     config = swing_model_config(load_coalition_config())
 
-    render_headline(latest, config)
-    render_summary(latest, baseline_totals, sentiment, config)
+    render_headline(latest, total_seats, config)
+    render_summary(latest, baseline_totals, snapshot, total_seats, config)
     st.divider()
     render_breakdown(baseline_totals, latest, config)
     st.divider()
     render_trend(snapshots)
     st.divider()
-    render_sources(sentiment, latest.computed_at)
+    render_sources(snapshot)
 
 
 # Called at import, not under an `if __name__ == "__main__"` guard as the other

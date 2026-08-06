@@ -20,7 +20,6 @@ snapshot, so a real pipeline run is never replaced by invented numbers.
 from __future__ import annotations
 
 import argparse
-import os
 import random
 from datetime import date, timedelta
 
@@ -33,7 +32,6 @@ from lpa.config import (
 )
 from lpa.pipeline import today_in_malaysia
 from lpa.storage import (
-    DEFAULT_DATABASE_URL,
     connect,
     load_seat_baselines,
     load_sentiment_snapshots,
@@ -52,6 +50,10 @@ fortnight."""
 SENTIMENT_LIMIT = 0.6
 """Scores stay well inside the model's -1..+1 range: real aggregated
 Sentiment is an average over many Articles and rarely approaches the ends."""
+
+ARTICLES_PER_COALITION = 5
+"""Roughly what a real day's scrape yields per Coalition, so the dashboard's
+"Articles read" metric shows a plausible number rather than a suspicious one."""
 
 
 def seeded_sentiment_history(
@@ -75,14 +77,16 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    url = os.environ.get("DATABASE_URL") or DEFAULT_DATABASE_URL
-    if not url.startswith("sqlite"):
+    # Resolved by `connect` from DATABASE_URL, then checked — rather than
+    # reading the environment here, which would be a second place for the two
+    # to disagree about which database is being written to.
+    engine = connect()
+    if engine.dialect.name != "sqlite":
         raise SystemExit(
-            f"Refusing to seed invented Sentiment into {url.split('://')[0]}. "
+            f"Refusing to seed invented Sentiment into {engine.dialect.name}. "
             "This script is for a local SQLite database only."
         )
 
-    engine = connect(url)
     baseline = load_seat_baselines(engine)
     if not baseline:
         raise SystemExit(
@@ -107,8 +111,10 @@ def main() -> None:
             continue
         sentiment = AggregatedSentiment(
             scores=scores,
-            article_counts={c: 5 for c in scores},
-            total_articles=5 * len(scores),
+            article_counts={
+                coalition: ARTICLES_PER_COALITION for coalition in scores
+            },
+            total_articles=ARTICLES_PER_COALITION * len(scores),
             sources=sources,
         )
         save_snapshot(
