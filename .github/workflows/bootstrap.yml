@@ -13,6 +13,16 @@ name: Load Seat Baseline
 on:
   workflow_dispatch:
 
+# Shares the daily pipeline's group: this replaces the Baseline wholesale,
+# and a pipeline reading it halfway through would project against a partial
+# one.
+concurrency:
+  group: storage-write
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
 jobs:
   load:
     runs-on: ubuntu-latest

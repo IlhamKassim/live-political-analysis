@@ -233,10 +233,12 @@ fi
 printf '  %s✓%s repository %s%s%s\n' "$GREEN" "$RESET" "$BOLD" "$REPO" "$RESET"
 say ""
 
-if [[ "$GH_USER" != "IlhamKassim" ]]; then
-  warn "gh is authenticated as '$GH_USER', not IlhamKassim."
-  note "You have two GitHub accounts on this machine. The secret must be set"
-  note "on the account that owns $REPO, or the Actions runs will not see it."
+REPO_OWNER="${REPO%%/*}"
+if [[ "$GH_USER" != "$REPO_OWNER" ]]; then
+  warn "gh is authenticated as '$GH_USER', but $REPO belongs to '$REPO_OWNER'."
+  note "If you have more than one GitHub account on this machine, the secret"
+  note "must be set on the one that owns the repository, or the Actions runs"
+  note "will not see it."
   confirm "Carry on as $GH_USER anyway?" || {
     say "Switch with:  gh auth switch"
     exit 1
@@ -259,9 +261,12 @@ step "Sign up (choosing 'Continue with GitHub' is the fewest clicks)."
 step "When it asks, create a project. Any name is fine — 'live-political-analysis'."
 step "Pick the region closest to you; it does not matter for a daily job."
 say ""
-step "After the project is created you land on its dashboard, which shows a"
-step "  'Connection string' box with a Copy button. Click it."
-note "It looks like:  postgresql://user:PASSWORD@ep-something.aws.neon.tech/neondb?sslmode=require"
+step "You land on the project dashboard. Find the connection string: at the"
+step "  time of writing it is behind a 'Connect' button there, which opens a"
+step "  panel with the string and a copy icon. If the layout has moved, look"
+step "  for 'Connection string' or 'Connection details'."
+note "You want the URI form, not a psql command line. It looks like:"
+note "  postgresql://user:PASSWORD@ep-something.aws.neon.tech/neondb?sslmode=require"
 note "Paste it exactly as Neon gives it to you — no editing. The project"
 note "rewrites the driver prefix itself."
 say ""
@@ -286,6 +291,57 @@ note "That is now a GitHub Actions secret. It is not written to disk anywhere"
 note "in this repository, so keep the Neon tab open — stage 6 needs it again."
 pause "Continue"
 
+# run_workflow FILE "Label" "success message" — dispatch a workflow and watch
+# the run it actually started.
+#
+# The run id is not simply "the latest": GitHub registers a dispatched run a
+# few seconds after accepting it, so the newest run right afterwards is
+# usually the *previous* one. Taking it would watch a finished run and report
+# its old result as this one's — a green tick for something that never ran.
+# So: remember the newest id first, then wait for a different one to appear.
+run_workflow() {
+  local file="$1" label="$2" success="$3" before after waited=0
+
+  before=$(gh run list --workflow="$file" --limit 1 --json databaseId \
+             --jq '.[0].databaseId // 0' 2>/dev/null || echo 0)
+
+  if ! gh workflow run "$file" >/dev/null 2>&1; then
+    warn "Could not trigger $label."
+    note "The usual cause is that .github/workflows/$file is not on the"
+    note "default branch yet. Push it, then re-run this wizard."
+    SKIPPED+=("Run $label: gh workflow run $file")
+    return 1
+  fi
+  printf '  %s✓%s triggered\n' "$GREEN" "$RESET"
+
+  printf '  %swaiting for GitHub to register the run' "$DIM"
+  while (( waited < 60 )); do
+    after=$(gh run list --workflow="$file" --limit 1 --json databaseId \
+              --jq '.[0].databaseId // 0' 2>/dev/null || echo 0)
+    [[ "$after" != "$before" && "$after" != "0" ]] && break
+    printf '.'
+    sleep 3
+    waited=$((waited + 3))
+  done
+  printf '%s\n' "$RESET"
+
+  if [[ "$after" == "$before" || "$after" == "0" ]]; then
+    warn "The run did not appear within a minute."
+    note "It may still be queued. Check: gh run list --workflow=$file"
+    SKIPPED+=("Confirm $label succeeded: gh run list --workflow=$file")
+    return 1
+  fi
+
+  if gh run watch "$after" --exit-status; then
+    printf '  %s✓%s %s\n' "$GREEN" "$RESET" "$success"
+    return 0
+  fi
+  warn "That run failed. Its log:"
+  note "  gh run view $after --log-failed"
+  SKIPPED+=("Re-run $label once the failure is fixed: gh workflow run $file")
+  return 1
+}
+
 # ── 3 ─────────────────────────────────────────────────────────────────────
 stage "Load the GE15 Baseline into it" 4
 say "The database is empty, and the pipeline refuses to run without the"
@@ -293,55 +349,32 @@ say "Baseline — the 222 GE15 Seat results every Projection is computed from."
 say "One workflow does that, by hand, once."
 say ""
 
-if ! confirm "Trigger the 'Load Seat Baseline' workflow now?"; then
-  SKIPPED+=("Run the 'Load Seat Baseline' workflow: gh workflow run bootstrap.yml")
-  warn "Skipped. The pipeline will fail until this has run."
+if confirm "Trigger the 'Load Seat Baseline' workflow now?"; then
+  run_workflow bootstrap.yml "the Baseline loader" "Baseline loaded — 222 Seats" || true
 else
-  if gh workflow run bootstrap.yml >/dev/null 2>&1; then
-    printf '  %s✓%s triggered\n' "$GREEN" "$RESET"
-    say "Waiting for it to finish (usually about a minute)..."
-    sleep 8
-    gh run watch "$(gh run list --workflow=bootstrap.yml --limit 1 --json databaseId --jq '.[0].databaseId')" --exit-status \
-      && printf '  %s✓%s Baseline loaded — 222 Seats\n' "$GREEN" "$RESET" \
-      || { warn "That run failed. Open the log below, fix it, and re-run this stage."
-           gh run list --workflow=bootstrap.yml --limit 1
-           SKIPPED+=("Re-run the Load Seat Baseline workflow once the failure is fixed") ; }
-  else
-    warn "Could not trigger the workflow."
-    note "The usual cause is that .github/workflows/bootstrap.yml is not on the"
-    note "default branch yet. Push it, then re-run this wizard."
-    SKIPPED+=("Run the 'Load Seat Baseline' workflow")
-  fi
+  SKIPPED+=("Run the Baseline loader: gh workflow run bootstrap.yml")
+  warn "Skipped. The pipeline will fail until this has run."
 fi
 pause "Continue"
 
 # ── 4 ─────────────────────────────────────────────────────────────────────
-stage "Prove the daily pipeline runs unattended" 5
-say "This is issue #7's real acceptance test: the scheduled workflow running"
-say "start to finish with nobody helping it, and a snapshot appearing after."
+stage "Run the pipeline on GitHub" 5
+say "Now the pipeline itself, on GitHub's runners rather than your machine,"
+say "reading the secret you just set and writing to Neon."
 say ""
-note "The schedule is 15:00 UTC — 23:00 in Malaysia, late enough in the"
-note "Malaysian day that the snapshot covers the coverage it is dated for."
-note "This run is the same workflow, triggered by hand so you needn't wait."
+note "This is a manual trigger of the same workflow the schedule runs. It"
+note "proves the workflow, the secret and the database all work — it does"
+note "not prove the cron fires, which only tomorrow can. The last stage"
+note "tells you how to check that."
 say ""
 warn "It downloads the sentiment model on the first run, so expect 5-10"
 warn "minutes. Later runs hit the cache and are much quicker."
 say ""
 
-if ! confirm "Trigger the daily pipeline now?"; then
-  SKIPPED+=("Run the daily pipeline: gh workflow run daily.yml")
+if confirm "Trigger the daily pipeline now?"; then
+  run_workflow daily.yml "the daily pipeline" "the pipeline ran and stored a snapshot" || true
 else
-  if gh workflow run daily.yml >/dev/null 2>&1; then
-    printf '  %s✓%s triggered\n' "$GREEN" "$RESET"
-    sleep 8
-    gh run watch "$(gh run list --workflow=daily.yml --limit 1 --json databaseId --jq '.[0].databaseId')" --exit-status \
-      && printf '  %s✓%s the pipeline ran and stored a snapshot\n' "$GREEN" "$RESET" \
-      || { warn "That run failed — see the log above."
-           SKIPPED+=("Re-run the daily pipeline once the failure is fixed") ; }
-  else
-    warn "Could not trigger the workflow. Is .github/workflows/daily.yml pushed?"
-    SKIPPED+=("Run the daily pipeline")
-  fi
+  SKIPPED+=("Run the daily pipeline: gh workflow run daily.yml")
 fi
 pause "Continue"
 
@@ -369,8 +402,8 @@ pause "Form filled in?"
 # ── 6 ─────────────────────────────────────────────────────────────────────
 stage "Give the app its database, and deploy" 3
 say "The dashboard reads the same Neon database the pipeline writes to."
-say "Community Cloud has no environment variables — it has per-app secrets,"
-say "in TOML — so the connection string goes in there."
+say "Community Cloud configures an app through per-app secrets, written in"
+say "TOML, so the connection string goes in there."
 say ""
 step "Still in 'Advanced settings', find the 'Secrets' box."
 step "Paste this one line, with your Neon string in the quotes:"
@@ -382,6 +415,12 @@ note "Your Neon string is still on the clipboard from stage 2, or in the"
 note "Neon tab you left open."
 say ""
 step "Now click Deploy. The first build takes a few minutes."
+say ""
+note "If the build log fails while installing dependencies, open"
+note "requirements.txt and replace its single line with the packages spelt"
+note "out — streamlit, pandas, altair, sqlalchemy, httpx, psycopg[binary] —"
+note "then push. That line installs this project from the repository root,"
+note "which is the one thing here that could not be tested in advance."
 pause "Deployed?"
 
 say ""
@@ -410,7 +449,17 @@ note "  - 23:00 Malaysian time daily, the pipeline scrapes, scores and stores."
 note "  - The dashboard reads that database, so it follows along by itself."
 note "  - Pushing to main redeploys the dashboard."
 printf '\n'
-note "Watch a run:      gh run list --workflow=daily.yml"
+printf '  %sOne thing left, and only tomorrow can do it:%s\n' "$BOLD" "$RESET"
+note "  Nothing so far has proved the *schedule* fires — every run above was"
+note "  triggered by hand. After the next 23:00 Malaysian time, check that a"
+note "  run appears with 'schedule' as its trigger:"
+note "      gh run list --workflow=daily.yml"
+note "  That is the run history issue #7 actually asks for."
+printf '\n'
+note "  Also worth knowing: GitHub disables a scheduled workflow after 60"
+note "  days with no commits. If the pipeline goes quiet, re-enable it from"
+note "  the Actions tab."
+printf '\n'
 note "Run it now:       gh workflow run daily.yml"
 if [[ -n "${APP_URL:-}" ]]; then
   note "The dashboard:    $APP_URL"

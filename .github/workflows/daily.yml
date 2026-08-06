@@ -6,6 +6,10 @@
 # day's row rather than adding a second answer for it, so a manual re-run
 # after a failure is always safe.
 #
+# GitHub disables a scheduled workflow after 60 days with no commits to the
+# repository, so a quiet stretch stops the pipeline silently. Re-enable it
+# from the Actions tab; any commit resets the clock.
+#
 # Free on GitHub's hosted runners because the repository is public. Nothing
 # here calls a paid API: the sentiment model is downloaded once and cached,
 # and inference is local CPU.
@@ -22,8 +26,13 @@ on:
 # Two runs writing the same day's row would race for it. Later wins, because
 # the later run has read more of the day.
 concurrency:
-  group: pipeline
+  group: storage-write
   cancel-in-progress: false
+
+# Read the checkout, nothing else. The pipeline's only write goes to the
+# database over the network, and never to the repository.
+permissions:
+  contents: read
 
 jobs:
   run:
@@ -44,7 +53,11 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/huggingface
-          key: huggingface-${{ hashFiles('src/lpa/sentiment.py') }}
+          # Keyed on the model name, not on the file that names it: any
+          # unrelated edit to sentiment.py would otherwise throw away a few
+          # hundred MB of weights that had not changed. Update this when
+          # DEFAULT_MODEL changes.
+          key: huggingface-twitter-xlm-roberta-base-sentiment
           restore-keys: huggingface-
 
       - name: Install

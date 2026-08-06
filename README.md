@@ -129,9 +129,13 @@ enough in the Malaysian day that a snapshot covers the day it is dated for.
 `bootstrap.yml` loads the Baseline and is run by hand, once, because the
 Baseline is historical fact rather than daily data.
 
-The connection string a provider gives you works as-is: `connect` names the
-driver itself, so `postgresql://…` does not have to be hand-edited into
-`postgresql+psycopg://…`.
+The connection string a provider gives you works as-is:
+`storage.normalise_database_url` names the driver, so `postgresql://…` does
+not have to be hand-edited into `postgresql+psycopg://…`.
+
+GitHub disables a scheduled workflow after 60 days with no commits to the
+repository. If snapshots stop appearing during a quiet stretch, that is the
+first thing to check.
 
 ## Tests
 
