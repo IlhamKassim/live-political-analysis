@@ -132,7 +132,14 @@ class Article:
     source: str
     """The outlet's name, e.g. "Free Malaysia Today"."""
     url: str
-    published_at: datetime
+    published_at: datetime | None
+    """When the outlet published it, where the feed says so.
+
+    Optional because some feeds carry no date at all — Bernama's is one, and
+    it is the national news agency, too central to drop over a missing field.
+    `None` means unknown and is never a guess: an invented date would be worse
+    than no date, since it would be indistinguishable from a real one.
+    """
     title: str
     text: str
     """The article body as plain text, ready for the Sentiment Scorer."""

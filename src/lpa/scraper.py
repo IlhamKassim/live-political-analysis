@@ -47,8 +47,10 @@ class UnreadableFeed(Exception):
 def parse_feed(feed_xml: str | bytes, source: str) -> list[Article]:
     """Turn an RSS or Atom feed into Article records. Pure — no network.
 
-    Items missing a link, a title or a usable date are skipped rather than
-    guessed at: a wrong `published_at` would misdate a whole day's Sentiment.
+    Items missing a link or a title are skipped — there is no Article without
+    them. A missing date is kept as `None` rather than guessed at: a wrong
+    `published_at` would misdate a whole day's Sentiment, but an honestly
+    absent one misdates nothing, and Bernama's feed dates no item at all.
     A document in neither format raises, because an outlet that has quietly
     changed format would otherwise look like an outlet with no news.
     """
@@ -63,7 +65,7 @@ def parse_feed(feed_xml: str | bytes, source: str) -> list[Article]:
     articles = []
     for entry in entries:
         url, title, published_at, body = read(entry)
-        if not (url and title and published_at):
+        if not (url and title):
             continue
         articles.append(
             Article(
@@ -272,7 +274,11 @@ def main() -> None:
                 {
                     "source": article.source,
                     "url": article.url,
-                    "published_at": article.published_at.isoformat(),
+                    "published_at": (
+                        article.published_at.isoformat()
+                        if article.published_at
+                        else None
+                    ),
                     "title": article.title,
                     "text": article.text[:200],
                 },
