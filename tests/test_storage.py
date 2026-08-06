@@ -14,9 +14,36 @@ from lpa.storage import (
     connect,
     load_poll_calibrations,
     load_seat_baselines,
+    normalise_database_url,
     save_poll_calibrations,
     save_seat_baselines,
 )
+
+
+def test_a_hosted_postgres_url_gains_the_driver_this_project_installs():
+    # What Neon and Supabase put on the clipboard. SQLAlchemy reads a bare
+    # postgresql:// as psycopg2, which is not a dependency here, so pasting
+    # the URL verbatim would fail on a missing driver rather than on
+    # anything true about the database.
+    assert normalise_database_url(
+        "postgresql://user:pw@ep-x.aws.neon.tech/lpa?sslmode=require"
+    ) == "postgresql+psycopg://user:pw@ep-x.aws.neon.tech/lpa?sslmode=require"
+
+
+def test_the_older_postgres_scheme_is_accepted_too():
+    # SQLAlchemy 2 rejects postgres:// outright, and it is still what some
+    # providers and older docs hand out.
+    assert normalise_database_url("postgres://user:pw@host/db").startswith(
+        "postgresql+psycopg://"
+    )
+
+
+def test_a_url_that_already_names_its_driver_is_left_alone():
+    for url in (
+        "postgresql+psycopg://user:pw@host/db",
+        "sqlite+pysqlite:///lpa.db",
+    ):
+        assert normalise_database_url(url) == url
 
 
 def test_running_the_loader_twice_leaves_one_copy_of_each_seat():

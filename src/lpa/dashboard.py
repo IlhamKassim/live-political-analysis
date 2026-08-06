@@ -79,13 +79,33 @@ class DashboardData:
     calibrations: Sequence[PollCalibration]
 
 
+def _database_url() -> str | None:
+    """The database to read, where the hosting platform supplies one.
+
+    Streamlit Community Cloud has no way to set an environment variable; its
+    per-app configuration is `st.secrets` (issue #9). Read that first and let
+    `connect` fall back to `DATABASE_URL` and then to local SQLite, so the
+    same module serves the deployed app and a local checkout unchanged.
+
+    Broad except: with no secrets configured at all, accessing `st.secrets`
+    raises rather than returning empty, and the version that introduced that
+    behaviour is not something this page should depend on. Every failure here
+    means the same thing — no secret was supplied — and the fallbacks handle
+    it.
+    """
+    try:
+        return st.secrets["DATABASE_URL"]
+    except Exception:
+        return None
+
+
 @st.cache_resource
 def _engine():
     """One engine per server process, not one per rerun.
 
     Streamlit re-executes this module top to bottom on every interaction.
     """
-    return connect()
+    return connect(_database_url())
 
 
 @st.cache_data(ttl=CACHE_SECONDS)

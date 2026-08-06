@@ -1,0 +1,35 @@
+# Load the GE15 Seat Baseline into the configured database (issue #7).
+#
+# Separate from the daily pipeline and never scheduled, because the Baseline
+# is historical fact loaded once (ADR 0001), not daily data. The pipeline
+# refuses to run without it, so this is what a new database needs before its
+# first run.
+#
+# Run by hand from the Actions tab, or by the setup wizard. Safe to repeat:
+# the write replaces the stored Baseline wholesale, so running it twice
+# leaves 222 rows rather than 444.
+name: Load Seat Baseline
+
+on:
+  workflow_dispatch:
+
+jobs:
+  load:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install
+        # No sentiment extra: loading the Baseline scores nothing, so this
+        # job has no reason to pull torch.
+        run: pip install -e ".[postgres]"
+
+      - name: Load the Baseline
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m lpa.baseline_loader
