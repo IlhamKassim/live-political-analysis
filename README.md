@@ -108,6 +108,35 @@ latest report, whether or not it could be drawn.
 Reads are cached for 15 minutes, so a pipeline run that finishes while a tab
 is open takes up to that long to appear.
 
+## Deploying it
+
+Two moving parts, both free: a scheduled GitHub Action runs the pipeline daily
+against a hosted Postgres, and Streamlit Community Cloud serves the dashboard
+from that same database.
+
+Both need accounts, so the setup is a wizard rather than a list of steps:
+
+```sh
+scripts/setup_deployment.sh
+```
+
+It creates the Neon Postgres, sets the `DATABASE_URL` Actions secret, loads
+the Baseline and runs the pipeline on GitHub to prove the schedule works, then
+walks through the Streamlit deploy. Stop and re-run it at any point.
+
+`.github/workflows/daily.yml` runs at 15:00 UTC — 23:00 in Malaysia, late
+enough in the Malaysian day that a snapshot covers the day it is dated for.
+`bootstrap.yml` loads the Baseline and is run by hand, once, because the
+Baseline is historical fact rather than daily data.
+
+The connection string a provider gives you works as-is:
+`storage.normalise_database_url` names the driver, so `postgresql://…` does
+not have to be hand-edited into `postgresql+psycopg://…`.
+
+GitHub disables a scheduled workflow after 60 days with no commits to the
+repository. If snapshots stop appearing during a quiet stretch, that is the
+first thing to check.
+
 ## Tests
 
 ```sh

@@ -5,3 +5,8 @@ __pycache__/
 *.egg-info/
 dist/
 *.db
+
+# Never commit a database credential. The setup wizard does not write one
+# here, but nothing should be able to arrive in the repo by accident.
+.env
+.streamlit/secrets.toml

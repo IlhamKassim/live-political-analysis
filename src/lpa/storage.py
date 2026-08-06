@@ -40,6 +40,33 @@ from lpa.poll_calibration import LeaderRating, PollCalibration
 
 DEFAULT_DATABASE_URL = "sqlite+pysqlite:///lpa.db"
 
+POSTGRES_DRIVER = "postgresql+psycopg"
+"""The driver the `postgres` extra installs, named explicitly in the URL.
+
+SQLAlchemy reads a bare `postgresql://` as psycopg2, which this project does
+not depend on, so the URL every hosted Postgres hands out would fail on a
+missing driver rather than on anything true about the database.
+"""
+
+
+def normalise_database_url(url: str) -> str:
+    """Name the driver in a Postgres URL that does not name one.
+
+    Hosted Postgres providers hand out `postgresql://…` (Neon, Supabase) or
+    the older `postgres://…` (Heroku's scheme, which SQLAlchemy 2 rejects
+    outright). Both are pasted straight from a dashboard into a secret by a
+    human who has no reason to know this project's driver, so the URL is
+    corrected here rather than in the instructions — the alternative is a
+    hand-edited connection string, which is one more thing to get wrong at
+    the exact moment nothing else is working yet.
+
+    Anything already naming a driver, SQLite included, is returned untouched.
+    """
+    for scheme in ("postgresql://", "postgres://"):
+        if url.startswith(scheme):
+            return f"{POSTGRES_DRIVER}://{url[len(scheme):]}"
+    return url
+
 metadata = MetaData()
 
 seat_baseline = Table(
@@ -115,7 +142,7 @@ class SentimentSnapshot:
 def connect(database_url: str | None = None) -> Engine:
     """Open the database named by `database_url`, or by `DATABASE_URL`."""
     url = database_url or os.environ.get("DATABASE_URL") or DEFAULT_DATABASE_URL
-    engine = create_engine(url)
+    engine = create_engine(normalise_database_url(url))
     metadata.create_all(engine)
     return engine
 

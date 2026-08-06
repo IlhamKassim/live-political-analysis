@@ -1,0 +1,12 @@
+# Streamlit Community Cloud installs this file when it builds the app
+# (issue #9). It is not how a developer sets the project up — see README.md,
+# which uses the extras below directly.
+#
+# Installing the project itself is the point: the app file is
+# src/lpa/dashboard.py and imports `lpa.*`, which is only importable because
+# this line puts the package on the path.
+#
+# `sentiment` is deliberately absent. The dashboard only reads Storage — the
+# pipeline does the scoring — so the deployed app has no reason to pull torch,
+# and Community Cloud has a resource budget worth not spending on it.
+.[dashboard,postgres]
