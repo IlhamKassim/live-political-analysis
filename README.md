@@ -145,5 +145,14 @@ Other known limitations, each documented at its site in the code:
   be fixed before any projected *margin* is published.
 - Sentiment is an unweighted mean over articles, so a prolific outlet counts
   for more than a quiet one.
+- Five of the seven outlets named in issue #1 are read, not all seven. The
+  Star publishes no working feed and Sinar Daily's robots.txt forbids its
+  one; both reasons are recorded in `data/outlets.json`.
+- All five are English editions, so News Sentiment is currently blind to
+  Malay-language coverage even though the model reads it. Bernama's Malay
+  feed — the only one among the named outlets — has been answering 500.
+- Bernama's feed dates no article, so those Articles carry no
+  `published_at`. Nothing reads the field yet; anything that starts to must
+  handle its absence.
 - Only Coalition-level totals ship. Seat-Level Projection is deferred until the
   Swing Model is validated ([ADR 0001](docs/adr/0001-seat-level-baseline-with-coalition-first-projection.md)).

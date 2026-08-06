@@ -77,8 +77,10 @@ def test_escaped_markup_does_not_survive_as_live_markup():
     assert "<" not in strip_html("&lt;b&gt;bold&lt;/b&gt;")
 
 
-def test_an_item_without_a_date_is_skipped_rather_than_guessed_at():
-    # A wrong published_at would misdate a whole day of Sentiment.
+def test_an_item_without_a_date_is_kept_with_no_date_rather_than_guessed_at():
+    # Bernama's feed dates nothing, and it is the national news agency. An
+    # invented published_at would misdate a whole day of Sentiment and be
+    # indistinguishable from a real one; None says plainly that it is unknown.
     feed = """<rss><channel>
       <item><title>Dated</title><link>https://x/1</link>
         <pubDate>Wed, 05 Aug 2026 16:13:00 +0000</pubDate>
@@ -87,7 +89,22 @@ def test_an_item_without_a_date_is_skipped_rather_than_guessed_at():
         <description>body</description></item>
     </channel></rss>"""
 
-    assert [a.title for a in parse_feed(feed, "X")] == ["Dated"]
+    articles = parse_feed(feed, "X")
+
+    assert [a.title for a in articles] == ["Dated", "Undated"]
+    assert articles[1].published_at is None
+
+
+def test_an_item_without_a_link_or_a_title_is_still_skipped():
+    # There is no Article without them, dated or not.
+    feed = """<rss><channel>
+      <item><title>No link</title><description>body</description></item>
+      <item><link>https://x/2</link><description>body</description></item>
+      <item><title>Whole</title><link>https://x/3</link>
+        <description>body</description></item>
+    </channel></rss>"""
+
+    assert [a.title for a in parse_feed(feed, "X")] == ["Whole"]
 
 
 def test_an_atom_feed_is_read_too():

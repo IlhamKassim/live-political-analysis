@@ -4,12 +4,49 @@
     "Feed URLs only — the Scraper does not crawl article pages (issue #1,",
     "story 21: respect robots.txt and rate limits). Issue #1 names FMT, Malay",
     "Mail, NST, The Star, The Vibes, Sinar Daily and Bernama; only outlets",
-    "whose feed has been verified to work are listed here."
+    "whose feed has been verified to work are listed here.",
+    "",
+    "Two of the seven are absent, each for its own reason (issue #11).",
+    "Re-check before assuming either is still true:",
+    "",
+    "- The Star: no working feed. Its own RSS directory page at",
+    "  /news/nation/rss advertises ~30 feeds, and every one of them returns",
+    "  404 — the directory is stale, not our request. Verified not to be",
+    "  user-agent dependent: a browser user agent gets the same 404.",
+    "- Sinar Daily: robots.txt disallows /rss and /rssFeed/* for every user",
+    "  agent but Facebook's. Story 21 says we respect that, so there is",
+    "  nothing to do here unless they change the rules.",
+    "",
+    "Every feed here is an English edition, so there is no Bahasa Malaysia",
+    "coverage despite the model being multilingual (story 22). Bernama's",
+    "Malay edition is the only Malay feed among the outlets story 9 names,",
+    "and /bm/rssfeed.php — the one URL its own site advertises — answers 500",
+    "consistently. Closing that gap needs an outlet story 9 does not name.",
+    "",
+    "Bernama dates no item in its feed, so its Articles carry no",
+    "published_at. Why that is kept rather than guessed at is on the field",
+    "itself, in domain.py."
   ],
   "outlets": [
     {
       "name": "Free Malaysia Today",
       "feed_url": "https://www.freemalaysiatoday.com/feed/"
+    },
+    {
+      "name": "Malay Mail",
+      "feed_url": "https://www.malaymail.com/feed/rss"
+    },
+    {
+      "name": "New Straits Times",
+      "feed_url": "https://www.nst.com.my/feed"
+    },
+    {
+      "name": "The Vibes",
+      "feed_url": "https://www.thevibes.com/rss"
+    },
+    {
+      "name": "Bernama",
+      "feed_url": "https://www.bernama.com/en/rssfeed.php"
     }
   ]
 }
