@@ -14,13 +14,17 @@ touching anything.
 | Label | `ready-for-agent` |
 | Docs PR | **#18** — merged 9 Aug 2026 |
 | Both decisions | **Settled** 9 Aug 2026, recorded as a comment on #17 |
-| Next action | **Write ADR 0005 and ADR 0006**, then start Step 2 of the workflow at the end of this file. |
+| Steps 1–2 | **Done** 9 Aug 2026 — ADRs 0005 and 0006 written, per-Seat calls carried through to Storage |
+| Next action | **Step 3** of the workflow at the end of this file: build the page from the mockup against real Storage. |
 
-The two decisions that used to block this are answered:
+The two decisions that used to block this are answered, and both are now ADRs:
 
 1. **The chamber renders named Seats with per-Seat calls**, not Coalition
-   totals alone. This supersedes ADR 0001 — **ADR 0005** records that.
-2. **The public page is static HTML**, not Streamlit. **ADR 0006** records that.
+   totals alone —
+   [ADR 0005](../adr/0005-publish-the-seat-level-projection.md), which
+   supersedes ADR 0001.
+2. **The public page is static HTML**, not Streamlit —
+   [ADR 0006](../adr/0006-static-html-for-the-public-page.md).
    `src/lpa/dashboard.py` stays as the internal view; it is not deleted and not
    redesigned.
 
@@ -28,6 +32,23 @@ Both are written up in full, with what they require and the constraint on
 presenting per-Seat calls, in the *Decisions settled* comment on #17. Read it —
 it is the authority, and the sections below still describe the pre-decision
 state where they conflict.
+
+## What Step 2 built, and what Step 3 can now read
+
+`Projection.seat_calls` carries a `SeatCall` per Seat — `code`, the `coalition`
+projected to take it, and the projected `margin` over the runner-up. Name and
+state are *not* on it; they come from `SeatBaseline` by joining on `code`, which
+the page needs loaded anyway to show GE15 against the Projection.
+
+- `load_projections(engine)` attaches the calls to the newest Projection and
+  leaves every earlier one's `seat_calls` empty. That is deliberate, not a
+  gap — Storage keeps per-Seat rows for the latest Projection only.
+- Margins are taken from shares floored at zero and rescaled to their Baseline
+  total, so a margin is always a real share of the vote. A margin of exactly
+  `0.0` means a dead heat held on the Baseline.
+- Against the real 222-Seat Baseline as of 9 Aug 2026: **41 Seats fall inside
+  six points.** The hollow-ring encoding is carrying about a fifth of the
+  chamber, which is the argument for it.
 
 ## What exists
 
@@ -125,7 +146,9 @@ host it. Note the zero-cost constraint in ADR 0002 binds this choice.
    safest-Opposition, but the sort is bloc-first (GPS, GRS, BN, PH) and
    safest-first *within* each bloc, so BN's marginals sit mid-left rather than
    at the contest line. Either sort globally by margin and lose contiguous
-   blocs, or rewrite the caption. (Moot if Open decision 1 resolves to (b).)
+   blocs, or rewrite the caption. **Live**, and now a real design choice rather
+   than a caption bug: the decision went to per-Seat calls, so `SeatCall.margin`
+   makes a global sort by margin genuinely available.
 2. **Contrast failure, light mode.** `--ink-faint` `#8A8D83` on `--ground`
    `#E9EAE4` is **2.79:1**; it carries every eyebrow, the tally label, the
    colophon headings and the seat key. Needs 4.5:1 — approximately `#6C6F66`.
@@ -163,7 +186,9 @@ Treat any number that cannot be traced to Storage or to `data/` as a bug.
   Swing, Projection, Election Status — use them as `CONTEXT.md` defines them, in
   code and in user-visible copy. "Win" is specifically avoided because a
   Coalition can lead without a Majority.
-- **ADR 0001** — Coalition-level Projection only, for now.
+- **ADR 0005** — per-Seat calls are published, but a call is arithmetic against
+  GE15 under a state-uniform Swing, never a judgement about that Seat. The page
+  must not imply otherwise. (Supersedes ADR 0001.)
 - **ADR 0002** — zero recurring cost. No paid hosting, no paid fonts, no CDN.
 - **ADR 0003** — `sentiment_sensitivity` (0.10) and `state_signal_weight` (0.5)
   are judgement, not fitted. The page must not imply forecast precision.
@@ -221,7 +246,7 @@ Applied to this piece of work:
 | Step | Work | Owner | Model / effort |
 | --- | --- | --- | --- |
 | ~~1~~ | ~~Settle the two decisions~~ — **done 9 Aug 2026**, see #17 | — | — |
-| 2 | ADR 0005 (per-Seat Projection, supersedes 0001) and ADR 0006 (static publishing). Then carry per-Seat calls and margins through `swing_model` → `Projection` → `storage`. Test-first, branch off `main`. | Agent | Opus or Sonnet, medium-high |
+| ~~2~~ | ~~ADR 0005, ADR 0006, and per-Seat calls through `swing_model` → `Projection` → `storage`~~ — **done 9 Aug 2026** | — | — |
 | 3 | Build the page from the mockup against real Storage data. | Agent | Opus, high — this is design execution |
 | 4 | `/code-review`, then fix findings. | Agent | inherits |
 | 5 | Run it for real: empty database, one day of history, 375px and 1440px, both themes, all three Election Status states. | **User** and agent together | — |

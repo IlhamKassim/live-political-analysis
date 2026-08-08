@@ -14,17 +14,16 @@ Method — uniform national swing, per ADR 0001:
    swing all 222 Seats. Seats in states that have not voted move on Sentiment
    alone.
 3. The resulting Swing is applied uniformly to each Seat's Baseline shares
-   within its state, and each Seat is called for whichever Coalition leads.
+   within its state, and each Seat is called for whichever Coalition leads, by
+   whatever margin.
 4. Seats are tallied per Coalition; the Government Coalition holds a Majority
    if its combined total clears `majority_threshold`.
 
-Step 3 re-calls Seats internally but only Coalition-level totals are published;
-Seat-Level Projection is deferred until the model is validated (ADR 0001).
-
-Known limitation: projected shares are not clamped or renormalised, so a large
-Swing can drive a trailing Coalition below zero. That cannot affect which
-Coalition leads a Seat, and so cannot affect a Projection — but it must be
-addressed before any projected margin is published.
+Both the per-Seat calls and the totals are published, the totals being the
+tally of the calls (ADR 0005, superseding ADR 0001). The Swing is uniform
+within a state, so a Seat's call is its GE15 margin measured against one
+state-level figure and nothing else — see ADR 0005 for what that means for how
+a call may be presented.
 """
 
 from __future__ import annotations
@@ -39,6 +38,7 @@ from lpa.domain import (
     leading_coalition,
     Projection,
     SeatBaseline,
+    SeatCall,
     StateElectionSignal,
     SwingModelConfig,
 )
@@ -58,18 +58,20 @@ def swing_model(
     stays pure and its output reproducible.
     """
     swing_by_state = _swing_by_state(baseline, sentiment, state_election_signals, config)
+    calls = tuple(
+        _call_seat(seat, swing_by_state[seat.state]) for seat in baseline
+    )
     totals: Counter[Coalition] = Counter(
         {coalition: 0 for seat in baseline for coalition in seat.vote_share}
     )
-    totals.update(
-        _projected_winner(seat, swing_by_state[seat.state]) for seat in baseline
-    )
+    totals.update(call.coalition for call in calls)
     return Projection(
         coalition_seat_totals=dict(totals),
         government_majority=(
             government_seat_total(totals, config) >= config.majority_threshold
         ),
         computed_at=computed_at,
+        seat_calls=calls,
     )
 
 
@@ -142,12 +144,45 @@ def _observed_state_swings(
     }
 
 
-def _projected_winner(
+def _call_seat(seat: SeatBaseline, swing: Mapping[Coalition, float]) -> SeatCall:
+    """Apply the Swing uniformly to one Seat, and call it with its margin."""
+    projected = _projected_shares(seat, swing)
+    coalition = leading_coalition(projected, tie_break=seat.winner)
+    runner_up = max(
+        (share for c, share in projected.items() if c != coalition), default=0.0
+    )
+    return SeatCall(
+        code=seat.code,
+        coalition=coalition,
+        margin=projected[coalition] - runner_up,
+    )
+
+
+def _projected_shares(
     seat: SeatBaseline, swing: Mapping[Coalition, float]
-) -> Coalition:
-    """Apply the national Swing uniformly to one Seat and call the winner."""
-    projected = {
-        coalition: share + swing.get(coalition, 0.0)
+) -> dict[Coalition, float]:
+    """One Seat's Baseline shares after the Swing, kept inside the vote.
+
+    A large Swing can carry a trailing Coalition below zero, which is not a
+    share of anything. Shares are floored at zero and rescaled to the total
+    they had at Baseline — that total, rather than 1.0, because a Baseline may
+    exclude minor parties and independents and the projection should be
+    measured on the same basis it started from.
+
+    Neither step can change which Coalition leads: flooring only touches shares
+    already behind every non-negative one, and rescaling multiplies them all by
+    the same positive number. So this affects margins, and Projections made
+    before margins were published still hold. The exception is a Swing that
+    puts *every* share at or below zero, where the model has run out of
+    anything to say and the Seat falls to `leading_coalition`'s tie-break — its
+    Baseline winner, on a margin of zero.
+    """
+    floored = {
+        coalition: max(0.0, share + swing.get(coalition, 0.0))
         for coalition, share in seat.vote_share.items()
     }
-    return leading_coalition(projected, tie_break=seat.winner)
+    total = sum(floored.values())
+    if total == 0.0:
+        return floored
+    scale = sum(seat.vote_share.values()) / total
+    return {coalition: share * scale for coalition, share in floored.items()}

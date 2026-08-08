@@ -1,11 +1,15 @@
+from collections import Counter
 from copy import deepcopy
 from datetime import date
+
+from pytest import approx
 
 from fixtures import (
     BN,
     PH,
     PN,
     government_config,
+    one_seat_with_a_small_third_coalition,
     partially_reported_signal_seats,
     three_coalition_seats,
     two_state_seats,
@@ -260,3 +264,105 @@ def test_a_state_with_no_election_of_its_own_is_left_to_sentiment_alone():
     # Selangor: all four to PN at -11pp - 2pp = -13pp. Johor: PH loses none it
     # held (it held none) and takes nothing, so all four stay PN.
     assert projection.coalition_seat_totals == {PH: 0, PN: 8}
+
+
+def test_every_seat_is_called_by_name_with_the_lead_it_is_called_on():
+    # Neutral Sentiment, so each Seat's call and margin is its Baseline
+    # unchanged: PH ahead by 20, 10, 6 and 4 points, PN by 10 and 30.
+    projection = swing_model(
+        baseline=two_coalition_seats(),
+        sentiment={PH: 0.0, PN: 0.0},
+        state_election_signals=[],
+        config=government_config(),
+        computed_at=date(2026, 8, 6),
+    )
+
+    assert [(call.code, call.coalition) for call in projection.seat_calls] == [
+        ("P001", PH),
+        ("P002", PH),
+        ("P003", PH),
+        ("P004", PH),
+        ("P005", PN),
+        ("P006", PN),
+    ]
+    assert [call.margin for call in projection.seat_calls] == approx(
+        [0.20, 0.10, 0.06, 0.04, 0.10, 0.30]
+    )
+
+
+def test_a_margin_is_measured_after_the_swing_not_at_the_baseline():
+    # The 4pp swing to PN narrows PH's leads and widens PN's. P002 survives on
+    # 2 points and P003 falls by 2 — the Seats the uncertainty encoding has to
+    # mark, and the reason the margin is published at all.
+    projection = swing_model(
+        baseline=two_coalition_seats(),
+        sentiment={PH: -0.4, PN: 0.4},
+        state_election_signals=[],
+        config=government_config(),
+        computed_at=date(2026, 8, 6),
+    )
+
+    called = {call.code: call for call in projection.seat_calls}
+    assert (called["P002"].coalition, called["P002"].margin) == (PH, approx(0.02))
+    assert (called["P003"].coalition, called["P003"].margin) == (PN, approx(0.02))
+    assert called["P006"].margin == approx(0.38)
+
+
+def test_the_seat_calls_are_what_the_coalition_totals_count():
+    # The totals must be the tally of the published calls and not a second,
+    # separately-derived answer — a page showing both would otherwise be able
+    # to contradict itself.
+    projection = swing_model(
+        baseline=three_coalition_seats(),
+        sentiment={PH: -0.6, PN: 0.6},
+        state_election_signals=[],
+        config=government_config(
+            government_coalitions=frozenset({PH, BN}), majority_threshold=6
+        ),
+        computed_at=date(2026, 8, 6),
+    )
+
+    tallied = Counter(call.coalition for call in projection.seat_calls)
+    assert tallied == Counter(
+        {c: n for c, n in projection.coalition_seat_totals.items() if n}
+    )
+    assert len(projection.seat_calls) == 10
+
+
+def test_a_share_swung_below_zero_is_floored_before_the_margin_is_taken():
+    # A 30pp swing puts PH on -5pp, which is not a share of anything. Floored
+    # at zero the three come to 1.05, so they rescale to the 1.00 they started
+    # at: PN 17/21, BN 4/21, and a lead of 13/21 rather than the 0.65 the raw
+    # arithmetic would have printed.
+    projection = swing_model(
+        baseline=one_seat_with_a_small_third_coalition(),
+        sentiment={PH: -1.0, PN: 1.0},
+        state_election_signals=[],
+        config=government_config(
+            majority_threshold=1, sentiment_sensitivity=0.30
+        ),
+        computed_at=date(2026, 8, 6),
+    )
+
+    (call,) = projection.seat_calls
+    assert call.coalition == PN
+    assert call.margin == approx(13 / 21)
+
+
+def test_a_seat_swung_below_zero_on_every_side_is_held_by_its_baseline_winner():
+    # A 60pp swing against all three leaves no share above zero and so no
+    # evidence about who leads. Reading the least-negative number as a winner
+    # would be reading rounding noise; the Seat holds, on nothing changing.
+    projection = swing_model(
+        baseline=one_seat_with_a_small_third_coalition(),
+        sentiment={PH: -1.0, PN: -1.0, BN: -1.0},
+        state_election_signals=[],
+        config=government_config(
+            majority_threshold=1, sentiment_sensitivity=0.60
+        ),
+        computed_at=date(2026, 8, 6),
+    )
+
+    (call,) = projection.seat_calls
+    assert call.coalition == PN
+    assert call.margin == 0.0

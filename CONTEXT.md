@@ -44,10 +44,14 @@ Whether GE16 has been called yet, and the polling date once one is set. "Called"
 _Avoid_: Election date (ambiguous — dissolution, nomination and polling are three different days)
 
 **Swing Model**:
-The (not-yet-built) method for turning Sentiment into a per-Seat or per-Coalition Swing. The hard, research-grade part of this project — distinguish from the Baseline, which is just historical fact.
+The method for turning Sentiment into a per-Seat or per-Coalition Swing — uniform within each state, per ADR 0001, with a State Election Signal blended in for the state that voted. The hard, research-grade part of this project — distinguish from the Baseline, which is just historical fact.
 
 **Projection**:
-The tool's output: a seat-count estimate per Coalition for GE16, and whether the Government Coalition retains its Majority. Distinct from calling individual Seats (see Seat-Level Projection).
+The tool's output: a seat-count estimate per Coalition for GE16, whether the Government Coalition retains its Majority, and the Seat-Level Projection behind both.
 
 **Seat-Level Projection**:
-A future upgrade to Projection — naming the predicted winning Coalition for each of the 222 Seats individually, not just the aggregate total. Deferred until the Swing Model is validated (see ADR 0001).
+The predicted winning Coalition for each of the 222 Seats individually, with the projected margin, alongside the aggregate totals. Published as of ADR 0005, which supersedes ADR 0001's deferral. The Swing Model is uniform within a state and carries no Seat-specific signal, so a Seat's call is arithmetic against its GE15 margin — never a bespoke judgement about that constituency, and it must not be presented as one.
+
+**Seat Call**:
+One Seat's entry in the Seat-Level Projection: the Coalition projected to take it and the projected margin over the runner-up. Named in code as `SeatCall`.
+_Avoid_: Prediction, forecast (both imply a precision ADR 0003 says this model does not have)

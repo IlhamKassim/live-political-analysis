@@ -143,12 +143,48 @@ class SwingModelConfig:
 
 
 @dataclass(frozen=True)
+class SeatCall:
+    """One Seat's entry in the Seat-Level Projection (ADR 0005).
+
+    Identified by `code` alone: `SeatBaseline` already holds the Seat's name,
+    state and GE15 result, and a caller rendering a call wants those anyway.
+    Copying them here would make a Seat's identity two facts that can disagree.
+    """
+
+    code: str
+    """The Seat's official code, matching its `SeatBaseline`."""
+    coalition: Coalition
+    """The Coalition projected to take the Seat."""
+    margin: float
+    """The projected lead over the runner-up, in vote share.
+
+    Taken after the Swing, from shares that have been floored at zero and
+    rescaled (ADR 0005), so it is always a real share of the vote. Zero means
+    a dead heat — including the case where the Swing left nothing above zero
+    and the Seat was held on its Baseline. Where a Seat's Baseline names only
+    one Coalition there is no runner-up to lead, and the margin is that
+    Coalition's whole share.
+
+    Small is the interesting case, and the Swing Model has no Seat-specific
+    signal to resolve it with: a call inside a few points is arithmetic that
+    could as easily have landed the other way, and must be presented that way.
+    """
+
+
+@dataclass(frozen=True)
 class Projection:
     """The tool's output: GE16 seat totals per Coalition, and the majority call."""
 
     coalition_seat_totals: Mapping[Coalition, int]
     government_majority: bool
     computed_at: date
+    seat_calls: tuple[SeatCall, ...] = ()
+    """The Seat-Level Projection the totals are the tally of.
+
+    Empty is a real state and not a missing one: Storage keeps per-Seat rows
+    for the latest Projection only (ADR 0005), so every earlier day in a
+    history read carries totals alone.
+    """
 
 
 def government_seat_total(
