@@ -229,6 +229,22 @@ def test_storing_an_older_day_leaves_the_current_seat_calls_alone():
     assert current.seat_calls == today.seat_calls
 
 
+def test_a_projection_carrying_no_seat_calls_does_not_empty_the_stored_ones():
+    # `load_projections` returns every day but the newest with `seat_calls`
+    # empty, so a caller that reads a Projection back and re-saves it under a
+    # later day would otherwise destroy the only per-Seat rows in Storage.
+    engine = connect("sqlite+pysqlite:///:memory:")
+    today = projection_for(date(2026, 8, 6))
+    save_snapshot(engine, today, EMPTY_SENTIMENT)
+
+    call_less = replace(projection_for(date(2026, 8, 7)), seat_calls=())
+    save_snapshot(engine, call_less, EMPTY_SENTIMENT)
+
+    stored = {p.computed_at: p for p in load_projections(engine)}
+    assert stored[date(2026, 8, 6)].seat_calls == today.seat_calls
+    assert stored[date(2026, 8, 7)].seat_calls == ()
+
+
 def test_re_running_a_day_replaces_its_seat_calls_rather_than_doubling_them():
     engine = connect("sqlite+pysqlite:///:memory:")
     day = date(2026, 8, 6)

@@ -50,7 +50,7 @@ The method for turning Sentiment into a per-Seat or per-Coalition Swing — unif
 The tool's output: a seat-count estimate per Coalition for GE16, whether the Government Coalition retains its Majority, and the Seat-Level Projection behind both.
 
 **Seat-Level Projection**:
-The predicted winning Coalition for each of the 222 Seats individually, with the projected margin, alongside the aggregate totals. Published as of ADR 0005, which supersedes ADR 0001's deferral. The Swing Model is uniform within a state and carries no Seat-specific signal, so a Seat's call is arithmetic against its GE15 margin — never a bespoke judgement about that constituency, and it must not be presented as one.
+The Coalition each of the 222 Seats is projected to fall to, with the projected margin, alongside the aggregate totals. Published as of ADR 0005, which supersedes ADR 0001's deferral. The Swing Model is uniform within a state and carries no Seat-specific signal, so a Seat's call is arithmetic against its GE15 margin — never a bespoke judgement about that constituency, and it must not be presented as one.
 
 **Seat Call**:
 One Seat's entry in the Seat-Level Projection: the Coalition projected to take it and the projected margin over the runner-up. Named in code as `SeatCall`.

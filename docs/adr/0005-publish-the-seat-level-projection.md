@@ -41,12 +41,24 @@ shipped.
 
 **Projected shares must be clamped and renormalised.** The Swing Model's
 docstring has carried this as a known limitation: a large Swing can drive a
-trailing Coalition below zero. That could never change which Coalition led a
-Seat, so it could never affect a Coalition total — but a margin read off
-unclamped shares is not a share of anything. Projected shares are now floored at
-zero and rescaled to the same total they had at Baseline, which leaves every
-existing Projection unchanged (a positive rescale preserves order and ties) and
-makes the published margin mean what it says.
+trailing Coalition below zero, which is not a share of anything and so is not
+something a margin can be read off. Projected shares are now floored at zero and
+rescaled to the total they had at Baseline.
+
+Where any share survives above zero this changes margins only, not calls:
+flooring touches shares already behind every non-negative one, and rescaling
+multiplies them all by the same positive number, so order and ties both hold.
+The one case it does change is a Swing severe enough to put *every* share at or
+below zero. That used to be called for the least-negative Coalition; it is now a
+dead heat that falls to the Baseline winner on a margin of zero. Reading an
+ordering off numbers that are all outside the vote was never evidence about
+anything, and the alternative — publishing a named Seat, with a margin, off it —
+is exactly what this ADR is trying not to do. Reaching it takes a Swing against
+every Coalition at once, each wider than that Coalition's Baseline share; with
+`sentiment_sensitivity` at 0.10 (ADR 0003) Sentiment alone moves at most ten
+points, so it takes a State Election Signal far outside anything yet observed.
+Recomputing the sixteen stored days both ways confirms it: no Coalition total
+changes, and not one of the 3,552 Seat-days lands in the case at all.
 
 **Per-Seat rows are kept for the latest Projection only.** The alternative is
 ~222 rows a day, ~81k a year, against a free-tier Postgres that [ADR
@@ -54,6 +66,9 @@ makes the published margin mean what it says.
 reads per-Seat history: the dashboard's trend line is Coalition totals, and the
 public page renders one day. It is also largely recoverable — the Swing Model is
 a pure function and the daily Sentiment snapshot is stored, so any past day's
-calls can be recomputed from a Baseline and config that have not changed since.
-That last clause is the honest limit of the claim, and it is why the Coalition
-totals stay stored per day rather than being recomputed too.
+calls can be recomputed, *provided* the Baseline, the config and
+`data/state_elections.json` are as they were on the day. That last clause is the
+honest limit of the claim — state election signals accumulate as states vote,
+and recomputing an old day against today's file would answer a question nobody
+asked. It is also why the Coalition totals stay stored per day rather than being
+recomputed too.

@@ -366,3 +366,25 @@ def test_a_seat_swung_below_zero_on_every_side_is_held_by_its_baseline_winner():
     (call,) = projection.seat_calls
     assert call.coalition == PN
     assert call.margin == 0.0
+
+
+def test_the_baseline_winner_holds_even_when_a_rival_is_the_least_negative():
+    # The one case where flooring changes a call and not just a margin, pinned
+    # deliberately (ADR 0005). PN 55 / PH 25 / BN 20 swung by -100 / -30 / -30
+    # points leaves PN on -45 and PH on -5, so the old unfloored arithmetic
+    # would have handed the Seat to PH — third place at Baseline, and ahead
+    # here only by being least far outside the vote. All three are floored to
+    # nothing, and PN holds.
+    projection = swing_model(
+        baseline=one_seat_with_a_small_third_coalition(),
+        sentiment={PN: -1.0, PH: -0.3, BN: -0.3},
+        state_election_signals=[],
+        config=government_config(
+            majority_threshold=1, sentiment_sensitivity=1.0
+        ),
+        computed_at=date(2026, 8, 6),
+    )
+
+    (call,) = projection.seat_calls
+    assert (call.coalition, call.margin) == (PN, 0.0)
+    assert projection.coalition_seat_totals == {PN: 1, PH: 0, BN: 0}

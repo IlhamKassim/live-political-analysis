@@ -203,9 +203,12 @@ this is waiting on elapsed time rather than on code.
 
 Other known limitations, each documented at its site in the code:
 
-- Projected vote shares are not clamped or renormalised. This cannot change
-  which Coalition leads a Seat, so it cannot change a Projection — but it must
-  be fixed before any projected *margin* is published.
+- A projected margin is a lead under a Swing that is uniform within a state, and
+  the model carries no Seat-specific signal at all: two Seats in the same state
+  with the same GE15 margin always get the same answer, and
+  `SeatBaseline.demographics` is loaded but read by nothing. A per-Seat call is
+  arithmetic against GE15, not a judgement about that constituency
+  ([ADR 0005](docs/adr/0005-publish-the-seat-level-projection.md)).
 - Sentiment is an unweighted mean over articles, so a prolific outlet counts
   for more than a quiet one, and syndicated copy running in two outlets counts
   twice. Nothing de-duplicates. This is why `data/outlets.json` weighs a
@@ -220,5 +223,7 @@ Other known limitations, each documented at its site in the code:
 - Bernama's feed dates no article, so those Articles carry no
   `published_at`. Nothing reads the field yet; anything that starts to must
   handle its absence.
-- Only Coalition-level totals ship. Seat-Level Projection is deferred until the
-  Swing Model is validated ([ADR 0001](docs/adr/0001-seat-level-baseline-with-coalition-first-projection.md)).
+- Per-Seat rows are stored for the latest Projection only, so there is no
+  per-Seat history to look back over — just the current call for each Seat,
+  beside the Coalition totals that are kept per day
+  ([ADR 0005](docs/adr/0005-publish-the-seat-level-projection.md)).

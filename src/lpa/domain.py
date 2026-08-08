@@ -34,8 +34,10 @@ class SeatBaseline:
     demographics: Mapping[str, float] = field(default_factory=dict)
     """Census profile of the Seat — ethnicity, age and income proportions.
 
-    Carried for the Seat-Level Projection deferred by ADR 0001; the current
-    Coalition-level Swing Model does not read it.
+    Read by nothing. The Seat-Level Projection ships (ADR 0005) but the Swing
+    Model is uniform within a state and takes no Seat-specific signal, so this
+    is the input that would have to be read before a per-Seat call could be
+    anything more than arithmetic against GE15.
     """
 
     @property

@@ -215,12 +215,19 @@ def save_snapshot(
     instead of leaving two answers for it. History across days is what the
     dashboard's trend line reads (issue #1, story 15).
 
-    Seat Calls are the exception: only the newest Projection's are kept (ADR
-    0005), so writing a day at least as new as the stored ones replaces them
-    and writing an older day leaves them alone. That makes the write
-    order-independent — `scripts/seed_dev_snapshots.py` backfills days behind
-    today, and running it after a real run must not leave the current
-    Projection showing a seeded day's calls.
+    Seat Calls are the exception. Storage keeps one Projection's (ADR 0005) —
+    the newest that came with any — so a write replaces them only if it is at
+    least as new *and* has calls of its own. Both halves matter:
+
+    - Only replacing a day at least as new keeps the write order-independent.
+      `scripts/seed_dev_snapshots.py` backfills days behind today, and running
+      it after a real run must not leave the current Projection showing a
+      seeded day's calls.
+    - Only replacing when there are calls to put there means a Projection
+      carrying none cannot empty the table. `load_projections` hands back every
+      day but the newest with `seat_calls` empty, so a round-tripped Projection
+      re-saved under a later day would otherwise silently destroy the only
+      per-Seat rows in Storage.
     """
     day = projection.computed_at
     with engine.begin() as connection:
@@ -232,21 +239,22 @@ def save_snapshot(
             .order_by(seat_call.c.computed_at.desc())
             .limit(1)
         ).scalar()
-        if stored_calls_from is None or day >= stored_calls_from:
+        if projection.seat_calls and (
+            stored_calls_from is None or day >= stored_calls_from
+        ):
             connection.execute(delete(seat_call))
-            if projection.seat_calls:
-                connection.execute(
-                    seat_call.insert(),
-                    [
-                        {
-                            "computed_at": day,
-                            "code": call.code,
-                            "coalition": call.coalition,
-                            "margin": call.margin,
-                        }
-                        for call in projection.seat_calls
-                    ],
-                )
+            connection.execute(
+                seat_call.insert(),
+                [
+                    {
+                        "computed_at": day,
+                        "code": call.code,
+                        "coalition": call.coalition,
+                        "margin": call.margin,
+                    }
+                    for call in projection.seat_calls
+                ],
+            )
         for table, row in (
             (
                 projection_snapshot,
@@ -276,11 +284,11 @@ def save_snapshot(
 def load_projections(engine: Engine) -> Sequence[Projection]:
     """Every stored Projection, oldest first.
 
-    Only one of them carries Seat Calls — Storage keeps the newest
-    Projection's alone (ADR 0005). They are attached here, to the Projection
-    whose day they were computed on, rather than handed back separately: a
-    caller that had to pair them up itself could pair them wrongly, and a
-    Seat Call shown under the wrong date is indistinguishable from a right one.
+    Only one of them carries Seat Calls — Storage keeps one Projection's alone
+    (ADR 0005). They are attached here, to the Projection whose day they were
+    computed on, rather than handed back separately: a caller that had to pair
+    them up itself could pair them wrongly, and a Seat Call shown under the
+    wrong date is indistinguishable from a right one.
     """
     with engine.connect() as connection:
         calls_by_day: dict[date, list[SeatCall]] = {}
