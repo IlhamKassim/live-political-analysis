@@ -49,6 +49,17 @@ def coalition_aliases(config: Mapping[str, Any]) -> Mapping[Coalition, list[str]
     return config["coalition_aliases"]
 
 
+def coalition_names(config: Mapping[str, Any]) -> Mapping[Coalition, str]:
+    """How each Coalition is written out in full, for the public page.
+
+    Absences are expected rather than exceptional: the Baseline gives a minor
+    party that is in no bloc its own bracketed code as its Coalition, so the
+    map cannot be complete and a caller must be ready to fall back to the
+    code. `.get(code, code)` is the intended reading.
+    """
+    return config.get("coalition_names", {})
+
+
 def swing_model_config(config: Mapping[str, Any], **overrides: Any) -> SwingModelConfig:
     """Build the Swing Model's config from the Coalition configuration file."""
     settings: dict[str, Any] = {

@@ -14,8 +14,8 @@ touching anything.
 | Label | `ready-for-agent` |
 | Docs PR | **#18** — merged 9 Aug 2026 |
 | Both decisions | **Settled** 9 Aug 2026, recorded as a comment on #17 |
-| Steps 1–2 | **Done** 9 Aug 2026 — ADRs 0005 and 0006 written, per-Seat calls carried through to Storage |
-| Next action | **Step 3** of the workflow at the end of this file: build the page from the mockup against real Storage. |
+| Steps 1–3 | **Done** 9 Aug 2026 — ADRs written, per-Seat calls through to Storage, and the page built in `src/lpa/public_page.py` |
+| Next action | **Step 4**: `/code-review`, then fix what it finds. Then step 5, which is yours. |
 
 The two decisions that used to block this are answered, and both are now ADRs:
 
@@ -247,11 +247,11 @@ Applied to this piece of work:
 | --- | --- | --- | --- |
 | ~~1~~ | ~~Settle the two decisions~~ — **done 9 Aug 2026**, see #17 | — | — |
 | ~~2~~ | ~~ADR 0005, ADR 0006, and per-Seat calls through `swing_model` → `Projection` → `storage`~~ — **done 9 Aug 2026** | — | — |
-| 3 | Build the page from the mockup against real Storage data. | Agent | Opus, high — this is design execution |
+| ~~3~~ | ~~Build the page from the mockup against real Storage data~~ — **done 9 Aug 2026**, `src/lpa/public_page.py` | — | — |
 | 4 | `/code-review`, then fix findings. | Agent | inherits |
 | 5 | Run it for real: empty database, one day of history, 375px and 1440px, both themes, all three Election Status states. | **User** and agent together | — |
 | 6 | Merge to `main`, close #17 noting what shipped and what did not. | Agent | Sonnet, medium |
-| 7 | Defect pass — contrast, the liveness pulse, the sub-600px fallback, the keyboard path. Separable; can be its own PR. | Agent | Sonnet, medium — mechanical |
+| 7 | Defect pass — **the sub-600px fallback and the keyboard path**, which are what remain: contrast and the liveness pulse were fixed while building the page, and the caption/sort contradiction went with the global margin sort. Add the theme toggle not surviving a reload. Separable; can be its own PR. | Agent | Sonnet, medium — mechanical |
 | 8 | Deploy. | — | — |
 
 **Step 8 is real work**, now that decision 2 is static: a renderer plus free

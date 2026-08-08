@@ -108,6 +108,31 @@ latest report, whether or not it could be drawn.
 Reads are cached for 15 minutes, so a pipeline run that finishes while a tab
 is open takes up to that long to appear.
 
+## The public page
+
+A second surface over the same Storage, and a different thing from the
+dashboard above: one day's Projection drawn as the Dewan Rakyat, with all 222
+Seats called individually. It is a static file rather than a served app
+([ADR 0006](docs/adr/0006-static-html-for-the-public-page.md)) — the daily
+Action renders and publishes it, so public traffic never reaches the database.
+
+```sh
+.venv/bin/python -m lpa.public_page --output public/index.html
+```
+
+To work on it, serve it instead. Every request re-renders from Storage and the
+browser reloads itself when the output changes, so a saved edit is on screen
+without a build step:
+
+```sh
+.venv/bin/python scripts/preview_public_page.py     # http://127.0.0.1:8000
+```
+
+The page needs a Projection carrying Seat Calls, which means one computed since
+Seat-Level Projection shipped; it refuses to draw an empty chamber rather than
+render 222 blanks that look like a result. Storage keeps per-Seat rows for the
+latest Projection only, so it is always the most recent day that is drawn.
+
 ## Deploying it
 
 Two moving parts, both free: a scheduled GitHub Action runs the pipeline daily
