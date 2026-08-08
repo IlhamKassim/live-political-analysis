@@ -45,6 +45,18 @@ class UnreadableFeed(Exception):
     """The document fetched from an outlet is not a feed we can read."""
 
 
+class DisallowedFeed(Exception):
+    """An outlet's robots.txt does not permit fetching its feed.
+
+    Raised rather than returned as "no Articles" so that a blocked outlet
+    cannot be mistaken for a quiet one — the same reason `parse_feed` raises
+    on a document it cannot read. Refusing is normal and expected here, but
+    silently contributing nothing to a day's Sentiment is not: it removes an
+    outlet from the record with no trace that it was ever meant to be read
+    (issue #16).
+    """
+
+
 def parse_feed(feed_xml: str | bytes, source: str) -> list[Article]:
     """Turn an RSS or Atom feed into Article records. Pure — no network.
 
@@ -140,6 +152,11 @@ class RobotsPolicy:
         self.client = client or new_client(user_agent)
         self.limiter = limiter or RateLimiter()
         self._by_host: dict[str, urllib.robotparser.RobotFileParser] = {}
+        self._refusal: dict[str, str] = {}
+        """Why a host is refused outright, where that was inferred rather than
+        read. Kept so the run log can say which happened: a robots.txt that
+        forbids us is answered by asking the outlet or dropping it, while one
+        that could not be read may well be readable tomorrow."""
 
     def rules_for(self, url: str) -> urllib.robotparser.RobotFileParser:
         host = urlparse(url).netloc
@@ -149,16 +166,19 @@ class RobotsPolicy:
 
     def _read(self, robots_url: str) -> urllib.robotparser.RobotFileParser:
         rules = urllib.robotparser.RobotFileParser()
+        host = urlparse(robots_url).netloc
         self.limiter.wait_turn(robots_url)
         try:
             response = self.client.get(robots_url)
-        except httpx.HTTPError:
+        except httpx.HTTPError as error:
             # No answer is not permission: fail closed and try again next run.
             rules.disallow_all = True
+            self._refusal[host] = f"robots.txt unreachable ({type(error).__name__})"
             return rules
         if response.status_code in (401, 403) or response.status_code >= 500:
             # Forbidden, or the outlet is unwell. Either way, don't assume yes.
             rules.disallow_all = True
+            self._refusal[host] = f"robots.txt answered {response.status_code}"
         elif response.status_code >= 400:
             rules.allow_all = True  # No robots.txt published means no rules.
         else:
@@ -167,6 +187,20 @@ class RobotsPolicy:
 
     def is_allowed(self, url: str) -> bool:
         return self.rules_for(url).can_fetch(self.user_agent, url)
+
+    def refusal_reason(self, url: str) -> str:
+        """Why `url` is refused, in words fit for an unattended run's log.
+
+        Only meaningful where `is_allowed` is False. The distinction it draws
+        is the one an operator acts on: a robots.txt that was read and refuses
+        this path is a decision to respect, while one that could not be read
+        is a guess made in the safe direction and may not hold tomorrow
+        (issue #16).
+        """
+        self.rules_for(url)
+        return self._refusal.get(
+            urlparse(url).netloc, "robots.txt disallows this path"
+        )
 
     def crawl_delay(self, url: str) -> float | None:
         delay = self.rules_for(url).crawl_delay(self.user_agent)
@@ -196,9 +230,15 @@ class Scraper:
         self.client.close()
 
     def fetch(self, outlet: Outlet) -> list[Article]:
-        """Fetch one outlet's recent Articles, or none if robots.txt forbids it."""
+        """Fetch one outlet's recent Articles.
+
+        Raises `DisallowedFeed` where robots.txt refuses the feed, which
+        includes the case where robots.txt could not be read at all —
+        `RobotsPolicy` fails closed, and a refusal inferred that way is still
+        a refusal. The exception carries which of the two it was.
+        """
         if not self.robots.is_allowed(outlet.feed_url):
-            return []
+            raise DisallowedFeed(self.robots.refusal_reason(outlet.feed_url))
         self.limiter.wait_turn(
             outlet.feed_url, self.robots.crawl_delay(outlet.feed_url)
         )
@@ -210,12 +250,25 @@ class Scraper:
         """Fetch every outlet, carrying on past any one that fails.
 
         The daily job is unattended (ADR 0002), so one outlet's outage must
-        not cost the run every other outlet's coverage.
+        not cost the run every other outlet's coverage — including an outlet
+        that is refused rather than broken.
+
+        Every reason an outlet contributes nothing is printed, because an
+        outlet that drops out is otherwise indistinguishable from one that
+        published no news: neither appears in the day's `sources` (issue #16).
         """
         articles: list[Article] = []
         for outlet in outlets:
             try:
                 articles.extend(self.fetch(outlet))
+            except DisallowedFeed as refusal:
+                # Kept apart from the failures below because it calls for
+                # something different: a refusal is answered by asking the
+                # outlet or dropping it from data/outlets.json, not by
+                # waiting. The reason says which kind it is, since a
+                # robots.txt we could not read fails closed the same way one
+                # that refuses us does.
+                print(f"skipping {outlet.name}: not permitted: {refusal}")
             except (httpx.HTTPError, UnreadableFeed, ElementTree.ParseError) as error:
                 print(f"skipping {outlet.name}: {type(error).__name__}: {error}")
         return articles

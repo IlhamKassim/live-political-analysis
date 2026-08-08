@@ -10,3 +10,7 @@ dist/
 # here, but nothing should be able to arrive in the repo by accident.
 .env
 .streamlit/secrets.toml
+
+# Finder writes these into any directory it opens, and one reached a commit
+# before this line existed.
+.DS_Store
