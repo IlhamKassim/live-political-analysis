@@ -1,0 +1,708 @@
+<style>
+  :root {
+    /* paper + ink — a green-grey stock, not cream */
+    --ground:      #E9EAE4;
+    --surface:     #F2F3EE;
+    --ink:         #17191A;
+    --ink-soft:    #55584F;
+    --ink-faint:   #8A8D83;
+    --rule:        #C8CAC0;
+    --rule-hair:   #D8DAD1;
+
+    /* coalitions — printed inks, not screen neons */
+    --ph:  #B23A2E;
+    --bn:  #1D4E89;
+    --pn:  #2B7A78;
+    --gps: #8A6D1F;
+    --grs: #6A4A7C;
+
+    --serif: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+    --sans:  ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    --mono:  ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+    --gutter: clamp(20px, 5vw, 72px);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:    #15161A;
+      --surface:   #1C1E23;
+      --ink:       #E7E8E2;
+      --ink-soft:  #A6A9A0;
+      --ink-faint: #6E7168;
+      --rule:      #33363C;
+      --rule-hair: #26292E;
+
+      --ph:  #E0705F;
+      --bn:  #5D93D8;
+      --pn:  #4FB3AF;
+      --gps: #C9A542;
+      --grs: #A886C2;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:    #15161A;
+    --surface:   #1C1E23;
+    --ink:       #E7E8E2;
+    --ink-soft:  #A6A9A0;
+    --ink-faint: #6E7168;
+    --rule:      #33363C;
+    --rule-hair: #26292E;
+    --ph:  #E0705F;
+    --bn:  #5D93D8;
+    --pn:  #4FB3AF;
+    --gps: #C9A542;
+    --grs: #A886C2;
+  }
+
+  :root[data-theme="light"] {
+    --ground:    #E9EAE4;
+    --surface:   #F2F3EE;
+    --ink:       #17191A;
+    --ink-soft:  #55584F;
+    --ink-faint: #8A8D83;
+    --rule:      #C8CAC0;
+    --rule-hair: #D8DAD1;
+    --ph:  #B23A2E;
+    --bn:  #1D4E89;
+    --pn:  #2B7A78;
+    --gps: #8A6D1F;
+    --grs: #6A4A7C;
+  }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+    position: relative;
+  }
+
+  /* faint press grain — sits above ground, below everything */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: .035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .sheet {
+    position: relative;
+    z-index: 1;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 var(--gutter) 96px;
+  }
+
+  /* ── masthead ─────────────────────────────────────────── */
+  .masthead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px 32px;
+    padding: 22px 0 14px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .wordmark {
+    font-family: var(--serif);
+    font-size: 15px;
+    letter-spacing: .02em;
+  }
+  .wordmark em {
+    font-style: normal;
+    color: var(--ink-faint);
+  }
+  .stamp {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .04em;
+    color: var(--ink-soft);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .pulse {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--pn);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--pn) 60%, transparent);
+    animation: pulse 2.8s ease-out infinite;
+  }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--pn) 55%, transparent); }
+    70%  { box-shadow: 0 0 0 7px transparent; }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
+  .theme-btn {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    background: none;
+    border: 1px solid var(--rule);
+    padding: 4px 9px;
+    cursor: pointer;
+  }
+  .theme-btn:hover { color: var(--ink); border-color: var(--ink-faint); }
+  .theme-btn:focus-visible { outline: 2px solid var(--pn); outline-offset: 2px; }
+
+  /* ── the verdict ──────────────────────────────────────── */
+  .verdict {
+    display: grid;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+    gap: clamp(24px, 5vw, 64px);
+    align-items: end;
+    padding: clamp(36px, 6vw, 68px) 0 clamp(28px, 4vw, 44px);
+    border-bottom: 1px solid var(--rule);
+  }
+  .tally { line-height: .82; }
+  .tally-eyebrow {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 18px;
+    line-height: 1.4;
+  }
+  .tally-figure {
+    font-family: var(--serif);
+    font-size: clamp(84px, 15vw, 168px);
+    letter-spacing: -.035em;
+    font-variant-numeric: tabular-nums lining-nums;
+    display: block;
+  }
+  .tally-of {
+    font-family: var(--serif);
+    font-size: clamp(17px, 2.4vw, 24px);
+    color: var(--ink-faint);
+    letter-spacing: -.01em;
+    margin-top: 14px;
+    display: block;
+  }
+  .lede {
+    font-family: var(--serif);
+    font-size: clamp(19px, 2.35vw, 29px);
+    line-height: 1.36;
+    letter-spacing: -.012em;
+    text-wrap: balance;
+    max-width: 22ch;
+    padding-bottom: 6px;
+  }
+  .lede b {
+    font-weight: inherit;
+    box-shadow: inset 0 -.34em 0 color-mix(in srgb, var(--pn) 22%, transparent);
+  }
+  .lede .buffer { font-variant-numeric: tabular-nums; }
+
+  /* ── chamber ──────────────────────────────────────────── */
+  .chamber {
+    padding: clamp(30px, 5vw, 52px) 0 0;
+  }
+  .strip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px 28px;
+    margin-bottom: clamp(14px, 3vw, 26px);
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .strip p {
+    font-family: var(--serif);
+    font-size: 14.5px;
+    color: var(--ink-soft);
+    max-width: 46ch;
+    line-height: 1.5;
+  }
+
+  .hemicycle-wrap { overflow-x: auto; }
+  svg.hemicycle { width: 100%; min-width: 460px; height: auto; display: block; }
+
+  .seat-dot { transition: transform .18s ease; transform-box: fill-box; transform-origin: center; }
+  .hemicycle:hover .seat-dot { opacity: .35; }
+  .hemicycle .seat-dot:hover { opacity: 1; transform: scale(2.1); }
+
+  .thresh-line { stroke: var(--ink); stroke-width: 1.6; stroke-dasharray: 3 3.5; }
+  .thresh-cap  { fill: var(--ink); }
+  .thresh-label {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .1em;
+    fill: var(--ink);
+  }
+  .buffer-brace { stroke: var(--ink-faint); stroke-width: 1; fill: none; }
+  .buffer-text {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: .08em;
+    fill: var(--ink-soft);
+  }
+  .side-label {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .16em;
+    fill: var(--ink-faint);
+    text-transform: uppercase;
+  }
+
+  .key {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 26px;
+    margin-top: 22px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule-hair);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .03em;
+    color: var(--ink-soft);
+  }
+  .key span { display: inline-flex; align-items: center; gap: 7px; }
+  .key i {
+    width: 11px; height: 11px; border-radius: 50%;
+    display: inline-block;
+    background: var(--ink-soft);
+  }
+  .key i.mid    { opacity: .48; }
+  .key i.hollow { background: none; border: 1.6px solid var(--ink-soft); }
+
+  /* ── ledger ───────────────────────────────────────────── */
+  .ledger { padding: clamp(46px, 7vw, 80px) 0 0; }
+  .ledger-scroll { overflow-x: auto; }
+  table {
+    width: 100%;
+    min-width: 540px;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+  thead th {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 400;
+    text-align: right;
+    padding: 0 0 11px;
+    border-bottom: 1px solid var(--ink);
+  }
+  thead th:first-child { text-align: left; }
+  tbody td {
+    padding: 15px 0;
+    border-bottom: 1px solid var(--rule-hair);
+    text-align: right;
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--ink);
+  }
+  tbody td:first-child { text-align: left; }
+  tbody tr:last-child td { border-bottom: 1px solid var(--ink); }
+
+  .party {
+    display: flex;
+    align-items: baseline;
+    gap: 11px;
+    font-family: var(--serif);
+    font-size: 17px;
+    letter-spacing: -.01em;
+  }
+  .party::before {
+    content: "";
+    width: 9px; height: 9px;
+    flex: 0 0 9px;
+    border-radius: 50%;
+    background: var(--swatch);
+    transform: translateY(-1px);
+  }
+  .party small {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .06em;
+    color: var(--ink-faint);
+  }
+  .seats-cell { font-size: 20px; }
+  .swing-pos { color: var(--pn); }
+  .swing-neg { color: var(--ph); }
+  .swing-nil { color: var(--ink-faint); }
+  .gov-row td { background: color-mix(in srgb, var(--ink) 4%, transparent); font-weight: 600; }
+  .gov-row .party { font-weight: 600; }
+  .gov-row .party::before { background: none; }
+
+  /* ── the swing story ──────────────────────────────────── */
+  .stress {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1px;
+    margin-top: clamp(46px, 7vw, 78px);
+    background: var(--rule-hair);
+    border: 1px solid var(--rule-hair);
+  }
+  .cell { background: var(--ground); padding: 24px 22px 26px; }
+  .cell dt {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 14px;
+  }
+  .cell dd {
+    font-family: var(--serif);
+    font-size: 42px;
+    letter-spacing: -.03em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    margin-bottom: 11px;
+  }
+  .cell p {
+    font-family: var(--serif);
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+  }
+
+  /* ── colophon ─────────────────────────────────────────── */
+  .colophon {
+    margin-top: clamp(52px, 8vw, 90px);
+    padding-top: 22px;
+    border-top: 2px solid var(--ink);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 30px 44px;
+  }
+  .colophon h3 {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 400;
+    margin-bottom: 10px;
+  }
+  .colophon p {
+    font-family: var(--serif);
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+  }
+  .caveat {
+    border-left: 2px solid var(--ph);
+    padding-left: 14px;
+  }
+  .caveat p { color: var(--ink); }
+
+  @media (max-width: 720px) {
+    .verdict { grid-template-columns: 1fr; align-items: start; gap: 22px; }
+    .lede { max-width: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="sheet">
+
+  <header class="masthead">
+    <div class="wordmark">Live Political Analysis <em>— Projeksi Kerusi GE16</em></div>
+    <div class="stamp">
+      <span class="pulse" aria-hidden="true"></span>
+      <span>MODEL RUN 09 AUG 2026 · 23:00 MYT</span>
+      <button class="theme-btn" id="themeBtn" type="button">Dark</button>
+    </div>
+  </header>
+
+  <section class="verdict">
+    <div class="tally">
+      <div class="tally-eyebrow">Government coalition<br>PH · BN · GPS · GRS</div>
+      <span class="tally-figure" id="govFigure">158</span>
+      <span class="tally-of">of 222 seats — 112 needed</span>
+    </div>
+    <p class="lede">
+      The coalition is projected <b>46 seats clear</b> of a majority. Losing Johor
+      and Malacca cost it <span class="buffer">11</span> seats, not a government.
+    </p>
+  </section>
+
+  <section class="chamber">
+    <div class="strip">
+      <div class="eyebrow">The Dewan Rakyat, projected</div>
+      <p>
+        Seats run safest-government at the left to safest-opposition at the right.
+        Hollow rings are seats inside six points — too close to call.
+      </p>
+    </div>
+
+    <div class="hemicycle-wrap">
+      <svg class="hemicycle" id="hemicycle" viewBox="0 0 1000 560" role="img"
+           aria-label="Hemicycle of 222 projected Dewan Rakyat seats. The government coalition holds 158, passing the 112-seat majority line with 46 to spare."></svg>
+    </div>
+
+    <div class="key">
+      <span><i></i> Safe — over 12 points</span>
+      <span><i class="mid"></i> Likely — 6 to 12 points</span>
+      <span><i class="hollow"></i> Too close — under 6 points</span>
+    </div>
+  </section>
+
+  <section class="ledger">
+    <div class="strip"><div class="eyebrow">Seat ledger — against the GE15 baseline</div></div>
+    <div class="ledger-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Coalition</th>
+            <th scope="col">Projected</th>
+            <th scope="col">GE15</th>
+            <th scope="col">Swing</th>
+            <th scope="col">Too close</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="--swatch: var(--ph)">
+            <td><span class="party">Pakatan Harapan <small>PH</small></span></td>
+            <td class="seats-cell">85</td><td>82</td>
+            <td class="swing-pos">+3</td><td>12</td>
+          </tr>
+          <tr style="--swatch: var(--bn)">
+            <td><span class="party">Barisan Nasional <small>BN</small></span></td>
+            <td class="seats-cell">42</td><td>30</td>
+            <td class="swing-pos">+12</td><td>6</td>
+          </tr>
+          <tr style="--swatch: var(--gps)">
+            <td><span class="party">Gabungan Parti Sarawak <small>GPS</small></span></td>
+            <td class="seats-cell">22</td><td>23</td>
+            <td class="swing-neg">−1</td><td>0</td>
+          </tr>
+          <tr style="--swatch: var(--grs)">
+            <td><span class="party">Gabungan Rakyat Sabah <small>GRS</small></span></td>
+            <td class="seats-cell">9</td><td>6</td>
+            <td class="swing-pos">+3</td><td>0</td>
+          </tr>
+          <tr class="gov-row">
+            <td><span class="party">Government total</span></td>
+            <td class="seats-cell">158</td><td>141</td>
+            <td class="swing-pos">+17</td><td>18</td>
+          </tr>
+          <tr style="--swatch: var(--pn)">
+            <td><span class="party">Perikatan Nasional <small>PN</small></span></td>
+            <td class="seats-cell">64</td><td>74</td>
+            <td class="swing-neg">−10</td><td>8</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <dl class="stress">
+      <div class="cell">
+        <dt>If every marginal fell</dt>
+        <dd>140</dd>
+        <p>All 18 government seats inside six points lost. Still 28 clear of the majority line.</p>
+      </div>
+      <div class="cell">
+        <dt>If every marginal held</dt>
+        <dd>166</dd>
+        <p>The eight opposition seats inside six points fall the other way instead.</p>
+      </div>
+      <div class="cell">
+        <dt>Seats that would have to move</dt>
+        <dd>47</dd>
+        <p>Before the coalition loses its majority — twice the number in play anywhere.</p>
+      </div>
+      <div class="cell">
+        <dt>State swing, applied locally</dt>
+        <dd>2</dd>
+        <p>Johor and Malacca move their own seats only. Sarawak and Sabah are untouched by either.</p>
+      </div>
+    </dl>
+  </section>
+
+  <footer class="colophon">
+    <div>
+      <h3>Method</h3>
+      <p>Uniform national swing from a GE15 per-seat baseline, moved by daily news
+      sentiment and blended, state by state, with observed state-election results.</p>
+    </div>
+    <div>
+      <h3>Read from</h3>
+      <p>FMT · Malay Mail · NST · The Vibes · Bernama · Berita Harian · Utusan Malaysia.
+      Calibrated against Merdeka Center survey reports.</p>
+    </div>
+    <div>
+      <h3>Election status</h3>
+      <p>GE16 has not been called. The Dewan Rakyat must dissolve by 19 December 2027;
+      polling follows within sixty days.</p>
+    </div>
+    <div class="caveat">
+      <h3>Not calibrated</h3>
+      <p>Two constants in the swing model were set by judgement, not fitted to data.
+      Treat every figure here as a direction, not a forecast.</p>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  /* ── seat book ────────────────────────────────────────── */
+  var BOOK = [
+    { code: "GPS", name: "Gabungan Parti Sarawak", safe: 20, likely: 2,  tight: 0,  side: "gov" },
+    { code: "GRS", name: "Gabungan Rakyat Sabah",  safe: 7,  likely: 2,  tight: 0,  side: "gov" },
+    { code: "BN",  name: "Barisan Nasional",       safe: 24, likely: 12, tight: 6,  side: "gov" },
+    { code: "PH",  name: "Pakatan Harapan",        safe: 52, likely: 21, tight: 12, side: "gov" },
+    { code: "PN",  name: "Perikatan Nasional",     safe: 40, likely: 16, tight: 8,  side: "opp" }
+  ];
+
+  /* deterministic jitter so margins look real and never drift between renders */
+  var s = 20260809;
+  function rnd() { s = (s * 1664525 + 1013904223) % 4294967296; return s / 4294967296; }
+
+  function band(n, lo, hi, tier) {
+    var out = [];
+    for (var i = 0; i < n; i++) out.push({ margin: +(lo + rnd() * (hi - lo)).toFixed(1), tier: tier });
+    return out;
+  }
+
+  var seats = [];
+  BOOK.forEach(function (c) {
+    var mine = band(c.safe, 12, 31, "safe")
+      .concat(band(c.likely, 6, 12, "likely"))
+      .concat(band(c.tight, 0.3, 6, "tight"));
+    /* government blocs face the centre with their marginals; opposition mirrors it */
+    mine.sort(function (a, b) { return c.side === "gov" ? b.margin - a.margin : a.margin - b.margin; });
+    mine.forEach(function (x) { x.code = c.code; x.name = c.name; seats.push(x); });
+  });
+
+  var TOTAL = seats.length;          // 222
+  var THRESHOLD = 112;
+
+  /* ── hemicycle geometry ───────────────────────────────── */
+  var CX = 500, CY = 496, R_OUT = 452, R_IN = 196, ROWS = 10;
+
+  var radii = [], weight = 0;
+  for (var r = 0; r < ROWS; r++) {
+    var rad = R_IN + (R_OUT - R_IN) * (r / (ROWS - 1));
+    radii.push(rad); weight += rad;
+  }
+  var counts = radii.map(function (rad) { return Math.max(1, Math.round(TOTAL * rad / weight)); });
+  var drift = TOTAL - counts.reduce(function (a, b) { return a + b; }, 0);
+  for (var k = ROWS - 1; drift !== 0; k = (k - 1 + ROWS) % ROWS) {
+    counts[k] += drift > 0 ? 1 : -1;
+    drift += drift > 0 ? -1 : 1;
+  }
+
+  var slots = [];
+  radii.forEach(function (rad, row) {
+    var n = counts[row], pad = 0.055;
+    for (var i = 0; i < n; i++) {
+      var t = n === 1 ? 0.5 : i / (n - 1);
+      var ang = Math.PI * (1 - pad) - t * Math.PI * (1 - 2 * pad);
+      slots.push({ ang: ang, rad: rad, row: row });
+    }
+  });
+  slots.sort(function (a, b) { return b.ang - a.ang; });   // left → right
+
+  var gap = (R_OUT - R_IN) / (ROWS - 1);
+  var DOT = Math.min(gap * 0.34, 9.4);
+
+  var NS = "http://www.w3.org/2000/svg";
+  var svg = document.getElementById("hemicycle");
+  function el(tag, attrs) {
+    var n = document.createElementNS(NS, tag);
+    for (var a in attrs) n.setAttribute(a, attrs[a]);
+    return n;
+  }
+  function pt(ang, rad) { return [CX + Math.cos(ang) * rad, CY - Math.sin(ang) * rad]; }
+
+  /* threshold line, between seat 112 and 113 */
+  var tAng = (slots[THRESHOLD - 1].ang + slots[THRESHOLD].ang) / 2;
+  var tA = pt(tAng, R_IN - 34), tB = pt(tAng, R_OUT + 26);
+  svg.appendChild(el("line", { x1: tA[0], y1: tA[1], x2: tB[0], y2: tB[1], class: "thresh-line" }));
+  svg.appendChild(el("circle", { cx: tB[0], cy: tB[1], r: 3, class: "thresh-cap" }));
+
+  var lbl = el("text", { x: tB[0] + 10, y: tB[1] + 4, class: "thresh-label" });
+  lbl.textContent = "112 — majority";
+  svg.appendChild(lbl);
+
+  /* buffer brace: from the majority line to the government's edge */
+  var eAng = (slots[157].ang + slots[158].ang) / 2;
+  var braceR = R_OUT + 52;
+  var bA = pt(tAng, braceR), bB = pt(eAng, braceR);
+  svg.appendChild(el("path", {
+    class: "buffer-brace",
+    d: "M" + bA[0] + " " + bA[1] + " A " + braceR + " " + braceR + " 0 0 1 " + bB[0] + " " + bB[1]
+  }));
+  var mid = pt((tAng + eAng) / 2, braceR + 20);
+  var bt = el("text", { x: mid[0], y: mid[1], class: "buffer-text", "text-anchor": "middle" });
+  bt.textContent = "46 seats to spare";
+  svg.appendChild(bt);
+
+  var gl = el("text", { x: 6, y: 534, class: "side-label" });
+  gl.textContent = "Government";
+  svg.appendChild(gl);
+  var ol = el("text", { x: 994, y: 534, class: "side-label", "text-anchor": "end" });
+  ol.textContent = "Opposition";
+  svg.appendChild(ol);
+
+  /* seats */
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  seats.forEach(function (seat, i) {
+    var p = pt(slots[i].ang, slots[i].rad);
+    var col = "var(--" + seat.code.toLowerCase() + ")";
+    var attrs = { cx: p[0], cy: p[1], r: DOT, class: "seat-dot" };
+
+    if (seat.tier === "tight") {
+      attrs.fill = "none";
+      attrs.stroke = col;
+      attrs["stroke-width"] = 1.9;
+    } else {
+      attrs.fill = col;
+      attrs["fill-opacity"] = seat.tier === "safe" ? 1 : 0.42;
+    }
+    var dot = el("circle", attrs);
+
+    var tip = el("title", {});
+    tip.textContent = seat.name + " — projected lead " + seat.margin.toFixed(1) + " points"
+      + (seat.tier === "tight" ? " (too close to call)" : "");
+    dot.appendChild(tip);
+
+    if (!reduce) {
+      dot.style.opacity = "0";
+      dot.style.animation = "none";
+      setTimeout(function () {
+        dot.style.transition = "opacity .5s ease";
+        dot.style.opacity = "1";
+      }, 90 + i * 3.4);
+    }
+    svg.appendChild(dot);
+  });
+
+  /* ── theme toggle ─────────────────────────────────────── */
+  var btn = document.getElementById("themeBtn");
+  function label() {
+    var dark = document.documentElement.getAttribute("data-theme") === "dark"
+      || (!document.documentElement.getAttribute("data-theme")
+          && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    btn.textContent = dark ? "Light" : "Dark";
+  }
+  btn.addEventListener("click", function () {
+    var dark = document.documentElement.getAttribute("data-theme") === "dark"
+      || (!document.documentElement.getAttribute("data-theme")
+          && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.setAttribute("data-theme", dark ? "light" : "dark");
+    label();
+  });
+  label();
+})();
+</script>
