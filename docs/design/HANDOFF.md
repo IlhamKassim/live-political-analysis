@@ -11,18 +11,23 @@ touching anything.
 | | |
 | --- | --- |
 | Ticket | **#17** — Public dashboard renders the Projection as the Dewan Rakyat chamber |
-| Label | `needs-info` — *not* `ready-for-agent`, deliberately |
-| Docs PR | **#18** (this file and the mockup). Merge it if still open. |
-| Next action | **Settle the two open decisions below with the user.** They cannot be settled by an agent. |
+| Label | `ready-for-agent` |
+| Docs PR | **#18** — merged 9 Aug 2026 |
+| Both decisions | **Settled** 9 Aug 2026, recorded as a comment on #17 |
+| Next action | **Write ADR 0005 and ADR 0006**, then start Step 2 of the workflow at the end of this file. |
 
-Once both are answered: record them as a comment on #17, relabel it
-`ready-for-agent`, and pick up **Step 2** of the workflow at the end of this
-file. If decision 2 lands on a static page, write **ADR 0005** first — that
-changes how the Projection is published, and ADRs 0001–0004 set the precedent
-that publishing decisions get recorded.
+The two decisions that used to block this are answered:
 
-Do not start building before those two answers exist. Everything downstream
-depends on them, and guessing wrong means rebuilding the page.
+1. **The chamber renders named Seats with per-Seat calls**, not Coalition
+   totals alone. This supersedes ADR 0001 — **ADR 0005** records that.
+2. **The public page is static HTML**, not Streamlit. **ADR 0006** records that.
+   `src/lpa/dashboard.py` stays as the internal view; it is not deleted and not
+   redesigned.
+
+Both are written up in full, with what they require and the constraint on
+presenting per-Seat calls, in the *Decisions settled* comment on #17. Read it —
+it is the authority, and the sections below still describe the pre-decision
+state where they conflict.
 
 ## What exists
 
@@ -73,7 +78,12 @@ a colophon — is secondary and set as print, not as dashboard cards.
    mode; name it and stop. Asymmetry, a constrained palette, ruled tables and
    visible authorship are what carry the credibility here.
 
-## Open decisions — these block implementation
+## Open decisions — SETTLED 9 Aug 2026, kept for the reasoning
+
+> Both were answered on 9 August 2026: **(a)** per-Seat calls with named Seats,
+> and **static HTML**. See the *Decisions settled* comment on #17 for what each
+> requires. The tradeoffs below are kept because they are why the answers are
+> what they are — not because anything is still open.
 
 ### 1. What data does the hemicycle render? (blocking, decide first)
 
@@ -210,8 +220,8 @@ Applied to this piece of work:
 
 | Step | Work | Owner | Model / effort |
 | --- | --- | --- | --- |
-| 1 | Settle Open decisions 1 and 2. Record on #17, relabel `ready-for-agent`. ADR 0005 if the answer is a static page. | **User**, with an agent laying out tradeoffs | Opus, high |
-| 2 | Whichever data path decision 1 picks. Extend `storage`/`domain` only if the totals are not already reachable. Test-first, branch off `main`. | Agent | Opus or Sonnet, medium-high |
+| ~~1~~ | ~~Settle the two decisions~~ — **done 9 Aug 2026**, see #17 | — | — |
+| 2 | ADR 0005 (per-Seat Projection, supersedes 0001) and ADR 0006 (static publishing). Then carry per-Seat calls and margins through `swing_model` → `Projection` → `storage`. Test-first, branch off `main`. | Agent | Opus or Sonnet, medium-high |
 | 3 | Build the page from the mockup against real Storage data. | Agent | Opus, high — this is design execution |
 | 4 | `/code-review`, then fix findings. | Agent | inherits |
 | 5 | Run it for real: empty database, one day of history, 375px and 1440px, both themes, all three Election Status states. | **User** and agent together | — |
@@ -219,12 +229,11 @@ Applied to this piece of work:
 | 7 | Defect pass — contrast, the liveness pulse, the sub-600px fallback, the keyboard path. Separable; can be its own PR. | Agent | Sonnet, medium — mechanical |
 | 8 | Deploy. | — | — |
 
-**Step 8 depends entirely on decision 2.** If Streamlit: nothing new — #7 and
-#9 already run the daily Action against Neon and serve from Streamlit Community
-Cloud, and the redesign rides that. If static: this is real work, a generator
-plus free hosting, with ADR 0002's zero-cost rule binding the choice. GitHub
-Pages is the obvious answer and the daily Action can publish the page in the
-same job.
+**Step 8 is real work**, now that decision 2 is static: a renderer plus free
+hosting, with ADR 0002's zero-cost rule binding the choice. GitHub Pages is the
+obvious answer, and the existing daily Action can render and publish the page in
+the same job it already runs. The public page then never touches the database at
+request time — only the Action does.
 
 **Where the user is the bottleneck:** steps 1 and 5. Nobody else can make those
 calls, or say the page reads right. Everything else an agent can carry.
