@@ -1,8 +1,28 @@
 # Public dashboard redesign — handoff
 
 Status as of **9 August 2026**. Design direction is agreed; implementation has
-not started. This file is the whole context — read it and `CONTEXT.md` before
+not started. This file is the whole context. Read it, then `CONTEXT.md`, before
 touching anything.
+
+## Start here
+
+**If you have just been told "continue", this is the state and the next action.**
+
+| | |
+| --- | --- |
+| Ticket | **#17** — Public dashboard renders the Projection as the Dewan Rakyat chamber |
+| Label | `needs-info` — *not* `ready-for-agent`, deliberately |
+| Docs PR | **#18** (this file and the mockup). Merge it if still open. |
+| Next action | **Settle the two open decisions below with the user.** They cannot be settled by an agent. |
+
+Once both are answered: record them as a comment on #17, relabel it
+`ready-for-agent`, and pick up **Step 2** of the workflow at the end of this
+file. If decision 2 lands on a static page, write **ADR 0005** first — that
+changes how the Projection is published, and ADRs 0001–0004 set the precedent
+that publishing decisions get recorded.
+
+Do not start building before those two answers exist. Everything downstream
+depends on them, and guessing wrong means rebuilding the page.
 
 ## What exists
 
@@ -45,6 +65,13 @@ a colophon — is secondary and set as print, not as dashboard cards.
    tokens only. Never style a component inside the media query.
 6. **The "not calibrated" caveat stays on the page**, in the colophon, in red.
    It is not moved to a subpage.
+7. **The print register is the point, and it was arrived at by elimination.**
+   Two earlier mockups were rejected for reading as templated — centred grids,
+   rounded cards on a symmetric layout, a six-colour palette, emoji as section
+   markers, a status badge instead of the arithmetic. If work on this page
+   starts drifting back toward a conventional dashboard, that is the failure
+   mode; name it and stop. Asymmetry, a constrained palette, ruled tables and
+   visible authorship are what carry the credibility here.
 
 ## Open decisions — these block implementation
 
@@ -133,7 +160,29 @@ Treat any number that cannot be traced to Storage or to `data/` as a bug.
 - **`data/election_status.json`** — GE16 is not called. The page must render the
   called / not-called / no-polling-date states from that file and never guess.
 - `pyproject.toml` force-includes each `data/*.json` into the wheel by hand; a
-  new data file needs adding there too.
+  new data file needs adding there too, or an installed dashboard reads a path
+  that only exists in a checkout.
+
+## Operational traps
+
+Each of these has already cost time on this project.
+
+- **The Dashboard has no automated tests, by design.** Issue #1 settled that it
+  is verified by running the pipeline end to end and looking at the page. So a
+  green test run says nothing about this work — running it for real is the gate.
+  Cover the states a fresh deploy hits first: empty database, one day of
+  history, and all three Election Status states.
+- **Most stored daily history is seeded.** `scripts/seed_dev_snapshots.py`
+  writes an invented random walk. Any trend that looks interesting on local data
+  is probably about the seeder, not about Malaysia.
+- **Do not take review subagents at face value.** A spec reviewer once reported
+  Bernama's Malay RSS feed returning 200 with Malay items; it returns a stable
+  500. Another argued a change had destroyed GPS coverage, citing seeded days as
+  evidence. Check any factual claim against the real thing before acting on it.
+- **Streamlit caches reads for 15 minutes.** A pipeline run that finishes while
+  a tab is open takes up to that long to appear. Not a bug; do not chase it.
+- **GitHub disables a scheduled workflow after 60 days with no commits.** If
+  snapshots stop appearing during a quiet stretch, check that first.
 
 ## Research already done — do not re-derive
 
@@ -153,15 +202,31 @@ findings that shaped the design:
 - **AEC / UK Electoral Commission** — progressive disclosure and cautious
   language ("leading by", never "will win"), with data-freshness always visible.
 
-## Suggested phasing
+## Workflow, start to end
 
-| Phase | Work | Suits |
-| --- | --- | --- |
-| 0 | Settle Open decisions 1 and 2 with the user | Opus, high — judgement, not code |
-| 1 | Whichever data path decision 1 picks; extend Storage/`domain` as needed, test-first | Opus or Sonnet, medium-high |
-| 2 | Build the page from the mockup against real data | Opus, high — design execution |
-| 3 | Defects 2–5: contrast, pulse, mobile fallback, a11y table | Sonnet, medium — mechanical |
+The project's usual rhythm — implement test-first → `/code-review` → fix → run
+the real thing → merge to `main` → close the issue, one ticket at a time.
+Applied to this piece of work:
 
-Working rhythm is the project's usual one: implement test-first → `/code-review`
-→ fix → merge to `main` → close the issue, one ticket at a time, and run the
-real thing before calling it done.
+| Step | Work | Owner | Model / effort |
+| --- | --- | --- | --- |
+| 1 | Settle Open decisions 1 and 2. Record on #17, relabel `ready-for-agent`. ADR 0005 if the answer is a static page. | **User**, with an agent laying out tradeoffs | Opus, high |
+| 2 | Whichever data path decision 1 picks. Extend `storage`/`domain` only if the totals are not already reachable. Test-first, branch off `main`. | Agent | Opus or Sonnet, medium-high |
+| 3 | Build the page from the mockup against real Storage data. | Agent | Opus, high — this is design execution |
+| 4 | `/code-review`, then fix findings. | Agent | inherits |
+| 5 | Run it for real: empty database, one day of history, 375px and 1440px, both themes, all three Election Status states. | **User** and agent together | — |
+| 6 | Merge to `main`, close #17 noting what shipped and what did not. | Agent | Sonnet, medium |
+| 7 | Defect pass — contrast, the liveness pulse, the sub-600px fallback, the keyboard path. Separable; can be its own PR. | Agent | Sonnet, medium — mechanical |
+| 8 | Deploy. | — | — |
+
+**Step 8 depends entirely on decision 2.** If Streamlit: nothing new — #7 and
+#9 already run the daily Action against Neon and serve from Streamlit Community
+Cloud, and the redesign rides that. If static: this is real work, a generator
+plus free hosting, with ADR 0002's zero-cost rule binding the choice. GitHub
+Pages is the obvious answer and the daily Action can publish the page in the
+same job.
+
+**Where the user is the bottleneck:** steps 1 and 5. Nobody else can make those
+calls, or say the page reads right. Everything else an agent can carry.
+
+**Rough shape:** steps 1–2 in one session, 3–6 in another, 7–8 in a third.
