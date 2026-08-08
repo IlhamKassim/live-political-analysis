@@ -11,5 +11,6 @@ dist/
 .env
 .streamlit/secrets.toml
 
-# macOS Finder droppings
+# Finder writes these into any directory it opens, and one reached a commit
+# before this line existed.
 .DS_Store

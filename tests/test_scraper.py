@@ -13,7 +13,7 @@ from pytest import fixture, raises
 
 from lpa.domain import Outlet
 from lpa.scraper import (
-    Disallowed,
+    DisallowedFeed,
     RateLimiter,
     RobotsPolicy,
     Scraper,
@@ -163,10 +163,15 @@ class RecordingClient:
 
 class StubRobots:
     def __init__(self, allowed, delay=None):
+        # `allowed` may be a bool, or a predicate on the URL where a test
+        # needs one outlet refused and another allowed.
         self.allowed, self.delay = allowed, delay
 
     def is_allowed(self, url):
-        return self.allowed
+        return self.allowed(url) if callable(self.allowed) else self.allowed
+
+    def refusal_reason(self, url):
+        return "robots.txt disallows this path"
 
     def crawl_delay(self, url):
         return self.delay
@@ -178,9 +183,21 @@ def feed_response(content=b"<rss><channel/></rss>"):
     )()
 
 
-class FeedClient:
+class HalfBrokenClient:
+    """Serves the fixture feed, but refuses any host with "broken" in it."""
+
     def get(self, url):
-        return feed_response()
+        if "broken" in url:
+            raise httpx.ConnectError("down")
+        return feed_response(FIXTURE.read_bytes())
+
+
+class FeedClient:
+    def __init__(self, content=b"<rss><channel/></rss>"):
+        self.content = content
+
+    def get(self, url):
+        return feed_response(self.content)
 
 
 def limiter_on(clock, min_interval=2.0):
@@ -211,6 +228,25 @@ def test_an_outlet_erroring_on_robots_txt_is_left_alone():
     policy = RobotsPolicy(client=RecordingClient(StubResponse(503)))
 
     assert policy.is_allowed("https://x/feed/") is False
+
+
+def test_a_refusal_says_whether_robots_txt_was_actually_read():
+    # Both of these fail closed, and should — but they call for opposite
+    # responses, so the run log must not report them the same way. A 403 is
+    # a decision to respect; a 503 is an outlet having a bad day.
+    forbidden = RobotsPolicy(client=RecordingClient(StubResponse(403)))
+    unwell = RobotsPolicy(client=RecordingClient(StubResponse(503)))
+
+    assert forbidden.refusal_reason("https://x/feed/") == "robots.txt answered 403"
+    assert unwell.refusal_reason("https://x/feed/") == "robots.txt answered 503"
+
+
+def test_a_robots_txt_that_was_read_and_refuses_says_so():
+    client = RecordingClient(StubResponse(200, "User-agent: *\nDisallow: /feed/\n"))
+    policy = RobotsPolicy(user_agent="test-agent", client=client)
+
+    assert policy.is_allowed("https://x/feed/") is False
+    assert policy.refusal_reason("https://x/feed/") == "robots.txt disallows this path"
 
 
 def test_a_missing_robots_txt_means_there_are_no_rules_to_break():
@@ -290,7 +326,7 @@ def test_a_feed_robots_txt_disallows_is_not_fetched():
 
     scraper = Scraper(client=type("C", (), {"get": explode})(), robots=StubRobots(False))
 
-    with raises(Disallowed):
+    with raises(DisallowedFeed):
         scraper.fetch(Outlet("Blocked", "https://x/feed/"))
 
 
@@ -299,7 +335,12 @@ def test_a_refused_outlet_is_named_in_the_run_rather_than_dropped_quietly(capsys
     # like one that published no news. Berita Harian's robots.txt began
     # answering 403 two days after it was added and it left the run without
     # a word; nothing in the output said an outlet was missing.
-    scraper = Scraper(client=FeedClient(), robots=StubRobots(False))
+    def explode(*args, **kwargs):
+        raise AssertionError("fetched a URL robots.txt disallows")
+
+    scraper = Scraper(
+        client=type("C", (), {"get": explode})(), robots=StubRobots(False)
+    )
 
     articles = scraper.fetch_all([Outlet("Blocked", "https://x/feed/")])
 
@@ -311,15 +352,11 @@ def test_a_refusal_reads_differently_from_a_breakage(capsys):
     # One is answered by asking the outlet or dropping it from
     # data/outlets.json, the other by waiting or fixing a parser. Folding
     # both into one message would lose that.
-    class BrokenClient:
-        def get(self, url):
-            raise httpx.ConnectError("down")
-
     Scraper(client=FeedClient(), robots=StubRobots(False)).fetch_all(
         [Outlet("Refused", "https://x/feed/")]
     )
-    Scraper(client=BrokenClient(), robots=StubRobots(True)).fetch_all(
-        [Outlet("Broken", "https://y/feed/")]
+    Scraper(client=HalfBrokenClient(), robots=StubRobots(True)).fetch_all(
+        [Outlet("Broken", "https://broken/feed/")]
     )
 
     printed = capsys.readouterr().out
@@ -331,21 +368,16 @@ def test_a_refused_outlet_does_not_cost_the_run_the_others():
     # The refusal path has to carry on exactly as the failure path does —
     # this is what actually went wrong: half the Bahasa Malaysia coverage
     # vanished and the remaining outlets carried the day on their own.
-    class Client:
-        def get(self, url):
-            return feed_response(FIXTURE.read_bytes())
-
-    class RefuseOne:
-        def is_allowed(self, url):
-            return "refused" not in url
-
-        def crawl_delay(self, url):
-            return None
-
-    scraper = Scraper(client=Client(), robots=RefuseOne())
+    scraper = Scraper(
+        client=FeedClient(FIXTURE.read_bytes()),
+        robots=StubRobots(lambda url: "refused" not in url),
+    )
 
     articles = scraper.fetch_all(
-        [Outlet("Refused", "https://refused/feed/"), Outlet("Fine", "https://fine/feed/")]
+        [
+            Outlet("Refused", "https://refused/feed/"),
+            Outlet("Fine", "https://fine/feed/"),
+        ]
     )
 
     assert [a.source for a in articles] == ["Fine"] * 3
@@ -354,12 +386,6 @@ def test_a_refused_outlet_does_not_cost_the_run_the_others():
 def test_one_failing_outlet_does_not_cost_the_run_the_others():
     # The daily job is unattended: an outage at one outlet must not take the
     # whole day's coverage with it.
-    class HalfBrokenClient:
-        def get(self, url):
-            if "broken" in url:
-                raise httpx.ConnectError("down")
-            return feed_response(FIXTURE.read_bytes())
-
     scraper = Scraper(client=HalfBrokenClient(), robots=StubRobots(True))
 
     articles = scraper.fetch_all(
