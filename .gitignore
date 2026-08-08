@@ -10,3 +10,6 @@ dist/
 # here, but nothing should be able to arrive in the repo by accident.
 .env
 .streamlit/secrets.toml
+
+# macOS Finder droppings
+.DS_Store

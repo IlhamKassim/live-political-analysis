@@ -13,6 +13,7 @@ from pytest import fixture, raises
 
 from lpa.domain import Outlet
 from lpa.scraper import (
+    Disallowed,
     RateLimiter,
     RobotsPolicy,
     Scraper,
@@ -289,7 +290,65 @@ def test_a_feed_robots_txt_disallows_is_not_fetched():
 
     scraper = Scraper(client=type("C", (), {"get": explode})(), robots=StubRobots(False))
 
-    assert scraper.fetch(Outlet("Blocked", "https://x/feed/")) == []
+    with raises(Disallowed):
+        scraper.fetch(Outlet("Blocked", "https://x/feed/"))
+
+
+def test_a_refused_outlet_is_named_in_the_run_rather_than_dropped_quietly(capsys):
+    # Issue #16: returning no Articles made a blocked outlet look exactly
+    # like one that published no news. Berita Harian's robots.txt began
+    # answering 403 two days after it was added and it left the run without
+    # a word; nothing in the output said an outlet was missing.
+    scraper = Scraper(client=FeedClient(), robots=StubRobots(False))
+
+    articles = scraper.fetch_all([Outlet("Blocked", "https://x/feed/")])
+
+    assert articles == []
+    assert "Blocked" in capsys.readouterr().out
+
+
+def test_a_refusal_reads_differently_from_a_breakage(capsys):
+    # One is answered by asking the outlet or dropping it from
+    # data/outlets.json, the other by waiting or fixing a parser. Folding
+    # both into one message would lose that.
+    class BrokenClient:
+        def get(self, url):
+            raise httpx.ConnectError("down")
+
+    Scraper(client=FeedClient(), robots=StubRobots(False)).fetch_all(
+        [Outlet("Refused", "https://x/feed/")]
+    )
+    Scraper(client=BrokenClient(), robots=StubRobots(True)).fetch_all(
+        [Outlet("Broken", "https://y/feed/")]
+    )
+
+    printed = capsys.readouterr().out
+    assert "not permitted" in printed
+    assert "ConnectError" in printed
+
+
+def test_a_refused_outlet_does_not_cost_the_run_the_others():
+    # The refusal path has to carry on exactly as the failure path does —
+    # this is what actually went wrong: half the Bahasa Malaysia coverage
+    # vanished and the remaining outlets carried the day on their own.
+    class Client:
+        def get(self, url):
+            return feed_response(FIXTURE.read_bytes())
+
+    class RefuseOne:
+        def is_allowed(self, url):
+            return "refused" not in url
+
+        def crawl_delay(self, url):
+            return None
+
+    scraper = Scraper(client=Client(), robots=RefuseOne())
+
+    articles = scraper.fetch_all(
+        [Outlet("Refused", "https://refused/feed/"), Outlet("Fine", "https://fine/feed/")]
+    )
+
+    assert [a.source for a in articles] == ["Fine"] * 3
 
 
 def test_one_failing_outlet_does_not_cost_the_run_the_others():

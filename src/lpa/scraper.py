@@ -45,6 +45,18 @@ class UnreadableFeed(Exception):
     """The document fetched from an outlet is not a feed we can read."""
 
 
+class Disallowed(Exception):
+    """An outlet's robots.txt does not permit fetching its feed.
+
+    Raised rather than returned as "no Articles" so that a blocked outlet
+    cannot be mistaken for a quiet one — the same reason `parse_feed` raises
+    on a document it cannot read. Refusing is normal and expected here, but
+    silently contributing nothing to a day's Sentiment is not: it removes an
+    outlet from the record with no trace that it was ever meant to be read
+    (issue #16).
+    """
+
+
 def parse_feed(feed_xml: str | bytes, source: str) -> list[Article]:
     """Turn an RSS or Atom feed into Article records. Pure — no network.
 
@@ -196,9 +208,14 @@ class Scraper:
         self.client.close()
 
     def fetch(self, outlet: Outlet) -> list[Article]:
-        """Fetch one outlet's recent Articles, or none if robots.txt forbids it."""
+        """Fetch one outlet's recent Articles.
+
+        Raises `Disallowed` where robots.txt refuses the feed, which includes
+        the case where robots.txt could not be read at all — `RobotsPolicy`
+        fails closed, and a refusal we inferred is still a refusal.
+        """
         if not self.robots.is_allowed(outlet.feed_url):
-            return []
+            raise Disallowed(f"robots.txt disallows {outlet.feed_url}")
         self.limiter.wait_turn(
             outlet.feed_url, self.robots.crawl_delay(outlet.feed_url)
         )
@@ -210,12 +227,23 @@ class Scraper:
         """Fetch every outlet, carrying on past any one that fails.
 
         The daily job is unattended (ADR 0002), so one outlet's outage must
-        not cost the run every other outlet's coverage.
+        not cost the run every other outlet's coverage — including an outlet
+        that is refused rather than broken.
+
+        Every reason an outlet contributes nothing is printed, because an
+        outlet that drops out is otherwise indistinguishable from one that
+        published no news: neither appears in the day's `sources` (issue #16).
         """
         articles: list[Article] = []
         for outlet in outlets:
             try:
                 articles.extend(self.fetch(outlet))
+            except Disallowed as refusal:
+                # Named apart from the failures below: nothing is broken and
+                # there is nothing to retry. It changes what to do about it —
+                # a 500 may pass, a refusal is answered by asking the outlet
+                # or by dropping it from data/outlets.json.
+                print(f"skipping {outlet.name}: not permitted: {refusal}")
             except (httpx.HTTPError, UnreadableFeed, ElementTree.ParseError) as error:
                 print(f"skipping {outlet.name}: {type(error).__name__}: {error}")
         return articles
