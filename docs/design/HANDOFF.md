@@ -158,14 +158,33 @@ the page *claims* rather than how it looks. Three remain, and are step 7.
    stamp is a static `MODEL RUN <date>` from `Projection.computed_at`.
 4. **Mobile.** The hemicycle has `min-width: 460px` and scrolls sideways inside
    its wrapper, so on a 375px screen the hero is partly off-screen.
-   **Decided 9 Aug 2026 — a stacked bar below ~600px.** One horizontal bar in
-   the same seat order, with the Majority line as a tick and the buffer stated
-   beside it, so the one idea the hero exists for — the Government block
-   overrunning the line — survives at any width. Accepted cost: at 375px a seat
-   is under 2px, so individual Seats and the solid/half-tone/hollow encoding do
-   *not* survive; the ledger's "too close" column carries the uncertainty on
-   mobile instead. Do not try to keep the dots by shrinking them — 3px rings
-   are indistinguishable and untappable, which was the option rejected.
+   **Decided 9 Aug 2026 — a stacked bar below ~600px, segmented by Coalition
+   in bloc order.** Government Coalitions first, then non-government, each run
+   in the same order as the ledger's rows. The Majority tick goes at the 112th
+   seat along the bar; because every Government Coalition still comes first,
+   the block still overruns it and the buffer is still a visible distance,
+   which is the one idea the hero exists for.
+
+   **Why bloc order and not the chamber's margin order.** The bar *replaces*
+   the hemicycle below 600px rather than accompanying it, so the two orderings
+   never appear on one screen, and the thing the bar does sit beside is the
+   ledger — which is ordered by bloc. Colouring by Coalition in margin order
+   was rejected outright: at 375px a seat is under 2px, and interleaved
+   sub-2px stripes read as dither, or as a rendering fault.
+
+   Two consequences that must be handled, not discovered:
+
+   - **The caption changes with it.** The desktop caption promises
+     safest-Government to safest Non-government, which is false of the bar.
+     The narrow layout needs its own caption; do not let the desktop one leak.
+   - **Marginals no longer sit at the contest line**, so the bar carries no
+     uncertainty encoding at all. The ledger's "too close" column is the only
+     place it survives on mobile — which is another reason defect 5's
+     visually-hidden table matters more than it looks.
+
+   Do not try to keep the dots by shrinking them: 3px rings are
+   indistinguishable and untappable, and that option was considered and
+   rejected.
 5. **Keyboard and touch.** The 222 dots are not focusable and the hover-dim does
    nothing on touch. The SVG `aria-label` carries the summary; a
    visually-hidden table is the real fix. Note the table is also what makes the
