@@ -31,13 +31,16 @@ import html
 import math
 from dataclasses import dataclass
 from datetime import date
+from enum import StrEnum
 from typing import Mapping, Sequence
 
+from lpa.aggregate import AggregatedSentiment
 from lpa.domain import (
     Coalition,
     ElectionStatus,
     Projection,
     SeatBaseline,
+    StateElectionSignal,
     SwingModelConfig,
     government_seat_total,
 )
@@ -53,7 +56,22 @@ to cover the error those imply rather than the error a fitted model would have.
 LIKELY_MARGIN = 0.12
 """Below this a Seat is shown at half tone, above it as solid."""
 
-SAFE, LIKELY, TIGHT = "safe", "likely", "tight"
+class Tier(StrEnum):
+    """How firmly a Seat is called — the encoding, not a label.
+
+    ADR 0005 calls this load-bearing rather than decorative: the Swing Model
+    has no Seat-specific signal, so a call inside a few points is arithmetic
+    that could as easily have landed the other way, and the page has to say so
+    in a form that survives greyscale and colour blindness. A closed set rather
+    than a bare string because a typo in a comparison would silently render
+    every Seat as safe.
+
+    `StrEnum` so the value is also the CSS-facing name.
+    """
+
+    SAFE = "safe"
+    LIKELY = "likely"
+    TIGHT = "tight"
 
 
 @dataclass(frozen=True)
@@ -66,7 +84,7 @@ class ChamberSeat:
     coalition: Coalition
     margin: float
     """Projected lead over the runner-up, in vote share."""
-    tier: str
+    tier: Tier
     government: bool
 
 
@@ -96,7 +114,7 @@ class PageModel:
     government_seats: int
     government_coalitions: tuple[Coalition, ...]
     seats: tuple[ChamberSeat, ...]
-    """All 222, ordered safest-Government first and safest-Opposition last."""
+    """All 222, ordered safest-Government first and safest Non-government last."""
     ledger: tuple[LedgerRow, ...]
     status: ElectionStatus
     sources: tuple[str, ...]
@@ -114,12 +132,17 @@ class PageModel:
         return self.government_seats >= self.majority_threshold
 
     @property
+    def state_signal_seats(self) -> int:
+        """Seats moved by a state election result rather than Sentiment alone."""
+        return sum(seats for _, seats in self.state_signals)
+
+    @property
     def government_too_close(self) -> int:
-        return sum(1 for s in self.seats if s.government and s.tier == TIGHT)
+        return sum(1 for s in self.seats if s.government and s.tier == Tier.TIGHT)
 
     @property
     def opposition_too_close(self) -> int:
-        return sum(1 for s in self.seats if not s.government and s.tier == TIGHT)
+        return sum(1 for s in self.seats if not s.government and s.tier == Tier.TIGHT)
 
     @property
     def if_every_marginal_fell(self) -> int:
@@ -139,12 +162,13 @@ class PageModel:
         return max(0, self.buffer + 1)
 
 
-def tier_for(margin: float) -> str:
+def tier_for(margin: float) -> Tier:
+    """Which band a projected margin falls in."""
     if margin < TIGHT_MARGIN:
-        return TIGHT
+        return Tier.TIGHT
     if margin < LIKELY_MARGIN:
-        return LIKELY
-    return SAFE
+        return Tier.LIKELY
+    return Tier.SAFE
 
 
 def page_model(
@@ -153,12 +177,17 @@ def page_model(
     status: ElectionStatus,
     config: SwingModelConfig,
     names: Mapping[Coalition, str],
-    sources: Sequence[str],
-    article_count: int,
-    state_signal_states: Sequence[str],
+    sentiment: AggregatedSentiment | None,
+    state_election_signals: Sequence[StateElectionSignal],
     total_seats: int,
 ) -> PageModel:
     """Work out everything the page says, from one day's Projection.
+
+    `sentiment` and `state_election_signals` arrive as the types the rest of
+    the pipeline already passes around rather than pre-split into the two or
+    three fields the page happens to show. `sentiment` is `None` only for a
+    Storage with a Projection and no Sentiment snapshot, which a hand-seeded
+    database can be.
 
     Raises `ValueError` on a Projection with no Seat Calls. The chamber is the
     page, and rendering 222 blanks would look like a result rather than like a
@@ -181,13 +210,16 @@ def page_model(
         ),
         government_coalitions=tuple(sorted(config.government_coalitions)),
         seats=seats,
-        ledger=_ledger(projection, baseline, config, names),
+        ledger=_ledger(seats, projection, baseline, config, names),
         status=status,
-        sources=tuple(sources),
-        article_count=article_count,
+        # What was actually read, not the outlets the Scraper was pointed at:
+        # one that answered 500 or was refused by robots.txt contributed
+        # nothing and must not be credited (#16).
+        sources=tuple(sentiment.sources) if sentiment else (),
+        article_count=sentiment.total_articles if sentiment else 0,
         state_signals=tuple(
             (state, sum(1 for s in baseline if s.state == state))
-            for state in sorted(set(state_signal_states))
+            for state in sorted({s.state for s in state_election_signals})
         ),
     )
 
@@ -239,6 +271,7 @@ def _ordered_seats(
 
 
 def _ledger(
+    seats: Sequence[ChamberSeat],
     projection: Projection,
     baseline: Sequence[SeatBaseline],
     config: SwingModelConfig,
@@ -250,15 +283,19 @@ def _ledger(
     tallies every Coalition that stood anywhere, and a dozen 0-against-0 rows
     bury the ones a reader came for. Government Coalitions come first, each
     side strongest first, so the ledger reads in the same order as the chamber.
+
+    The "too close" column counts `seats`, which already carry their tier,
+    rather than re-deriving it from the Seat Calls. Two paths to one number is
+    how a ledger column comes to disagree with the chamber above it.
     """
     at_baseline: dict[Coalition, int] = {}
     for seat in baseline:
         at_baseline[seat.winner] = at_baseline.get(seat.winner, 0) + 1
 
     too_close: dict[Coalition, int] = {}
-    for call in projection.seat_calls:
-        if tier_for(call.margin) == TIGHT:
-            too_close[call.coalition] = too_close.get(call.coalition, 0) + 1
+    for seat in seats:
+        if seat.tier == Tier.TIGHT:
+            too_close[seat.coalition] = too_close.get(seat.coalition, 0) + 1
 
     rows = [
         LedgerRow(
@@ -483,7 +520,7 @@ def _hemicycle(model: PageModel) -> str:
             'class="thresh-line"/>'
             f'<circle cx="{bx:.1f}" cy="{by:.1f}" r="3" class="thresh-cap"/>'
             f'<text x="{bx + 10:.1f}" y="{by + 4:.1f}" class="thresh-label">'
-            f"{threshold} — majority</text>"
+            f"{threshold} — Majority</text>"
         )
 
         # The brace spans the Majority line to the Government block's edge, so
@@ -517,12 +554,12 @@ def _hemicycle(model: PageModel) -> str:
     for seat, (angle, radius) in zip(model.seats, slots):
         x, y = _point(angle, radius)
         ink = _swatch(seat.coalition)
-        if seat.tier == TIGHT:
+        if seat.tier == Tier.TIGHT:
             paint = f'fill="none" stroke="{ink}" stroke-width="1.9"'
         else:
-            opacity = "1" if seat.tier == SAFE else "0.42"
+            opacity = "1" if seat.tier == Tier.SAFE else "0.42"
             paint = f'fill="{ink}" fill-opacity="{opacity}"'
-        close = " — too close to call" if seat.tier == TIGHT else ""
+        close = " — too close to call" if seat.tier == Tier.TIGHT else ""
         tip = (
             f"{seat.name} ({seat.state}) — {seat.coalition} "
             f"by {_points(seat.margin)} points{close}"
@@ -556,7 +593,7 @@ def _swing_cell(swing: int) -> str:
 def _ledger_row(row: LedgerRow) -> str:
     return (
         f'<tr style="--swatch: {_swatch(row.coalition)}">'
-        f'<td><span class="party">{html.escape(row.name)} '
+        f'<td><span class="coalition">{html.escape(row.name)} '
         f"<small>{html.escape(row.coalition)}</small></span></td>"
         f'<td class="seats-cell">{row.projected}</td>'
         f"<td>{row.baseline}</td>"
@@ -572,13 +609,19 @@ def _ledger_table(model: PageModel) -> str:
     run rather than being sought by index.
     """
     government = [row for row in model.ledger if row.government]
-    at_baseline = sum(row.baseline for row in government)
+    # No GE15 cell and no Swing against it. The Government Coalition did not
+    # contest GE15 — it formed by agreement afterwards — so a "GE15 government
+    # total" is a category error rather than a figure that needed correcting,
+    # and a Swing against it would read as this bloc having gained Seats it
+    # was never in a position to win. Each member Coalition's own GE15 result
+    # is on its own row above, which is the true part of what that cell said.
     total_row = (
         '<tr class="gov-row">'
-        '<td><span class="party">Government total</span></td>'
+        '<td><span class="coalition">Government total</span></td>'
         f'<td class="seats-cell">{model.government_seats}</td>'
-        f"<td>{at_baseline}</td>"
-        f"{_swing_cell(model.government_seats - at_baseline)}"
+        '<td class="not-applicable" title="The Government Coalition formed '
+        'after GE15, by agreement. It had no GE15 total.">—</td>'
+        '<td class="not-applicable">—</td>'
         f"<td>{model.government_too_close}</td></tr>"
     )
     body = (
@@ -609,7 +652,6 @@ def _stress(model: PageModel) -> str:
         ", ".join(f"{state} ({seats})" for state, seats in model.state_signals)
         or "None yet"
     )
-    moved = sum(seats for _, seats in model.state_signals)
     cells = [
         (
             "If every marginal fell",
@@ -631,7 +673,7 @@ def _stress(model: PageModel) -> str:
         ),
         (
             "State swing, applied locally",
-            moved,
+            model.state_signal_seats,
             f"Seats moved by a state election result rather than by Sentiment "
             f"alone — {signals}. Every other state is untouched by it.",
         ),
@@ -650,9 +692,10 @@ _CSS = """
     --surface:     #F2F3EE;
     --ink:         #17191A;
     --ink-soft:    #55584F;
-    /* #8A8D83 in the mockup: 2.79:1 on --ground, and it carries every
-       eyebrow, label and key. Darkened to clear 4.5:1. */
-    --ink-faint:   #6C6F66;
+    /* #8A8D83 in the mockup is 2.79:1 on --ground and carries every eyebrow,
+       label and key. The handoff's suggested #6C6F66 measures 4.23:1 — still
+       short. This is 4.62:1. */
+    --ink-faint:   #666960;
     --rule:        #C8CAC0;
     --rule-hair:   #D8DAD1;
 
@@ -662,6 +705,11 @@ _CSS = """
     --pn:  #2B7A78;
     --gps: #8A6D1F;
     --grs: #6A4A7C;
+
+    /* Swing text. Not the coalition inks: --pn is 4.17:1 on --ground, fine
+       for a 9px dot and short of the 4.5:1 that 14px type needs. */
+    --ink-pos: #256B69;
+    --ink-neg: #A33429;
 
     --serif: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
     --sans:  ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -684,6 +732,8 @@ _CSS = """
       --pn:  #4FB3AF;
       --gps: #C9A542;
       --grs: #A886C2;
+      --ink-pos: #4FB3AF;
+      --ink-neg: #E0705F;
     }
   }
 
@@ -700,6 +750,8 @@ _CSS = """
     --pn:  #4FB3AF;
     --gps: #C9A542;
     --grs: #A886C2;
+    --ink-pos: #4FB3AF;
+    --ink-neg: #E0705F;
   }
 
   :root[data-theme="light"] {
@@ -707,7 +759,7 @@ _CSS = """
     --surface:   #F2F3EE;
     --ink:       #17191A;
     --ink-soft:  #55584F;
-    --ink-faint: #6C6F66;
+    --ink-faint: #666960;
     --rule:      #C8CAC0;
     --rule-hair: #D8DAD1;
     --ph:  #B23A2E;
@@ -715,6 +767,8 @@ _CSS = """
     --pn:  #2B7A78;
     --gps: #8A6D1F;
     --grs: #6A4A7C;
+    --ink-pos: #256B69;
+    --ink-neg: #A33429;
   }
 
   * { box-sizing: border-box; }
@@ -922,7 +976,7 @@ _CSS = """
   tbody td:first-child { text-align: left; }
   tbody tr:last-child td { border-bottom: 1px solid var(--ink); }
 
-  .party {
+  .coalition {
     display: flex;
     align-items: baseline;
     gap: 11px;
@@ -930,7 +984,7 @@ _CSS = """
     font-size: 17px;
     letter-spacing: -.01em;
   }
-  .party::before {
+  .coalition::before {
     content: "";
     width: 9px; height: 9px;
     flex: 0 0 9px;
@@ -938,19 +992,20 @@ _CSS = """
     background: var(--swatch);
     transform: translateY(-1px);
   }
-  .party small {
+  .coalition small {
     font-family: var(--mono);
     font-size: 10.5px;
     letter-spacing: .06em;
     color: var(--ink-faint);
   }
   .seats-cell { font-size: 20px; }
-  .swing-pos { color: var(--pn); }
-  .swing-neg { color: var(--ph); }
+  .swing-pos { color: var(--ink-pos); }
+  .swing-neg { color: var(--ink-neg); }
   .swing-nil { color: var(--ink-faint); }
+  .not-applicable { color: var(--ink-faint); }
   .gov-row td { background: color-mix(in srgb, var(--ink) 4%, transparent); font-weight: 600; }
-  .gov-row .party { font-weight: 600; }
-  .gov-row .party::before { background: none; }
+  .gov-row .coalition { font-weight: 600; }
+  .gov-row .coalition::before { background: none; }
 
   .stress {
     display: grid;
@@ -1061,7 +1116,7 @@ def render_html(model: PageModel) -> str:
 
   <section class="verdict">
     <div class="tally">
-      <div class="tally-eyebrow">Government coalition<br>{' · '.join(
+      <div class="tally-eyebrow">Government Coalition<br>{' · '.join(
           html.escape(c) for c in model.government_coalitions)}</div>
       <span class="tally-figure">{model.government_seats}</span>
       <span class="tally-of">of {model.total_seats} seats — {model.majority_threshold} needed</span>
@@ -1073,10 +1128,10 @@ def render_html(model: PageModel) -> str:
     <div class="strip">
       <div class="eyebrow">The Dewan Rakyat, projected</div>
       <p>
-        Seats run safest-government at the left to safest-opposition at the right.
-        Hollow rings are seats inside six points — too close to call. Each is where
-        a uniform swing puts that seat against its GE15 result, not a judgement
-        about the constituency.
+        Seats run from the safest Government Seat at the left to the safest
+        Non-government Seat at the right. Hollow rings are Seats inside six
+        points — too close to call. Each is where a uniform Swing puts that
+        Seat against its GE15 result, not a judgement about the constituency.
       </p>
     </div>
 
@@ -1090,7 +1145,7 @@ def render_html(model: PageModel) -> str:
   </section>
 
   <section class="ledger">
-    <div class="strip"><div class="eyebrow">Seat ledger — against the GE15 baseline</div></div>
+    <div class="strip"><div class="eyebrow">Seat ledger — against the GE15 Baseline</div></div>
     <div class="ledger-scroll">{_ledger_table(model)}</div>
     <dl class="stress">{_stress(model)}</dl>
   </section>
@@ -1098,14 +1153,14 @@ def render_html(model: PageModel) -> str:
   <footer class="colophon">
     <div>
       <h3>Method</h3>
-      <p>A swing from each seat's GE15 result, moved by daily news sentiment and
-      blended, state by state, with any state election held since. The swing is
-      uniform within a state, so a seat's call is arithmetic against GE15.</p>
+      <p>A Swing from each Seat's GE15 result, moved by daily News Sentiment
+      and blended, state by state, with any state election held since. The
+      Swing is uniform within a state, so a Seat's call is arithmetic against
+      GE15.</p>
     </div>
     <div>
       <h3>Read from</h3>
-      <p>{read_from}. {model.article_count} articles in the latest run,
-      sanity-checked against Merdeka Center survey reports.</p>
+      <p>{read_from}. {model.article_count} articles in the latest run.</p>
     </div>
     <div>
       <h3>Election status</h3>
@@ -1113,7 +1168,7 @@ def render_html(model: PageModel) -> str:
     </div>
     <div class="caveat">
       <h3>Not calibrated</h3>
-      <p>Two constants in the swing model were set by judgement, not fitted to
+      <p>Two constants in the Swing Model were set by judgement, not fitted to
       data. Treat every figure here as a direction, not a forecast.</p>
     </div>
   </footer>
@@ -1164,12 +1219,8 @@ def build_page(engine) -> str:
         status=load_election_status(),
         config=swing_model_config(config),
         names=coalition_names(config),
-        # What was actually read on the latest run, not the outlets the
-        # Scraper was pointed at: an outlet that answered 500 or was refused
-        # by robots.txt did not contribute and must not be credited (#16).
-        sources=latest.sources if latest else (),
-        article_count=latest.total_articles if latest else 0,
-        state_signal_states=[s.state for s in load_state_election_signals()],
+        sentiment=latest,
+        state_election_signals=load_state_election_signals(),
         total_seats=config["total_seats"],
     )
     return render_html(model)

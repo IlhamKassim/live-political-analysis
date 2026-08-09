@@ -20,6 +20,10 @@ _Avoid_: Win (ambiguous — a Coalition can win a plurality without a Majority)
 The current governing bloc — PH + BN + GPS + GRS plus minor parties — holding the Majority as of the most recent Dewan Rakyat count.
 _Avoid_: Unity government (fine in prose, but this is the canonical term in code/data)
 
+**Non-government**:
+Every Seat or Coalition outside the Government Coalition. Used in preference to "Opposition" because it is exactly true: PN is the opposition, but WARISAN, KDM, PBM and independents are neither in government nor in it, and calling them opposition asserts an alignment they have not declared. The public page's chamber is a single axis from safest-Government to safest Non-government.
+_Avoid_: Opposition (fine for PN specifically; wrong as a label for the whole non-government side)
+
 **Baseline**:
 A Seat's GE15 (2022) result and demographic profile — vote share, margin, ethnicity/age breakdown of voters. The fixed starting point every Projection is computed from.
 _Avoid_: Historical data (too vague — Baseline specifically means the GE15 snapshot per Seat)

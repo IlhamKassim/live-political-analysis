@@ -6,6 +6,7 @@ would put a wrong claim on the page — an unescaped Seat name, or a figure that
 disagrees with the model it came from.
 """
 
+import re
 from datetime import date
 
 from pytest import approx, raises
@@ -19,11 +20,10 @@ from fixtures import (
     three_coalition_seats,
     two_coalition_seats,
 )
-from lpa.domain import ElectionStatus, Projection, SeatCall
+from lpa.aggregate import AggregatedSentiment
+from lpa.domain import ElectionStatus, Projection, SeatCall, StateElectionSignal
 from lpa.public_page import (
-    LIKELY,
-    SAFE,
-    TIGHT,
+    Tier,
     _slots,
     lede,
     page_model,
@@ -39,12 +39,17 @@ NOT_CALLED = ElectionStatus(
 )
 
 
-def model_for(baseline=None, sentiment=None, config=None, **overrides):
-    """A PageModel over the fixture Baseline, via the real Swing Model."""
+def model_for(baseline=None, scores=None, config=None, **overrides):
+    """A PageModel over the fixture Baseline, via the real Swing Model.
+
+    `scores` is the per-Coalition Sentiment the Swing Model consumes; the
+    `sentiment` the page takes is the stored `AggregatedSentiment`, and the two
+    are different things, so they are not both called sentiment here.
+    """
     baseline = baseline if baseline is not None else two_coalition_seats()
     config = config or government_config()
     projection = swing_model(
-        baseline, sentiment or {}, [], config, date(2026, 8, 6)
+        baseline, scores or {}, [], config, date(2026, 8, 6)
     )
     settings = dict(
         projection=projection,
@@ -52,9 +57,11 @@ def model_for(baseline=None, sentiment=None, config=None, **overrides):
         status=NOT_CALLED,
         config=config,
         names={PH: "Pakatan Harapan", PN: "Perikatan Nasional"},
-        sources=["Free Malaysia Today"],
-        article_count=12,
-        state_signal_states=[],
+        sentiment=AggregatedSentiment(
+            scores={}, article_counts={}, total_articles=12,
+            sources=["Free Malaysia Today"],
+        ),
+        state_election_signals=[],
         total_seats=len(baseline),
     )
     settings.update(overrides)
@@ -64,11 +71,11 @@ def model_for(baseline=None, sentiment=None, config=None, **overrides):
 def test_a_margin_lands_in_the_band_its_size_puts_it_in():
     # The boundaries are the interesting part: six and twelve points belong to
     # the safer band, so a Seat is only "too close" if it is genuinely under.
-    assert tier_for(0.0) == TIGHT
-    assert tier_for(0.0599) == TIGHT
-    assert tier_for(0.06) == LIKELY
-    assert tier_for(0.1199) == LIKELY
-    assert tier_for(0.12) == SAFE
+    assert tier_for(0.0) == Tier.TIGHT
+    assert tier_for(0.0599) == Tier.TIGHT
+    assert tier_for(0.06) == Tier.LIKELY
+    assert tier_for(0.1199) == Tier.LIKELY
+    assert tier_for(0.12) == Tier.SAFE
 
 
 def test_the_chamber_runs_safest_government_to_safest_opposition():
@@ -93,7 +100,7 @@ def test_a_government_seat_is_never_placed_after_an_opposition_one():
     # Seat must not sort ahead of a marginal Government one.
     model = model_for(
         baseline=three_coalition_seats(),
-        sentiment={PH: -0.6, PN: 0.6},
+        scores={PH: -0.6, PN: 0.6},
         config=government_config(
             government_coalitions=frozenset({PH, BN}), majority_threshold=6
         ),
@@ -142,7 +149,7 @@ def test_a_government_short_of_a_majority_reports_a_negative_buffer():
     # Sensitivity 0.10 turns a -0.6/+0.6 Sentiment split into a 12pp gap, so
     # every PH seat but P001 (which led by 20) falls. One Seat against a bar
     # of four.
-    model = model_for(sentiment={PH: -0.6, PN: 0.6})
+    model = model_for(scores={PH: -0.6, PN: 0.6})
 
     assert model.government_seats == 1
     assert model.buffer == -3
@@ -178,7 +185,7 @@ def test_the_lede_says_so_when_a_buffer_survives_its_marginals():
 
 def test_the_lede_notes_when_nothing_the_government_holds_is_marginal():
     # A 4pp swing towards PH leaves its four Seats on 24, 14, 10 and 8 points.
-    model = model_for(sentiment={PH: 0.2, PN: -0.2})
+    model = model_for(scores={PH: 0.2, PN: -0.2})
 
     assert model.government_too_close == 0
     assert "Not one of the Seats it holds is inside six points" in lede(model)
@@ -267,3 +274,72 @@ def test_a_seat_name_carrying_markup_cannot_break_out_of_its_tooltip():
 
     assert "<script>alert" not in page
     assert "&lt;script&gt;" in page
+
+
+def test_the_government_total_row_states_no_ge15_figure():
+    # The Government Coalition did not contest GE15 — it formed by agreement
+    # afterwards. The mockup's "Government total 141" was called out as
+    # fabricated, but the objection was categorical, so recomputing it would
+    # have missed the point. Each member Coalition's own GE15 result stays.
+    page = render_html(model_for())
+
+    total_row = page.split('<tr class="gov-row">')[1].split("</tr>")[0]
+    cells = re.findall(r"<td[^>]*>(.*?)</td>", total_row, re.S)
+    assert "Government total" in cells[0]
+    assert cells[1] == "4"                        # projected
+    assert cells[2] == "—" and cells[3] == "—"    # GE15 and Swing: not applicable
+    assert cells[4] == "1"                        # too close
+    # The member Coalitions keep their own GE15 results, which are real.
+    assert ">Pakatan Harapan " in page
+
+
+def test_the_page_does_not_claim_a_calibration_it_never_reads():
+    # `page_model` takes no PollCalibration and Storage is never asked for
+    # one, so prose saying the figures were checked against Merdeka Center
+    # would be an unbacked claim sitting a column from the "Not calibrated"
+    # caveat.
+    page = render_html(model_for())
+
+    assert "Merdeka" not in page
+    assert "Not calibrated" in page
+
+
+def test_the_sources_are_what_the_latest_run_actually_read():
+    # Not the outlets the Scraper was pointed at: one refused by robots.txt or
+    # answering 500 contributed nothing and must not be credited (#16).
+    model = model_for(
+        sentiment=AggregatedSentiment(
+            scores={}, article_counts={}, total_articles=91,
+            sources=["Free Malaysia Today", "Utusan Malaysia"],
+        )
+    )
+
+    assert model.sources == ("Free Malaysia Today", "Utusan Malaysia")
+    assert model.article_count == 91
+    assert "Free Malaysia Today · Utusan Malaysia" in render_html(model)
+
+
+def test_a_storage_with_no_sentiment_snapshot_still_renders():
+    # A hand-seeded database can hold a Projection and no Sentiment.
+    model = model_for(sentiment=None)
+
+    assert model.sources == ()
+    assert model.article_count == 0
+    assert "No outlets read" in render_html(model)
+
+
+def test_a_state_that_has_voted_is_counted_by_the_seats_it_moves():
+    # The Swing Model applies a state result to that state's Seats only, so
+    # the honest figure is how many Seats that is — not how many states voted.
+    model = model_for(
+        baseline=three_coalition_seats(),  # 4 Selangor, 6 Johor
+        state_election_signals=[
+            StateElectionSignal(
+                state="Johor", held_on=date(2026, 7, 11), vote_share={PH: 0.4}
+            )
+        ],
+    )
+
+    assert model.state_signals == (("Johor", 6),)
+    assert model.state_signal_seats == 6
+    assert "Johor (6)" in render_html(model)

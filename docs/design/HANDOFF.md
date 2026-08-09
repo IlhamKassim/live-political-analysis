@@ -140,30 +140,53 @@ toggle that will collide. Either
 The second preserves the design and costs a small generator plus somewhere to
 host it. Note the zero-cost constraint in ADR 0002 binds this choice.
 
-## Known defects in the mockup — fix during implementation
+## Known defects in the mockup
 
-1. **Caption contradicts the sort.** The caption promises safest-Government to
-   safest-Opposition, but the sort is bloc-first (GPS, GRS, BN, PH) and
-   safest-first *within* each bloc, so BN's marginals sit mid-left rather than
-   at the contest line. Either sort globally by margin and lose contiguous
-   blocs, or rewrite the caption. **Live**, and now a real design choice rather
-   than a caption bug: the decision went to per-Seat calls, so `SeatCall.margin`
-   makes a global sort by margin genuinely available.
-2. **Contrast failure, light mode.** `--ink-faint` `#8A8D83` on `--ground`
-   `#E9EAE4` is **2.79:1**; it carries every eyebrow, the tally label, the
-   colophon headings and the seat key. Needs 4.5:1 — approximately `#6C6F66`.
-   `--ink-soft` is fine at 5.99:1.
-3. **The pulsing dot claims live data.** The pipeline is a once-daily batch at
-   15:00 UTC. Remove the pulse or make it a static marker.
+Three were fixed while building the page (step 3) because each was about what
+the page *claims* rather than how it looks. Three remain, and are step 7.
+
+1. ~~**Caption contradicts the sort.**~~ **Fixed.** Seats now sort by margin
+   across the whole Government side rather than bloc-first, which is what the
+   caption always promised. Blocs are no longer contiguous; the colours carry
+   that. See `_ordered_seats` in `src/lpa/public_page.py`.
+2. ~~**Contrast failure, light mode.**~~ **Fixed** — but not at the value this
+   file suggested. `#6C6F66` measures **4.23:1** on `--ground`, still short of
+   4.5:1; `--ink-faint` is now `#666960`, at 4.62:1. The swing column needed
+   its own tokens too: `--pn` is 4.17:1, fine for a 9px dot and short for 14px
+   type, so `--ink-pos` / `--ink-neg` carry the text. Measure, don't eyeball.
+3. ~~**The pulsing dot claims live data.**~~ **Fixed.** The pulse is gone; the
+   stamp is a static `MODEL RUN <date>` from `Projection.computed_at`.
 4. **Mobile.** The hemicycle has `min-width: 460px` and scrolls sideways inside
-   its wrapper, so on a 375px screen the hero is partly off-screen. Needs a
-   stacked-bar fallback below ~600px.
+   its wrapper, so on a 375px screen the hero is partly off-screen.
+   **Decided 9 Aug 2026 — a stacked bar below ~600px.** One horizontal bar in
+   the same seat order, with the Majority line as a tick and the buffer stated
+   beside it, so the one idea the hero exists for — the Government block
+   overrunning the line — survives at any width. Accepted cost: at 375px a seat
+   is under 2px, so individual Seats and the solid/half-tone/hollow encoding do
+   *not* survive; the ledger's "too close" column carries the uncertainty on
+   mobile instead. Do not try to keep the dots by shrinking them — 3px rings
+   are indistinguishable and untappable, which was the option rejected.
 5. **Keyboard and touch.** The 222 dots are not focusable and the hover-dim does
    nothing on touch. The SVG `aria-label` carries the summary; a
-   visually-hidden table is the real fix.
+   visually-hidden table is the real fix. Note the table is also what makes the
+   per-Seat detail reachable on mobile once the chamber becomes a bar.
 6. **Bilingual treatment is tokenistic.** "Projeksi Kerusi GE16" in the masthead
-   is the only Bahasa Malaysia on the page. Either commit to genuine bilingual
-   labelling or drop the phrase.
+   is the only Bahasa Malaysia on the page. **Decided 9 Aug 2026 — bilingual
+   structural labels.** BM alongside English for the masthead, the section
+   eyebrows, the Majority line and the seat key; prose (lede, method, colophon,
+   caveat) stays English. Not full bilingual, and not dropped.
+
+   **The BM wording is not settled.** These were the suggestions on the table
+   when the approach was chosen, and they need a native eye before they ship:
+   *Dewan Rakyat, unjuran* · *majoriti* · *selamat* · *berkemungkinan* ·
+   *terlalu rapat*. Ask the user rather than committing them as-is — half-right
+   Malay on a page about Malaysian politics is worse than none, which is the
+   whole reason this defect exists.
+
+7. **The theme toggle does not survive a reload.** Found while building the
+   page. It sets `data-theme` on the root and nothing persists it, so every
+   visit reverts to the system preference. `localStorage`, read before first
+   paint to avoid a flash.
 
 ## Fabricated content — none of these numbers are real
 
