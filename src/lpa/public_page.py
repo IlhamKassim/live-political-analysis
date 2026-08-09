@@ -74,6 +74,19 @@ class Tier(StrEnum):
     TIGHT = "tight"
 
 
+TIER_LABEL: Mapping[Tier, str] = {
+    Tier.SAFE: "Safe",
+    Tier.LIKELY: "Likely",
+    Tier.TIGHT: "Too close",
+}
+"""The prose the `.key` legend and the hidden seat table both use.
+
+`Tier`'s own value ("safe"/"likely"/"tight") is the CSS-facing token, not
+reader-facing copy — putting it in front of a reader leaning on the seat
+table because they cannot see the legend would defeat the table's purpose.
+"""
+
+
 @dataclass(frozen=True)
 class ChamberSeat:
     """One Seat as the hemicycle draws it."""
@@ -520,7 +533,7 @@ def _hemicycle(model: PageModel) -> str:
             'class="thresh-line"/>'
             f'<circle cx="{bx:.1f}" cy="{by:.1f}" r="3" class="thresh-cap"/>'
             f'<text x="{bx + 10:.1f}" y="{by + 4:.1f}" class="thresh-label">'
-            f"{threshold} — Majority</text>"
+            f"{threshold} — Majority · Majoriti</text>"
         )
 
         # The brace spans the Majority line to the Government block's edge, so
@@ -581,20 +594,46 @@ def _hemicycle(model: PageModel) -> str:
     )
 
 
-def _swing_cell(swing: int) -> str:
-    """A change against GE15, signed and coloured. A true zero is neither."""
+def _swing_value(swing: int) -> tuple[str, str]:
+    """A change against GE15, signed — the CSS class and the text together.
+
+    Shared by the wide table's `<td>` and the narrow ledger's `<dd>`, so the
+    two layouts cannot state a different swing for the same Coalition.
+    """
     if swing > 0:
-        return f'<td class="swing-pos">+{swing}</td>'
+        return "swing-pos", f"+{swing}"
     if swing < 0:
-        return f'<td class="swing-neg">−{abs(swing)}</td>'
-    return '<td class="swing-nil">±0</td>'
+        return "swing-neg", f"−{abs(swing)}"
+    return "swing-nil", "±0"
+
+
+def _swing_cell(swing: int) -> str:
+    cls, text = _swing_value(swing)
+    return f'<td class="{cls}">{text}</td>'
+
+
+_GOV_TOTAL_GE15_NOTE = (
+    "The Government Coalition formed after GE15, by agreement. "
+    "It had no GE15 total."
+)
+"""Shared by the wide table and the narrow ledger's Government total row/card,
+so the two layouts cannot state the caveat differently.
+"""
+
+
+def _coalition_label(row: LedgerRow) -> str:
+    """A Coalition's name and code together — the wide table's and the narrow
+    ledger's row both open with this, so it is built once."""
+    return (
+        f'<span class="coalition">{html.escape(row.name)} '
+        f"<small>{html.escape(row.coalition)}</small></span>"
+    )
 
 
 def _ledger_row(row: LedgerRow) -> str:
     return (
         f'<tr style="--swatch: {_swatch(row.coalition)}">'
-        f'<td><span class="coalition">{html.escape(row.name)} '
-        f"<small>{html.escape(row.coalition)}</small></span></td>"
+        f"<td>{_coalition_label(row)}</td>"
         f'<td class="seats-cell">{row.projected}</td>'
         f"<td>{row.baseline}</td>"
         f"{_swing_cell(row.swing)}"
@@ -619,8 +658,7 @@ def _ledger_table(model: PageModel) -> str:
         '<tr class="gov-row">'
         '<td><span class="coalition">Government total</span></td>'
         f'<td class="seats-cell">{model.government_seats}</td>'
-        '<td class="not-applicable" title="The Government Coalition formed '
-        'after GE15, by agreement. It had no GE15 total.">—</td>'
+        f'<td class="not-applicable" title="{_GOV_TOTAL_GE15_NOTE}">—</td>'
         '<td class="not-applicable">—</td>'
         f"<td>{model.government_too_close}</td></tr>"
     )
@@ -630,11 +668,129 @@ def _ledger_table(model: PageModel) -> str:
         + [_ledger_row(row) for row in model.ledger if not row.government]
     )
     return (
-        "<table><thead><tr>"
+        '<table class="ledger-table"><thead><tr>'
         '<th scope="col">Coalition</th><th scope="col">Projected</th>'
         '<th scope="col">GE15</th><th scope="col">Swing</th>'
         '<th scope="col">Too close</th>'
         "</tr></thead><tbody>" + "".join(body) + "</tbody></table>"
+    )
+
+
+def _ledger_stack_row(row: LedgerRow) -> str:
+    cls, swing_text = _swing_value(row.swing)
+    return (
+        f'<div class="ledger-stack-row" style="--swatch: {_swatch(row.coalition)}">'
+        f'<div class="ledger-stack-head">{_coalition_label(row)}'
+        f'<span class="seats-cell">{row.projected}</span></div>'
+        '<dl class="ledger-stack-stats">'
+        f"<div><dt>GE15</dt><dd>{row.baseline}</dd></div>"
+        f'<div><dt>Swing</dt><dd class="{cls}">{swing_text}</dd></div>'
+        f"<div><dt>Too close</dt><dd>{row.too_close}</dd></div>"
+        "</dl></div>"
+    )
+
+
+def _ledger_narrow(model: PageModel) -> str:
+    """The ledger restacked as one run per Coalition, for sub-600px screens.
+
+    Same figures as `_ledger_table`, laid out so nothing needs a sideways
+    scroll to be read. HANDOFF defect 4 measured the wide table at 375px:
+    205px of its columns off-screen and the "Too close" header entirely so —
+    fixing only the hemicycle would leave a phone reader with no uncertainty
+    information on the page at all.
+    """
+    government = [row for row in model.ledger if row.government]
+    total_row = (
+        '<div class="ledger-stack-row gov-row">'
+        '<div class="ledger-stack-head"><span class="coalition">Government total</span>'
+        f'<span class="seats-cell">{model.government_seats}</span></div>'
+        '<dl class="ledger-stack-stats">'
+        f'<div><dt>GE15</dt><dd class="not-applicable" title="{_GOV_TOTAL_GE15_NOTE}">—</dd></div>'
+        '<div><dt>Swing</dt><dd class="not-applicable">—</dd></div>'
+        f"<div><dt>Too close</dt><dd>{model.government_too_close}</dd></div>"
+        "</dl></div>"
+    )
+    rows = (
+        [_ledger_stack_row(row) for row in government]
+        + [total_row]
+        + [_ledger_stack_row(row) for row in model.ledger if not row.government]
+    )
+    return f'<div class="ledger-narrow">{"".join(rows)}</div>'
+
+
+def _seat_bar(model: PageModel) -> str:
+    """The chamber's sub-600px fallback: one bar, stacked and bloc-ordered.
+
+    Decided 9 Aug 2026 (HANDOFF defect 4). It reuses `model.ledger`'s own
+    order — Government Coalitions first, each side strongest first — rather
+    than the hemicycle's margin order, because the bar *replaces* the
+    hemicycle below 600px and sits beside the ledger, which is bloc-ordered.
+    Because every Government Coalition still comes first, the block still
+    overruns the Majority tick and that overrun is still a visible distance —
+    the one idea the hero exists for.
+
+    The bar carries no uncertainty encoding — marginals no longer sit at the
+    contest line once seats are grouped by Coalition. The narrow ledger's
+    "too close" column is what survives that on a narrow screen.
+    """
+    total = model.total_seats
+    threshold_pct = 100 * model.majority_threshold / total if total else 0.0
+    segments = "".join(
+        f'<div class="bar-seg" style="width:{100 * row.projected / total:.3f}%; '
+        f'background:{_swatch(row.coalition)}" '
+        f'title="{html.escape(row.name)} — {row.projected} seats"></div>'
+        for row in model.ledger
+        if row.projected and total
+    )
+    summary = (
+        "Seat totals by Coalition, Government Coalitions first: "
+        + ", ".join(
+            f"{row.name} {row.projected}" for row in model.ledger if row.projected
+        )
+        + f". Majority needs {model.majority_threshold} of {total}."
+    )
+    return (
+        '<div class="seat-bar-wrap">'
+        f'<div class="seat-bar" role="img" aria-label="{html.escape(summary)}">'
+        f"{segments}"
+        f'<div class="seat-bar-tick" style="left:{threshold_pct:.3f}%"></div>'
+        "</div>"
+        '<div class="seat-bar-key">'
+        f"{model.majority_threshold} — Majority · Majoriti"
+        "</div></div>"
+    )
+
+
+def _seat_table(model: PageModel) -> str:
+    """Every Seat as a row, reachable without a mouse.
+
+    The chamber's dots carry their detail in a hover `<title>` only, which
+    keyboard and touch users cannot reach (HANDOFF defect 5) — and once the
+    chamber becomes a bar below 600px, this table is the only place a Seat's
+    own call is reachable at all. `visually-hidden`, not `display: none`:
+    the latter also removes content from the accessibility tree, which would
+    defeat the point.
+    """
+    rows = "".join(
+        "<tr>"
+        f"<td>{html.escape(seat.name)}</td>"
+        f"<td>{html.escape(seat.state)}</td>"
+        f"<td>{html.escape(seat.coalition)}</td>"
+        f"<td>{_points(seat.margin)}</td>"
+        f"<td>{TIER_LABEL[seat.tier]}</td>"
+        "</tr>"
+        for seat in model.seats
+    )
+    return (
+        '<table class="visually-hidden seat-table">'
+        "<caption>All 222 projected Seats, safest Government to safest "
+        "Non-government</caption>"
+        "<thead><tr>"
+        '<th scope="col">Seat</th><th scope="col">State</th>'
+        '<th scope="col">Coalition</th><th scope="col">Margin (points)</th>'
+        '<th scope="col">Certainty</th>'
+        "</tr></thead>"
+        f"<tbody>{rows}</tbody></table>"
     )
 
 
@@ -908,6 +1064,20 @@ _CSS = """
     margin: 0;
   }
 
+  .visually-hidden {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .chamber-caption-narrow { display: none; }
+  .seat-bar-wrap { display: none; }
+  .ledger-narrow { display: none; }
+
   .hemicycle-wrap { overflow-x: auto; }
   svg.hemicycle { width: 100%; min-width: 460px; height: auto; display: block; }
 
@@ -944,6 +1114,29 @@ _CSS = """
   .key i { width: 11px; height: 11px; border-radius: 50%; display: inline-block; background: var(--ink-soft); }
   .key i.mid { opacity: .48; }
   .key i.hollow { background: none; border: 1.6px solid var(--ink-soft); }
+
+  .seat-bar {
+    position: relative;
+    display: flex;
+    height: 34px;
+    border: 1px solid var(--ink);
+  }
+  .bar-seg { height: 100%; }
+  .bar-seg:not(:last-child) { border-right: 1px solid var(--ground); }
+  .seat-bar-tick {
+    position: absolute;
+    top: -6px;
+    bottom: -6px;
+    width: 0;
+    border-left: 1.6px dashed var(--ink);
+  }
+  .seat-bar-key {
+    margin-top: 10px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .08em;
+    color: var(--ink-soft);
+  }
 
   .ledger { padding: clamp(46px, 7vw, 80px) 0 0; }
   .ledger-scroll { overflow-x: auto; }
@@ -1007,6 +1200,39 @@ _CSS = """
   .gov-row .coalition { font-weight: 600; }
   .gov-row .coalition::before { background: none; }
 
+  .ledger-stack-row { padding: 16px 0; border-bottom: 1px solid var(--rule-hair); }
+  .ledger-stack-row:last-child { border-bottom: 1px solid var(--ink); }
+  .ledger-stack-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .ledger-stack-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px 12px;
+    margin: 10px 0 0;
+  }
+  .ledger-stack-stats dt {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 3px;
+  }
+  .ledger-stack-stats dd {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+  }
+  .ledger-stack-row.gov-row {
+    padding: 16px 10px;
+    margin: 0 -10px;
+  }
+  .ledger-stack-row.gov-row .coalition { font-weight: 600; }
+
   .stress {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
@@ -1060,9 +1286,40 @@ _CSS = """
     .lede { max-width: none; }
   }
 
+  /* Sub-600px fallback (HANDOFF defect 4): the hemicycle overflows its
+     460px min-width and the ledger table overflows its 540px min-width, so
+     below this both are swapped for layouts sized to the viewport instead
+     of scrolled sideways inside it. */
+  @media (max-width: 600px) {
+    .hemicycle-wrap { display: none; }
+    .key { display: none; }
+    .chamber-caption-wide { display: none; }
+    .chamber-caption-narrow { display: block; }
+    .seat-bar-wrap { display: block; }
+
+    .ledger-table { display: none; }
+    .ledger-scroll { overflow: visible; }
+    .ledger-narrow { display: block; }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
   }
+"""
+
+_THEME_INIT_SCRIPT = """
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved === "dark" || saved === "light") {
+      document.documentElement.setAttribute("data-theme", saved);
+    }
+  } catch (e) {}
+})();
+"""
+"""Read before first paint (HANDOFF defect 7): inline in <head>, ahead of the
+body, so a returning reader's stored theme applies before anything renders
+rather than flashing the system default and then swapping.
 """
 
 _THEME_SCRIPT = """
@@ -1075,7 +1332,9 @@ _THEME_SCRIPT = """
   }
   function label() { btn.textContent = dark() ? "Light" : "Dark"; }
   btn.addEventListener("click", function () {
-    document.documentElement.setAttribute("data-theme", dark() ? "light" : "dark");
+    var next = dark() ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    try { localStorage.setItem("theme", next); } catch (e) {}
     label();
   });
   label();
@@ -1101,6 +1360,7 @@ def render_html(model: PageModel) -> str:
     f'Projection of the {model.total_seats} Seats of the Dewan Rakyat at GE16, '
     f'computed {_long_date(model.computed_at)}. Model-driven and not calibrated.'
 )}">
+<script>{_THEME_INIT_SCRIPT}</script>
 <style>{_CSS}</style>
 </head>
 <body>
@@ -1126,27 +1386,35 @@ def render_html(model: PageModel) -> str:
 
   <section class="chamber">
     <div class="strip">
-      <div class="eyebrow">The Dewan Rakyat, projected</div>
-      <p>
+      <div class="eyebrow">The Dewan Rakyat, projected <span class="eyebrow-bm">— Unjuran Dewan Rakyat</span></div>
+      <p class="chamber-caption-wide">
         Seats run from the safest Government Seat at the left to the safest
         Non-government Seat at the right. Hollow rings are Seats inside six
         points — too close to call. Each is where a uniform Swing puts that
         Seat against its GE15 result, not a judgement about the constituency.
       </p>
+      <p class="chamber-caption-narrow">
+        Seats stacked by Coalition, Government Coalitions first. The line
+        marks the {model.majority_threshold} needed for a Majority — which
+        Seats are too close to call is in the ledger below.
+      </p>
     </div>
 
     <div class="hemicycle-wrap">{_hemicycle(model)}</div>
+    {_seat_bar(model)}
+    {_seat_table(model)}
 
     <div class="key">
-      <span><i></i> Safe — over 12 points</span>
-      <span><i class="mid"></i> Likely — 6 to 12 points</span>
-      <span><i class="hollow"></i> Too close — under 6 points</span>
+      <span><i></i> Safe · Selamat — over 12 points</span>
+      <span><i class="mid"></i> Likely · Berkemungkinan — 6 to 12 points</span>
+      <span><i class="hollow"></i> Too close · Terlalu rapat — under 6 points</span>
     </div>
   </section>
 
   <section class="ledger">
     <div class="strip"><div class="eyebrow">Seat ledger — against the GE15 Baseline</div></div>
     <div class="ledger-scroll">{_ledger_table(model)}</div>
+    {_ledger_narrow(model)}
     <dl class="stress">{_stress(model)}</dl>
   </section>
 

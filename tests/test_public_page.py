@@ -23,6 +23,7 @@ from fixtures import (
 from lpa.aggregate import AggregatedSentiment
 from lpa.domain import ElectionStatus, Projection, SeatCall, StateElectionSignal
 from lpa.public_page import (
+    TIER_LABEL,
     Tier,
     _slots,
     lede,
@@ -326,6 +327,166 @@ def test_a_storage_with_no_sentiment_snapshot_still_renders():
     assert model.sources == ()
     assert model.article_count == 0
     assert "No outlets read" in render_html(model)
+
+
+def test_the_mobile_bar_segments_follow_the_ledger_order():
+    # The bar is the sub-600px fallback for the hemicycle (HANDOFF defect 4)
+    # and is deliberately bloc-ordered rather than margin-ordered, reusing the
+    # ledger's own order — Government Coalitions first, each side strongest
+    # first — so it reads the same as the ledger sitting beneath it.
+    model = model_for()
+    page = render_html(model)
+
+    titles = re.findall(r'class="bar-seg"[^>]*title="([^"]+)"', page)
+    names = [t.split(" — ")[0] for t in titles]
+    assert names == [row.name for row in model.ledger if row.projected]
+
+
+def test_the_mobile_bar_marks_the_majority_at_the_threshold_seat():
+    # The whole point of the hero is the Government block overrunning the
+    # Majority line as a visible distance; the bar has to carry that too.
+    model = model_for()
+    page = render_html(model)
+
+    tick = re.search(r'class="seat-bar-tick" style="left:([\d.]+)%"', page)
+    assert tick is not None
+    assert float(tick.group(1)) == approx(
+        100 * model.majority_threshold / model.total_seats, abs=1e-3
+    )
+
+
+def test_the_narrow_caption_does_not_repeat_the_wide_orderings_claim():
+    # The desktop caption promises safest-Government to safest-Non-government,
+    # which is false of a bloc-ordered bar. HANDOFF defect 4 is explicit that
+    # the narrow layout needs its own caption and the desktop one must not
+    # leak into it.
+    page = render_html(model_for())
+
+    assert 'class="chamber-caption-wide"' in page
+    narrow = page.split('class="chamber-caption-narrow"')[1].split("</p>")[0]
+    assert "safest" not in narrow.lower()
+
+
+def test_the_narrow_ledger_states_the_same_figures_as_the_table():
+    # At 375px the wide table is hidden entirely (HANDOFF defect 4 measured
+    # 205px of its columns off-screen); the stacked layout is what a phone
+    # reader actually sees, so it has to carry the same numbers, not just the
+    # names. Each row is found by its own Coalition code, which is real
+    # markup the page needs anyway rather than a hook added only for this.
+    model = model_for(scores={PH: -0.6, PN: 0.6})
+    page = render_html(model)
+
+    narrow = page.split('<div class="ledger-narrow">')[1].split(
+        '<dl class="stress">'
+    )[0]
+    by_code = {}
+    for block in narrow.split('<div class="ledger-stack-row')[1:]:
+        code = re.search(r"<small>([^<]+)</small>", block)
+        by_code[code.group(1) if code else "__government__"] = block
+
+    for row in model.ledger:
+        dds = re.findall(r"<dd[^>]*>(.*?)</dd>", by_code[row.coalition], re.S)
+        assert dds[0] == str(row.baseline)
+        assert dds[2] == str(row.too_close)
+
+    gov = by_code["__government__"]
+    assert f'<span class="seats-cell">{model.government_seats}</span>' in gov
+    assert re.findall(r"<dd[^>]*>(.*?)</dd>", gov, re.S)[2] == str(
+        model.government_too_close
+    )
+
+
+def test_the_hidden_seat_table_lists_every_seat():
+    # The dots' detail lives in a hover title only, which keyboard and touch
+    # users cannot reach (HANDOFF defect 5) — and once the chamber becomes a
+    # bar below 600px, this table is the only place a Seat's own call is
+    # reachable at all.
+    model = model_for()
+    page = render_html(model)
+
+    table = page.split('<table class="visually-hidden seat-table">')[1].split(
+        "</table>"
+    )[0]
+    body = table.split("<tbody>")[1]
+    rows = re.findall(r"<tr>(.*?)</tr>", body, re.S)
+    assert len(rows) == len(model.seats)
+    first = model.seats[0]
+    assert first.name in rows[0]
+    assert first.coalition in rows[0]
+    # The prose, not the CSS-facing enum value — a reader leaning on this
+    # table because they cannot see the `.key` legend needs "Too close", not
+    # the internal token "tight" (HANDOFF defect 5; code review 9 Aug 2026).
+    assert TIER_LABEL[first.tier] in rows[0]
+
+
+def test_a_seat_name_carrying_markup_cannot_break_out_of_the_hidden_table():
+    baseline = two_coalition_seats()
+    baseline[0] = type(baseline[0])(
+        code=baseline[0].code,
+        name='Bagan <script>alert("x")</script>',
+        state=baseline[0].state,
+        vote_share=baseline[0].vote_share,
+    )
+    page = render_html(model_for(baseline=baseline))
+
+    table = page.split('<table class="visually-hidden seat-table">')[1].split(
+        "</table>"
+    )[0]
+    assert "<script>alert" not in table
+    assert "&lt;script&gt;" in table
+
+
+def test_the_chamber_eyebrow_carries_the_settled_bm_wording():
+    # HANDOFF defect 6, settled 9 Aug 2026 with the user: BM alongside English
+    # for the section eyebrows — but only the vocabulary the user actually
+    # confirmed (Dewan Rakyat, unjuran). The masthead already had "Projeksi
+    # Kerusi GE16" before this defect and stays as-is: "Kerusi" was never
+    # confirmed, and half-swapping one word in it ("Unjuran Kerusi GE16")
+    # would mix a vetted word with an unvetted one in the same phrase — the
+    # exact half-right Malay this defect exists to avoid (code review 9 Aug
+    # 2026). "Seat ledger — against the GE15 Baseline" has no confirmed BM
+    # term either, so it stays English rather than getting an invented one.
+    page = render_html(model_for())
+
+    assert "Projeksi Kerusi GE16" in page
+    assert "Unjuran Dewan Rakyat" in page.split('<div class="eyebrow">')[1]
+    assert "<div class=\"eyebrow\">Seat ledger" in page
+
+
+def test_the_majority_line_carries_majoriti_in_both_the_chamber_and_the_bar():
+    # "The Majority line" (HANDOFF defect 6) is the hemicycle's threshold
+    # label and the narrow bar's tick label — the same claim in two places,
+    # so both must say it, not just one.
+    model = model_for()
+    page = render_html(model)
+
+    assert page.count(f"{model.majority_threshold} — Majority · Majoriti") == 2
+
+
+def test_the_seat_key_pairs_each_tier_with_its_settled_bm_word():
+    # The three confirmed words map 1:1 onto the three tiers in `.key`.
+    page = render_html(model_for())
+
+    key = page.split('<div class="key">')[1].split("</div>\n  </section>")[0]
+    assert "Safe · Selamat" in key
+    assert "Likely · Berkemungkinan" in key
+    assert "Too close · Terlalu rapat" in key
+
+
+def test_the_theme_choice_is_read_before_first_paint():
+    # Read synchronously in <head>, ahead of <body>, so a returning reader
+    # never sees a flash of the wrong theme while a deferred script catches up
+    # (HANDOFF defect 7).
+    page = render_html(model_for())
+
+    head = page.split("<body>")[0]
+    assert 'localStorage.getItem("theme")' in head
+
+
+def test_choosing_a_theme_persists_it():
+    page = render_html(model_for())
+
+    assert 'localStorage.setItem("theme"' in page
 
 
 def test_a_state_that_has_voted_is_counted_by_the_seats_it_moves():
