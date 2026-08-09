@@ -1,8 +1,8 @@
 # Public dashboard redesign — handoff
 
-Status as of **9 August 2026**. Design direction is agreed; implementation has
-not started. This file is the whole context. Read it, then `CONTEXT.md`, before
-touching anything.
+Status as of **9 August 2026**. **The page is built, reviewed, run and
+merged.** What is left is the defect pass and the deploy. This file is the
+whole context. Read it, then `CONTEXT.md`, before touching anything.
 
 ## Start here
 
@@ -10,12 +10,21 @@ touching anything.
 
 | | |
 | --- | --- |
-| Ticket | **#17** — Public dashboard renders the Projection as the Dewan Rakyat chamber |
-| Label | `ready-for-agent` |
-| Docs PR | **#18** — merged 9 Aug 2026 |
-| Both decisions | **Settled** 9 Aug 2026, recorded as a comment on #17 |
-| Steps 1–3 | **Done** 9 Aug 2026 — ADRs written, per-Seat calls through to Storage, and the page built in `src/lpa/public_page.py` |
-| Next action | **Step 4**: `/code-review`, then fix what it finds. Then step 5, which is yours. |
+| Ticket | **#17** — **closed** 9 Aug 2026, shipped in #20 (merge `582ccd1`) |
+| Steps 1–6 | **Done** 9 Aug 2026 — ADRs, per-Seat calls through Storage, the page, `/code-review` and its fixes, run across every state, merged |
+| Next action | **Step 7**, the defect pass. Everything it needs is decided and written down below; it does not need the strong model. |
+| After that | **Step 8**, deploy — blocked on the user setting `DATABASE_URL`, which has had the daily Action failing every run since 6 Aug 2026 |
+
+**Step 7 is fully specified. Do not re-open its design decisions** — read
+*Known defects* below, where each carries the choice made, the reasoning, and
+what was rejected. Two things are genuinely still open and both belong to the
+user, not to you: **the Malay wording** for the bilingual labels, and the
+**`DATABASE_URL` secret**.
+
+The one thing to carry forward from step 5: the sub-600px problem is bigger
+than this file originally said. The **ledger** is cut at 375px as badly as the
+chamber is, so fixing only the chamber leaves the page with no uncertainty
+information on a phone at all. Measurements are under defect 4.
 
 The two decisions that used to block this are answered, and both are now ADRs:
 
