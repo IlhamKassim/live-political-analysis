@@ -1,4 +1,4 @@
-"""Storage: the per-Seat Baseline table and its reads and writes.
+"""Storage: the Baseline, the daily snapshots, and their reads and writes.
 
 One schema over SQLAlchemy Core, so the same code runs against the free-tier
 Postgres the pipeline uses (ADR 0002) and against a local SQLite file for
@@ -35,7 +35,7 @@ from sqlalchemy import (
 from sqlalchemy.engine import Engine
 
 from lpa.aggregate import AggregatedSentiment
-from lpa.domain import Projection, SeatBaseline
+from lpa.domain import Projection, SeatBaseline, SeatCall
 from lpa.poll_calibration import LeaderRating, PollCalibration
 
 DEFAULT_DATABASE_URL = "sqlite+pysqlite:///lpa.db"
@@ -89,6 +89,19 @@ projection_snapshot = Table(
     Column("computed_at", Date, primary_key=True),
     Column("coalition_seat_totals", JSON, nullable=False),
     Column("government_majority", Boolean, nullable=False),
+)
+
+seat_call = Table(
+    "seat_call",
+    metadata,
+    # The latest Projection's Seat Calls and no others — ADR 0005 keeps one
+    # day's ~222 rows rather than ~81k a year against a free-tier Postgres.
+    # `computed_at` is stored so a read can tell which Projection these belong
+    # to, not to key a history that is deliberately not kept.
+    Column("computed_at", Date, primary_key=True),
+    Column("code", String, primary_key=True),
+    Column("coalition", String, nullable=False),
+    Column("margin", Float, nullable=False),
 )
 
 sentiment_snapshot = Table(
@@ -201,9 +214,47 @@ def save_snapshot(
     Keyed on the date rather than appended, so a re-run corrects the day
     instead of leaving two answers for it. History across days is what the
     dashboard's trend line reads (issue #1, story 15).
+
+    Seat Calls are the exception. Storage keeps one Projection's (ADR 0005) —
+    the newest that came with any — so a write replaces them only if it is at
+    least as new *and* has calls of its own. Both halves matter:
+
+    - Only replacing a day at least as new keeps the write order-independent.
+      `scripts/seed_dev_snapshots.py` backfills days behind today, and running
+      it after a real run must not leave the current Projection showing a
+      seeded day's calls.
+    - Only replacing when there are calls to put there means a Projection
+      carrying none cannot empty the table. `load_projections` hands back every
+      day but the newest with `seat_calls` empty, so a round-tripped Projection
+      re-saved under a later day would otherwise silently destroy the only
+      per-Seat rows in Storage.
     """
     day = projection.computed_at
     with engine.begin() as connection:
+        # Ordered rather than `max()`, so the value comes back through the
+        # column's Date type: SQLite stores dates as text, and an aggregate
+        # over them returns the text.
+        stored_calls_from = connection.execute(
+            select(seat_call.c.computed_at)
+            .order_by(seat_call.c.computed_at.desc())
+            .limit(1)
+        ).scalar()
+        if projection.seat_calls and (
+            stored_calls_from is None or day >= stored_calls_from
+        ):
+            connection.execute(delete(seat_call))
+            connection.execute(
+                seat_call.insert(),
+                [
+                    {
+                        "computed_at": day,
+                        "code": call.code,
+                        "coalition": call.coalition,
+                        "margin": call.margin,
+                    }
+                    for call in projection.seat_calls
+                ],
+            )
         for table, row in (
             (
                 projection_snapshot,
@@ -231,8 +282,26 @@ def save_snapshot(
 
 
 def load_projections(engine: Engine) -> Sequence[Projection]:
-    """Every stored Projection, oldest first."""
+    """Every stored Projection, oldest first.
+
+    Only one of them carries Seat Calls — Storage keeps one Projection's alone
+    (ADR 0005). They are attached here, to the Projection whose day they were
+    computed on, rather than handed back separately: a caller that had to pair
+    them up itself could pair them wrongly, and a Seat Call shown under the
+    wrong date is indistinguishable from a right one.
+    """
     with engine.connect() as connection:
+        calls_by_day: dict[date, list[SeatCall]] = {}
+        for row in connection.execute(
+            select(seat_call).order_by(seat_call.c.code)
+        ).mappings():
+            calls_by_day.setdefault(row["computed_at"], []).append(
+                SeatCall(
+                    code=row["code"],
+                    coalition=row["coalition"],
+                    margin=row["margin"],
+                )
+            )
         rows = connection.execute(
             select(projection_snapshot).order_by(projection_snapshot.c.computed_at)
         ).mappings()
@@ -241,6 +310,7 @@ def load_projections(engine: Engine) -> Sequence[Projection]:
                 coalition_seat_totals=row["coalition_seat_totals"],
                 government_majority=row["government_majority"],
                 computed_at=row["computed_at"],
+                seat_calls=tuple(calls_by_day.get(row["computed_at"], ())),
             )
             for row in rows
         ]

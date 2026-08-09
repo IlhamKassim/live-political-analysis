@@ -67,6 +67,16 @@ def two_state_seats() -> list[SeatBaseline]:
     ]
 
 
+def one_seat_with_a_small_third_coalition() -> list[SeatBaseline]:
+    """A single Selangor seat, PN 0.55 / PH 0.25 / BN 0.20.
+
+    PH's share is small enough that a 30pp Swing against it lands below zero,
+    which is the case the clamp and rescale exist for; a 60pp Swing against
+    every Coalition at once puts all three there.
+    """
+    return [seat("P301", "Selangor", PN=0.55, PH=0.25, BN=0.20)]
+
+
 def three_coalition_seats() -> list[SeatBaseline]:
     """Ten seats across two states: PH wins five, BN two, PN three.
 

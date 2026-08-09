@@ -14,13 +14,17 @@ touching anything.
 | Label | `ready-for-agent` |
 | Docs PR | **#18** — merged 9 Aug 2026 |
 | Both decisions | **Settled** 9 Aug 2026, recorded as a comment on #17 |
-| Next action | **Write ADR 0005 and ADR 0006**, then start Step 2 of the workflow at the end of this file. |
+| Steps 1–3 | **Done** 9 Aug 2026 — ADRs written, per-Seat calls through to Storage, and the page built in `src/lpa/public_page.py` |
+| Next action | **Step 4**: `/code-review`, then fix what it finds. Then step 5, which is yours. |
 
-The two decisions that used to block this are answered:
+The two decisions that used to block this are answered, and both are now ADRs:
 
 1. **The chamber renders named Seats with per-Seat calls**, not Coalition
-   totals alone. This supersedes ADR 0001 — **ADR 0005** records that.
-2. **The public page is static HTML**, not Streamlit. **ADR 0006** records that.
+   totals alone —
+   [ADR 0005](../adr/0005-publish-the-seat-level-projection.md), which
+   supersedes ADR 0001.
+2. **The public page is static HTML**, not Streamlit —
+   [ADR 0006](../adr/0006-static-html-for-the-public-page.md).
    `src/lpa/dashboard.py` stays as the internal view; it is not deleted and not
    redesigned.
 
@@ -28,6 +32,23 @@ Both are written up in full, with what they require and the constraint on
 presenting per-Seat calls, in the *Decisions settled* comment on #17. Read it —
 it is the authority, and the sections below still describe the pre-decision
 state where they conflict.
+
+## What Step 2 built, and what Step 3 can now read
+
+`Projection.seat_calls` carries a `SeatCall` per Seat — `code`, the `coalition`
+projected to take it, and the projected `margin` over the runner-up. Name and
+state are *not* on it; they come from `SeatBaseline` by joining on `code`, which
+the page needs loaded anyway to show GE15 against the Projection.
+
+- `load_projections(engine)` attaches the calls to the newest Projection and
+  leaves every earlier one's `seat_calls` empty. That is deliberate, not a
+  gap — Storage keeps per-Seat rows for the latest Projection only.
+- Margins are taken from shares floored at zero and rescaled to their Baseline
+  total, so a margin is always a real share of the vote. A margin of exactly
+  `0.0` means a dead heat held on the Baseline.
+- Against the real 222-Seat Baseline as of 9 Aug 2026: **41 Seats fall inside
+  six points.** The hollow-ring encoding is carrying about a fifth of the
+  chamber, which is the argument for it.
 
 ## What exists
 
@@ -119,28 +140,96 @@ toggle that will collide. Either
 The second preserves the design and costs a small generator plus somewhere to
 host it. Note the zero-cost constraint in ADR 0002 binds this choice.
 
-## Known defects in the mockup — fix during implementation
+## Known defects in the mockup
 
-1. **Caption contradicts the sort.** The caption promises safest-Government to
-   safest-Opposition, but the sort is bloc-first (GPS, GRS, BN, PH) and
-   safest-first *within* each bloc, so BN's marginals sit mid-left rather than
-   at the contest line. Either sort globally by margin and lose contiguous
-   blocs, or rewrite the caption. (Moot if Open decision 1 resolves to (b).)
-2. **Contrast failure, light mode.** `--ink-faint` `#8A8D83` on `--ground`
-   `#E9EAE4` is **2.79:1**; it carries every eyebrow, the tally label, the
-   colophon headings and the seat key. Needs 4.5:1 — approximately `#6C6F66`.
-   `--ink-soft` is fine at 5.99:1.
-3. **The pulsing dot claims live data.** The pipeline is a once-daily batch at
-   15:00 UTC. Remove the pulse or make it a static marker.
+Three were fixed while building the page (step 3) because each was about what
+the page *claims* rather than how it looks. Three remain, and are step 7.
+
+1. ~~**Caption contradicts the sort.**~~ **Fixed.** Seats now sort by margin
+   across the whole Government side rather than bloc-first, which is what the
+   caption always promised. Blocs are no longer contiguous; the colours carry
+   that. See `_ordered_seats` in `src/lpa/public_page.py`.
+2. ~~**Contrast failure, light mode.**~~ **Fixed** — but not at the value this
+   file suggested. `#6C6F66` measures **4.23:1** on `--ground`, still short of
+   4.5:1; `--ink-faint` is now `#666960`, at 4.62:1. The swing column needed
+   its own tokens too: `--pn` is 4.17:1, fine for a 9px dot and short for 14px
+   type, so `--ink-pos` / `--ink-neg` carry the text. Measure, don't eyeball.
+3. ~~**The pulsing dot claims live data.**~~ **Fixed.** The pulse is gone; the
+   stamp is a static `MODEL RUN <date>` from `Projection.computed_at`.
 4. **Mobile.** The hemicycle has `min-width: 460px` and scrolls sideways inside
-   its wrapper, so on a 375px screen the hero is partly off-screen. Needs a
-   stacked-bar fallback below ~600px.
+   its wrapper, so on a 375px screen the hero is partly off-screen.
+   **Decided 9 Aug 2026 — a stacked bar below ~600px, segmented by Coalition
+   in bloc order.** Government Coalitions first, then non-government, each run
+   in the same order as the ledger's rows. The Majority tick goes at the 112th
+   seat along the bar; because every Government Coalition still comes first,
+   the block still overruns it and the buffer is still a visible distance,
+   which is the one idea the hero exists for.
+
+   **Why bloc order and not the chamber's margin order.** The bar *replaces*
+   the hemicycle below 600px rather than accompanying it, so the two orderings
+   never appear on one screen, and the thing the bar does sit beside is the
+   ledger — which is ordered by bloc. Colouring by Coalition in margin order
+   was rejected outright: at 375px a seat is under 2px, and interleaved
+   sub-2px stripes read as dither, or as a rendering fault.
+
+   Two consequences that must be handled, not discovered:
+
+   - **The caption changes with it.** The desktop caption promises
+     safest-Government to safest Non-government, which is false of the bar.
+     The narrow layout needs its own caption; do not let the desktop one leak.
+   - **Marginals no longer sit at the contest line**, so the bar carries no
+     uncertainty encoding at all. The ledger's "too close" column is the only
+     place it survives on mobile — which is another reason defect 5's
+     visually-hidden table matters more than it looks.
+
+   **Measured at 375px on 9 Aug 2026, and it is worse than this file said.**
+   The chamber is not the only casualty:
+
+   | | Measured |
+   | --- | --- |
+   | Viewport | 375px |
+   | Content column | 335px |
+   | Hemicycle SVG | 460px — **overflows by 125px**, the Non-government side clipped |
+   | Ledger table | 540px — **205px of columns hidden** |
+   | "Too close" header | sits at x=498, **off-screen entirely** |
+
+   So **the ledger cannot carry the uncertainty on mobile**, because at 375px
+   the ledger has no numbers on it at all — only the Coalition names column is
+   visible, and Projected, GE15, Swing and Too close are all behind a sideways
+   scroll a reader will not find. The stacked-bar decision above assumed
+   otherwise. Step 7 must therefore fix **both**: the chamber *and* a narrow
+   layout for the ledger (per-Coalition stacked rows rather than a 540px table
+   is the obvious move). Fixing only the chamber leaves the page with no
+   uncertainty information on a phone whatsoever.
+
+   The page body itself does not scroll horizontally — both overflows are
+   contained inside their own wrappers, so this is a legibility failure and
+   not a layout break.
+
+   Do not try to keep the dots by shrinking them: 3px rings are
+   indistinguishable and untappable, and that option was considered and
+   rejected.
 5. **Keyboard and touch.** The 222 dots are not focusable and the hover-dim does
    nothing on touch. The SVG `aria-label` carries the summary; a
-   visually-hidden table is the real fix.
+   visually-hidden table is the real fix. Note the table is also what makes the
+   per-Seat detail reachable on mobile once the chamber becomes a bar.
 6. **Bilingual treatment is tokenistic.** "Projeksi Kerusi GE16" in the masthead
-   is the only Bahasa Malaysia on the page. Either commit to genuine bilingual
-   labelling or drop the phrase.
+   is the only Bahasa Malaysia on the page. **Decided 9 Aug 2026 — bilingual
+   structural labels.** BM alongside English for the masthead, the section
+   eyebrows, the Majority line and the seat key; prose (lede, method, colophon,
+   caveat) stays English. Not full bilingual, and not dropped.
+
+   **The BM wording is not settled.** These were the suggestions on the table
+   when the approach was chosen, and they need a native eye before they ship:
+   *Dewan Rakyat, unjuran* · *majoriti* · *selamat* · *berkemungkinan* ·
+   *terlalu rapat*. Ask the user rather than committing them as-is — half-right
+   Malay on a page about Malaysian politics is worse than none, which is the
+   whole reason this defect exists.
+
+7. **The theme toggle does not survive a reload.** Found while building the
+   page. It sets `data-theme` on the root and nothing persists it, so every
+   visit reverts to the system preference. `localStorage`, read before first
+   paint to avoid a flash.
 
 ## Fabricated content — none of these numbers are real
 
@@ -163,7 +252,9 @@ Treat any number that cannot be traced to Storage or to `data/` as a bug.
   Swing, Projection, Election Status — use them as `CONTEXT.md` defines them, in
   code and in user-visible copy. "Win" is specifically avoided because a
   Coalition can lead without a Majority.
-- **ADR 0001** — Coalition-level Projection only, for now.
+- **ADR 0005** — per-Seat calls are published, but a call is arithmetic against
+  GE15 under a state-uniform Swing, never a judgement about that Seat. The page
+  must not imply otherwise. (Supersedes ADR 0001.)
 - **ADR 0002** — zero recurring cost. No paid hosting, no paid fonts, no CDN.
 - **ADR 0003** — `sentiment_sensitivity` (0.10) and `state_signal_weight` (0.5)
   are judgement, not fitted. The page must not imply forecast precision.
@@ -221,12 +312,12 @@ Applied to this piece of work:
 | Step | Work | Owner | Model / effort |
 | --- | --- | --- | --- |
 | ~~1~~ | ~~Settle the two decisions~~ — **done 9 Aug 2026**, see #17 | — | — |
-| 2 | ADR 0005 (per-Seat Projection, supersedes 0001) and ADR 0006 (static publishing). Then carry per-Seat calls and margins through `swing_model` → `Projection` → `storage`. Test-first, branch off `main`. | Agent | Opus or Sonnet, medium-high |
-| 3 | Build the page from the mockup against real Storage data. | Agent | Opus, high — this is design execution |
+| ~~2~~ | ~~ADR 0005, ADR 0006, and per-Seat calls through `swing_model` → `Projection` → `storage`~~ — **done 9 Aug 2026** | — | — |
+| ~~3~~ | ~~Build the page from the mockup against real Storage data~~ — **done 9 Aug 2026**, `src/lpa/public_page.py` | — | — |
 | 4 | `/code-review`, then fix findings. | Agent | inherits |
 | 5 | Run it for real: empty database, one day of history, 375px and 1440px, both themes, all three Election Status states. | **User** and agent together | — |
 | 6 | Merge to `main`, close #17 noting what shipped and what did not. | Agent | Sonnet, medium |
-| 7 | Defect pass — contrast, the liveness pulse, the sub-600px fallback, the keyboard path. Separable; can be its own PR. | Agent | Sonnet, medium — mechanical |
+| 7 | Defect pass — **the sub-600px fallback and the keyboard path**, which are what remain: contrast and the liveness pulse were fixed while building the page, and the caption/sort contradiction went with the global margin sort. Add the theme toggle not surviving a reload. Separable; can be its own PR. | Agent | Sonnet, medium — mechanical |
 | 8 | Deploy. | — | — |
 
 **Step 8 is real work**, now that decision 2 is static: a renderer plus free

@@ -8,16 +8,20 @@ from datetime import date
 
 from pytest import raises
 
-from fixtures import PH, PN, two_coalition_seats
+from fixtures import PH, PN, government_config, two_coalition_seats
+from lpa.aggregate import AggregatedSentiment
 from lpa.poll_calibration import LeaderRating, PollCalibration
 from lpa.storage import (
     connect,
     load_poll_calibrations,
+    load_projections,
     load_seat_baselines,
     normalise_database_url,
     save_poll_calibrations,
     save_seat_baselines,
+    save_snapshot,
 )
+from lpa.swing_model import swing_model
 
 
 def test_a_hosted_postgres_url_gains_the_driver_this_project_installs():
@@ -168,3 +172,98 @@ def test_two_publishers_can_close_fieldwork_on_the_same_day():
     )
 
     assert len(load_poll_calibrations(engine)) == 2
+
+
+def projection_for(day: date, sentiment: dict[str, float] | None = None):
+    """A day's Projection over the two-Coalition fixture, calls and all."""
+    return swing_model(
+        two_coalition_seats(),
+        sentiment or {},
+        [],
+        government_config(),
+        day,
+    )
+
+
+EMPTY_SENTIMENT = AggregatedSentiment(
+    scores={}, article_counts={}, total_articles=0, sources=[]
+)
+
+
+def test_the_latest_projections_seat_calls_read_back_with_it():
+    engine = connect("sqlite+pysqlite:///:memory:")
+    projection = projection_for(date(2026, 8, 6))
+
+    save_snapshot(engine, projection, EMPTY_SENTIMENT)
+
+    (stored,) = load_projections(engine)
+    assert stored == projection
+
+
+def test_only_the_newest_projections_seat_calls_are_kept():
+    # ADR 0005: per-Seat rows are the latest Projection's alone. The earlier
+    # day keeps its Coalition totals, which is what the trend line reads.
+    engine = connect("sqlite+pysqlite:///:memory:")
+
+    save_snapshot(engine, projection_for(date(2026, 8, 5)), EMPTY_SENTIMENT)
+    save_snapshot(engine, projection_for(date(2026, 8, 6)), EMPTY_SENTIMENT)
+
+    older, newer = load_projections(engine)
+    assert older.seat_calls == ()
+    assert older.coalition_seat_totals == {PH: 4, PN: 2}
+    assert len(newer.seat_calls) == 6
+
+
+def test_storing_an_older_day_leaves_the_current_seat_calls_alone():
+    # `scripts/seed_dev_snapshots.py` backfills days behind today, and running
+    # it after a real pipeline run must not leave the newest Projection
+    # showing a seeded day's calls.
+    engine = connect("sqlite+pysqlite:///:memory:")
+    today = projection_for(date(2026, 8, 6), sentiment={PH: -0.4, PN: 0.4})
+    save_snapshot(engine, today, EMPTY_SENTIMENT)
+
+    save_snapshot(engine, projection_for(date(2026, 8, 1)), EMPTY_SENTIMENT)
+
+    backfilled, current = load_projections(engine)
+    assert backfilled.seat_calls == ()
+    assert current.seat_calls == today.seat_calls
+
+
+def test_a_projection_carrying_no_seat_calls_does_not_empty_the_stored_ones():
+    # `load_projections` returns every day but the newest with `seat_calls`
+    # empty, so a caller that reads a Projection back and re-saves it under a
+    # later day would otherwise destroy the only per-Seat rows in Storage.
+    engine = connect("sqlite+pysqlite:///:memory:")
+    today = projection_for(date(2026, 8, 6))
+    save_snapshot(engine, today, EMPTY_SENTIMENT)
+
+    call_less = replace(projection_for(date(2026, 8, 7)), seat_calls=())
+    save_snapshot(engine, call_less, EMPTY_SENTIMENT)
+
+    stored = {p.computed_at: p for p in load_projections(engine)}
+    assert stored[date(2026, 8, 6)].seat_calls == today.seat_calls
+    assert stored[date(2026, 8, 7)].seat_calls == ()
+
+
+def test_re_running_a_day_replaces_its_seat_calls_rather_than_doubling_them():
+    engine = connect("sqlite+pysqlite:///:memory:")
+    day = date(2026, 8, 6)
+    save_snapshot(engine, projection_for(day), EMPTY_SENTIMENT)
+
+    corrected = projection_for(day, sentiment={PH: -0.4, PN: 0.4})
+    save_snapshot(engine, corrected, EMPTY_SENTIMENT)
+
+    (stored,) = load_projections(engine)
+    assert stored == corrected
+
+
+def test_a_seat_call_survives_the_round_trip_intact():
+    engine = connect("sqlite+pysqlite:///:memory:")
+    projection = projection_for(date(2026, 8, 6))
+
+    save_snapshot(engine, projection, EMPTY_SENTIMENT)
+
+    (stored,) = load_projections(engine)
+    called = {call.code: call for call in stored.seat_calls}
+    assert called["P001"].coalition == PH
+    assert called["P001"].margin == projection.seat_calls[0].margin

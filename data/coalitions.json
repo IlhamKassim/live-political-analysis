@@ -83,6 +83,27 @@
     ]
   },
   "government_coalitions": ["PH", "BN", "GPS", "GRS"],
+  "_names_comment": [
+    "How each Coalition is written out in full on the public page. Data, not",
+    "code, for the same reason membership is: these are facts about Malaysian",
+    "politics that can change without the renderer changing. A Coalition",
+    "absent from this map is shown by its short code alone, which is what the",
+    "Baseline already calls the minor parties that kept their own bracketed",
+    "code — so a new one appearing in a Projection is rendered honestly",
+    "rather than dropped."
+  ],
+  "coalition_names": {
+    "PH": "Pakatan Harapan",
+    "BN": "Barisan Nasional",
+    "PN": "Perikatan Nasional",
+    "GPS": "Gabungan Parti Sarawak",
+    "GRS": "Gabungan Rakyat Sabah",
+    "WARISAN": "Parti Warisan",
+    "MUDA": "Parti Muda",
+    "PBM": "Parti Bangsa Malaysia",
+    "KDM": "Parti Kesejahteraan Demokratik Masyarakat",
+    "BEBAS": "Independents"
+  },
   "majority_threshold": 112,
   "total_seats": 222
 }

@@ -14,3 +14,7 @@ dist/
 # Finder writes these into any directory it opens, and one reached a commit
 # before this line existed.
 .DS_Store
+
+# Rendered by `python -m lpa.public_page`; the Action publishes it, the repo
+# does not carry it.
+public/
