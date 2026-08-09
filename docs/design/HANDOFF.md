@@ -182,6 +182,30 @@ the page *claims* rather than how it looks. Three remain, and are step 7.
      place it survives on mobile — which is another reason defect 5's
      visually-hidden table matters more than it looks.
 
+   **Measured at 375px on 9 Aug 2026, and it is worse than this file said.**
+   The chamber is not the only casualty:
+
+   | | Measured |
+   | --- | --- |
+   | Viewport | 375px |
+   | Content column | 335px |
+   | Hemicycle SVG | 460px — **overflows by 125px**, the Non-government side clipped |
+   | Ledger table | 540px — **205px of columns hidden** |
+   | "Too close" header | sits at x=498, **off-screen entirely** |
+
+   So **the ledger cannot carry the uncertainty on mobile**, because at 375px
+   the ledger has no numbers on it at all — only the Coalition names column is
+   visible, and Projected, GE15, Swing and Too close are all behind a sideways
+   scroll a reader will not find. The stacked-bar decision above assumed
+   otherwise. Step 7 must therefore fix **both**: the chamber *and* a narrow
+   layout for the ledger (per-Coalition stacked rows rather than a 540px table
+   is the obvious move). Fixing only the chamber leaves the page with no
+   uncertainty information on a phone whatsoever.
+
+   The page body itself does not scroll horizontally — both overflows are
+   contained inside their own wrappers, so this is a legibility failure and
+   not a layout break.
+
    Do not try to keep the dots by shrinking them: 3px rings are
    indistinguishable and untappable, and that option was considered and
    rejected.
