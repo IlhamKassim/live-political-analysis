@@ -1,4 +1,6 @@
-# The daily pipeline: scrape, score, project, store one snapshot (issue #7).
+# The daily pipeline: scrape, score, project, store one snapshot (issue #7),
+# then render the public page from that snapshot and publish it to GitHub
+# Pages (step 8b, docs/design/HANDOFF.md).
 #
 # Unattended by requirement (ADR 0002), so it must not need a human on a good
 # day and must be re-runnable by hand on a bad one — hence workflow_dispatch
