@@ -1,10 +1,10 @@
 # Public dashboard redesign — handoff
 
-Status as of **10 August 2026**. **Step 7 (the defect pass) is done and
-merged.** Step 8 (deploy) is half done: the database is live and the daily
-pipeline writes to it. What's left is making that same Action render and
-publish the public page. This file is the whole context. Read it, then
-`CONTEXT.md`, before touching anything.
+Status as of **10 August 2026**. **Steps 7 and 8 are both done and merged.**
+The page is live at https://ilhamkassim.github.io/live-political-analysis/,
+rendered and republished daily by the same Action that computes the
+Projection. This file is the whole context. Read it, then `CONTEXT.md`,
+before touching anything.
 
 ## Start here
 
@@ -15,7 +15,8 @@ publish the public page. This file is the whole context. Read it, then
 | Ticket | **#17** — **closed** 9 Aug 2026, shipped in #20 (merge `582ccd1`) |
 | Steps 1–7 | **Done** — through 10 Aug 2026. Step 7 (the defect pass — mobile fallback, keyboard table, theme persistence, bilingual labels) shipped as commit `ec3be29` on `main`, reviewed via `/code-review`, visually verified at 375px/1440px in both themes. |
 | Step 8 — database | **Done** 10 Aug 2026 — Supabase Postgres provisioned, `DATABASE_URL` secret set on the repo, the GE15 Baseline loaded via `bootstrap.yml`, and the daily pipeline verified running end-to-end against it (`daily.yml`, manual trigger, 2m48s, succeeded). |
-| Next action | **Step 8 — the Pages publish step.** `daily.yml` computes and stores a Projection but renders and publishes nothing. See *What step 8 still needs* below. Mechanical enough for Sonnet; the one thing to bring back to the user is confirming the real published URL looks right. |
+| Step 8 — Pages publish | **Done** 10 Aug 2026, PR #21 (merge `8d94740`). `daily.yml` now runs `python -m lpa.public_page` after the pipeline step and deploys `public/index.html` via `actions/upload-pages-artifact` + `actions/deploy-pages`. Pages enabled on the repo (source: GitHub Actions). Triggered by hand on `main` and visually verified live at https://ilhamkassim.github.io/live-political-analysis/ — real Projection numbers, hemicycle, ledger, stress-test row, and the "NOT CALIBRATED" caveat all render correctly. |
+| Next action | **None queued.** Both steps 7 and 8 are shipped; the daily Action now runs the whole pipeline unattended, end to end, including publish. |
 
 **Step 7's design decisions are all closed — do not re-open them.** The BM
 wording is settled: *Dewan Rakyat, unjuran, majoriti, selamat,
@@ -26,22 +27,22 @@ caught as reproducing the exact half-right-Malay problem the defect existed
 to fix, so the masthead was reverted to its original wording instead. Full
 reasoning is in the commit message on `ec3be29`.
 
-## What step 8 still needs
+## What step 8 needed — done 10 Aug 2026
 
-The database half is done and proven (see table above). What's missing is
-turning a stored Projection into a public URL:
+Both halves are done and proven. Kept for the reasoning:
 
-1. **Add a render + publish step to `daily.yml`**, after the existing
-   pipeline step: run `python -m lpa.public_page` to write
-   `public/index.html`, then `actions/upload-pages-artifact` +
-   `actions/deploy-pages` to publish it. The workflow will need
+1. ~~**Add a render + publish step to `daily.yml`**~~ — done. After the
+   pipeline step, `python -m lpa.public_page` writes `public/index.html`,
+   then `actions/upload-pages-artifact` + `actions/deploy-pages` publish it.
    `permissions: pages: write, id-token: write` added for the deploy step.
-2. **Enable GitHub Pages on the repo**, source set to *GitHub Actions* (not a
-   branch) — Settings → Pages, or `gh api`.
-3. **Trigger it once by hand and look at the real published URL** before
-   calling this done — issue #1's rule that the page is verified by looking
-   at it, not by a green check, applies here too.
-4. **A custom domain is a later, separate step, not a blocker.** With the
+2. ~~**Enable GitHub Pages on the repo**~~ — done, source set to *GitHub
+   Actions* via `gh api`.
+3. ~~**Trigger it once by hand and look at the real published URL**~~ —
+   done; issue #1's rule that the page is verified by looking at it, not by
+   a green check, applied here too. Live at
+   https://ilhamkassim.github.io/live-political-analysis/.
+4. **A custom domain is a later, separate step, not a blocker — still not
+   done, and still not needed.** With the
    Actions deploy method, the domain is configured in Settings → Pages plus a
    DNS record at the registrar; it survives every future deploy without
    touching the workflow or the code. GitHub Pages itself costs nothing
@@ -340,6 +341,13 @@ Each of these has already cost time on this project.
   enough. Percent-encode special characters in the password (`@`→`%40`,
   `:`→`%3A`, `/`→`%2F`, etc.), or sidestep it entirely with an
   alphanumeric-only password.
+- **GitHub's auto-created `github-pages` deployment environment only allows
+  deploys from `main`**, not from a feature branch. `deploy-pages` in
+  `daily.yml` rejected a manual trigger from the PR branch with "not allowed
+  to deploy to github-pages due to environment protection rules" — found
+  10 Aug 2026 while verifying step 8b. There is no way to see the real
+  published output pre-merge; the PR has to merge to `main` on review alone,
+  and the live-URL check happens after, not before.
 
 ## Research already done — do not re-derive
 
@@ -375,11 +383,11 @@ Applied to this piece of work:
 | ~~6~~ | ~~Merge to `main`, close #17 noting what shipped and what did not.~~ — **done 9 Aug 2026** | Agent | Sonnet, medium |
 | ~~7~~ | ~~Defect pass — the sub-600px fallback, the keyboard path, theme persistence, bilingual labels.~~ — **done 10 Aug 2026**, commit `ec3be29` | Agent | Sonnet, medium — mechanical |
 | ~~8a~~ | ~~Provision the database: Supabase Postgres, `DATABASE_URL` secret, load the Baseline, verify the daily pipeline runs against it.~~ — **done 10 Aug 2026** | **User** (account/secret) + agent (workflows, verification) | — |
-| 8b | **Next.** Render + publish: add a step to `daily.yml` that runs `python -m lpa.public_page` and deploys the result to GitHub Pages. See *What step 8 still needs* above. | Agent | Sonnet, medium — mechanical, but confirm the real published URL with the user before calling it done |
+| ~~8b~~ | ~~Render + publish: add a step to `daily.yml` that runs `python -m lpa.public_page` and deploys the result to GitHub Pages.~~ — **done 10 Aug 2026**, PR #21 (merge `8d94740`). Verified live at https://ilhamkassim.github.io/live-political-analysis/. Order was merge-then-verify rather than the usual verify-then-merge, because the `github-pages` environment only accepts deploys from `main` — see *Operational traps*. | Agent | Sonnet, medium — mechanical |
 
 **Where the user is the bottleneck:** steps 1, 5 and the account/secret half of
 8a. Nobody else can make those calls, provision the database, or say the page
 reads right. Everything else an agent can carry.
 
 **Rough shape:** steps 1–2 in one session, 3–6 in another, 7 and 8a in a
-third (9–10 Aug 2026), 8b next.
+third, 8b in a fourth (9–10 Aug 2026). All done.
