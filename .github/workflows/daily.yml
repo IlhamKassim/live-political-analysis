@@ -29,15 +29,23 @@ concurrency:
   group: storage-write
   cancel-in-progress: false
 
-# Read the checkout, nothing else. The pipeline's only write goes to the
-# database over the network, and never to the repository.
+# Read the checkout; the pipeline's only write goes to the database over the
+# network, never to the repository. pages/id-token are for the Pages deploy
+# step, which publishes the page this workflow renders.
 permissions:
   contents: read
+  pages: write
+  id-token: write
 
 jobs:
   run:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Lets the deploy-pages step report the published URL as this job's
+    # environment URL, and is what actions/deploy-pages requires to run.
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy-pages.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -61,12 +69,30 @@ jobs:
           restore-keys: huggingface-
 
       - name: Install
-        # No dashboard extra: the pipeline scores and stores, and never
-        # renders. Postgres extra for the hosted database the schedule
-        # writes to.
+        # No dashboard extra: that's the Streamlit internal view, unused
+        # here. public_page renders server-side HTML/SVG with no extra
+        # deps of its own. Postgres extra for the hosted database both the
+        # pipeline and public_page read.
         run: pip install -e ".[sentiment,postgres]"
 
       - name: Run the pipeline
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m lpa.pipeline
+
+      - name: Render the public page
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m lpa.public_page
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload the page
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - name: Deploy to GitHub Pages
+        id: deploy-pages
+        uses: actions/deploy-pages@v4
