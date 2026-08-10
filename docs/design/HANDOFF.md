@@ -1,8 +1,10 @@
 # Public dashboard redesign — handoff
 
-Status as of **9 August 2026**. **The page is built, reviewed, run and
-merged.** What is left is the defect pass and the deploy. This file is the
-whole context. Read it, then `CONTEXT.md`, before touching anything.
+Status as of **10 August 2026**. **Step 7 (the defect pass) is done and
+merged.** Step 8 (deploy) is half done: the database is live and the daily
+pipeline writes to it. What's left is making that same Action render and
+publish the public page. This file is the whole context. Read it, then
+`CONTEXT.md`, before touching anything.
 
 ## Start here
 
@@ -11,22 +13,43 @@ whole context. Read it, then `CONTEXT.md`, before touching anything.
 | | |
 | --- | --- |
 | Ticket | **#17** — **closed** 9 Aug 2026, shipped in #20 (merge `582ccd1`) |
-| Steps 1–6 | **Done** 9 Aug 2026 — ADRs, per-Seat calls through Storage, the page, `/code-review` and its fixes, run across every state, merged |
-| Next action | **Step 7**, the defect pass. Everything it needs is decided and written down below; it does not need the strong model. |
-| After that | **Step 8**, deploy — blocked on the user setting `DATABASE_URL`, which has had the daily Action failing every run since 6 Aug 2026 |
+| Steps 1–7 | **Done** — through 10 Aug 2026. Step 7 (the defect pass — mobile fallback, keyboard table, theme persistence, bilingual labels) shipped as commit `ec3be29` on `main`, reviewed via `/code-review`, visually verified at 375px/1440px in both themes. |
+| Step 8 — database | **Done** 10 Aug 2026 — Supabase Postgres provisioned, `DATABASE_URL` secret set on the repo, the GE15 Baseline loaded via `bootstrap.yml`, and the daily pipeline verified running end-to-end against it (`daily.yml`, manual trigger, 2m48s, succeeded). |
+| Next action | **Step 8 — the Pages publish step.** `daily.yml` computes and stores a Projection but renders and publishes nothing. See *What step 8 still needs* below. Mechanical enough for Sonnet; the one thing to bring back to the user is confirming the real published URL looks right. |
 
-**Step 7 is fully specified. Do not re-open its design decisions** — read
-*Known defects* below, where each carries the choice made, the reasoning, and
-what was rejected. Two things are genuinely still open and both belong to the
-user, not to you: **the Malay wording** for the bilingual labels, and the
-**`DATABASE_URL` secret**.
+**Step 7's design decisions are all closed — do not re-open them.** The BM
+wording is settled: *Dewan Rakyat, unjuran, majoriti, selamat,
+berkemungkinan, terlalu rapat*, used only where those exact words fit
+(masthead, chamber eyebrow, Majority line, seat key) — a first pass also
+half-translated the masthead ("Unjuran Kerusi GE16"), which code review
+caught as reproducing the exact half-right-Malay problem the defect existed
+to fix, so the masthead was reverted to its original wording instead. Full
+reasoning is in the commit message on `ec3be29`.
 
-The one thing to carry forward from step 5: the sub-600px problem is bigger
-than this file originally said. The **ledger** is cut at 375px as badly as the
-chamber is, so fixing only the chamber leaves the page with no uncertainty
-information on a phone at all. Measurements are under defect 4.
+## What step 8 still needs
 
-The two decisions that used to block this are answered, and both are now ADRs:
+The database half is done and proven (see table above). What's missing is
+turning a stored Projection into a public URL:
+
+1. **Add a render + publish step to `daily.yml`**, after the existing
+   pipeline step: run `python -m lpa.public_page` to write
+   `public/index.html`, then `actions/upload-pages-artifact` +
+   `actions/deploy-pages` to publish it. The workflow will need
+   `permissions: pages: write, id-token: write` added for the deploy step.
+2. **Enable GitHub Pages on the repo**, source set to *GitHub Actions* (not a
+   branch) — Settings → Pages, or `gh api`.
+3. **Trigger it once by hand and look at the real published URL** before
+   calling this done — issue #1's rule that the page is verified by looking
+   at it, not by a green check, applies here too.
+4. **A custom domain is a later, separate step, not a blocker.** With the
+   Actions deploy method, the domain is configured in Settings → Pages plus a
+   DNS record at the registrar; it survives every future deploy without
+   touching the workflow or the code. GitHub Pages itself costs nothing
+   either way (free for public repos, no bandwidth/storage billing at this
+   page's size) — the only future cost is the domain registration itself, if
+   the user buys one.
+
+The two decisions that used to block the page's content are answered, and both are now ADRs:
 
 1. **The chamber renders named Seats with per-Seat calls**, not Coalition
    totals alone —
@@ -152,7 +175,8 @@ host it. Note the zero-cost constraint in ADR 0002 binds this choice.
 ## Known defects in the mockup
 
 Three were fixed while building the page (step 3) because each was about what
-the page *claims* rather than how it looks. Three remain, and are step 7.
+the page *claims* rather than how it looks. The other four were step 7 —
+all fixed and merged as commit `ec3be29` on 10 Aug 2026.
 
 1. ~~**Caption contradicts the sort.**~~ **Fixed.** Seats now sort by margin
    across the whole Government side rather than bloc-first, which is what the
@@ -165,7 +189,8 @@ the page *claims* rather than how it looks. Three remain, and are step 7.
    type, so `--ink-pos` / `--ink-neg` carry the text. Measure, don't eyeball.
 3. ~~**The pulsing dot claims live data.**~~ **Fixed.** The pulse is gone; the
    stamp is a static `MODEL RUN <date>` from `Projection.computed_at`.
-4. **Mobile.** The hemicycle has `min-width: 460px` and scrolls sideways inside
+4. ~~**Mobile.**~~ **Fixed** — commit `ec3be29`. Verified at 375px and 1440px,
+   both themes, via the browser. The hemicycle has `min-width: 460px` and scrolls sideways inside
    its wrapper, so on a 375px screen the hero is partly off-screen.
    **Decided 9 Aug 2026 — a stacked bar below ~600px, segmented by Coalition
    in bloc order.** Government Coalitions first, then non-government, each run
@@ -218,24 +243,27 @@ the page *claims* rather than how it looks. Three remain, and are step 7.
    Do not try to keep the dots by shrinking them: 3px rings are
    indistinguishable and untappable, and that option was considered and
    rejected.
-5. **Keyboard and touch.** The 222 dots are not focusable and the hover-dim does
+5. ~~**Keyboard and touch.**~~ **Fixed** — commit `ec3be29`. The 222 dots are not focusable and the hover-dim does
    nothing on touch. The SVG `aria-label` carries the summary; a
    visually-hidden table is the real fix. Note the table is also what makes the
    per-Seat detail reachable on mobile once the chamber becomes a bar.
-6. **Bilingual treatment is tokenistic.** "Projeksi Kerusi GE16" in the masthead
+6. ~~**Bilingual treatment is tokenistic.**~~ **Fixed** — commit `ec3be29`. "Projeksi Kerusi GE16" in the masthead
    is the only Bahasa Malaysia on the page. **Decided 9 Aug 2026 — bilingual
    structural labels.** BM alongside English for the masthead, the section
    eyebrows, the Majority line and the seat key; prose (lede, method, colophon,
    caveat) stays English. Not full bilingual, and not dropped.
 
-   **The BM wording is not settled.** These were the suggestions on the table
-   when the approach was chosen, and they need a native eye before they ship:
+   **The BM wording is settled** (confirmed with the user 9 Aug 2026):
    *Dewan Rakyat, unjuran* · *majoriti* · *selamat* · *berkemungkinan* ·
-   *terlalu rapat*. Ask the user rather than committing them as-is — half-right
-   Malay on a page about Malaysian politics is worse than none, which is the
-   whole reason this defect exists.
+   *terlalu rapat* — applied only where those exact words fit. The masthead's
+   existing "Projeksi Kerusi GE16" was deliberately left untouched rather than
+   half-swapped to "Unjuran Kerusi GE16": "Kerusi" (Seat) was never confirmed,
+   and mixing one vetted word into an unvetted phrase reproduces the exact
+   half-right-Malay problem this defect exists to fix. Same principle applies
+   to any future extension of the BM wording — only ship words that have
+   actually been confirmed, for the whole phrase they sit in.
 
-7. **The theme toggle does not survive a reload.** Found while building the
+7. ~~**The theme toggle does not survive a reload.**~~ **Fixed** — commit `ec3be29`. Found while building the
    page. It sets `data-theme` on the root and nothing persists it, so every
    visit reverts to the system preference. `localStorage`, read before first
    paint to avoid a flash.
@@ -293,6 +321,25 @@ Each of these has already cost time on this project.
   a tab is open takes up to that long to appear. Not a bug; do not chase it.
 - **GitHub disables a scheduled workflow after 60 days with no commits.** If
   snapshots stop appearing during a quiet stretch, check that first.
+- **Supabase's direct-connection hostname (`db.xxxx.supabase.co`) resolves
+  IPv6-only on the free tier, and GitHub Actions' hosted runners have no IPv6
+  egress.** `bootstrap.yml` failed against it with "Network is unreachable"
+  even though the same string works fine from a laptop. Fix: use the
+  **Session pooler** connection string instead (Settings → Database →
+  Connection string → Session pooler) — IPv4-reachable, and the username
+  changes to `postgres.<project-ref>` rather than plain `postgres`. Prefer
+  Session pooler over Transaction pooler: this project's SQLAlchemy usage
+  wants normal connection semantics, and transaction-mode poolers can
+  misbehave with some query patterns.
+- **An unescaped `@` (or other reserved character) in a Postgres password
+  breaks URL parsing, and can print a fragment of the password into the
+  Action log.** This repo is public, so that log is public too — it happened
+  once, on 10 Aug 2026, and the fix was to reset the Supabase database
+  password immediately (invalidating the leaked fragment) and delete the
+  run (`gh run delete <id>`) rather than trust that resetting alone was
+  enough. Percent-encode special characters in the password (`@`→`%40`,
+  `:`→`%3A`, `/`→`%2F`, etc.), or sidestep it entirely with an
+  alphanumeric-only password.
 
 ## Research already done — do not re-derive
 
@@ -323,19 +370,16 @@ Applied to this piece of work:
 | ~~1~~ | ~~Settle the two decisions~~ — **done 9 Aug 2026**, see #17 | — | — |
 | ~~2~~ | ~~ADR 0005, ADR 0006, and per-Seat calls through `swing_model` → `Projection` → `storage`~~ — **done 9 Aug 2026** | — | — |
 | ~~3~~ | ~~Build the page from the mockup against real Storage data~~ — **done 9 Aug 2026**, `src/lpa/public_page.py` | — | — |
-| 4 | `/code-review`, then fix findings. | Agent | inherits |
-| 5 | Run it for real: empty database, one day of history, 375px and 1440px, both themes, all three Election Status states. | **User** and agent together | — |
-| 6 | Merge to `main`, close #17 noting what shipped and what did not. | Agent | Sonnet, medium |
-| 7 | Defect pass — **the sub-600px fallback and the keyboard path**, which are what remain: contrast and the liveness pulse were fixed while building the page, and the caption/sort contradiction went with the global margin sort. Add the theme toggle not surviving a reload. Separable; can be its own PR. | Agent | Sonnet, medium — mechanical |
-| 8 | Deploy. | — | — |
+| ~~4~~ | ~~`/code-review`, then fix findings.~~ — **done 9 Aug 2026** | Agent | inherits |
+| ~~5~~ | ~~Run it for real: empty database, one day of history, 375px and 1440px, both themes, all three Election Status states.~~ — **done 9 Aug 2026** | **User** and agent together | — |
+| ~~6~~ | ~~Merge to `main`, close #17 noting what shipped and what did not.~~ — **done 9 Aug 2026** | Agent | Sonnet, medium |
+| ~~7~~ | ~~Defect pass — the sub-600px fallback, the keyboard path, theme persistence, bilingual labels.~~ — **done 10 Aug 2026**, commit `ec3be29` | Agent | Sonnet, medium — mechanical |
+| ~~8a~~ | ~~Provision the database: Supabase Postgres, `DATABASE_URL` secret, load the Baseline, verify the daily pipeline runs against it.~~ — **done 10 Aug 2026** | **User** (account/secret) + agent (workflows, verification) | — |
+| 8b | **Next.** Render + publish: add a step to `daily.yml` that runs `python -m lpa.public_page` and deploys the result to GitHub Pages. See *What step 8 still needs* above. | Agent | Sonnet, medium — mechanical, but confirm the real published URL with the user before calling it done |
 
-**Step 8 is real work**, now that decision 2 is static: a renderer plus free
-hosting, with ADR 0002's zero-cost rule binding the choice. GitHub Pages is the
-obvious answer, and the existing daily Action can render and publish the page in
-the same job it already runs. The public page then never touches the database at
-request time — only the Action does.
+**Where the user is the bottleneck:** steps 1, 5 and the account/secret half of
+8a. Nobody else can make those calls, provision the database, or say the page
+reads right. Everything else an agent can carry.
 
-**Where the user is the bottleneck:** steps 1 and 5. Nobody else can make those
-calls, or say the page reads right. Everything else an agent can carry.
-
-**Rough shape:** steps 1–2 in one session, 3–6 in another, 7–8 in a third.
+**Rough shape:** steps 1–2 in one session, 3–6 in another, 7 and 8a in a
+third (9–10 Aug 2026), 8b next.
