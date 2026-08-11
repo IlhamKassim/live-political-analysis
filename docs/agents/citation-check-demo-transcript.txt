@@ -1,0 +1,46 @@
+Citation check — issue #24 acceptance criterion 3, live end-to-end proof
+==========================================================================
+
+"Run against a small test page with at least one true claim and one
+deliberately wrong claim, and confirm it catches the wrong one" — with no
+hand-authored verdicts file, no per-claim human gate. This is a real,
+reproducible run of the actual CLI, captured verbatim.
+
+Command:
+
+    python -m lpa.citation_check tests/fixtures/citation_check_demo.html
+
+No `--verdicts` flag. `subagent_judge` (the default Judge — a real `claude -p`
+subprocess call, not a stub) fetched the citation live and judged both claims
+itself.
+
+Captured output (2026-08-11, claude-haiku-4-5, exit code 1):
+
+    [supported] majority-true: "A Coalition needs to hold more than half of the Dewan Rakyat's 222 seats — 11..." — The source's definition of 'Majority' states exactly: 'Holding more than half of the 222 seats (112+). The threshold a Coalition needs to form government alone,' which matches the claim's facts about seat count and requirement.
+    [contradicted] majority-false: "A Coalition only needs 100 of the Dewan Rakyat's 222 seats to hold a Majority..." — The source defines Majority as 'more than half of the 222 seats (112+)', not 100 seats.
+
+    1/2 claim(s) flagged.
+
+The true claim (`majority-true`) and the deliberately wrong claim
+(`majority-false`) — both citing the same live `CONTEXT.md` — landed on
+different verdicts, resolved automatically, with nothing hand-authored.
+
+Reproducing this
+-----------------
+
+Either run the CLI exactly as above (requires the `claude` CLI on PATH and
+authenticated, and network access to fetch `CONTEXT.md` off GitHub), or run
+the equivalent, asserted, pytest test:
+
+    pytest -m network tests/test_citation_check_live.py -v
+
+`test_the_automated_judge_tells_the_true_claim_from_the_wrong_one` in that
+file makes the same two calls (fetch + automated judge) and asserts
+`majority-true == SUPPORTED`, `majority-false == CONTRADICTED`, and that the
+two differ — so a stale transcript here doesn't matter: the test is the
+actual, current proof, this file is one recorded run of it.
+
+Model output is not deterministic between runs — a different phrasing in
+`detail`, or occasionally a `unclear` verdict on a rerun, would not be a
+regression. What must hold is that the true and false claims never land on
+the same verdict, which is exactly what the pytest assertions check.
