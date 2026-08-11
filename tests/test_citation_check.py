@@ -289,44 +289,28 @@ def test_verdicts_from_file_applies_a_contradicted_verdict(tmp_path):
     assert not results[0].passed
 
 
-def test_a_claim_missing_from_the_verdicts_file_stays_unjudged_not_passed():
+def test_a_claim_missing_from_the_verdicts_file_stays_unjudged_not_passed(tmp_path):
     # A subagent that never reached this claim must not thereby pass it.
-    verdicts_path_entries = json.dumps([{"id": "claim-999", "verdict": "supported", "detail": "x"}])
+    verdicts_path = tmp_path / "verdicts.json"
+    verdicts_path.write_text(json.dumps([{"id": "claim-999", "verdict": "supported", "detail": "x"}]))
     html = '<p data-claim data-cite="https://x/1">A claim.</p>'
     fetch = fetch_map({"https://x/1": "source text"})
 
-    def judge_from_string(raw: str):
-        import tempfile
-        from pathlib import Path
-
-        with tempfile.TemporaryDirectory() as d:
-            p = Path(d) / "v.json"
-            p.write_text(raw)
-            return verdicts_from_file(p)
-
-    results = check_page(html, fetch, judge_from_string(verdicts_path_entries))
+    results = check_page(html, fetch, verdicts_from_file(verdicts_path))
 
     assert results[0].verdict == Verdict.NEEDS_JUDGMENT
     assert not results[0].passed
 
 
-def test_verdicts_from_file_reports_an_entry_missing_the_verdict_field():
+def test_verdicts_from_file_reports_an_entry_missing_the_verdict_field(tmp_path):
     # A hand-authored or LLM-written file can be malformed; a bare
     # KeyError/ValueError crash would abort the whole run over one bad entry.
-    verdicts_path_entries = json.dumps([{"id": "claim-1", "detail": "forgot the verdict"}])
+    verdicts_path = tmp_path / "verdicts.json"
+    verdicts_path.write_text(json.dumps([{"id": "claim-1", "detail": "forgot the verdict"}]))
     html = '<p data-claim data-cite="https://x/1">A claim.</p>'
     fetch = fetch_map({"https://x/1": "source text"})
 
-    def judge_from_string(raw: str):
-        import tempfile
-        from pathlib import Path
-
-        with tempfile.TemporaryDirectory() as d:
-            p = Path(d) / "v.json"
-            p.write_text(raw)
-            return verdicts_from_file(p)
-
-    results = check_page(html, fetch, judge_from_string(verdicts_path_entries))
+    results = check_page(html, fetch, verdicts_from_file(verdicts_path))
 
     assert results[0].verdict == Verdict.NEEDS_JUDGMENT
     assert "verdict" in results[0].detail
