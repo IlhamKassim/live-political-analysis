@@ -16,5 +16,5 @@ Single-context layout — `CONTEXT.md` + `docs/adr/` at the repo root. See `docs
 
 Every civic-education content page (#22's children) runs `lpa.citation_check`
 before its content counts as done — fetches each cited source and checks the
-page's claims against it, with the semantic half handed to a subagent rather
-than a human per-claim gate. See `docs/agents/citation-check.md`.
+page's claims against it, spawning a subagent itself to judge each one rather
+than requiring a human per-claim gate. See `docs/agents/citation-check.md`.

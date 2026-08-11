@@ -16,57 +16,70 @@ from classification:
   reaches the network or calls a model.
 - `http_fetch` is the real `Fetcher`: a source is fetched over HTTP once, with
   HTML reduced to plain text via `lpa.scraper.strip_html`.
-
-There is deliberately **no built-in `Judge`.** ADR 0002 keeps this project at
-zero recurring cost, and "does this claim match this source" needs real
-language understanding that a keyword check can't give reliably — the two
-options are a paid LLM API (ruled out) or a self-hosted model (which, unlike
-sentiment scoring, has no daily-unattended-run requirement forcing that
-trade-off: this pass runs once per content page, at authoring time, driven by
-a human or an agent session that already has one). So the semantic step is
-handed to whatever already-running agent session is authoring the page, via
-the CLI's two-step protocol below — no new dependency, paid or otherwise.
+- `subagent_judge` is the real `Judge`: it shells out to the `claude` CLI —
+  the same subscription-seat tool an authoring session already runs under,
+  not the metered Anthropic API ADR 0002 rules out for unattended/scripted
+  use — with the claim and fetched source embedded directly in the prompt.
+  No tools are granted to that subagent call; it never browses or reads
+  files, it only judges the text it was given. This is the automated
+  semantic step issue #24 asked for: the tool renders SUPPORTED,
+  CONTRADICTED, or UNCLEAR itself, with no human required to have
+  pre-written the answer.
 
 CLI protocol (see docs/agents/citation-check.md for the full walkthrough):
 
     python -m lpa.citation_check PAGE.html
 
-extracts claims, fetches every citation, and immediately flags claims with no
-citation or a citation that failed to fetch. Every claim whose source *did*
-fetch is written to `PAGE.html.pending.json` — claim text, citation URL, and
-the fetched source text — because none of those can be decided without
-semantic judgment. A subagent (or the calling agent itself) reads that file,
-judges each entry, and writes a verdicts file:
+extracts every claim, fetches every citation, flags claims with no citation
+or a citation that failed to fetch, and judges everything else automatically
+via `subagent_judge` — one `claude -p` call per fetched claim, coming back
+SUPPORTED, CONTRADICTED, or UNCLEAR (a real, rendered judgment — "the source
+doesn't clearly settle it" is a legitimate outcome for a genuinely ambiguous
+claim, and counts as a failure like any non-SUPPORTED verdict). The report
+prints immediately; the run exits non-zero if anything is unsupported,
+contradicted, uncited, unfetchable, or still unjudged after that automated
+pass — nothing here passes silently. A claim where no judgment was rendered
+at all — a malformed subagent reply, a `claude` CLI failure — is written to
+`PAGE.html.pending.json` for a human or another agent to look at directly;
+that file is diagnostic output for that failure mode, not a required input.
 
-    [{"id": "claim-1", "verdict": "supported", "detail": "..."}, ...]
-
-    python -m lpa.citation_check PAGE.html --verdicts verdicts.json
-
-re-runs the check with those verdicts plugged in as the `Judge`, prints the
-final per-claim report, and exits non-zero if anything is unsupported,
-contradicted, uncited, unfetchable, or still unjudged — nothing here passes
-silently.
+`--verdicts verdicts.json` is an optional override, never a required step: a
+verdict recorded there for a given claim id wins over what the automated
+judge decided (e.g. a human correcting one call), and any claim id the file
+doesn't mention still goes through `subagent_judge` as normal.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import re
+import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from enum import StrEnum
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Callable, Protocol
+from typing import Callable
 
 import httpx
 
-from lpa.scraper import USER_AGENT, strip_html
+from lpa.scraper import USER_AGENT, RobotsPolicy, new_client, strip_html
 
 MAX_SOURCE_CHARS = 8_000
 """A fetched source is truncated to this many characters before it reaches a
 Judge or a pending report — long enough to carry real context, short enough
 that a subagent reading it costs a bounded amount of context."""
+
+DEFAULT_JUDGE_MODEL = "claude-haiku-4-5"
+"""The model `subagent_judge` runs the `claude` CLI as.
+
+Judging "does this source support this claim" is a bounded reading-
+comprehension task, not open-ended reasoning, so the cheapest model that
+reads reliably is the right default — override with `--judge-model` for a
+page whose claims need more care.
+"""
 
 _VOID_ELEMENTS = frozenset(
     {"area", "base", "br", "col", "embed", "hr", "img", "input", "link",
@@ -85,10 +98,11 @@ class Verdict(StrEnum):
     NO_CITATION = "no_citation"
     FETCH_FAILED = "fetch_failed"
     NEEDS_JUDGMENT = "needs_judgment"
-    """Fetched successfully but no Judge has decided it yet — the state
-    `deferred_judge` returns, and what a claim missing from a verdicts file
-    stays at. Counts as a failure precisely so an unjudged claim cannot be
-    mistaken for a supported one."""
+    """Fetched successfully but no Judge has rendered a verdict for it — the
+    state `deferred_judge` returns, what `subagent_judge` falls back to when
+    it can't get a usable answer, and what a claim missing from a verdicts
+    file stays at. Counts as a failure precisely so an unjudged claim cannot
+    be mistaken for a supported one."""
 
 
 @dataclass(frozen=True)
@@ -131,16 +145,19 @@ class CitationCheckResult:
         return self.verdict == Verdict.SUPPORTED
 
 
-class Fetcher(Protocol):
-    def __call__(self, url: str) -> FetchResult: ...
+Fetcher = Callable[[str], FetchResult]
+"""Fetch a citation's URL and return its content, or why it couldn't be
+fetched. Injected so `check_page` never has to reach the network itself —
+`http_fetch` below is the real implementation; tests use a stub."""
 
-
-class Judge(Protocol):
-    def __call__(self, claim: Claim, source_text: str) -> tuple[Verdict, str]: ...
-    """Decide whether `source_text` supports `claim.text`. Must return
-    SUPPORTED, CONTRADICTED, or UNCLEAR — the other two Verdict members are
-    reserved for `check_page` itself, which never asks a Judge about a claim
-    it couldn't fetch a source for in the first place."""
+Judge = Callable[[Claim, str], tuple[Verdict, str]]
+"""Decide whether the second argument (a fetched source's text) supports a
+Claim's text. Must return SUPPORTED, CONTRADICTED, or UNCLEAR when it
+actually renders a judgment; NEEDS_JUDGMENT is reserved for a Judge that
+explicitly declines to (`deferred_judge`, or `subagent_judge` when it
+couldn't get a usable response) — `check_page` itself never asks a Judge
+about a claim it couldn't fetch a source for in the first place, so
+NO_CITATION and FETCH_FAILED never reach a Judge at all."""
 
 
 def check_page(html_text: str, fetch: Fetcher, judge: Judge) -> list[CitationCheckResult]:
@@ -168,24 +185,45 @@ def check_page(html_text: str, fetch: Fetcher, judge: Judge) -> list[CitationChe
 
 
 def deferred_judge(claim: Claim, source_text: str) -> tuple[Verdict, str]:
-    """The default `Judge`: defers every fetched claim rather than guessing.
+    """A `Judge` that defers every fetched claim rather than judging it.
 
-    No local judgment is attempted here, on purpose — see the module
-    docstring. Fetched claims come back NEEDS_JUDGMENT, which `check_page`
-    treats as a failure, so a page checked with this Judge and no follow-up
-    fails closed rather than reporting green.
+    Not the default — `main()` uses `subagent_judge` unless told otherwise —
+    but useful on its own: as the pure orchestration tests' baseline (judging
+    is not what those tests exercise), and as an explicit "just show me what
+    fetched" mode. A page checked with this Judge and no follow-up fails
+    closed rather than reporting green, same as any other unjudged claim.
     """
-    return Verdict.NEEDS_JUDGMENT, "not yet judged — see docs/agents/citation-check.md"
+    return Verdict.NEEDS_JUDGMENT, "not judged — see docs/agents/citation-check.md"
+
+
+def override_judge(overrides: Judge, fallback: Judge) -> Judge:
+    """Layer a hand-authored verdicts file over an automated Judge.
+
+    `overrides` wins for any claim id it has an opinion on — a human's
+    correction to what `fallback` (normally `subagent_judge`) decided. A
+    claim id the overrides file doesn't mention comes back NEEDS_JUDGMENT
+    from `verdicts_from_file`, which this treats as "no opinion" and falls
+    through to `fallback` — so a verdicts file only ever needs to cover the
+    claims someone actually wants to override, never every claim on the page.
+    """
+
+    def judge(claim: Claim, source_text: str) -> tuple[Verdict, str]:
+        verdict, detail = overrides(claim, source_text)
+        if verdict != Verdict.NEEDS_JUDGMENT:
+            return verdict, detail
+        return fallback(claim, source_text)
+
+    return judge
 
 
 def verdicts_from_file(path: Path) -> Judge:
-    """A `Judge` backed by a verdicts file, keyed by claim id.
+    """A `Judge` backed by a hand-authored verdicts file, keyed by claim id.
 
-    This is how a subagent's judgment re-enters the pipeline after reading a
-    pending report (see the module docstring's CLI protocol). A claim id
-    absent from the file is left NEEDS_JUDGMENT rather than assumed
-    supported — a subagent that ran out of claims to judge must not thereby
-    pass the ones it never looked at.
+    This is how a human's correction re-enters the pipeline — see
+    `override_judge`. A claim id absent from the file, or an entry missing a
+    usable `verdict` field, is left NEEDS_JUDGMENT rather than assumed
+    supported, with a detail explaining why so a malformed file surfaces as
+    a readable message rather than a crash.
     """
     entries = {
         entry["id"]: entry for entry in json.loads(path.read_text(encoding="utf-8"))
@@ -194,22 +232,169 @@ def verdicts_from_file(path: Path) -> Judge:
     def judge(claim: Claim, source_text: str) -> tuple[Verdict, str]:
         entry = entries.get(claim.id)
         if entry is None:
-            return Verdict.NEEDS_JUDGMENT, f"no verdict recorded for {claim.id!r}"
-        return Verdict(entry["verdict"]), entry.get("detail", "")
+            return Verdict.NEEDS_JUDGMENT, f"no verdict recorded for {claim.id!r} in {path}"
+        try:
+            verdict = Verdict(entry["verdict"])
+        except KeyError:
+            return (
+                Verdict.NEEDS_JUDGMENT,
+                f"{path}: entry for {claim.id!r} has no \"verdict\" field",
+            )
+        except ValueError:
+            allowed = ", ".join(v.value for v in Verdict)
+            return (
+                Verdict.NEEDS_JUDGMENT,
+                f"{path}: entry for {claim.id!r} has verdict {entry['verdict']!r}, "
+                f"which isn't one of: {allowed}",
+            )
+        return verdict, entry.get("detail", "")
 
     return judge
 
 
-def http_fetch(client) -> Fetcher:
+def subagent_judge(
+    model: str = DEFAULT_JUDGE_MODEL,
+    timeout: float = 120.0,
+    run: Callable[..., subprocess.CompletedProcess] = subprocess.run,
+) -> Judge:
+    """The real `Judge`: spawns a `claude -p` subagent per claim.
+
+    The claim and the fetched source text are embedded directly in the
+    prompt (see `_judge_prompt`) and no tools are granted (`--allowedTools
+    ""`), so the subagent never browses or reads a file — it only judges the
+    text it was handed, the same information a pure `Judge` stub gets in
+    tests. `run` is injected (defaulting to `subprocess.run`) so tests can
+    stub the CLI call the same way `http_fetch` takes an injected client.
+
+    The call runs with its working directory set to a bare temp directory
+    rather than this project's checkout. Tried against this repo directly, a
+    `claude -p` call auto-discovers `CLAUDE.md`, decides a citation-judgment
+    prompt looks like agent work, and goes exploring — 19 turns and $0.19 for
+    one claim in testing, instead of a few cents. A neutral cwd with nothing
+    to discover keeps the call to what it's actually here to do.
+
+    Any failure — the `claude` binary missing, a timeout, an unparsable or
+    out-of-vocabulary response — comes back NEEDS_JUDGMENT with a detail
+    explaining why, rather than raising: one claim's judge call failing must
+    not crash the whole page's check.
+    """
+
+    def judge(claim: Claim, source_text: str) -> tuple[Verdict, str]:
+        prompt = _judge_prompt(claim, source_text)
+        try:
+            completed = run(
+                [
+                    "claude", "-p", prompt,
+                    "--model", model,
+                    "--output-format", "json",
+                    "--allowedTools", "",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                cwd=tempfile.gettempdir(),
+            )
+        except (OSError, subprocess.TimeoutExpired) as error:
+            return (
+                Verdict.NEEDS_JUDGMENT,
+                f"subagent judge unavailable: {type(error).__name__}: {error}",
+            )
+        if completed.returncode != 0:
+            stderr = (completed.stderr or "").strip()[:200]
+            return Verdict.NEEDS_JUDGMENT, f"subagent judge exited {completed.returncode}: {stderr}"
+        return _parse_subagent_verdict(completed.stdout)
+
+    return judge
+
+
+def _judge_prompt(claim: Claim, source_text: str) -> str:
+    return (
+        "You are fact-checking one claim on a webpage against its cited source. "
+        "Decide whether the source actually supports the claim — not just that "
+        "it's on-topic, but that it states the specific fact the claim states.\n\n"
+        f"CLAIM:\n{claim.text}\n\n"
+        f"SOURCE (already fetched from {claim.citation} — this is the complete "
+        "text you must judge against):\n"
+        f"{source_text}\n\n"
+        "You have no tool access in this session. Do not attempt to fetch the "
+        "URL yourself or ask for permission to — the SOURCE text above is the "
+        "actual fetched content and is all you get; judge from it alone.\n\n"
+        "Reply with ONLY a JSON object and nothing else — no markdown fences, "
+        "no reasoning or explanation outside the JSON:\n"
+        '{"verdict": "supported" | "contradicted" | "unclear", "detail": "one sentence why"}\n'
+        'Use "contradicted" when the source states something different from the '
+        'claim. Use "unclear" when the source doesn\'t clearly settle it either '
+        'way. Do not default to "supported" when in doubt.'
+    )
+
+
+_VERDICT_JSON = re.compile(r'\{[^{}]*"verdict"\s*:\s*"[^"]*"[^{}]*\}')
+"""Matches a flat `{"verdict": ..., "detail": ...}` object anywhere in a
+subagent's reply. The prompt asks for nothing else in the response, but a
+model that ignores that and wraps the JSON in a code fence or a sentence of
+preamble should still be readable — the schema has no nested braces, so the
+last such object in the text is taken as the actual answer (over any earlier
+JSON-shaped text in a preamble)."""
+
+
+def _parse_subagent_verdict(stdout: str) -> tuple[Verdict, str]:
+    """Unpack `claude -p --output-format json`'s envelope and the verdict
+    JSON it should contain in `result`, per `_judge_prompt`'s instructions.
+
+    Tolerates the result not being *pure* JSON (a code fence, a sentence of
+    preamble) by pulling out the last `{"verdict": ...}`-shaped substring —
+    see `_VERDICT_JSON` — rather than requiring the whole field to parse.
+    """
+    try:
+        payload = json.loads(stdout)
+        result = payload["result"]
+    except (json.JSONDecodeError, KeyError, TypeError) as error:
+        preview = stdout.strip()[:200]
+        return (
+            Verdict.NEEDS_JUDGMENT,
+            f"could not parse subagent output as the claude CLI's json envelope "
+            f"({type(error).__name__}: {error}): {preview!r}",
+        )
+    matches = _VERDICT_JSON.findall(result)
+    if not matches:
+        return (
+            Verdict.NEEDS_JUDGMENT,
+            f"subagent reply had no verdict JSON: {result.strip()[:200]!r}",
+        )
+    try:
+        verdict_json = json.loads(matches[-1])
+        verdict = Verdict(verdict_json["verdict"])
+    except (json.JSONDecodeError, KeyError, ValueError) as error:
+        return (
+            Verdict.NEEDS_JUDGMENT,
+            f"could not parse subagent's verdict JSON ({type(error).__name__}: {error}): {matches[-1]!r}",
+        )
+    if verdict not in (Verdict.SUPPORTED, Verdict.CONTRADICTED, Verdict.UNCLEAR):
+        return Verdict.NEEDS_JUDGMENT, f"subagent returned {verdict.value!r}, not a judgment"
+    return verdict, str(verdict_json.get("detail", ""))
+
+
+def http_fetch(client: httpx.Client, robots: RobotsPolicy | None = None) -> Fetcher:
     """The real `Fetcher`: one HTTP GET, HTML reduced to plain text.
 
-    `client` is duck-typed to `.get(url) -> response` with `.raise_for_status()`,
-    `.text` and `.headers`, the same shape `lpa.scraper` depends on — so tests
-    can substitute a stub instead of a live `httpx.Client`, and this never
-    needs to construct one itself.
+    `robots`, when given, is the same `RobotsPolicy` `lpa.scraper.Scraper`
+    treats as mandatory before any outbound fetch (issue #1, story 21) — a
+    citation whose host disallows fetching comes back FETCH_FAILED with the
+    refusal reason, and requests are spaced per host via the policy's
+    `RateLimiter`, same as the daily Scraper. It defaults to `None` here
+    because this pass, unlike the daily Scraper, is an attended,
+    low-volume, authoring-time tool — a human picks a handful of citation
+    URLs for one page, not a scheduled crawl of ~20 outlets — so skipping it
+    is a defensible default rather than an oversight. `main()` always
+    passes one; pass `None` explicitly (or omit it) only for tests or a
+    one-off script.
     """
 
     def fetch(url: str) -> FetchResult:
+        if robots is not None:
+            if not robots.is_allowed(url):
+                return FetchResult(text=None, error=f"disallowed by robots.txt: {robots.refusal_reason(url)}")
+            robots.limiter.wait_turn(url, robots.crawl_delay(url))
         try:
             response = client.get(url)
             response.raise_for_status()
@@ -291,8 +476,15 @@ def _print_report(results: list[CitationCheckResult]) -> None:
         print(f"[{result.verdict.value}] {result.claim.id}: {preview!r} — {result.detail}")
 
 
-def _write_pending(results: list[CitationCheckResult], path: Path) -> None:
-    pending = [r for r in results if r.verdict == Verdict.NEEDS_JUDGMENT]
+def _write_pending(pending: list[CitationCheckResult], path: Path) -> None:
+    """Write claims still at NEEDS_JUDGMENT after the automated pass.
+
+    Takes the already-filtered list rather than filtering internally — `main`
+    is the only caller and needs that same filtered list itself (to decide
+    whether to write the file at all, and how many claims to report), so
+    filtering once there and passing the result down keeps there being
+    exactly one place that decides what "pending" means.
+    """
     path.write_text(
         json.dumps(
             [
@@ -318,33 +510,41 @@ def main(argv: list[str] | None = None) -> int:
         "--verdicts",
         type=Path,
         default=None,
-        help="a verdicts JSON file written by a subagent after reading a pending report",
+        help=(
+            "optional verdicts JSON overriding the automated judge for "
+            "specific claim ids (e.g. a human correction) — never required"
+        ),
     )
     parser.add_argument(
         "--pending",
         type=Path,
         default=None,
-        help="where to write claims needing judgment (default: <page>.pending.json)",
+        help="where to write claims the automated judge couldn't resolve (default: <page>.pending.json)",
+    )
+    parser.add_argument(
+        "--judge-model",
+        default=DEFAULT_JUDGE_MODEL,
+        help="model the automated judge subagent runs as (default: %(default)s)",
     )
     args = parser.parse_args(argv)
 
     html_text = args.page.read_text(encoding="utf-8")
-    judge: Judge = verdicts_from_file(args.verdicts) if args.verdicts else deferred_judge
+    judge: Judge = subagent_judge(model=args.judge_model)
+    if args.verdicts:
+        judge = override_judge(verdicts_from_file(args.verdicts), judge)
 
-    with httpx.Client(
-        timeout=15.0, follow_redirects=True, headers={"User-Agent": USER_AGENT}
-    ) as client:
-        results = check_page(html_text, http_fetch(client), judge)
+    with new_client(USER_AGENT) as client:
+        results = check_page(html_text, http_fetch(client, robots=RobotsPolicy(client=client)), judge)
 
     _print_report(results)
 
     pending = [r for r in results if r.verdict == Verdict.NEEDS_JUDGMENT]
     if pending:
         pending_path = args.pending or args.page.with_suffix(args.page.suffix + ".pending.json")
-        _write_pending(results, pending_path)
+        _write_pending(pending, pending_path)
         print(
-            f"\n{len(pending)} claim(s) need semantic judgment. Wrote {pending_path} "
-            "— see docs/agents/citation-check.md for the subagent step."
+            f"\n{len(pending)} claim(s) the automated judge could not resolve. Wrote "
+            f"{pending_path} — see docs/agents/citation-check.md."
         )
 
     failing = [r for r in results if not r.passed]

@@ -1,13 +1,20 @@
-"""Live network proof that the deterministic half of the pipeline actually
-works against a real citation, not just a stub. Marked `network` and excluded
-from the default run (`pytest -m network` to run it) — the rest of the suite
-stays network-free, matching `tests/test_scraper.py`'s approach.
+"""Live network proof that the pipeline actually works against a real
+citation with a real automated judgment, not just stubs. Marked `network` and
+excluded from the default run (`pytest -m network` to run it) — the rest of
+the suite stays network-free, matching `tests/test_scraper.py`'s approach.
 
-The semantic half (does the source really support the claim) is not
-exercised here: that's the subagent's job, not pytest's — see
-docs/agents/citation-check.md. Deciding that for this exact fixture, live, is
-how issue #24's acceptance criterion 3 was actually satisfied; see the PR
-description for the transcript.
+`test_the_automated_judge_tells_the_true_claim_from_the_wrong_one` is issue
+#24's acceptance criterion 3, exercised for real, end to end: fetch the demo
+fixture's real citation (`CONTEXT.md`, live off GitHub) and let
+`subagent_judge` — an actual `claude -p` subprocess call, not a stub — render
+a verdict for both the true and the deliberately wrong claim. A captured run
+of this exact test is committed at
+`docs/agents/citation-check-demo-transcript.txt`; reproduce it yourself with:
+
+    pytest -m network tests/test_citation_check_live.py -v
+
+(Requires the `claude` CLI on PATH and authenticated — the same one running
+this session, if you're an agent reading this.)
 """
 
 from pathlib import Path
@@ -15,35 +22,44 @@ from pathlib import Path
 import httpx
 import pytest
 
-from lpa.citation_check import Verdict, check_page, deferred_judge, http_fetch
+from lpa.citation_check import Verdict, check_page, deferred_judge, http_fetch, subagent_judge
+from lpa.scraper import USER_AGENT
 
 pytestmark = pytest.mark.network
 
 FIXTURE = Path(__file__).parent / "fixtures" / "citation_check_demo.html"
 
 
-def test_both_demo_claims_fetch_their_real_citation():
+def _check_demo_fixture(judge):
     html_text = FIXTURE.read_text()
+    with httpx.Client(
+        timeout=15.0, follow_redirects=True, headers={"User-Agent": USER_AGENT}
+    ) as client:
+        return check_page(html_text, http_fetch(client), judge)
 
-    with httpx.Client(timeout=15.0, follow_redirects=True) as client:
-        results = check_page(html_text, http_fetch(client), deferred_judge)
+
+def test_both_demo_claims_fetch_their_real_citation():
+    results = _check_demo_fixture(deferred_judge)
 
     assert [r.claim.id for r in results] == ["majority-true", "majority-false"]
     for result in results:
         # Both cite the same live CONTEXT.md; the fetch must succeed for
-        # either claim to be judgeable at all.
+        # either claim to be judgeable at all, against the actual number
+        # that makes "majority-true" true and "majority-false" false.
         assert result.verdict == Verdict.NEEDS_JUDGMENT
         assert result.source is not None
         assert "Majority" in result.source
+        assert "112" in result.source
 
 
-def test_the_fetched_source_actually_states_the_112_seat_threshold():
-    # Confirms the real source content the semantic judgment call was made
-    # against — the number that makes "majority-true" true and
-    # "majority-false" false.
-    html_text = FIXTURE.read_text()
+def test_the_automated_judge_tells_the_true_claim_from_the_wrong_one():
+    # Issue #24 acceptance criterion 3: given a page with a true claim and a
+    # deliberately wrong claim citing the same real source, the pass must
+    # catch the wrong one automatically — no hand-authored verdict, no human
+    # gate. This is the tool's actual default Judge, live.
+    results = _check_demo_fixture(subagent_judge())
 
-    with httpx.Client(timeout=15.0, follow_redirects=True) as client:
-        results = check_page(html_text, http_fetch(client), deferred_judge)
-
-    assert "112" in results[0].source
+    by_id = {r.claim.id: r for r in results}
+    assert by_id["majority-true"].verdict == Verdict.SUPPORTED
+    assert by_id["majority-false"].verdict == Verdict.CONTRADICTED
+    assert by_id["majority-true"].verdict != by_id["majority-false"].verdict

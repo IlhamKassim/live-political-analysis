@@ -1,16 +1,18 @@
-"""Citation check's pure seam: extraction, orchestration, and the two
-built-in `Judge` implementations. No network — `http_fetch` is exercised
-against a stub client, the same way `tests/test_scraper.py` stubs `httpx`.
+"""Citation check's pure seam: extraction, orchestration, and every `Judge`
+implementation except the network half of `subagent_judge` (its subprocess
+call is stubbed here — no network, no real `claude` CLI invocation).
+`http_fetch` is exercised against a stub client, the same way
+`tests/test_scraper.py` stubs `httpx`.
 
-The live, real-network demonstration (issue #24's acceptance criterion 3: run
-against a page with a true and a deliberately wrong claim, confirm the wrong
-one is caught) lives in `tests/test_citation_check_live.py`, marked `network`
-and excluded from the default run.
+The live, real-network-and-real-subagent demonstration (issue #24's
+acceptance criterion 3: run against a page with a true and a deliberately
+wrong claim, confirm the automated judge tells them apart) lives in
+`tests/test_citation_check_live.py`, marked `network` and excluded from the
+default run.
 """
 
 import json
-
-import pytest
+import subprocess
 
 from lpa.citation_check import (
     Claim,
@@ -21,6 +23,8 @@ from lpa.citation_check import (
     deferred_judge,
     extract_claims,
     http_fetch,
+    override_judge,
+    subagent_judge,
     verdicts_from_file,
 )
 
@@ -266,6 +270,276 @@ def test_a_claim_missing_from_the_verdicts_file_stays_unjudged_not_passed():
     assert not results[0].passed
 
 
+def test_verdicts_from_file_reports_an_entry_missing_the_verdict_field():
+    # A hand-authored or LLM-written file can be malformed; a bare
+    # KeyError/ValueError crash would abort the whole run over one bad entry.
+    verdicts_path_entries = json.dumps([{"id": "claim-1", "detail": "forgot the verdict"}])
+    html = '<p data-claim data-cite="https://x/1">A claim.</p>'
+    fetch = fetch_map({"https://x/1": "source text"})
+
+    def judge_from_string(raw: str):
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "v.json"
+            p.write_text(raw)
+            return verdicts_from_file(p)
+
+    results = check_page(html, fetch, judge_from_string(verdicts_path_entries))
+
+    assert results[0].verdict == Verdict.NEEDS_JUDGMENT
+    assert "verdict" in results[0].detail
+
+
+def test_verdicts_from_file_reports_an_unrecognised_verdict_value(tmp_path):
+    verdicts_path = tmp_path / "verdicts.json"
+    verdicts_path.write_text(json.dumps([{"id": "claim-1", "verdict": "probably true?"}]))
+    html = '<p data-claim data-cite="https://x/1">A claim.</p>'
+    fetch = fetch_map({"https://x/1": "source text"})
+
+    results = check_page(html, fetch, verdicts_from_file(verdicts_path))
+
+    assert results[0].verdict == Verdict.NEEDS_JUDGMENT
+    assert "probably true?" in results[0].detail
+
+
+# --- override_judge --------------------------------------------------------
+
+
+def test_override_judge_prefers_the_overrides_verdict_when_present(tmp_path):
+    verdicts_path = tmp_path / "verdicts.json"
+    verdicts_path.write_text(json.dumps([{"id": "claim-1", "verdict": "contradicted", "detail": "human says no"}]))
+    html = '<p data-claim data-cite="https://x/1">A claim.</p>'
+    fetch = fetch_map({"https://x/1": "source text"})
+
+    def automated_always_supports(claim, source_text):
+        raise AssertionError("fallback judge should not be reached when the override has an opinion")
+
+    judge = override_judge(verdicts_from_file(verdicts_path), automated_always_supports)
+    results = check_page(html, fetch, judge)
+
+    assert results[0].verdict == Verdict.CONTRADICTED
+    assert results[0].detail == "human says no"
+
+
+def test_override_judge_falls_through_to_the_automated_judge_when_absent(tmp_path):
+    # A verdicts file only needs to cover the claims someone wants to
+    # override — everything else still gets judged automatically.
+    verdicts_path = tmp_path / "verdicts.json"
+    verdicts_path.write_text(json.dumps([{"id": "some-other-claim", "verdict": "supported"}]))
+    html = '<p data-claim data-cite="https://x/1">A claim.</p>'
+    fetch = fetch_map({"https://x/1": "source text"})
+
+    judge = override_judge(verdicts_from_file(verdicts_path), substring_judge("source text"))
+    results = check_page(html, fetch, judge)
+
+    assert results[0].verdict == Verdict.SUPPORTED
+
+
+# --- subagent_judge (the automated Judge) ----------------------------------
+#
+# These stub the subprocess call (`run`) rather than actually invoking the
+# `claude` CLI — no network, no real subagent, fast and deterministic. The
+# real end-to-end call is exercised live in test_citation_check_live.py.
+
+
+class FakeCompletedProcess:
+    def __init__(self, stdout="", stderr="", returncode=0):
+        self.stdout = stdout
+        self.stderr = stderr
+        self.returncode = returncode
+
+
+def _claude_stdout(result_json: str) -> str:
+    """What `claude -p --output-format json` prints: an envelope whose
+    "result" field holds the model's raw text reply."""
+    return json.dumps({"type": "result", "subtype": "success", "result": result_json})
+
+
+def test_subagent_judge_parses_a_supported_verdict():
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append((cmd, kwargs))
+        return FakeCompletedProcess(_claude_stdout('{"verdict": "supported", "detail": "matches"}'))
+
+    judge = subagent_judge(run=fake_run)
+    verdict, detail = judge(Claim("claim-1", "112 seats is a Majority.", "https://x/1"), "112 or more is a Majority.")
+
+    assert verdict == Verdict.SUPPORTED
+    assert detail == "matches"
+
+
+def test_subagent_judge_parses_a_contradicted_verdict():
+    def fake_run(cmd, **kwargs):
+        return FakeCompletedProcess(_claude_stdout('{"verdict": "contradicted", "detail": "source says 112"}'))
+
+    judge = subagent_judge(run=fake_run)
+    verdict, detail = judge(Claim("claim-1", "100 seats is a Majority.", "https://x/1"), "112 or more is a Majority.")
+
+    assert verdict == Verdict.CONTRADICTED
+    assert detail == "source says 112"
+
+
+def test_subagent_judge_parses_an_unclear_verdict():
+    def fake_run(cmd, **kwargs):
+        return FakeCompletedProcess(_claude_stdout('{"verdict": "unclear", "detail": "ambiguous"}'))
+
+    judge = subagent_judge(run=fake_run)
+    verdict, _ = judge(Claim("claim-1", "Something vague.", "https://x/1"), "some unrelated text")
+
+    assert verdict == Verdict.UNCLEAR
+
+
+def test_subagent_judge_embeds_the_claim_and_source_in_the_prompt():
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd)
+        return FakeCompletedProcess(_claude_stdout('{"verdict": "supported", "detail": "x"}'))
+
+    judge = subagent_judge(run=fake_run)
+    judge(Claim("claim-1", "GPS formed in 2018.", "https://x/1"), "GPS was formed in 2018 in Sarawak.")
+
+    [cmd] = calls
+    prompt = cmd[cmd.index("-p") + 1]
+    assert "GPS formed in 2018." in prompt
+    assert "GPS was formed in 2018 in Sarawak." in prompt
+
+
+def test_subagent_judge_grants_no_tools_to_the_subagent():
+    # The claim and source are already in the prompt; the subagent must not
+    # be able to browse or read files to "judge" against something else.
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd)
+        return FakeCompletedProcess(_claude_stdout('{"verdict": "supported", "detail": "x"}'))
+
+    subagent_judge(run=fake_run)(Claim("claim-1", "x", "https://x/1"), "y")
+
+    [cmd] = calls
+    assert cmd[cmd.index("--allowedTools") + 1] == ""
+
+
+def test_subagent_judge_runs_from_a_neutral_working_directory():
+    # Not this project's checkout: running there lets the subagent
+    # auto-discover CLAUDE.md and go exploring instead of just judging (see
+    # subagent_judge's docstring) — a bare cwd has nothing to discover.
+    kwargs_seen = []
+
+    def fake_run(cmd, **kwargs):
+        kwargs_seen.append(kwargs)
+        return FakeCompletedProcess(_claude_stdout('{"verdict": "supported", "detail": "x"}'))
+
+    subagent_judge(run=fake_run)(Claim("claim-1", "x", "https://x/1"), "y")
+
+    [kwargs] = kwargs_seen
+    assert kwargs["cwd"] is not None
+    assert not str(kwargs["cwd"]).rstrip("/").endswith("live-political-analysis")
+
+
+def test_subagent_judge_extracts_the_verdict_from_a_reply_with_preamble():
+    # A subagent that ignores "reply with ONLY JSON" and wraps its answer in
+    # explanation and a markdown fence should still be readable.
+    def fake_run(cmd, **kwargs):
+        reply = (
+            "Let me check the source text against the claim.\n\n"
+            "```json\n"
+            '{"verdict": "contradicted", "detail": "source says 112, not 100"}\n'
+            "```"
+        )
+        return FakeCompletedProcess(_claude_stdout(reply))
+
+    judge = subagent_judge(run=fake_run)
+    verdict, detail = judge(Claim("claim-1", "x", "https://x/1"), "y")
+
+    assert verdict == Verdict.CONTRADICTED
+    assert detail == "source says 112, not 100"
+
+
+def test_subagent_judge_treats_a_nonzero_exit_as_needs_judgment():
+    def fake_run(cmd, **kwargs):
+        return FakeCompletedProcess(stderr="rate limited", returncode=1)
+
+    judge = subagent_judge(run=fake_run)
+    verdict, detail = judge(Claim("claim-1", "x", "https://x/1"), "y")
+
+    assert verdict == Verdict.NEEDS_JUDGMENT
+    assert "rate limited" in detail
+
+
+def test_subagent_judge_treats_unparsable_output_as_needs_judgment():
+    def fake_run(cmd, **kwargs):
+        return FakeCompletedProcess(stdout="not json at all")
+
+    judge = subagent_judge(run=fake_run)
+    verdict, detail = judge(Claim("claim-1", "x", "https://x/1"), "y")
+
+    assert verdict == Verdict.NEEDS_JUDGMENT
+    assert detail
+
+
+def test_subagent_judge_treats_an_out_of_vocabulary_verdict_as_needs_judgment():
+    def fake_run(cmd, **kwargs):
+        return FakeCompletedProcess(_claude_stdout('{"verdict": "definitely maybe", "detail": "x"}'))
+
+    judge = subagent_judge(run=fake_run)
+    verdict, detail = judge(Claim("claim-1", "x", "https://x/1"), "y")
+
+    assert verdict == Verdict.NEEDS_JUDGMENT
+
+
+def test_subagent_judge_treats_a_launch_failure_as_needs_judgment():
+    def fake_run(cmd, **kwargs):
+        raise FileNotFoundError("claude: command not found")
+
+    judge = subagent_judge(run=fake_run)
+    verdict, detail = judge(Claim("claim-1", "x", "https://x/1"), "y")
+
+    assert verdict == Verdict.NEEDS_JUDGMENT
+    assert "claude: command not found" in detail
+
+
+def test_subagent_judge_treats_a_timeout_as_needs_judgment():
+    def fake_run(cmd, **kwargs):
+        raise subprocess.TimeoutExpired(cmd, kwargs.get("timeout", 0))
+
+    judge = subagent_judge(run=fake_run)
+    verdict, detail = judge(Claim("claim-1", "x", "https://x/1"), "y")
+
+    assert verdict == Verdict.NEEDS_JUDGMENT
+
+
+def test_check_page_wires_subagent_judge_end_to_end_with_a_stub_run():
+    # Same shape as issue #24 acceptance criterion 3, but with the subprocess
+    # stubbed: a true and a deliberately wrong claim citing the same source
+    # must land on different verdicts through the real default Judge.
+    html = (
+        '<p data-claim id="true-claim" data-cite="https://x/1">'
+        "A Coalition needs 112 seats for a Majority."
+        "</p>"
+        '<p data-claim id="false-claim" data-cite="https://x/1">'
+        "A Coalition needs 100 seats for a Majority."
+        "</p>"
+    )
+    fetch = fetch_map({"https://x/1": "112 or more of the 222 seats is a Majority."})
+
+    def fake_run(cmd, **kwargs):
+        prompt = cmd[cmd.index("-p") + 1]
+        if "needs 100 seats" in prompt:
+            return FakeCompletedProcess(_claude_stdout('{"verdict": "contradicted", "detail": "source says 112"}'))
+        return FakeCompletedProcess(_claude_stdout('{"verdict": "supported", "detail": "matches"}'))
+
+    results = check_page(html, fetch, subagent_judge(run=fake_run))
+
+    by_id = {r.claim.id: r for r in results}
+    assert by_id["true-claim"].verdict == Verdict.SUPPORTED
+    assert by_id["false-claim"].verdict == Verdict.CONTRADICTED
+    assert by_id["true-claim"].verdict != by_id["false-claim"].verdict
+
+
 # --- http_fetch -------------------------------------------------------
 
 
@@ -325,3 +599,61 @@ def test_http_fetch_reports_a_failed_status_as_an_error_not_a_crash():
     assert not result.ok
     assert result.text is None
     assert "404" in result.error or "Error" in result.error
+
+
+# --- http_fetch + RobotsPolicy -----------------------------------------
+#
+# http_fetch defaults to no RobotsPolicy (an attended, low-volume, authoring
+# tool — see its docstring), but when main() passes one it must actually be
+# respected: `lpa.scraper.Scraper` treats this policy as mandatory before
+# any outbound fetch, and there's no reason a citation should be exempt from
+# a robots.txt that says no.
+
+
+class StubRobots:
+    def __init__(self, allowed):
+        self.allowed = allowed
+        self.waited = []
+        self.limiter = self
+
+    def is_allowed(self, url):
+        return self.allowed
+
+    def refusal_reason(self, url):
+        return "robots.txt disallows this path"
+
+    def crawl_delay(self, url):
+        return None
+
+    def wait_turn(self, url, crawl_delay=None):
+        self.waited.append(url)
+
+
+def test_http_fetch_respects_a_disallowing_robots_policy():
+    robots = StubRobots(allowed=False)
+    fetch = http_fetch(StubClient(StubResponse(text="should never be read")), robots=robots)
+
+    result = fetch("https://x/1")
+
+    assert not result.ok
+    assert "robots.txt" in result.error
+
+
+def test_http_fetch_proceeds_and_waits_its_turn_when_robots_allows():
+    robots = StubRobots(allowed=True)
+    fetch = http_fetch(StubClient(StubResponse(text="ok", content_type="text/plain")), robots=robots)
+
+    result = fetch("https://x/1")
+
+    assert result.ok
+    assert result.text == "ok"
+    assert robots.waited == ["https://x/1"]
+
+
+def test_http_fetch_with_no_robots_policy_skips_the_check_entirely():
+    # The documented default: no RobotsPolicy given, no gate applied.
+    fetch = http_fetch(StubClient(StubResponse(text="ok", content_type="text/plain")))
+
+    result = fetch("https://x/1")
+
+    assert result.ok
