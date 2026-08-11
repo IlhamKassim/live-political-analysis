@@ -18,3 +18,12 @@ Every civic-education content page (#22's children) runs `lpa.citation_check`
 before its content counts as done — fetches each cited source and checks the
 page's claims against it, spawning a subagent itself to judge each one rather
 than requiring a human per-claim gate. See `docs/agents/citation-check.md`.
+
+### Model and effort policy
+
+Cheap model by default (Sonnet), escalate to the strong model (Opus) only on
+one of five triggers: visual/design judgment, editorial judgment on sensitive
+content, code review, security/correctness-critical engineering, or an
+irreversible/hard-to-reverse decision. `to-tickets` runs in this repo state a
+model/effort line per ticket; any agent dispatch here should too. See
+`docs/agents/model-effort.md`.
