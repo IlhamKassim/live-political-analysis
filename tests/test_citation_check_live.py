@@ -19,11 +19,10 @@ this session, if you're an agent reading this.)
 
 from pathlib import Path
 
-import httpx
 import pytest
 
 from lpa.citation_check import Verdict, check_page, deferred_judge, http_fetch, subagent_judge
-from lpa.scraper import USER_AGENT
+from lpa.scraper import USER_AGENT, new_client
 
 pytestmark = pytest.mark.network
 
@@ -32,9 +31,11 @@ FIXTURE = Path(__file__).parent / "fixtures" / "citation_check_demo.html"
 
 def _check_demo_fixture(judge):
     html_text = FIXTURE.read_text()
-    with httpx.Client(
-        timeout=15.0, follow_redirects=True, headers={"User-Agent": USER_AGENT}
-    ) as client:
+    # `new_client` is the one place this project builds an httpx.Client —
+    # same User-Agent, timeout and redirect handling as `main()` and the
+    # daily Scraper, so this live test exercises the real configuration
+    # rather than a hand-rolled lookalike that can drift from it.
+    with new_client(USER_AGENT) as client:
         return check_page(html_text, http_fetch(client), judge)
 
 
