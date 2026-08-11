@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head><title>Citation check demo</title></head>
+<body>
+<!--
+  Demo page for issue #24's acceptance criterion 3: one true claim, one
+  deliberately wrong claim, both citing the same real source. Cites this
+  repo's own CONTEXT.md on GitHub so the source is stable and the check
+  doesn't depend on a third-party site staying up.
+-->
+<p data-claim id="majority-true"
+   data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">
+  A Coalition needs to hold more than half of the Dewan Rakyat's 222 seats
+  — 112 or more — to hold a Majority on its own.
+</p>
+<p data-claim id="majority-false"
+   data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">
+  A Coalition only needs 100 of the Dewan Rakyat's 222 seats to hold a
+  Majority on its own.
+</p>
+</body>
+</html>

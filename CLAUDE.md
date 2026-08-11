@@ -11,3 +11,10 @@ Default label vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `read
 ### Domain docs
 
 Single-context layout — `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
+### Citation check
+
+Every civic-education content page (#22's children) runs `lpa.citation_check`
+before its content counts as done — fetches each cited source and checks the
+page's claims against it, with the semantic half handed to a subagent rather
+than a human per-claim gate. See `docs/agents/citation-check.md`.

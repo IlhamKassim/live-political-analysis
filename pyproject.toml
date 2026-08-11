@@ -31,7 +31,8 @@ packages = ["src/lpa"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-addopts = "-m 'not model'"
+addopts = "-m 'not model and not network'"
 markers = [
     "model: needs the self-hosted sentiment model; downloads weights and runs CPU inference",
+    "network: makes a real HTTP request; run with `pytest -m network`",
 ]
