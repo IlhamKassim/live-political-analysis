@@ -1,0 +1,565 @@
+<meta charset="utf-8">
+<title>Register B &mdash; warm (Coalition explainer sample)</title>
+
+<script>
+/* Theme, read before first paint — same pattern as public_page.py's
+   _THEME_INIT_SCRIPT (HANDOFF defect 7). */
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved === "dark" || saved === "light") {
+      document.documentElement.setAttribute("data-theme", saved);
+    }
+  } catch (e) {}
+})();
+</script>
+
+<style>
+  /* ═══════════════════════════════════════════════════════════════════
+     REGISTER B — a distinct, warmer register for site-literacy content.
+
+     Deliberately NOT the dashboard's print register, and deliberately
+     not a generic explainer template either. The three moves:
+
+       1. TYPE IS INVERTED. The dashboard sets prose in serif and every
+          label in mono. Here prose is system sans at a generous size,
+          marginalia are serif italic, and there is no mono anywhere —
+          mono is an instrument signal, and this content is not an
+          instrument.
+       2. THE ACCENT IS THE INDELIBLE INK. The violet on a voter's
+          finger, the one image of Malaysian voting everybody already
+          holds. It is the only hue on the page: the neutrals are biased
+          toward it rather than picked independently. Coalition inks are
+          deliberately absent — the diagram's claim is government vs.
+          non-government, a two-way distinction, so five hues would be
+          decoration.
+       3. THE LAYOUT IS A HANDBOOK SPREAD. Hanging title, a narrow
+          annotation column on the left, ~58ch of prose on the right,
+          one diagram across both. Asymmetric by construction, so it
+          cannot collapse into a centred card grid.
+
+     Constraints kept from the dashboard: system fonts only (ADR 0002 —
+     no CDN), token-driven light/dark with prefers-color-scheme plus
+     :root[data-theme] overriding in both directions, self-contained.
+     ═══════════════════════════════════════════════════════════════════ */
+
+  :root {
+    /* Paper and ink, both biased toward the accent rather than neutral-
+       by-default: a violet-grey stock and a violet-black ink. */
+    --ground:     #F3F0F4;
+    --surface:    #FBFAFB;
+    --ink:        #221D2A;
+    --ink-soft:   #575061;   /* 6.8:1 on --ground */
+    --ink-faint:  #6B6478;   /* 5.0:1 on --ground */
+    --rule:       #DFDAE4;
+    --rule-hair:  #E8E4EC;
+
+    /* Indelible ink — 8.3:1 on --ground. The page's only hue. */
+    --accent:     #5B2E91;
+    --accent-wash: color-mix(in srgb, var(--accent) 13%, transparent);
+
+    --sans:  ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+             Helvetica, Arial, sans-serif;
+    --serif: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino,
+             Georgia, "Times New Roman", serif;
+
+    --gutter: clamp(20px, 5vw, 64px);
+    --measure: 36rem;
+    --margin-col: 12.5rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:     #17141C;
+      --surface:    #201C28;
+      --ink:        #EDE9F0;
+      --ink-soft:   #B0A9BC;   /* 8.0:1 on --ground */
+      --ink-faint:  #8C8599;   /* 5.1:1 on --ground */
+      --rule:       #322C3C;
+      --rule-hair:  #262130;
+      --accent:     #B79BF0;   /* 7.8:1 on --ground */
+      --accent-wash: color-mix(in srgb, var(--accent) 17%, transparent);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:     #17141C;
+    --surface:    #201C28;
+    --ink:        #EDE9F0;
+    --ink-soft:   #B0A9BC;
+    --ink-faint:  #8C8599;
+    --rule:       #322C3C;
+    --rule-hair:  #262130;
+    --accent:     #B79BF0;
+    --accent-wash: color-mix(in srgb, var(--accent) 17%, transparent);
+  }
+
+  :root[data-theme="light"] {
+    --ground:     #F3F0F4;
+    --surface:    #FBFAFB;
+    --ink:        #221D2A;
+    --ink-soft:   #575061;
+    --ink-faint:  #6B6478;
+    --rule:       #DFDAE4;
+    --rule-hair:  #E8E4EC;
+    --accent:     #5B2E91;
+    --accent-wash: color-mix(in srgb, var(--accent) 13%, transparent);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: 0 var(--gutter) 7rem;
+  }
+
+  /* ── top bar ──────────────────────────────────────────── */
+  .topbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem 2rem;
+    padding: 1.25rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .wordmark {
+    font-size: .9rem;
+    font-weight: 600;
+    letter-spacing: -.005em;
+  }
+  .wordmark span { font-weight: 400; color: var(--ink-faint); }
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: .72rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .theme-btn {
+    font: inherit;
+    letter-spacing: .1em;
+    color: var(--ink-soft);
+    background: none;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: .3rem .6rem;
+    cursor: pointer;
+  }
+  .theme-btn:hover { color: var(--ink); border-color: var(--ink-faint); }
+  .theme-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ── the spread ───────────────────────────────────────── */
+  .spread {
+    display: grid;
+    grid-template-columns: minmax(0, var(--margin-col)) minmax(0, var(--measure));
+    column-gap: clamp(1.5rem, 4vw, 3rem);
+    row-gap: clamp(1.6rem, 3.2vw, 2.4rem);
+    justify-content: start;
+    padding-top: clamp(2.75rem, 6vw, 5rem);
+  }
+  .full { grid-column: 1 / -1; }
+  .say  { grid-column: 2; }
+  .note { grid-column: 1; align-self: start; }
+
+  /* ── the opening ──────────────────────────────────────── */
+  .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 1.1rem;
+  }
+  /* The mark: an inked fingertip. The site's one ornament. */
+  .eyebrow::before {
+    content: "";
+    width: .5rem;
+    height: .5rem;
+    flex: 0 0 .5rem;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  h1 {
+    font-size: clamp(2.35rem, 6.2vw, 3.85rem);
+    line-height: 1.06;
+    font-weight: 700;
+    letter-spacing: -.028em;
+    text-wrap: balance;
+    margin: 0 0 1.4rem;
+    max-width: 18ch;
+  }
+  /* The indelible mark under the word being defined. */
+  .marked {
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+    text-decoration-thickness: .16em;
+    text-underline-offset: .12em;
+    text-decoration-skip-ink: none;
+  }
+  .lede {
+    font-size: clamp(1.15rem, 2.1vw, 1.4rem);
+    line-height: 1.56;
+    color: var(--ink-soft);
+    max-width: 40ch;
+    margin: 0;
+  }
+
+  /* ── prose ────────────────────────────────────────────── */
+  .say p {
+    font-size: 1.155rem;
+    line-height: 1.72;
+    margin: 0 0 1.05em;
+  }
+  .say p:last-child { margin-bottom: 0; }
+  h2 {
+    font-size: 1.32rem;
+    font-weight: 650;
+    letter-spacing: -.012em;
+    line-height: 1.3;
+    margin: 0 0 .7rem;
+  }
+  .term {
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+    text-decoration-skip-ink: none;
+  }
+  .count {
+    font-variant-numeric: tabular-nums lining-nums;
+    font-weight: 600;
+  }
+  .highlight { background: var(--accent-wash); padding: 0 .12em; }
+
+  /* ── marginalia — the only serif on the page ───────────── */
+  .note {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: .95rem;
+    line-height: 1.55;
+    color: var(--ink-faint);
+    margin: 0;
+    padding-top: .3rem;
+  }
+  .note b {
+    display: block;
+    font-family: var(--sans);
+    font-style: normal;
+    font-weight: 600;
+    font-size: .68rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: .45rem;
+  }
+
+  /* ── the diagram ──────────────────────────────────────── */
+  figure {
+    margin: clamp(.75rem, 2vw, 1.5rem) 0 0;
+    padding: clamp(1.4rem, 3vw, 2rem) clamp(1rem, 2.5vw, 1.75rem) 1.25rem;
+    background: var(--surface);
+    border-top: 2px solid var(--accent);
+    border-bottom: 1px solid var(--rule);
+  }
+  .diagram-scroll { overflow-x: auto; }
+  figure svg { display: block; width: 100%; min-width: 470px; height: auto; }
+  figcaption {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: .94rem;
+    line-height: 1.55;
+    color: var(--ink-faint);
+    margin-top: 1.1rem;
+    max-width: 58ch;
+  }
+
+  /* ── the two words to carry forward ───────────────────── */
+  .carry { margin: 0; }
+  .carry > div + div { margin-top: 1.5rem; }
+  .carry dt {
+    font-size: 1.05rem;
+    font-weight: 650;
+    letter-spacing: -.01em;
+    margin-bottom: .3rem;
+  }
+  .carry dd {
+    margin: 0;
+    font-size: 1.06rem;
+    line-height: 1.65;
+    color: var(--ink-soft);
+    padding-left: 1rem;
+    border-left: 2px solid var(--accent-wash);
+  }
+
+  /* ── foot ─────────────────────────────────────────────── */
+  .foot {
+    margin-top: clamp(3rem, 6vw, 4.5rem);
+    padding-top: 1.4rem;
+    border-top: 1px solid var(--rule);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 1.5rem 2.5rem;
+  }
+  .foot h3 {
+    font-size: .68rem;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 .5rem;
+  }
+  .foot p {
+    font-size: .94rem;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+  .foot .draft h3 { color: var(--accent); }
+  .foot .draft p { color: var(--ink); }
+
+  @media (max-width: 62rem) {
+    .spread {
+      grid-template-columns: minmax(0, var(--measure));
+      row-gap: clamp(1.3rem, 3vw, 1.8rem);
+    }
+    .full, .say, .note { grid-column: 1; }
+    .note {
+      padding: .85rem 0 .85rem 1rem;
+      border-left: 2px solid var(--accent-wash);
+      max-width: var(--measure);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="page">
+
+  <header class="topbar">
+    <div class="wordmark">Live Political Analysis <span>&mdash; reading this site</span></div>
+    <div class="topbar-right">
+      <span>Sample &middot; Register B &middot; Warm</span>
+      <button class="theme-btn" id="themeBtn" type="button">Dark</button>
+    </div>
+  </header>
+
+  <div class="spread">
+
+    <div class="full">
+      <p class="eyebrow">Term one of eight</p>
+      <h1>What a <span class="marked">Coalition</span> is, and why there are five</h1>
+      <p class="lede">
+        A Coalition is a group of parties that contests and governs together.
+        It is the first word this site assumes you already know &mdash; so here it is.
+      </p>
+    </div>
+
+    <aside class="note">
+      <b>In short</b>
+      One vote, one Seat, one candidate. Everything else is addition.
+    </aside>
+    <div class="say">
+      <h2>You vote once. The result is a sum.</h2>
+      <p>
+        On polling day you mark one candidate, in one <span class="term">Seat</span>
+        &mdash; the parliamentary constituency you live in. There are
+        <span class="count">222</span> of them, and each one is won outright by
+        whoever gets the most votes there.
+      </p>
+      <p>
+        Almost every candidate stands for a party, and almost every party stands
+        inside a Coalition. So once all 222 Seats are counted, the question
+        stops being about candidates and becomes a much shorter one: which
+        Coalitions, added together, get past
+        <span class="count highlight">112</span>.
+      </p>
+    </div>
+
+    <aside class="note">
+      <b>The number</b>
+      112 is simply more than half of 222. Nothing about it is a rule of thumb.
+    </aside>
+    <div class="say">
+      <h2>112 is the whole game.</h2>
+      <p>
+        A Coalition holding 112 Seats or more has a
+        <span class="term">Majority</span> &mdash; enough to form a government on
+        its own, without needing anybody else to agree. Below 112, it needs
+        somebody else.
+      </p>
+    </div>
+
+    <div class="full">
+      <figure>
+        <div class="diagram-scroll">
+          <svg viewBox="0 0 720 150" role="img"
+               aria-label="Six blocks in a row. Four of them &mdash; PH, BN, GPS and GRS &mdash; are bracketed together as the Government Coalition, which together holds past 112 of the 222 Seats. The remaining two &mdash; PN, and the unaligned parties WARISAN, KDM, PBM and independents &mdash; are bracketed as Non-government.">
+
+            <!-- Government side: four Coalitions, inked -->
+            <g>
+              <rect x="40"  y="20" width="84" height="54" rx="3"
+                    fill="var(--accent)" fill-opacity=".14"
+                    stroke="var(--accent)" stroke-width="1.3"/>
+              <rect x="134" y="20" width="84" height="54" rx="3"
+                    fill="var(--accent)" fill-opacity=".14"
+                    stroke="var(--accent)" stroke-width="1.3"/>
+              <rect x="228" y="20" width="84" height="54" rx="3"
+                    fill="var(--accent)" fill-opacity=".14"
+                    stroke="var(--accent)" stroke-width="1.3"/>
+              <rect x="322" y="20" width="84" height="54" rx="3"
+                    fill="var(--accent)" fill-opacity=".14"
+                    stroke="var(--accent)" stroke-width="1.3"/>
+              <text x="82"  y="52" text-anchor="middle" font-size="15" font-weight="600" fill="currentColor">PH</text>
+              <text x="176" y="52" text-anchor="middle" font-size="15" font-weight="600" fill="currentColor">BN</text>
+              <text x="270" y="52" text-anchor="middle" font-size="15" font-weight="600" fill="currentColor">GPS</text>
+              <text x="364" y="52" text-anchor="middle" font-size="15" font-weight="600" fill="currentColor">GRS</text>
+            </g>
+
+            <!-- Non-government side: PN, plus the unaligned -->
+            <g>
+              <rect x="446" y="20" width="84" height="54" rx="3"
+                    fill="none" stroke="currentColor" stroke-width="1.3" stroke-opacity=".5"/>
+              <text x="488" y="52" text-anchor="middle" font-size="15" font-weight="600" fill="currentColor">PN</text>
+              <rect x="540" y="20" width="140" height="54" rx="3"
+                    fill="none" stroke="currentColor" stroke-width="1.3"
+                    stroke-opacity=".4" stroke-dasharray="4 4"/>
+              <text x="610" y="45" text-anchor="middle" font-size="11" fill="currentColor" fill-opacity=".75">WARISAN &middot; KDM &middot; PBM</text>
+              <text x="610" y="61" text-anchor="middle" font-size="11" fill="currentColor" fill-opacity=".75">and independents</text>
+            </g>
+
+            <!-- Brackets -->
+            <path d="M40,84 L40,94 L406,94 L406,84" fill="none"
+                  stroke="var(--accent)" stroke-width="1.3"/>
+            <path d="M223,94 L223,104" fill="none"
+                  stroke="var(--accent)" stroke-width="1.3"/>
+            <path d="M446,84 L446,94 L680,94 L680,84" fill="none"
+                  stroke="currentColor" stroke-width="1.3" stroke-opacity=".45"/>
+            <path d="M563,94 L563,104" fill="none"
+                  stroke="currentColor" stroke-width="1.3" stroke-opacity=".45"/>
+
+            <text x="223" y="121" text-anchor="middle" font-size="11.5"
+                  font-weight="600" letter-spacing="1.2" fill="var(--accent)">GOVERNMENT COALITION</text>
+            <text x="223" y="139" text-anchor="middle" font-size="12"
+                  fill="currentColor" fill-opacity=".7">together, past 112 of 222 Seats</text>
+            <text x="563" y="121" text-anchor="middle" font-size="11.5"
+                  font-weight="600" letter-spacing="1.2" fill="currentColor" fill-opacity=".7">NON-GOVERNMENT</text>
+            <text x="563" y="139" text-anchor="middle" font-size="12"
+                  fill="currentColor" fill-opacity=".7">everyone outside it</text>
+          </svg>
+        </div>
+        <figcaption>
+          Four of the five Coalitions govern together. That arrangement was
+          agreed after polling day at GE15, not decided on it &mdash; no single
+          Coalition reached 112 in 2022.
+        </figcaption>
+      </figure>
+    </div>
+
+    <aside class="note">
+      <b>Where they stand</b>
+      Sabah and Sarawak hold 56 of the 222 Seats between them &mdash; which is
+      why two of the five contest nowhere else.
+    </aside>
+    <div class="say">
+      <h2>Three contest everywhere. Two contest one state each.</h2>
+      <p>
+        <b>Pakatan Harapan</b> (PH), <b>Barisan Nasional</b> (BN) and
+        <b>Perikatan Nasional</b> (PN) put up candidates across the whole
+        country.
+      </p>
+      <p>
+        <b>Gabungan Parti Sarawak</b> (GPS) contests only in Sarawak, and
+        <b>Gabungan Rakyat Sabah</b> (GRS) only in Sabah. Both sit in the
+        Government Coalition; PN does not.
+      </p>
+    </div>
+
+    <aside class="note">
+      <b>Two words to keep</b>
+      This site uses both of these exactly, everywhere, including in the
+      Projection you came here from.
+    </aside>
+    <dl class="carry say">
+      <div>
+        <dt>Government Coalition</dt>
+        <dd>
+          PH, BN, GPS and GRS together, plus minor parties &mdash; the bloc
+          holding the Majority as of the most recent Dewan Rakyat count.
+        </dd>
+      </div>
+      <div>
+        <dt>Non-government</dt>
+        <dd>
+          Every Seat and Coalition outside that bloc. Not &ldquo;the
+          opposition&rdquo;: PN is the opposition, but WARISAN, KDM, PBM and
+          independents have declared no alignment either way, and calling them
+          opposition would assert one on their behalf.
+        </dd>
+      </div>
+    </dl>
+
+  </div>
+
+  <footer class="foot">
+    <div>
+      <h3>What this is</h3>
+      <p>
+        A sample of the planned Coalition explainer in a warmer register than
+        the dashboard&rsquo;s &mdash; sans prose, serif marginalia, one hue, one
+        diagram. Built for issue #25 so the register can be chosen by looking.
+      </p>
+    </div>
+    <div>
+      <h3>Next terms</h3>
+      <p>
+        Seat &middot; Majority &middot; Baseline &middot; Sentiment &middot;
+        Swing &middot; Projection &middot; Election Status &mdash; each in the
+        order the Projection depends on them.
+      </p>
+    </div>
+    <div class="draft">
+      <h3>Draft &mdash; not verified</h3>
+      <p>
+        Placeholder copy written to show typographic weight. It has not been
+        through the citation-check pass issue #22 requires, and no claim here
+        should be treated as final.
+      </p>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  var btn = document.getElementById("themeBtn");
+  function dark() {
+    var set = document.documentElement.getAttribute("data-theme");
+    return set ? set === "dark"
+      : window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+  function label() { btn.textContent = dark() ? "Light" : "Dark"; }
+  btn.addEventListener("click", function () {
+    var next = dark() ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    try { localStorage.setItem("theme", next); } catch (e) {}
+    label();
+  });
+  label();
+})();
+</script>

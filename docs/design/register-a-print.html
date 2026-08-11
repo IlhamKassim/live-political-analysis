@@ -1,0 +1,518 @@
+<meta charset="utf-8">
+<title>Register A &mdash; print (Coalition explainer sample)</title>
+
+<script>
+/* Theme, read before first paint — same pattern as public_page.py's
+   _THEME_INIT_SCRIPT (HANDOFF defect 7). */
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved === "dark" || saved === "light") {
+      document.documentElement.setAttribute("data-theme", saved);
+    }
+  } catch (e) {}
+})();
+</script>
+
+<style>
+  /* ═══════════════════════════════════════════════════════════════════
+     REGISTER A — the dashboard's existing print register, continued.
+
+     Nothing here is a new design decision. Tokens, type pairing, rules
+     and grain are lifted verbatim from src/lpa/public_page.py so this
+     sample is a faithful continuation of the live page, not a new look
+     that resembles it. The only additions are prose-layout classes the
+     dashboard had no need for (it has almost no running text).
+     ═══════════════════════════════════════════════════════════════════ */
+
+  :root {
+    /* paper + ink — a green-grey stock, not cream */
+    --ground:      #E9EAE4;
+    --surface:     #F2F3EE;
+    --ink:         #17191A;
+    --ink-soft:    #55584F;
+    /* 4.62:1 on --ground; the mockup's #8A8D83 was 2.79:1. */
+    --ink-faint:   #666960;
+    --rule:        #C8CAC0;
+    --rule-hair:   #D8DAD1;
+
+    /* coalitions — printed inks, not screen neons */
+    --ph:  #B23A2E;
+    --bn:  #1D4E89;
+    --pn:  #2B7A78;
+    --gps: #8A6D1F;
+    --grs: #6A4A7C;
+
+    --serif: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+    --sans:  ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    --mono:  ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+    --gutter: clamp(20px, 5vw, 72px);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:    #15161A;
+      --surface:   #1C1E23;
+      --ink:       #E7E8E2;
+      --ink-soft:  #A6A9A0;
+      --ink-faint: #8B8E85;
+      --rule:      #33363C;
+      --rule-hair: #26292E;
+      --ph:  #E0705F;
+      --bn:  #5D93D8;
+      --pn:  #4FB3AF;
+      --gps: #C9A542;
+      --grs: #A886C2;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:    #15161A;
+    --surface:   #1C1E23;
+    --ink:       #E7E8E2;
+    --ink-soft:  #A6A9A0;
+    --ink-faint: #8B8E85;
+    --rule:      #33363C;
+    --rule-hair: #26292E;
+    --ph:  #E0705F;
+    --bn:  #5D93D8;
+    --pn:  #4FB3AF;
+    --gps: #C9A542;
+    --grs: #A886C2;
+  }
+
+  :root[data-theme="light"] {
+    --ground:    #E9EAE4;
+    --surface:   #F2F3EE;
+    --ink:       #17191A;
+    --ink-soft:  #55584F;
+    --ink-faint: #666960;
+    --rule:      #C8CAC0;
+    --rule-hair: #D8DAD1;
+    --ph:  #B23A2E;
+    --bn:  #1D4E89;
+    --pn:  #2B7A78;
+    --gps: #8A6D1F;
+    --grs: #6A4A7C;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+    position: relative;
+  }
+
+  /* faint press grain — sits above ground, below everything */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: .035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .sheet {
+    position: relative;
+    z-index: 1;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 var(--gutter) 96px;
+  }
+
+  /* ── masthead ─────────────────────────────────────────── */
+  .masthead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px 32px;
+    padding: 22px 0 14px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .wordmark { font-family: var(--serif); font-size: 15px; letter-spacing: .02em; }
+  .wordmark em { font-style: normal; color: var(--ink-faint); }
+  .stamp {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .04em;
+    color: var(--ink-soft);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .theme-btn {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    background: none;
+    border: 1px solid var(--rule);
+    padding: 4px 9px;
+    cursor: pointer;
+  }
+  .theme-btn:hover { color: var(--ink); border-color: var(--ink-faint); }
+  .theme-btn:focus-visible { outline: 2px solid var(--pn); outline-offset: 2px; }
+
+  /* ── opening — the .verdict grid, carrying a term instead of a tally ── */
+  .opening {
+    display: grid;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+    gap: clamp(24px, 5vw, 64px);
+    align-items: end;
+    padding: clamp(36px, 6vw, 68px) 0 clamp(28px, 4vw, 44px);
+    border-bottom: 1px solid var(--rule);
+  }
+  .term { line-height: .84; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    line-height: 1.4;
+  }
+  .term .eyebrow { margin-bottom: 18px; }
+  .term-word {
+    font-family: var(--serif);
+    font-size: clamp(56px, 10.5vw, 132px);
+    letter-spacing: -.035em;
+    display: block;
+  }
+  .term-of {
+    font-family: var(--serif);
+    font-size: clamp(15px, 2vw, 20px);
+    color: var(--ink-faint);
+    letter-spacing: -.01em;
+    margin-top: 16px;
+    display: block;
+  }
+  .lede {
+    font-family: var(--serif);
+    font-size: clamp(19px, 2.35vw, 29px);
+    line-height: 1.36;
+    letter-spacing: -.012em;
+    text-wrap: balance;
+    max-width: 24ch;
+    padding-bottom: 6px;
+    margin: 0;
+  }
+  .lede b {
+    font-weight: inherit;
+    box-shadow: inset 0 -.34em 0 color-mix(in srgb, var(--pn) 22%, transparent);
+  }
+
+  /* ── running prose ────────────────────────────────────── */
+  .prose { padding: clamp(34px, 5vw, 56px) 0 0; }
+  .strip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px 28px;
+    margin-bottom: clamp(14px, 3vw, 24px);
+  }
+  .prose p {
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.62;
+    max-width: 60ch;
+    margin: 0 0 1.05em;
+    color: var(--ink);
+  }
+  .prose p:last-child { margin-bottom: 0; }
+  .prose .figure-inline {
+    font-family: var(--mono);
+    font-size: .88em;
+    letter-spacing: .02em;
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  /* ── ruled table — the ledger idiom, no rounded cards ─── */
+  .roll { padding: clamp(40px, 6vw, 66px) 0 0; }
+  .roll-scroll { overflow-x: auto; }
+  table {
+    width: 100%;
+    min-width: 480px;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+  thead th {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 400;
+    text-align: right;
+    padding: 0 0 11px;
+    border-bottom: 1px solid var(--ink);
+  }
+  thead th:first-child { text-align: left; }
+  tbody td {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--rule-hair);
+    text-align: right;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--ink);
+  }
+  tbody td:first-child { text-align: left; }
+  tbody tr:last-child td { border-bottom: 1px solid var(--ink); }
+  .coalition {
+    display: flex;
+    align-items: baseline;
+    gap: 11px;
+    font-family: var(--serif);
+    font-size: 17px;
+    letter-spacing: -.01em;
+  }
+  .coalition::before {
+    content: "";
+    width: 9px; height: 9px;
+    flex: 0 0 9px;
+    border-radius: 50%;
+    background: var(--swatch);
+    transform: translateY(-1px);
+  }
+  .coalition small {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .06em;
+    color: var(--ink-faint);
+  }
+  .out { color: var(--ink-faint); }
+
+  /* ── the two words to carry forward — the stress-row idiom ── */
+  .carry {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1px;
+    margin-top: clamp(40px, 6vw, 68px);
+    background: var(--rule-hair);
+    border: 1px solid var(--rule-hair);
+  }
+  .cell { background: var(--ground); padding: 22px 22px 24px; margin: 0; }
+  .cell dt {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 12px;
+  }
+  .cell dd {
+    font-family: var(--serif);
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+  .cell dd b { font-weight: inherit; color: var(--ink); }
+
+  /* ── colophon ─────────────────────────────────────────── */
+  .colophon {
+    margin-top: clamp(48px, 7vw, 80px);
+    padding-top: 22px;
+    border-top: 2px solid var(--ink);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 26px 44px;
+  }
+  .colophon h3 {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 400;
+    margin: 0 0 10px;
+  }
+  .colophon p {
+    font-family: var(--serif);
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+  .caveat { border-left: 2px solid var(--ph); padding-left: 14px; }
+  .caveat p { color: var(--ink); }
+
+  @media (max-width: 720px) {
+    .opening { grid-template-columns: 1fr; align-items: start; gap: 20px; }
+    .lede { max-width: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="sheet">
+
+  <header class="masthead">
+    <div class="wordmark">Live Political Analysis <em>&mdash; reading this site</em></div>
+    <div class="stamp">
+      <span>SAMPLE &middot; REGISTER A &middot; PRINT</span>
+      <button class="theme-btn" id="themeBtn" type="button">Dark</button>
+    </div>
+  </header>
+
+  <section class="opening">
+    <div class="term">
+      <div class="eyebrow">Term one of eight<br>What the projection assumes you know</div>
+      <span class="term-word">Coalition</span>
+      <span class="term-of">a group of parties that contests and governs together</span>
+    </div>
+    <p class="lede">
+      You vote for one candidate in one Seat. What decides who governs is
+      <b>how many Seats a Coalition holds</b> once every Seat has been counted.
+    </p>
+  </section>
+
+  <section class="prose">
+    <div class="strip"><h2 class="eyebrow">Why the number is 112</h2></div>
+    <p>
+      There are <span class="figure-inline">222</span> Seats in the Dewan Rakyat,
+      the elected house of Malaysia&rsquo;s Parliament &mdash; one for each parliamentary
+      constituency, each won by a single candidate. A Coalition needs
+      <span class="figure-inline">112</span> of them, more than half, to hold a
+      Majority and form a government on its own.
+    </p>
+    <p>
+      Almost every candidate stands for a party, and almost every party stands
+      inside a Coalition. So the Seat-by-Seat contest resolves into a much
+      shorter question: which Coalitions, added together, get past 112.
+    </p>
+  </section>
+
+  <section class="roll">
+    <div class="strip">
+      <h2 class="eyebrow">The five Coalitions &mdash; GE16</h2>
+      <p style="font-family: var(--serif); font-size: 14.5px; color: var(--ink-soft); max-width: 46ch; margin: 0; line-height: 1.5;">
+        Three contest nationwide; two contest only in Sabah and Sarawak, which
+        hold 56 of the 222 Seats between them.
+      </p>
+    </div>
+    <div class="roll-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Coalition</th>
+            <th scope="col">Contests in</th>
+            <th scope="col">In government now</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="--swatch: var(--ph)">
+            <td><span class="coalition">Pakatan Harapan <small>PH</small></span></td>
+            <td>Nationwide</td><td>Yes</td>
+          </tr>
+          <tr style="--swatch: var(--bn)">
+            <td><span class="coalition">Barisan Nasional <small>BN</small></span></td>
+            <td>Nationwide</td><td>Yes</td>
+          </tr>
+          <tr style="--swatch: var(--pn)">
+            <td><span class="coalition">Perikatan Nasional <small>PN</small></span></td>
+            <td>Nationwide</td><td class="out">No</td>
+          </tr>
+          <tr style="--swatch: var(--gps)">
+            <td><span class="coalition">Gabungan Parti Sarawak <small>GPS</small></span></td>
+            <td>Sarawak</td><td>Yes</td>
+          </tr>
+          <tr style="--swatch: var(--grs)">
+            <td><span class="coalition">Gabungan Rakyat Sabah <small>GRS</small></span></td>
+            <td>Sabah</td><td>Yes</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="prose">
+    <div class="strip"><h2 class="eyebrow">Four of the five govern together</h2></div>
+    <p>
+      No Coalition reached 112 at GE15 in 2022. The four now in government
+      arrived there by agreement after polling day, not by a result on it &mdash;
+      which is why the side that governs is a group of four Coalitions rather
+      than a single winner, and why this site never calls any of them the
+      winner of GE15.
+    </p>
+  </section>
+
+  <dl class="carry">
+    <div class="cell">
+      <dt>Government Coalition</dt>
+      <dd>
+        <b>PH, BN, GPS and GRS together</b>, plus minor parties &mdash; the bloc
+        holding the Majority as of the most recent Dewan Rakyat count. Used as
+        one term throughout this site, because it is what the arithmetic is
+        actually about.
+      </dd>
+    </div>
+    <div class="cell">
+      <dt>Non-government</dt>
+      <dd>
+        <b>Every Seat and Coalition outside that bloc.</b> Not
+        &ldquo;the opposition&rdquo;: PN is the opposition, but WARISAN, KDM,
+        PBM and independents have declared no alignment either way, and calling
+        them opposition would assert one for them.
+      </dd>
+    </div>
+  </dl>
+
+  <footer class="colophon">
+    <div>
+      <h3>What this is</h3>
+      <p>
+        A sample of the planned Coalition explainer, set in the register the
+        public dashboard already uses &mdash; serif prose, mono labels, printed-ink
+        palette, ruled table, press grain. Built for issue #25 so the register
+        can be chosen by looking rather than by discussion.
+      </p>
+    </div>
+    <div>
+      <h3>Next terms</h3>
+      <p>
+        Seat &middot; Majority &middot; Baseline &middot; Sentiment &middot; Swing &middot; Projection &middot;
+        Election Status. Each gets the same treatment, in the order the
+        Projection depends on them.
+      </p>
+    </div>
+    <div class="caveat">
+      <h3>Draft &mdash; not verified</h3>
+      <p>
+        Placeholder copy written to show typographic weight. It has not been
+        through the citation-check pass issue #22 requires, and no claim here
+        should be treated as final.
+      </p>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  var btn = document.getElementById("themeBtn");
+  function dark() {
+    var set = document.documentElement.getAttribute("data-theme");
+    return set ? set === "dark"
+      : window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+  function label() { btn.textContent = dark() ? "Light" : "Dark"; }
+  btn.addEventListener("click", function () {
+    var next = dark() ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    try { localStorage.setItem("theme", next); } catch (e) {}
+    label();
+  });
+  label();
+})();
+</script>
