@@ -17,4 +17,9 @@ dist/
 
 # Rendered by `python -m lpa.public_page`; the Action publishes it, the repo
 # does not carry it.
-public/
+public/index.html
+
+# public/learn/ is different: hand-authored content pages (#26/#27/#28), not
+# generated. They are tracked so the daily Action's checkout has them to
+# publish alongside the freshly-rendered index.html — see daily.yml's
+# "Upload the page" step, which uploads the whole public/ directory.

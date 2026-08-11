@@ -990,6 +990,18 @@ _CSS = """
   .theme-btn:hover { color: var(--ink); border-color: var(--ink-faint); }
   .theme-btn:focus-visible { outline: 2px solid var(--pn); outline-offset: 2px; }
 
+  .nav-link {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    text-decoration: none;
+    border-bottom: 1px solid var(--rule);
+  }
+  .nav-link:hover { color: var(--ink); border-color: var(--ink-faint); }
+  .nav-link:focus-visible { outline: 2px solid var(--pn); outline-offset: 2px; }
+
   .verdict {
     display: grid;
     grid-template-columns: minmax(0, auto) minmax(0, 1fr);
@@ -1370,6 +1382,7 @@ def render_html(model: PageModel) -> str:
     <div class="wordmark">Live Political Analysis <em>— Projeksi Kerusi GE16</em></div>
     <div class="stamp">
       <span>MODEL RUN {model.computed_at.strftime('%d %b %Y').upper()}</span>
+      <a class="nav-link" href="learn/glossary.html">Glossary</a>
       <button class="theme-btn" id="themeBtn" type="button">Dark</button>
     </div>
   </header>
