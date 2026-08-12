@@ -633,6 +633,27 @@ def test_subagent_judge_extracts_the_verdict_from_a_reply_with_preamble():
     assert detail == "source says 112, not 100"
 
 
+def test_subagent_judge_extracts_the_verdict_when_the_detail_quotes_braces():
+    # A judge's `detail` routinely quotes the source it's judging against —
+    # and a source can itself contain literal braces (a Wikipedia infobox's
+    # `{{start date|df=yes|2018|6|12}}` template, say). Those braces sit
+    # inside a JSON string, not the object's actual structure, so they must
+    # not break extraction of the surrounding `{"verdict": ...}` object.
+    def fake_run(cmd, **kwargs):
+        reply = (
+            '{"verdict": "supported", '
+            '"detail": "the infobox states {{start date|df=yes|2018|6|12}}, '
+            'matching the claim\'s date"}'
+        )
+        return FakeCompletedProcess(_claude_stdout(reply))
+
+    judge = subagent_judge(run=fake_run)
+    verdict, detail = judge(Claim("claim-1", "x", "https://x/1"), "y")
+
+    assert verdict == Verdict.SUPPORTED
+    assert "{{start date" in detail
+
+
 def test_subagent_judge_treats_a_nonzero_exit_as_needs_judgment():
     def fake_run(cmd, **kwargs):
         return FakeCompletedProcess(stderr="rate limited", returncode=1)

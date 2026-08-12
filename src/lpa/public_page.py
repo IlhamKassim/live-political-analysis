@@ -1383,6 +1383,7 @@ def render_html(model: PageModel) -> str:
     <div class="stamp">
       <span>MODEL RUN {model.computed_at.strftime('%d %b %Y').upper()}</span>
       <a class="nav-link" href="learn/glossary.html">Glossary</a>
+      <a class="nav-link" href="learn/coalitions.html">Coalitions</a>
       <a class="nav-link" href="learn/ge16-process.html">GE16 Process</a>
       <button class="theme-btn" id="themeBtn" type="button">Dark</button>
     </div>
