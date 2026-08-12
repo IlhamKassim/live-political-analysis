@@ -20,9 +20,11 @@
 })();
 </script>
 <link rel="stylesheet" href="register-a.css">
+<script src="register-a.js"></script>
 <style>
-  /* Page-specific layout only — tokens, masthead, prose and colophon come
-     from register-a.css (see that file's header for why it's shared). */
+  /* Page-specific layout only — tokens, masthead, table of contents, gloss,
+     prose and colophon come from register-a.css (see that file's header
+     for why it's shared). */
 
   .term-entry { padding: clamp(34px, 5vw, 56px) 0 0; border-top: 1px solid var(--rule-hair); }
   .term-entry:first-of-type { border-top: none; }
@@ -32,13 +34,6 @@
     font-size: clamp(26px, 3.4vw, 36px);
     letter-spacing: -.015em;
     margin: 0 0 4px;
-  }
-  .term-gloss {
-    font-family: var(--serif);
-    font-style: italic;
-    color: var(--ink-faint);
-    font-size: 15px;
-    margin: 0 0 16px;
   }
   .sub-term {
     margin-top: clamp(22px, 3.5vw, 34px);
@@ -53,30 +48,6 @@
     color: var(--ink-soft);
     margin: 0 0 10px;
   }
-
-  .toc {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 10px;
-    margin: clamp(22px, 4vw, 34px) 0 0;
-    padding: 0;
-    list-style: none;
-  }
-  .toc li { margin: 0; }
-  .toc a {
-    display: inline-block;
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: .04em;
-    color: var(--ink-soft);
-    text-decoration: none;
-    border: 1px solid var(--rule);
-    padding: 5px 11px;
-  }
-  .toc a:hover { color: var(--ink); border-color: var(--ink-faint); }
-  .toc a:focus-visible { outline: 2px solid var(--pn); outline-offset: 2px; }
-
-  :target { scroll-margin-top: 24px; }
 </style>
 </head>
 <body>
@@ -102,6 +73,7 @@
       claim about Malaysian politics.
     </p>
     <ul class="toc">
+      <li><a href="#term-coalition">Coalition</a></li>
       <li><a href="#term-seat">Seat</a></li>
       <li><a href="#term-majority">Majority &amp; government</a></li>
       <li><a href="#term-baseline">Baseline</a></li>
@@ -112,18 +84,30 @@
     </ul>
   </section>
 
+  <section class="prose term-entry" id="term-coalition">
+    <h2>Coalition</h2>
+    <p class="gloss"><span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">a group of parties that contests and governs together</span></p>
+    <p>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">A Coalition is a group of parties that contests and governs together.</span>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">The five Coalitions this site tracks are PH, BN, PN, GPS and GRS.</span>
+      For how each of the five came to exist — founding dates, member
+      parties, the splits and mergers behind them — see the
+      <a href="coalitions.html">Coalitions page</a>.
+    </p>
+  </section>
+
   <section class="prose term-entry" id="term-seat">
     <h2>Seat</h2>
-    <p class="term-gloss">the unit an election is won or lost in</p>
+    <p class="gloss"><span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">the unit an election is won or lost in</span></p>
     <p>
-      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">The Dewan Rakyat, Malaysia's elected parliamentary chamber, is made up of 222 Seats — the term this site uses for what are otherwise called parliamentary constituencies.</span>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">The Dewan Rakyat has 222 Seats — the term this site uses for what are otherwise called parliamentary constituencies.</span>
       <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">A Seat is the unit an election is actually won or lost in.</span>
     </p>
   </section>
 
   <section class="prose term-entry" id="term-majority">
     <h2>Majority, Government and Non-government</h2>
-    <p class="term-gloss">who needs how many Seats, and what to call each side</p>
+    <p class="gloss"><span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">the threshold a Coalition needs to form government alone</span></p>
     <p>
       <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">A Majority means holding more than half of the Dewan Rakyat's 222 Seats — 112 or more.</span>
       <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">A Majority is the threshold a Coalition needs to form government on its own.</span>
@@ -150,7 +134,7 @@
 
   <section class="prose term-entry" id="term-baseline">
     <h2>Baseline</h2>
-    <p class="term-gloss">the fixed starting point everything else is measured from</p>
+    <p class="gloss"><span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">the fixed starting point every Projection is computed from</span></p>
     <p>
       <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">A Seat's Baseline is its GE15 (2022) result and demographic profile — vote share, margin, and the ethnicity and age breakdown of its voters.</span>
       <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">The Baseline is the fixed starting point every Projection is computed from.</span>
@@ -159,11 +143,11 @@
 
   <section class="prose term-entry" id="term-sentiment">
     <h2>Sentiment</h2>
-    <p class="term-gloss">the measured public mood, from two sources</p>
+    <p class="gloss"><span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">the measured public political mood, derived from two sources</span></p>
     <p>
       <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Sentiment is the measured public political mood, tagged per Coalition or party.</span>
       <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Sentiment is derived from two sources: continuous News Sentiment and periodic Poll Calibration.</span>
-      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Sentiment is the input signal the Swing Model consumes.</span>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Sentiment is an input signal the Swing Model consumes.</span>
     </p>
 
     <div class="sub-term">
@@ -188,7 +172,7 @@
 
   <section class="prose term-entry" id="term-swing">
     <h2>Swing</h2>
-    <p class="term-gloss">how Sentiment moves the Baseline</p>
+    <p class="gloss"><span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">derived from Sentiment, applied against the Baseline</span></p>
     <p>
       <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Swing is the estimated shift in vote or seat share for a Coalition.</span>
       <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Swing is derived from Sentiment and applied against the Baseline.</span>
@@ -215,7 +199,7 @@
 
   <section class="prose term-entry" id="term-projection">
     <h2>Projection</h2>
-    <p class="term-gloss">what the tool actually outputs</p>
+    <p class="gloss"><span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">the tool's output: a seat-count estimate per Coalition</span></p>
     <p>
       <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">A Projection is the tool's output: a seat-count estimate per Coalition for GE16.</span>
       <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">A Projection states whether the Government Coalition is projected to retain its Majority.</span>
@@ -240,7 +224,7 @@
 
   <section class="prose term-entry" id="term-election-status">
     <h2>Election Status</h2>
-    <p class="term-gloss">context for reading a Projection, not an input to one</p>
+    <p class="gloss"><span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">context for reading a Projection, not an input to one</span></p>
     <p>
       <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Election Status tracks whether GE16 has been called yet, and the polling date once one is set.</span>
       <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">"Called" means the Dewan Rakyat has been dissolved — the act that starts a Malaysian general election.</span>
@@ -277,23 +261,6 @@
   </footer>
 
 </div>
-<script>
-(function () {
-  var btn = document.getElementById("themeBtn");
-  function dark() {
-    var set = document.documentElement.getAttribute("data-theme");
-    return set ? set === "dark"
-      : window.matchMedia("(prefers-color-scheme: dark)").matches;
-  }
-  function label() { btn.textContent = dark() ? "Light" : "Dark"; }
-  btn.addEventListener("click", function () {
-    var next = dark() ? "light" : "dark";
-    document.documentElement.setAttribute("data-theme", next);
-    try { localStorage.setItem("theme", next); } catch (e) {}
-    label();
-  });
-  label();
-})();
-</script>
+<script>initThemeToggle("themeBtn");</script>
 </body>
 </html>

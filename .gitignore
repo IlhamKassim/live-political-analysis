@@ -23,3 +23,8 @@ public/index.html
 # generated. They are tracked so the daily Action's checkout has them to
 # publish alongside the freshly-rendered index.html — see daily.yml's
 # "Upload the page" step, which uploads the whole public/ directory.
+
+# Diagnostic output from `lpa.citation_check` for a claim the automated
+# judge couldn't resolve (see docs/agents/citation-check.md) — written next
+# to the page it checked, not meant to be committed.
+public/learn/*.pending.json
