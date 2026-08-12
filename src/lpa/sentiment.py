@@ -15,7 +15,8 @@ same piece; scoring the whole article would average that into noise.
 from __future__ import annotations
 
 import re
-from typing import Callable, Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
+from typing import Any, cast
 
 from lpa.domain import Coalition
 
@@ -23,8 +24,23 @@ Classifier = Callable[[Sequence[str]], Sequence[float]]
 """Scores a batch of sentences, each as a polarity in [-1.0, 1.0]."""
 
 _ABBREVIATIONS = (
-    "Dr", "Datuk", "Dato", "Datin", "Tun", "Tan", "Sri", "Hj", "Mr", "Mrs", "Ms",
-    "Sdn", "Bhd", "No", "St", "vs", "etc",
+    "Dr",
+    "Datuk",
+    "Dato",
+    "Datin",
+    "Tun",
+    "Tan",
+    "Sri",
+    "Hj",
+    "Mr",
+    "Mrs",
+    "Ms",
+    "Sdn",
+    "Bhd",
+    "No",
+    "St",
+    "vs",
+    "etc",
 )
 _SENTENCE = re.compile(
     # A sentence ends at .!? — optionally through a closing quote — but not
@@ -73,9 +89,7 @@ def score_article(
     sentences = list(dict.fromkeys(s for group in by_coalition.values() for s in group))
     scored = classify(sentences)
     if len(scored) != len(sentences):
-        raise ValueError(
-            f"classifier returned {len(scored)} scores for {len(sentences)} sentences"
-        )
+        raise ValueError(f"classifier returned {len(scored)} scores for {len(sentences)} sentences")
     scores = dict(zip(sentences, scored))
     return {
         coalition: sum(scores[s] for s in group) / len(group)
@@ -87,9 +101,7 @@ def _sentences(text: str) -> list[str]:
     return [s.strip() for s in _SENTENCE.split(text) if s.strip()]
 
 
-def _alias_patterns(
-    aliases: Mapping[Coalition, Sequence[str]]
-) -> dict[Coalition, re.Pattern[str]]:
+def _alias_patterns(aliases: Mapping[Coalition, Sequence[str]]) -> dict[Coalition, re.Pattern[str]]:
     return {
         coalition: re.compile(
             r"(?<![\w-])(?:" + "|".join(re.escape(a) for a in names) + r")(?![\w-])"
@@ -123,7 +135,7 @@ class TransformerClassifier:
             return []
         return [self._polarity(scores) for scores in self._classify(list(sentences))]
 
-    def _classify(self, sentences: list[str]):
+    def _classify(self, sentences: list[str]) -> list[list[dict[str, object]]]:
         if self._pipeline is None:
             from transformers import pipeline
 
@@ -135,16 +147,18 @@ class TransformerClassifier:
                 truncation=True,
                 max_length=512,
             )
-        return self._pipeline(sentences)
+        return self._pipeline(sentences)  # type: ignore[no-any-return, misc]
 
     @staticmethod
-    def _polarity(scores) -> float:
+    def _polarity(scores: list[dict[str, object]]) -> float:
         """Collapse the model's label probabilities to one polarity in [-1, 1].
 
         Positive probability minus negative, so a confident call lands near the
         ends of the range and a neutral or torn one lands near zero.
         """
-        by_label = {s["label"].lower(): s["score"] for s in scores}
+        by_label: dict[str, float] = {}
+        for s in scores:
+            by_label[str(s["label"]).lower()] = float(cast(Any, s["score"]))
         if "positive" not in by_label and "negative" not in by_label:
             raise ValueError(
                 f"model returned unusable labels {sorted(by_label)}; expected "

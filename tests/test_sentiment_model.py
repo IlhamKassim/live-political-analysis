@@ -18,9 +18,15 @@ from lpa.sentiment import TransformerClassifier, score_article
 
 pytestmark = pytest.mark.model
 
-ENGLISH_PRAISE = "Pakatan Harapan was widely praised for an excellent budget that helps ordinary families."
-ENGLISH_ATTACK = "Pakatan Harapan was condemned over a disastrous and corrupt scandal that betrayed voters."
-MALAY_PRAISE = "Pakatan Harapan dipuji rakyat kerana belanjawan yang sangat baik dan membantu rakyat."
+ENGLISH_PRAISE = (
+    "Pakatan Harapan was widely praised for an excellent budget that helps ordinary families."
+)
+ENGLISH_ATTACK = (
+    "Pakatan Harapan was condemned over a disastrous and corrupt scandal that betrayed voters."
+)
+MALAY_PRAISE = (
+    "Pakatan Harapan dipuji rakyat kerana belanjawan yang sangat baik dan membantu rakyat."
+)
 MALAY_ATTACK = "Pakatan Harapan dikecam kerana skandal rasuah yang teruk dan mengecewakan rakyat."
 
 
@@ -44,9 +50,7 @@ def classify():
     ],
     ids=["english-praise", "english-attack", "malay-praise", "malay-attack"],
 )
-def test_known_sentiment_examples_score_with_the_right_sign(
-    text, expected_sign, classify, aliases
-):
+def test_known_sentiment_examples_score_with_the_right_sign(text, expected_sign, classify, aliases):
     scores = score_article(text, classify, aliases)
 
     assert scores is not None
@@ -54,7 +58,9 @@ def test_known_sentiment_examples_score_with_the_right_sign(
 
 
 def test_an_article_naming_no_coalition_still_scores_nothing(classify, aliases):
-    assert score_article("Heavy rain closed several roads in Kuala Lumpur.", classify, aliases) is None
+    assert (
+        score_article("Heavy rain closed several roads in Kuala Lumpur.", classify, aliases) is None
+    )
 
 
 def test_scoring_makes_no_network_calls_once_the_model_is_cached(classify, aliases):

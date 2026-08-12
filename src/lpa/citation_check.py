@@ -57,11 +57,11 @@ import secrets
 import subprocess
 import sys
 import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Callable
 
 import httpx
 
@@ -82,8 +82,22 @@ page whose claims need more care.
 """
 
 _VOID_ELEMENTS = frozenset(
-    {"area", "base", "br", "col", "embed", "hr", "img", "input", "link",
-     "meta", "param", "source", "track", "wbr"}
+    {
+        "area",
+        "base",
+        "br",
+        "col",
+        "embed",
+        "hr",
+        "img",
+        "input",
+        "link",
+        "meta",
+        "param",
+        "source",
+        "track",
+        "wbr",
+    }
 )
 
 
@@ -256,14 +270,14 @@ def verdicts_from_file(path: Path) -> Judge:
         except KeyError:
             return (
                 Verdict.NEEDS_JUDGMENT,
-                f"{path}: entry for {claim.id!r} has no \"verdict\" field",
+                f'{path}: entry for {claim.id!r} has no "verdict" field',
             )
         except ValueError:
             allowed = ", ".join(v.value for v in Verdict)
             return (
                 Verdict.NEEDS_JUDGMENT,
                 f"{path}: entry for {claim.id!r} has verdict {entry['verdict']!r}, "
-                f"which isn't one of: {allowed}",
+                + f"which isn't one of: {allowed}",
             )
         return verdict, entry.get("detail", "")
 
@@ -284,7 +298,10 @@ def _read_verdicts(path: Path) -> tuple[dict[str, dict], str | None]:
     except json.JSONDecodeError as error:
         return {}, f"{path}: is not valid JSON ({error}) — expected {shape}"
     if not isinstance(loaded, list):
-        return {}, f"{path}: top-level JSON is {type(loaded).__name__}, not a list — expected {shape}"
+        return (
+            {},
+            f"{path}: top-level JSON is {type(loaded).__name__}, not a list — expected {shape}",
+        )
     entries: dict[str, dict] = {}
     for position, entry in enumerate(loaded, start=1):
         if not isinstance(entry, dict):
@@ -293,7 +310,7 @@ def _read_verdicts(path: Path) -> tuple[dict[str, dict], str | None]:
                 f"{path}: entry {position} is {type(entry).__name__}, not an object — expected {shape}",
             )
         if "id" not in entry:
-            return {}, f"{path}: entry {position} has no \"id\" field — expected {shape}"
+            return {}, f'{path}: entry {position} has no "id" field — expected {shape}'
         entries[entry["id"]] = entry
     return entries, None
 
@@ -337,10 +354,15 @@ def subagent_judge(
             with tempfile.TemporaryDirectory(prefix="lpa-citation-judge-") as workdir:
                 completed = run(
                     [
-                        "claude", "-p", prompt,
-                        "--model", model,
-                        "--output-format", "json",
-                        "--allowedTools", "",
+                        "claude",
+                        "-p",
+                        prompt,
+                        "--model",
+                        model,
+                        "--output-format",
+                        "json",
+                        "--allowedTools",
+                        "",
                     ],
                     capture_output=True,
                     text=True,
@@ -462,8 +484,8 @@ def _parse_subagent_verdict(stdout: str) -> tuple[Verdict, str]:
         preview = stdout.strip()[:200]
         return (
             Verdict.NEEDS_JUDGMENT,
-            f"could not parse subagent output as the claude CLI's json envelope "
-            f"({type(error).__name__}: {error}): {preview!r}",
+            "could not parse subagent output as the claude CLI's json envelope "
+            + f"({type(error).__name__}: {error}): {preview!r}",
         )
     verdict_json = _find_verdict_json(result)
     if verdict_json is None:
@@ -502,7 +524,9 @@ def http_fetch(client: httpx.Client, robots: RobotsPolicy | None = None) -> Fetc
     def fetch(url: str) -> FetchResult:
         if robots is not None:
             if not robots.is_allowed(url):
-                return FetchResult(text=None, error=f"disallowed by robots.txt: {robots.refusal_reason(url)}")
+                return FetchResult(
+                    text=None, error=f"disallowed by robots.txt: {robots.refusal_reason(url)}"
+                )
             robots.limiter.wait_turn(url, robots.crawl_delay(url))
         try:
             response = client.get(url)
@@ -581,7 +605,9 @@ class _ClaimParser(HTMLParser):
 
 def _print_report(results: list[CitationCheckResult]) -> None:
     for result in results:
-        preview = result.claim.text if len(result.claim.text) <= 80 else result.claim.text[:77] + "..."
+        preview = (
+            result.claim.text if len(result.claim.text) <= 80 else result.claim.text[:77] + "..."
+        )
         print(f"[{result.verdict.value}] {result.claim.id}: {preview!r} — {result.detail}")
 
 
@@ -643,7 +669,9 @@ def main(argv: list[str] | None = None) -> int:
         judge = override_judge(verdicts_from_file(args.verdicts), judge)
 
     with new_client(USER_AGENT) as client:
-        results = check_page(html_text, http_fetch(client, robots=RobotsPolicy(client=client)), judge)
+        results = check_page(
+            html_text, http_fetch(client, robots=RobotsPolicy(client=client)), judge
+        )
 
     _print_report(results)
 

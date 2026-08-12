@@ -29,10 +29,12 @@ from __future__ import annotations
 
 import html
 import math
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from enum import StrEnum
-from typing import Mapping, Sequence
+
+from sqlalchemy.engine import Engine
 
 from lpa.aggregate import AggregatedSentiment
 from lpa.domain import (
@@ -55,6 +57,7 @@ to cover the error those imply rather than the error a fitted model would have.
 
 LIKELY_MARGIN = 0.12
 """Below this a Seat is shown at half tone, above it as solid."""
+
 
 class Tier(StrEnum):
     """How firmly a Seat is called — the encoding, not a label.
@@ -218,9 +221,7 @@ def page_model(
         computed_at=projection.computed_at,
         total_seats=total_seats,
         majority_threshold=config.majority_threshold,
-        government_seats=government_seat_total(
-            projection.coalition_seat_totals, config
-        ),
+        government_seats=government_seat_total(projection.coalition_seat_totals, config),
         government_coalitions=tuple(sorted(config.government_coalitions)),
         seats=seats,
         ledger=_ledger(seats, projection, baseline, config, names),
@@ -274,12 +275,8 @@ def _ordered_seats(
                 government=call.coalition in config.government_coalitions,
             )
         )
-    government = sorted(
-        (s for s in seats if s.government), key=lambda s: (-s.margin, s.code)
-    )
-    opposition = sorted(
-        (s for s in seats if not s.government), key=lambda s: (s.margin, s.code)
-    )
+    government = sorted((s for s in seats if s.government), key=lambda s: (-s.margin, s.code))
+    opposition = sorted((s for s in seats if not s.government), key=lambda s: (s.margin, s.code))
     return tuple(government + opposition)
 
 
@@ -306,9 +303,9 @@ def _ledger(
         at_baseline[seat.winner] = at_baseline.get(seat.winner, 0) + 1
 
     too_close: dict[Coalition, int] = {}
-    for seat in seats:
-        if seat.tier == Tier.TIGHT:
-            too_close[seat.coalition] = too_close.get(seat.coalition, 0) + 1
+    for chamber in seats:
+        if chamber.tier == Tier.TIGHT:
+            too_close[chamber.coalition] = too_close.get(chamber.coalition, 0) + 1
 
     rows = [
         LedgerRow(
@@ -322,9 +319,7 @@ def _ledger(
         for coalition in set(projection.coalition_seat_totals) | set(at_baseline)
     ]
     live = [row for row in rows if row.projected or row.baseline]
-    return tuple(
-        sorted(live, key=lambda r: (not r.government, -r.projected, r.coalition))
-    )
+    return tuple(sorted(live, key=lambda r: (not r.government, -r.projected, r.coalition)))
 
 
 # ── the chamber's geometry ────────────────────────────────────────────────
@@ -382,9 +377,9 @@ def _row_counts(total: int) -> list[int]:
     spare = total - rows
     exact = [spare * radius / weight for radius in radii]
     counts = [1 + math.floor(e) for e in exact]
-    for row in sorted(
-        range(rows), key=lambda i: -(exact[i] - math.floor(exact[i]))
-    )[: total - sum(counts)]:
+    for row in sorted(range(rows), key=lambda i: -(exact[i] - math.floor(exact[i])))[
+        : total - sum(counts)
+    ]:
         counts[row] += 1
     return counts
 
@@ -392,9 +387,7 @@ def _row_counts(total: int) -> list[int]:
 def _row_radii(rows: int) -> list[float]:
     if rows == 1:
         return [R_INNER]
-    return [
-        R_INNER + (R_OUTER - R_INNER) * (r / (rows - 1)) for r in range(rows)
-    ]
+    return [R_INNER + (R_OUTER - R_INNER) * (r / (rows - 1)) for r in range(rows)]
 
 
 def _slots(total: int) -> list[tuple[float, float]]:
@@ -496,7 +489,7 @@ def lede(model: PageModel) -> str:
         outcome = f"would take it {-gap} below the line"
     return (
         f'{first} <span class="buffer">{tight}</span> of the Seats it holds '
-        f'{_plural(tight, "is", "are")} inside six points; losing every one '
+        f"{_plural(tight, 'is', 'are')} inside six points; losing every one "
         f"{outcome}."
     )
 
@@ -559,10 +552,7 @@ def _hemicycle(model: PageModel) -> str:
             )
 
     parts.append('<text x="6" y="534" class="side-label">Government</text>')
-    parts.append(
-        '<text x="994" y="534" class="side-label" text-anchor="end">'
-        "Non-government</text>"
-    )
+    parts.append('<text x="994" y="534" class="side-label" text-anchor="end">Non-government</text>')
 
     for seat, (angle, radius) in zip(model.seats, slots):
         x, y = _point(angle, radius)
@@ -574,8 +564,7 @@ def _hemicycle(model: PageModel) -> str:
             paint = f'fill="{ink}" fill-opacity="{opacity}"'
         close = " — too close to call" if seat.tier == Tier.TIGHT else ""
         tip = (
-            f"{seat.name} ({seat.state}) — {seat.coalition} "
-            f"by {_points(seat.margin)} points{close}"
+            f"{seat.name} ({seat.state}) — {seat.coalition} by {_points(seat.margin)} points{close}"
         )
         parts.append(
             f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{dot:.1f}" class="seat-dot" '
@@ -613,8 +602,7 @@ def _swing_cell(swing: int) -> str:
 
 
 _GOV_TOTAL_GE15_NOTE = (
-    "The Government Coalition formed after GE15, by agreement. "
-    "It had no GE15 total."
+    "The Government Coalition formed after GE15, by agreement. It had no GE15 total."
 )
 """Shared by the wide table and the narrow ledger's Government total row/card,
 so the two layouts cannot state the caveat differently.
@@ -744,9 +732,7 @@ def _seat_bar(model: PageModel) -> str:
     )
     summary = (
         "Seat totals by Coalition, Government Coalitions first: "
-        + ", ".join(
-            f"{row.name} {row.projected}" for row in model.ledger if row.projected
-        )
+        + ", ".join(f"{row.name} {row.projected}" for row in model.ledger if row.projected)
         + f". Majority needs {model.majority_threshold} of {total}."
     )
     return (
@@ -804,34 +790,36 @@ def _against_the_line(seats: int, threshold: int) -> str:
 
 
 def _stress(model: PageModel) -> str:
-    signals = (
-        ", ".join(f"{state} ({seats})" for state, seats in model.state_signals)
-        or "None yet"
-    )
+    signals = ", ".join(f"{state} ({seats})" for state, seats in model.state_signals) or "None yet"
     cells = [
         (
             "If every marginal fell",
             model.if_every_marginal_fell,
-            f"All {model.government_too_close} Government Seats inside six "
-            f"points lost, and {_against_the_line(model.if_every_marginal_fell, model.majority_threshold)}.",
+            (
+                f"All {model.government_too_close} Government Seats inside six "
+                f"points lost, and {_against_the_line(model.if_every_marginal_fell, model.majority_threshold)}."
+            ),
         ),
         (
             "If every marginal held",
             model.if_every_marginal_held,
-            f"The {model.opposition_too_close} Seats inside six points on the "
-            "other side fall to the Government Coalition instead.",
+            (
+                f"The {model.opposition_too_close} Seats inside six points on the "
+                "other side fall to the Government Coalition instead."
+            ),
         ),
         (
             "Seats that must move",
             model.seats_that_must_move,
-            "Government Seats that would have to change hands before the "
-            "Majority goes.",
+            ("Government Seats that would have to change hands before the Majority goes."),
         ),
         (
             "State swing, applied locally",
             model.state_signal_seats,
-            f"Seats moved by a state election result rather than by Sentiment "
-            f"alone — {signals}. Every other state is untouched by it.",
+            (
+                f"Seats moved by a state election result rather than by Sentiment "
+                f"alone — {signals}. Every other state is untouched by it."
+            ),
         ),
     ]
     return "".join(
@@ -1368,10 +1356,12 @@ def render_html(model: PageModel) -> str:
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GE16 Projection — the Dewan Rakyat, projected</title>
-<meta name="description" content="{html.escape(
-    f'Projection of the {model.total_seats} Seats of the Dewan Rakyat at GE16, '
-    f'computed {_long_date(model.computed_at)}. Model-driven and not calibrated.'
-)}">
+<meta name="description" content="{
+        html.escape(
+            f"Projection of the {model.total_seats} Seats of the Dewan Rakyat at GE16, "
+            f"computed {_long_date(model.computed_at)}. Model-driven and not calibrated."
+        )
+    }">
 <script>{_THEME_INIT_SCRIPT}</script>
 <style>{_CSS}</style>
 </head>
@@ -1381,7 +1371,7 @@ def render_html(model: PageModel) -> str:
   <header class="masthead">
     <div class="wordmark">Live Political Analysis <em>— Projeksi Kerusi GE16</em></div>
     <div class="stamp">
-      <span>MODEL RUN {model.computed_at.strftime('%d %b %Y').upper()}</span>
+      <span>MODEL RUN {model.computed_at.strftime("%d %b %Y").upper()}</span>
       <a class="nav-link" href="learn/glossary.html">Glossary</a>
       <a class="nav-link" href="learn/coalitions.html">Coalitions</a>
       <a class="nav-link" href="learn/ge16-process.html">GE16 Process</a>
@@ -1391,8 +1381,9 @@ def render_html(model: PageModel) -> str:
 
   <section class="verdict">
     <div class="tally">
-      <div class="tally-eyebrow">Government Coalition<br>{' · '.join(
-          html.escape(c) for c in model.government_coalitions)}</div>
+      <div class="tally-eyebrow">Government Coalition<br>{
+        " · ".join(html.escape(c) for c in model.government_coalitions)
+    }</div>
       <span class="tally-figure">{model.government_seats}</span>
       <span class="tally-of">of {model.total_seats} seats — {model.majority_threshold} needed</span>
     </div>
@@ -1462,7 +1453,7 @@ def render_html(model: PageModel) -> str:
 """
 
 
-def build_page(engine) -> str:
+def build_page(engine: Engine) -> str:
     """Read Storage and render the page. The whole I/O half, in one place.
 
     Separate from `main` so the preview server in `scripts/` can render
@@ -1484,14 +1475,10 @@ def build_page(engine) -> str:
 
     projections = load_projections(engine)
     if not projections:
-        raise SystemExit(
-            "No Projection stored. Run `python -m lpa.pipeline` to compute one."
-        )
+        raise SystemExit("No Projection stored. Run `python -m lpa.pipeline` to compute one.")
     baseline = load_seat_baselines(engine)
     if not baseline:
-        raise SystemExit(
-            "No Seat Baseline in Storage. Run `python -m lpa.baseline_loader` first."
-        )
+        raise SystemExit("No Seat Baseline in Storage. Run `python -m lpa.baseline_loader` first.")
 
     config = load_coalition_config()
     snapshots = load_sentiment_snapshots(engine)

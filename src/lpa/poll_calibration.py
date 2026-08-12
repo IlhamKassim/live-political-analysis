@@ -30,9 +30,9 @@ to Storage are separate steps, as in the Baseline Loader.
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Iterable, Mapping, Sequence
 
 from lpa.domain import Coalition
 
@@ -168,9 +168,7 @@ def coalition_net_approval(ratings: Iterable[LeaderRating]) -> CalibrationScores
         if rating.coalition is None:
             unattributed.append(rating)
             continue
-        totals[rating.coalition] = (
-            totals.get(rating.coalition, 0.0) + rating.net_approval
-        )
+        totals[rating.coalition] = totals.get(rating.coalition, 0.0) + rating.net_approval
         counts[rating.coalition] = counts.get(rating.coalition, 0) + 1
 
     return CalibrationScores(

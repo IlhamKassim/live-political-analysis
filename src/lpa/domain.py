@@ -6,9 +6,9 @@ State Election Signal, Projection, Government Coalition.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date, datetime
-from typing import Mapping
 
 Coalition = str
 """A Coalition's canonical short name, e.g. "PH", "BN", "PN", "GPS", "GRS".

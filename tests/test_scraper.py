@@ -5,7 +5,7 @@ Parsing is tested against a fixture copy of Free Malaysia Today's real feed, so
 CI never touches the network (issue #1's Testing Decisions).
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
@@ -56,9 +56,7 @@ def test_published_at_is_the_feeds_own_timestamp():
         <description>body</description>
     </item></channel></rss>"""
 
-    assert parse_feed(feed, "X")[0].published_at == datetime(
-        2026, 8, 5, 16, 13, tzinfo=timezone.utc
-    )
+    assert parse_feed(feed, "X")[0].published_at == datetime(2026, 8, 5, 16, 13, tzinfo=UTC)
 
 
 def test_article_text_is_plain_text_with_no_markup_left(articles):
@@ -178,9 +176,7 @@ class StubRobots:
 
 
 def feed_response(content=b"<rss><channel/></rss>"):
-    return type(
-        "R", (), {"content": content, "raise_for_status": lambda self: None}
-    )()
+    return type("R", (), {"content": content, "raise_for_status": lambda self: None})()
 
 
 class HalfBrokenClient:
@@ -201,9 +197,7 @@ class FeedClient:
 
 
 def limiter_on(clock, min_interval=2.0):
-    return RateLimiter(
-        min_interval=min_interval, sleep=clock.sleep, now=lambda: clock.now
-    )
+    return RateLimiter(min_interval=min_interval, sleep=clock.sleep, now=lambda: clock.now)
 
 
 def test_robots_txt_is_fetched_with_our_own_declared_user_agent():
@@ -338,9 +332,7 @@ def test_a_refused_outlet_is_named_in_the_run_rather_than_dropped_quietly(capsys
     def explode(*args, **kwargs):
         raise AssertionError("fetched a URL robots.txt disallows")
 
-    scraper = Scraper(
-        client=type("C", (), {"get": explode})(), robots=StubRobots(False)
-    )
+    scraper = Scraper(client=type("C", (), {"get": explode})(), robots=StubRobots(False))
 
     articles = scraper.fetch_all([Outlet("Blocked", "https://x/feed/")])
 

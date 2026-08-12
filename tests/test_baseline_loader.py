@@ -17,13 +17,49 @@ PARTY_TO_COALITION = {
 
 CANDIDATES = [
     # P.001: PN 6000, PH 4000 of 10000 -> PN by 20pp.
-    {"state": "Perlis", "parlimen": "P.001 Padang Besar", "party": "PERIKATAN NASIONAL (PN)", "votes": "6000", "result": "1"},
-    {"state": "Perlis", "parlimen": "P.001 Padang Besar", "party": "PAKATAN HARAPAN (PH)", "votes": "4000", "result": "0"},
+    {
+        "state": "Perlis",
+        "parlimen": "P.001 Padang Besar",
+        "party": "PERIKATAN NASIONAL (PN)",
+        "votes": "6000",
+        "result": "1",
+    },
+    {
+        "state": "Perlis",
+        "parlimen": "P.001 Padang Besar",
+        "party": "PAKATAN HARAPAN (PH)",
+        "votes": "4000",
+        "result": "0",
+    },
     # P.002: PH banner 3000 + DAP banner 2000 = PH 5000, PN 3000, BEBAS 2000.
-    {"state": "Perlis", "parlimen": "P.002 Kangar", "party": "PAKATAN HARAPAN (PH)", "votes": "3000", "result": "1"},
-    {"state": "Perlis", "parlimen": "P.002 Kangar", "party": "PARTI TINDAKAN DEMOKRATIK (DAP)", "votes": "2000", "result": "0"},
-    {"state": "Perlis", "parlimen": "P.002 Kangar", "party": "PARTI ISLAM SE MALAYSIA (PAS)", "votes": "3000", "result": "0"},
-    {"state": "Perlis", "parlimen": "P.002 Kangar", "party": "BEBAS (BEBAS)", "votes": "2000", "result": "0"},
+    {
+        "state": "Perlis",
+        "parlimen": "P.002 Kangar",
+        "party": "PAKATAN HARAPAN (PH)",
+        "votes": "3000",
+        "result": "1",
+    },
+    {
+        "state": "Perlis",
+        "parlimen": "P.002 Kangar",
+        "party": "PARTI TINDAKAN DEMOKRATIK (DAP)",
+        "votes": "2000",
+        "result": "0",
+    },
+    {
+        "state": "Perlis",
+        "parlimen": "P.002 Kangar",
+        "party": "PARTI ISLAM SE MALAYSIA (PAS)",
+        "votes": "3000",
+        "result": "0",
+    },
+    {
+        "state": "Perlis",
+        "parlimen": "P.002 Kangar",
+        "party": "BEBAS (BEBAS)",
+        "votes": "2000",
+        "result": "0",
+    },
 ]
 
 CENSUS = [
@@ -50,10 +86,7 @@ CENSUS = [
 
 @fixture
 def baselines() -> dict[str, object]:
-    return {
-        b.code: b
-        for b in build_seat_baselines(CANDIDATES, CENSUS, PARTY_TO_COALITION)
-    }
+    return {b.code: b for b in build_seat_baselines(CANDIDATES, CENSUS, PARTY_TO_COALITION)}
 
 
 def test_rolls_candidate_votes_up_to_coalition_vote_share_per_seat(baselines):

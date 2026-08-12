@@ -18,20 +18,18 @@ import html
 import re
 import time
 import urllib.robotparser
-import xml.etree.ElementTree as ElementTree
-from datetime import datetime, timezone
+from collections.abc import Callable, Iterable
+from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
-from typing import Iterable
+from typing import Self
 from urllib.parse import urljoin, urlparse
+from xml.etree import ElementTree
 
 import httpx
 
 from lpa.domain import Article, Outlet
 
-USER_AGENT = (
-    "live-political-analysis/0.1 "
-    "(+https://github.com/IlhamKassim/live-political-analysis)"
-)
+USER_AGENT = "live-political-analysis/0.1 (+https://github.com/IlhamKassim/live-political-analysis)"
 ATOM = "{http://www.w3.org/2005/Atom}"
 CONTENT_ENCODED = "{http://purl.org/rss/1.0/modules/content/}encoded"
 
@@ -74,6 +72,7 @@ def parse_feed(feed_xml: str | bytes, source: str) -> list[Article]:
     goes wrong quietly; whatever starts reading it will want that signal back.
     """
     root = ElementTree.fromstring(feed_xml)
+    read: Callable[[ElementTree.Element], tuple[str, str, datetime | None, str]]
     if root.tag == f"{ATOM}feed":
         entries, read = list(root.iter(f"{ATOM}entry")), _atom_entry
     elif root.tag == "rss" or root.find("channel") is not None:
@@ -111,7 +110,12 @@ def strip_html(markup: str) -> str:
 class RateLimiter:
     """Spaces requests out per host, so one outlet never sets another's pace."""
 
-    def __init__(self, min_interval: float = 2.0, sleep=time.sleep, now=time.monotonic):
+    def __init__(
+        self,
+        min_interval: float = 2.0,
+        sleep: Callable[[float], None] = time.sleep,
+        now: Callable[[], float] = time.monotonic,
+    ) -> None:
         self.min_interval = min_interval
         self._sleep = sleep
         self._now = now
@@ -172,15 +176,15 @@ class RobotsPolicy:
             response = self.client.get(robots_url)
         except httpx.HTTPError as error:
             # No answer is not permission: fail closed and try again next run.
-            rules.disallow_all = True
+            rules.disallow_all = True  # type: ignore[attr-defined]
             self._refusal[host] = f"robots.txt unreachable ({type(error).__name__})"
             return rules
         if response.status_code in (401, 403) or response.status_code >= 500:
             # Forbidden, or the outlet is unwell. Either way, don't assume yes.
-            rules.disallow_all = True
+            rules.disallow_all = True  # type: ignore[attr-defined]
             self._refusal[host] = f"robots.txt answered {response.status_code}"
         elif response.status_code >= 400:
-            rules.allow_all = True  # No robots.txt published means no rules.
+            rules.allow_all = True  # type: ignore[attr-defined]
         else:
             rules.parse(response.text.splitlines())
         return rules
@@ -198,9 +202,7 @@ class RobotsPolicy:
         (issue #16).
         """
         self.rules_for(url)
-        return self._refusal.get(
-            urlparse(url).netloc, "robots.txt disallows this path"
-        )
+        return self._refusal.get(urlparse(url).netloc, "robots.txt disallows this path")
 
     def crawl_delay(self, url: str) -> float | None:
         delay = self.rules_for(url).crawl_delay(self.user_agent)
@@ -220,10 +222,10 @@ class Scraper:
         self.limiter = limiter or RateLimiter()
         self.robots = robots or RobotsPolicy(client=self.client, limiter=self.limiter)
 
-    def __enter__(self) -> "Scraper":
+    def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, *exc_info) -> None:
+    def __exit__(self, exc_type, exc_value, traceback) -> None:  # type: ignore[no-untyped-def]
         self.close()
 
     def close(self) -> None:
@@ -239,9 +241,7 @@ class Scraper:
         """
         if not self.robots.is_allowed(outlet.feed_url):
             raise DisallowedFeed(self.robots.refusal_reason(outlet.feed_url))
-        self.limiter.wait_turn(
-            outlet.feed_url, self.robots.crawl_delay(outlet.feed_url)
-        )
+        self.limiter.wait_turn(outlet.feed_url, self.robots.crawl_delay(outlet.feed_url))
         response = self.client.get(outlet.feed_url)
         response.raise_for_status()
         return parse_feed(response.content, outlet.name)
@@ -275,12 +275,10 @@ class Scraper:
 
 
 def new_client(user_agent: str = USER_AGENT) -> httpx.Client:
-    return httpx.Client(
-        headers={"User-Agent": user_agent}, timeout=30.0, follow_redirects=True
-    )
+    return httpx.Client(headers={"User-Agent": user_agent}, timeout=30.0, follow_redirects=True)
 
 
-def _rss_item(item: ElementTree.Element):
+def _rss_item(item: ElementTree.Element) -> tuple[str, str, datetime | None, str]:
     return (
         _text(item, "link"),
         _text(item, "title"),
@@ -289,14 +287,12 @@ def _rss_item(item: ElementTree.Element):
     )
 
 
-def _atom_entry(entry: ElementTree.Element):
+def _atom_entry(entry: ElementTree.Element) -> tuple[str, str, datetime | None, str]:
     link = entry.find(f"{ATOM}link")
     return (
         (link.get("href") or "").strip() if link is not None else "",
         _text(entry, f"{ATOM}title"),
-        _published_at(
-            _text(entry, f"{ATOM}published") or _text(entry, f"{ATOM}updated")
-        ),
+        _published_at(_text(entry, f"{ATOM}published") or _text(entry, f"{ATOM}updated")),
         _text(entry, f"{ATOM}content") or _text(entry, f"{ATOM}summary"),
     )
 
@@ -315,7 +311,7 @@ def _published_at(raw: str) -> datetime | None:
             published = read(raw)
         except (TypeError, ValueError):
             continue
-        return published if published.tzinfo else published.replace(tzinfo=timezone.utc)
+        return published if published.tzinfo else published.replace(tzinfo=UTC)
     return None
 
 

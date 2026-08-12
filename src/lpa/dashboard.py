@@ -24,9 +24,9 @@ Run it with `streamlit run src/lpa/dashboard.py`.
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
-from typing import Mapping, Sequence
 
 import altair as alt
 import pandas as pd
@@ -36,10 +36,10 @@ from lpa.config import load_coalition_config, load_election_status, swing_model_
 from lpa.domain import (
     Coalition,
     ElectionStatus,
-    government_seat_total,
     Projection,
     SeatBaseline,
     SwingModelConfig,
+    government_seat_total,
 )
 from lpa.pipeline import today_in_malaysia
 from lpa.poll_calibration import PollCalibration, coalition_net_approval
@@ -98,7 +98,7 @@ def _database_url() -> str | None:
     """
     try:
         return st.secrets["DATABASE_URL"]
-    except Exception:
+    except Exception:  # noqa: BLE001 - any Streamlit-caused failure means no secret, see docstring
         return None
 
 
@@ -231,14 +231,10 @@ def calibrations_within(
     if not snapshots:
         return []
     first, last = snapshots[0].computed_at, snapshots[-1].computed_at
-    return [
-        report for report in calibrations if first <= report.fieldwork_end <= last
-    ]
+    return [report for report in calibrations if first <= report.fieldwork_end <= last]
 
 
-def nearest_snapshot(
-    snapshots: Sequence[SentimentSnapshot], day: date
-) -> SentimentSnapshot | None:
+def nearest_snapshot(snapshots: Sequence[SentimentSnapshot], day: date) -> SentimentSnapshot | None:
     """The stored Sentiment day closest to `day`, or None if there is none.
 
     Closest rather than same-day: Poll Calibration is periodic and its
@@ -289,9 +285,7 @@ def calibration_comparison(
     )
 
 
-def render_headline(
-    projection: Projection, total_seats: int, config: SwingModelConfig
-) -> None:
+def render_headline(projection: Projection, total_seats: int, config: SwingModelConfig) -> None:
     """The majority call and the seat count behind it, derived together.
 
     The call is recomputed from the stored Seat totals rather than read from
@@ -474,8 +468,10 @@ def render_trend(
         alt.X("Day:T", title=None),
         alt.Color("Coalition:N", title="Coalition"),
     )
-    chart = alt.Chart(line_data).mark_line().encode(
-        *axes, alt.Y("Score:Q", title="Sentiment (−1 to +1)")
+    chart = (
+        alt.Chart(line_data)
+        .mark_line()
+        .encode(*axes, alt.Y("Score:Q", title="Sentiment (−1 to +1)"))
     )
     if not points.empty:
         chart += (
@@ -561,10 +557,7 @@ def render_calibration(
 
     snapshot = nearest_snapshot(snapshots, report.fieldwork_end)
     if snapshot is None:
-        st.warning(
-            "No stored Sentiment to compare this against yet. Run "
-            "`python -m lpa.pipeline`."
-        )
+        st.warning("No stored Sentiment to compare this against yet. Run `python -m lpa.pipeline`.")
     else:
         gap = abs((snapshot.computed_at - report.fieldwork_end).days)
         # Said plainly rather than hidden in a column header: the daily
@@ -662,8 +655,7 @@ def render_sources(snapshot: SentimentSnapshot) -> None:
     with left:
         st.markdown("**Outlets read**")
         st.markdown(
-            "\n".join(f"- {source}" for source in sources)
-            or "- _no outlet reported for this day_"
+            "\n".join(f"- {source}" for source in sources) or "- _no outlet reported for this day_"
         )
     with right:
         st.markdown("**Articles naming each Coalition**")

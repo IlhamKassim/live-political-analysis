@@ -6,8 +6,8 @@ single number per Coalition rather than a pile of per-Article scores.
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Iterable, Mapping, Sequence
 
 from lpa.domain import Article, Coalition
 

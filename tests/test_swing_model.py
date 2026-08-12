@@ -2,8 +2,6 @@ from collections import Counter
 from copy import deepcopy
 from datetime import date
 
-from pytest import approx
-
 from fixtures import (
     BN,
     PH,
@@ -12,9 +10,11 @@ from fixtures import (
     one_seat_with_a_small_third_coalition,
     partially_reported_signal_seats,
     three_coalition_seats,
-    two_state_seats,
     two_coalition_seats,
+    two_state_seats,
 )
+from pytest import approx
+
 from lpa.domain import StateElectionSignal
 from lpa.swing_model import swing_model
 
@@ -76,23 +76,19 @@ def test_the_majority_call_follows_government_coalition_membership_config():
     # Identical inputs, two Government Coalition compositions: PH + BN holds
     # seven of these ten seats and clears the six-seat bar; PH alone holds five
     # and does not. Nothing about the seat totals themselves changes.
-    inputs = dict(
-        baseline=three_coalition_seats(),
-        sentiment={},
-        state_election_signals=[],
-        computed_at=date(2026, 8, 6),
-    )
+    inputs = {
+        "baseline": three_coalition_seats(),
+        "sentiment": {},
+        "state_election_signals": [],
+        "computed_at": date(2026, 8, 6),
+    }
 
     together = swing_model(
-        config=government_config(
-            government_coalitions=frozenset({PH, BN}), majority_threshold=6
-        ),
+        config=government_config(government_coalitions=frozenset({PH, BN}), majority_threshold=6),
         **inputs,
     )
     after_realignment = swing_model(
-        config=government_config(
-            government_coalitions=frozenset({PH}), majority_threshold=6
-        ),
+        config=government_config(government_coalitions=frozenset({PH}), majority_threshold=6),
         **inputs,
     )
 
@@ -110,9 +106,7 @@ def test_a_coalition_absent_from_sentiment_takes_no_swing_but_can_still_gain():
         baseline=three_coalition_seats(),
         sentiment={PH: -0.6, PN: 0.6},
         state_election_signals=[],
-        config=government_config(
-            government_coalitions=frozenset({PH, BN}), majority_threshold=6
-        ),
+        config=government_config(government_coalitions=frozenset({PH, BN}), majority_threshold=6),
         computed_at=date(2026, 8, 6),
     )
 
@@ -148,12 +142,8 @@ def test_is_repeatable_and_leaves_its_inputs_untouched():
     ]
     before = deepcopy((baseline, sentiment, signals))
 
-    first = swing_model(
-        baseline, sentiment, signals, government_config(), date(2026, 8, 6)
-    )
-    second = swing_model(
-        baseline, sentiment, signals, government_config(), date(2026, 8, 6)
-    )
+    first = swing_model(baseline, sentiment, signals, government_config(), date(2026, 8, 6))
+    second = swing_model(baseline, sentiment, signals, government_config(), date(2026, 8, 6))
 
     assert first == second
     assert (baseline, sentiment, signals) == before
@@ -316,16 +306,12 @@ def test_the_seat_calls_are_what_the_coalition_totals_count():
         baseline=three_coalition_seats(),
         sentiment={PH: -0.6, PN: 0.6},
         state_election_signals=[],
-        config=government_config(
-            government_coalitions=frozenset({PH, BN}), majority_threshold=6
-        ),
+        config=government_config(government_coalitions=frozenset({PH, BN}), majority_threshold=6),
         computed_at=date(2026, 8, 6),
     )
 
     tallied = Counter(call.coalition for call in projection.seat_calls)
-    assert tallied == Counter(
-        {c: n for c, n in projection.coalition_seat_totals.items() if n}
-    )
+    assert tallied == Counter({c: n for c, n in projection.coalition_seat_totals.items() if n})
     assert len(projection.seat_calls) == 10
 
 
@@ -338,9 +324,7 @@ def test_a_share_swung_below_zero_is_floored_before_the_margin_is_taken():
         baseline=one_seat_with_a_small_third_coalition(),
         sentiment={PH: -1.0, PN: 1.0},
         state_election_signals=[],
-        config=government_config(
-            majority_threshold=1, sentiment_sensitivity=0.30
-        ),
+        config=government_config(majority_threshold=1, sentiment_sensitivity=0.30),
         computed_at=date(2026, 8, 6),
     )
 
@@ -357,9 +341,7 @@ def test_a_seat_swung_below_zero_on_every_side_is_held_by_its_baseline_winner():
         baseline=one_seat_with_a_small_third_coalition(),
         sentiment={PH: -1.0, PN: -1.0, BN: -1.0},
         state_election_signals=[],
-        config=government_config(
-            majority_threshold=1, sentiment_sensitivity=0.60
-        ),
+        config=government_config(majority_threshold=1, sentiment_sensitivity=0.60),
         computed_at=date(2026, 8, 6),
     )
 
@@ -379,9 +361,7 @@ def test_the_baseline_winner_holds_even_when_a_rival_is_the_least_negative():
         baseline=one_seat_with_a_small_third_coalition(),
         sentiment={PN: -1.0, PH: -0.3, BN: -0.3},
         state_election_signals=[],
-        config=government_config(
-            majority_threshold=1, sentiment_sensitivity=1.0
-        ),
+        config=government_config(majority_threshold=1, sentiment_sensitivity=1.0),
         computed_at=date(2026, 8, 6),
     )
 

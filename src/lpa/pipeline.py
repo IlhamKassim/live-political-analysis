@@ -7,9 +7,9 @@ real ones.
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
-from typing import Callable, Iterable, Mapping, Sequence
 
 from lpa.aggregate import AggregatedSentiment, aggregate_sentiment
 from lpa.domain import (
@@ -23,7 +23,6 @@ from lpa.domain import (
 )
 from lpa.sentiment import Classifier, score_article
 from lpa.swing_model import swing_model
-
 
 MALAYSIA_TIME = timezone(timedelta(hours=8))
 """Snapshots are dated by the Malaysian day, not UTC.
@@ -95,9 +94,7 @@ def main() -> None:
     engine = connect()
     baseline = load_seat_baselines(engine)
     if not baseline:
-        raise SystemExit(
-            "No Seat Baseline in Storage. Run `python -m lpa.baseline_loader` first."
-        )
+        raise SystemExit("No Seat Baseline in Storage. Run `python -m lpa.baseline_loader` first.")
 
     config = load_coalition_config()
     with Scraper() as scraper:
@@ -126,9 +123,7 @@ def main() -> None:
     for coalition, score in sorted(sentiment.scores.items(), key=lambda kv: -kv[1]):
         print(f"  {coalition:5s} {score:+.3f}  ({sentiment.article_counts[coalition]} articles)")
     print(f"\nProjection for {projection.computed_at}:")
-    for coalition, seats in sorted(
-        projection.coalition_seat_totals.items(), key=lambda kv: -kv[1]
-    ):
+    for coalition, seats in sorted(projection.coalition_seat_totals.items(), key=lambda kv: -kv[1]):
         print(f"  {coalition:8s} {seats:4d}")
     held = "retains" if projection.government_majority else "loses"
     print(f"\nGovernment Coalition {held} its Majority.")

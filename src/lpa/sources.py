@@ -10,13 +10,11 @@ from __future__ import annotations
 
 import csv
 import io
-from typing import Sequence
+from collections.abc import Sequence
 
 import httpx
 
-ELECTION_DATA_BASE = (
-    "https://raw.githubusercontent.com/Thevesh/analysis-election-msia/main/data"
-)
+ELECTION_DATA_BASE = "https://raw.githubusercontent.com/Thevesh/analysis-election-msia/main/data"
 GE15_CANDIDATES_URL = f"{ELECTION_DATA_BASE}/candidates_ge15.csv"
 PARLIAMENTARY_CENSUS_URL = f"{ELECTION_DATA_BASE}/census_parlimen.csv"
 

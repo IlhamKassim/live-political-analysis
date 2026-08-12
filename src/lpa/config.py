@@ -7,9 +7,10 @@ realignment is a config edit (issue #1, story 20).
 from __future__ import annotations
 
 import json
+from collections.abc import Collection, Mapping
 from datetime import date
 from pathlib import Path
-from typing import Any, Collection, Mapping
+from typing import Any, cast
 
 from lpa.domain import (
     Coalition,
@@ -19,6 +20,7 @@ from lpa.domain import (
     SwingModelConfig,
 )
 from lpa.poll_calibration import LeaderRating, PollCalibration
+
 
 def data_file(name: str) -> Path:
     """Locate a file from `data/`, installed or in a checkout.
@@ -37,16 +39,16 @@ DEFAULT_CONFIG_PATH = data_file("coalitions.json")
 
 
 def load_coalition_config(path: Path | None = None) -> Mapping[str, Any]:
-    return json.loads((path or DEFAULT_CONFIG_PATH).read_text())
+    return cast(Mapping[str, Any], json.loads((path or DEFAULT_CONFIG_PATH).read_text()))
 
 
 def party_to_coalition(config: Mapping[str, Any]) -> Mapping[str, Coalition]:
-    return config["party_to_coalition"]
+    return cast(Mapping[str, Coalition], config["party_to_coalition"])
 
 
 def coalition_aliases(config: Mapping[str, Any]) -> Mapping[Coalition, list[str]]:
     """How each Coalition is named in coverage, for the Sentiment Scorer."""
-    return config["coalition_aliases"]
+    return cast(Mapping[Coalition, list[str]], config["coalition_aliases"])
 
 
 def coalition_names(config: Mapping[str, Any]) -> Mapping[Coalition, str]:
@@ -57,7 +59,7 @@ def coalition_names(config: Mapping[str, Any]) -> Mapping[Coalition, str]:
     map cannot be complete and a caller must be ready to fall back to the
     code. `.get(code, code)` is the intended reading.
     """
-    return config.get("coalition_names", {})
+    return cast(Mapping[Coalition, str], config.get("coalition_names", {}))
 
 
 def swing_model_config(config: Mapping[str, Any], **overrides: Any) -> SwingModelConfig:
@@ -111,8 +113,7 @@ def load_transcribed_polls(
             sample_size=entry["sample_size"],
             margin_of_error=entry.get("margin_of_error"),
             leader_ratings=tuple(
-                LeaderRating.from_mapping(rating)
-                for rating in entry["leader_ratings"]
+                LeaderRating.from_mapping(rating) for rating in entry["leader_ratings"]
             ),
         )
         for entry in config["reports"]
@@ -121,9 +122,7 @@ def load_transcribed_polls(
     if known_coalitions is not None:
         for report in reports:
             for rating in report.leader_ratings:
-                if rating.coalition is not None and (
-                    rating.coalition not in known_coalitions
-                ):
+                if rating.coalition is not None and (rating.coalition not in known_coalitions):
                     raise ValueError(
                         f"{report.title!r} attributes {rating.leader!r} to "
                         f"Coalition {rating.coalition!r}, which is not one of "
@@ -162,12 +161,9 @@ def load_election_status(path: Path | None = None) -> ElectionStatus:
             "dissolution date. Polling is announced after the Dewan Rakyat is "
             "dissolved, so set dissolved_on too."
         )
-    if dissolved_on is not None and polling_date is not None and (
-        polling_date < dissolved_on
-    ):
+    if dissolved_on is not None and polling_date is not None and (polling_date < dissolved_on):
         raise ValueError(
-            f"election status polls on {polling_date}, before the "
-            f"dissolution on {dissolved_on}."
+            f"election status polls on {polling_date}, before the dissolution on {dissolved_on}."
         )
 
     return ElectionStatus(

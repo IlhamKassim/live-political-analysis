@@ -19,8 +19,7 @@ def fixed_scores(scores: dict[str, float]):
 
     def classify(sentences):
         return [
-            next((v for k, v in scores.items() if k in sentence), 0.0)
-            for sentence in sentences
+            next((v for k, v in scores.items() if k in sentence), 0.0) for sentence in sentences
         ]
 
     return classify
@@ -32,10 +31,7 @@ def test_an_article_mentioning_no_coalition_scores_nothing():
 
 
 def test_each_coalition_is_scored_only_from_the_sentences_that_name_it():
-    text = (
-        "Pakatan Harapan was praised for the budget. "
-        "UMNO was criticised over the scandal."
-    )
+    text = "Pakatan Harapan was praised for the budget. UMNO was criticised over the scandal."
 
     scores = score_article(text, fixed_scores({"praised": 0.8, "criticised": -0.6}), ALIASES)
 

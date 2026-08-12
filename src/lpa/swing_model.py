@@ -29,18 +29,18 @@ a call may be presented.
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Mapping, Sequence
 from datetime import date
-from typing import Mapping, Sequence
 
 from lpa.domain import (
     Coalition,
-    government_seat_total,
-    leading_coalition,
     Projection,
     SeatBaseline,
     SeatCall,
     StateElectionSignal,
     SwingModelConfig,
+    government_seat_total,
+    leading_coalition,
 )
 
 
@@ -58,18 +58,14 @@ def swing_model(
     stays pure and its output reproducible.
     """
     swing_by_state = _swing_by_state(baseline, sentiment, state_election_signals, config)
-    calls = tuple(
-        _call_seat(seat, swing_by_state[seat.state]) for seat in baseline
-    )
+    calls = tuple(_call_seat(seat, swing_by_state[seat.state]) for seat in baseline)
     totals: Counter[Coalition] = Counter(
         {coalition: 0 for seat in baseline for coalition in seat.vote_share}
     )
     totals.update(call.coalition for call in calls)
     return Projection(
         coalition_seat_totals=dict(totals),
-        government_majority=(
-            government_seat_total(totals, config) >= config.majority_threshold
-        ),
+        government_majority=(government_seat_total(totals, config) >= config.majority_threshold),
         computed_at=computed_at,
         seat_calls=calls,
     )
@@ -91,8 +87,7 @@ def _swing_by_state(
     blend.
     """
     sentiment_swing = {
-        coalition: score * config.sentiment_sensitivity
-        for coalition, score in sentiment.items()
+        coalition: score * config.sentiment_sensitivity for coalition, score in sentiment.items()
     }
     observed = _observed_state_swings(baseline, state_election_signals)
     weight = config.state_signal_weight
@@ -131,9 +126,9 @@ def _observed_state_swings(
         if not state_seats:
             continue
         for coalition, share in signal.vote_share.items():
-            baseline_share = sum(
-                seat.vote_share.get(coalition, 0.0) for seat in state_seats
-            ) / len(state_seats)
+            baseline_share = sum(seat.vote_share.get(coalition, 0.0) for seat in state_seats) / len(
+                state_seats
+            )
             collected.setdefault(signal.state, {}).setdefault(coalition, []).append(
                 share - baseline_share
             )
@@ -148,9 +143,7 @@ def _call_seat(seat: SeatBaseline, swing: Mapping[Coalition, float]) -> SeatCall
     """Apply the Swing uniformly to one Seat, and call it with its margin."""
     projected = _projected_shares(seat, swing)
     coalition = leading_coalition(projected, tie_break=seat.winner)
-    runner_up = max(
-        (share for c, share in projected.items() if c != coalition), default=0.0
-    )
+    runner_up = max((share for c, share in projected.items() if c != coalition), default=0.0)
     return SeatCall(
         code=seat.code,
         coalition=coalition,

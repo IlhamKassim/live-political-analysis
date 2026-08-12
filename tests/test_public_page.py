@@ -9,8 +9,6 @@ disagrees with the model it came from.
 import re
 from datetime import date
 
-from pytest import approx, raises
-
 from fixtures import (
     BN,
     GPS,
@@ -20,6 +18,8 @@ from fixtures import (
     three_coalition_seats,
     two_coalition_seats,
 )
+from pytest import approx, raises
+
 from lpa.aggregate import AggregatedSentiment
 from lpa.domain import ElectionStatus, Projection, SeatCall, StateElectionSignal
 from lpa.public_page import (
@@ -49,22 +49,22 @@ def model_for(baseline=None, scores=None, config=None, **overrides):
     """
     baseline = baseline if baseline is not None else two_coalition_seats()
     config = config or government_config()
-    projection = swing_model(
-        baseline, scores or {}, [], config, date(2026, 8, 6)
-    )
-    settings = dict(
-        projection=projection,
-        baseline=baseline,
-        status=NOT_CALLED,
-        config=config,
-        names={PH: "Pakatan Harapan", PN: "Perikatan Nasional"},
-        sentiment=AggregatedSentiment(
-            scores={}, article_counts={}, total_articles=12,
+    projection = swing_model(baseline, scores or {}, [], config, date(2026, 8, 6))
+    settings = {
+        "projection": projection,
+        "baseline": baseline,
+        "status": NOT_CALLED,
+        "config": config,
+        "names": {PH: "Pakatan Harapan", PN: "Perikatan Nasional"},
+        "sentiment": AggregatedSentiment(
+            scores={},
+            article_counts={},
+            total_articles=12,
             sources=["Free Malaysia Today"],
         ),
-        state_election_signals=[],
-        total_seats=len(baseline),
-    )
+        "state_election_signals": [],
+        "total_seats": len(baseline),
+    }
     settings.update(overrides)
     return page_model(**settings)
 
@@ -87,8 +87,12 @@ def test_the_chamber_runs_safest_government_to_safest_opposition():
     model = model_for()
 
     assert [s.code for s in model.seats] == [
-        "P001", "P002", "P003", "P004",  # PH, 20 → 4 points
-        "P005", "P006",                  # PN, 10 → 30 points
+        "P001",
+        "P002",
+        "P003",
+        "P004",  # PH, 20 → 4 points
+        "P005",
+        "P006",  # PN, 10 → 30 points
     ]
     assert [s.government for s in model.seats] == [True] * 4 + [False] * 2
     assert model.seats[0].margin == approx(0.20)
@@ -102,9 +106,7 @@ def test_a_government_seat_is_never_placed_after_an_opposition_one():
     model = model_for(
         baseline=three_coalition_seats(),
         scores={PH: -0.6, PN: 0.6},
-        config=government_config(
-            government_coalitions=frozenset({PH, BN}), majority_threshold=6
-        ),
+        config=government_config(government_coalitions=frozenset({PH, BN}), majority_threshold=6),
     )
 
     sides = [s.government for s in model.seats]
@@ -285,11 +287,11 @@ def test_the_government_total_row_states_no_ge15_figure():
     page = render_html(model_for())
 
     total_row = page.split('<tr class="gov-row">')[1].split("</tr>")[0]
-    cells = re.findall(r"<td[^>]*>(.*?)</td>", total_row, re.S)
+    cells = re.findall(r"<td[^>]*>(.*?)</td>", total_row, re.DOTALL)
     assert "Government total" in cells[0]
-    assert cells[1] == "4"                        # projected
-    assert cells[2] == "—" and cells[3] == "—"    # GE15 and Swing: not applicable
-    assert cells[4] == "1"                        # too close
+    assert cells[1] == "4"  # projected
+    assert cells[2] == "—" and cells[3] == "—"  # GE15 and Swing: not applicable
+    assert cells[4] == "1"  # too close
     # The member Coalitions keep their own GE15 results, which are real.
     assert ">Pakatan Harapan " in page
 
@@ -310,7 +312,9 @@ def test_the_sources_are_what_the_latest_run_actually_read():
     # answering 500 contributed nothing and must not be credited (#16).
     model = model_for(
         sentiment=AggregatedSentiment(
-            scores={}, article_counts={}, total_articles=91,
+            scores={},
+            article_counts={},
+            total_articles=91,
             sources=["Free Malaysia Today", "Utusan Malaysia"],
         )
     )
@@ -376,24 +380,20 @@ def test_the_narrow_ledger_states_the_same_figures_as_the_table():
     model = model_for(scores={PH: -0.6, PN: 0.6})
     page = render_html(model)
 
-    narrow = page.split('<div class="ledger-narrow">')[1].split(
-        '<dl class="stress">'
-    )[0]
+    narrow = page.split('<div class="ledger-narrow">')[1].split('<dl class="stress">')[0]
     by_code = {}
     for block in narrow.split('<div class="ledger-stack-row')[1:]:
         code = re.search(r"<small>([^<]+)</small>", block)
         by_code[code.group(1) if code else "__government__"] = block
 
     for row in model.ledger:
-        dds = re.findall(r"<dd[^>]*>(.*?)</dd>", by_code[row.coalition], re.S)
+        dds = re.findall(r"<dd[^>]*>(.*?)</dd>", by_code[row.coalition], re.DOTALL)
         assert dds[0] == str(row.baseline)
         assert dds[2] == str(row.too_close)
 
     gov = by_code["__government__"]
     assert f'<span class="seats-cell">{model.government_seats}</span>' in gov
-    assert re.findall(r"<dd[^>]*>(.*?)</dd>", gov, re.S)[2] == str(
-        model.government_too_close
-    )
+    assert re.findall(r"<dd[^>]*>(.*?)</dd>", gov, re.DOTALL)[2] == str(model.government_too_close)
 
 
 def test_the_hidden_seat_table_lists_every_seat():
@@ -404,11 +404,9 @@ def test_the_hidden_seat_table_lists_every_seat():
     model = model_for()
     page = render_html(model)
 
-    table = page.split('<table class="visually-hidden seat-table">')[1].split(
-        "</table>"
-    )[0]
+    table = page.split('<table class="visually-hidden seat-table">')[1].split("</table>")[0]
     body = table.split("<tbody>")[1]
-    rows = re.findall(r"<tr>(.*?)</tr>", body, re.S)
+    rows = re.findall(r"<tr>(.*?)</tr>", body, re.DOTALL)
     assert len(rows) == len(model.seats)
     first = model.seats[0]
     assert first.name in rows[0]
@@ -429,9 +427,7 @@ def test_a_seat_name_carrying_markup_cannot_break_out_of_the_hidden_table():
     )
     page = render_html(model_for(baseline=baseline))
 
-    table = page.split('<table class="visually-hidden seat-table">')[1].split(
-        "</table>"
-    )[0]
+    table = page.split('<table class="visually-hidden seat-table">')[1].split("</table>")[0]
     assert "<script>alert" not in table
     assert "&lt;script&gt;" in table
 
@@ -450,7 +446,7 @@ def test_the_chamber_eyebrow_carries_the_settled_bm_wording():
 
     assert "Projeksi Kerusi GE16" in page
     assert "Unjuran Dewan Rakyat" in page.split('<div class="eyebrow">')[1]
-    assert "<div class=\"eyebrow\">Seat ledger" in page
+    assert '<div class="eyebrow">Seat ledger' in page
 
 
 def test_the_majority_line_carries_majoriti_in_both_the_chamber_and_the_bar():
@@ -495,9 +491,7 @@ def test_a_state_that_has_voted_is_counted_by_the_seats_it_moves():
     model = model_for(
         baseline=three_coalition_seats(),  # 4 Selangor, 6 Johor
         state_election_signals=[
-            StateElectionSignal(
-                state="Johor", held_on=date(2026, 7, 11), vote_share={PH: 0.4}
-            )
+            StateElectionSignal(state="Johor", held_on=date(2026, 7, 11), vote_share={PH: 0.4})
         ],
     )
 

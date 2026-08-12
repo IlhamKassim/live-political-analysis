@@ -1,0 +1,40 @@
+# The code-quality gate: lint, format, type-check, and test on every push to
+# main and on every pull request. This is the "industrial" enforcement that
+# keeps a regression from merging silently — the runtime pipeline lives in
+# daily.yml, this file guards the repo itself.
+#
+# Runs the same fast, offline suite as local `pytest` (the `model` and
+# `network` markers are already excluded by addopts in pyproject.toml), plus
+# `ruff` lint/format and `mypy` on `src/`. A failed check blocks the merge.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    name: Lint, type, test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Ruff lint
+        run: ruff check .
+
+      - name: Ruff format
+        run: ruff format --check .
+
+      - name: Mypy
+        run: mypy src
+
+      - name: Test
+        run: pytest

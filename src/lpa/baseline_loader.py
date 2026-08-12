@@ -19,7 +19,7 @@ is not a PH component, and Coalition membership is config either way.
 from __future__ import annotations
 
 import re
-from typing import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 
 from lpa.domain import Coalition, SeatBaseline
 
@@ -47,9 +47,7 @@ def build_seat_baselines(
     under; a party absent from the map keeps its own bracketed short code, so a
     minor party is never merged into a bloc it does not belong to.
     """
-    demographics_by_seat = {
-        _split_seat(row["parlimen"])[0]: _demographics(row) for row in census
-    }
+    demographics_by_seat = {_split_seat(row["parlimen"])[0]: _demographics(row) for row in census}
 
     votes: dict[str, dict[Coalition, float]] = {}
     seats: dict[str, tuple[str, str]] = {}
@@ -84,9 +82,7 @@ def _split_seat(parlimen: str) -> tuple[str, str]:
     return match.group(1), match.group(2).strip()
 
 
-def _coalition_of(
-    party: str, party_to_coalition: Mapping[str, Coalition]
-) -> Coalition:
+def _coalition_of(party: str, party_to_coalition: Mapping[str, Coalition]) -> Coalition:
     if party in party_to_coalition:
         return party_to_coalition[party]
     match = _SHORT_CODE.search(party.strip())
@@ -99,9 +95,7 @@ def _as_shares(votes: Mapping[Coalition, float]) -> dict[Coalition, float]:
         raise ValueError("a Seat cannot have zero votes cast")
     return {
         coalition: count / total
-        for coalition, count in sorted(
-            votes.items(), key=lambda item: -item[1]
-        )
+        for coalition, count in sorted(votes.items(), key=lambda item: -item[1])
     }
 
 
@@ -118,9 +112,7 @@ def _margin(shares: Mapping[Coalition, float]) -> float:
 
 def _demographics(row: Mapping[str, str]) -> dict[str, float]:
     return {
-        field: float(row[field])
-        for field in DEMOGRAPHIC_FIELDS
-        if row.get(field) not in (None, "")
+        field: float(row[field]) for field in DEMOGRAPHIC_FIELDS if row.get(field) not in (None, "")
     }
 
 

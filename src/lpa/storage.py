@@ -14,9 +14,9 @@ therefore leaves 222 rows, not 444.
 from __future__ import annotations
 
 import os
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import date
-from typing import Iterable, Sequence
 
 from sqlalchemy import (
     JSON,
@@ -64,8 +64,9 @@ def normalise_database_url(url: str) -> str:
     """
     for scheme in ("postgresql://", "postgres://"):
         if url.startswith(scheme):
-            return f"{POSTGRES_DRIVER}://{url[len(scheme):]}"
+            return f"{POSTGRES_DRIVER}://{url[len(scheme) :]}"
     return url
+
 
 metadata = MetaData()
 
@@ -188,9 +189,7 @@ def save_seat_baselines(engine: Engine, baselines: Iterable[SeatBaseline]) -> in
 def load_seat_baselines(engine: Engine) -> Sequence[SeatBaseline]:
     """Read the stored Baseline back, ordered by Seat code."""
     with engine.connect() as connection:
-        rows = connection.execute(
-            select(seat_baseline).order_by(seat_baseline.c.code)
-        ).mappings()
+        rows = connection.execute(select(seat_baseline).order_by(seat_baseline.c.code)).mappings()
         return [
             SeatBaseline(
                 code=row["code"],
@@ -235,13 +234,9 @@ def save_snapshot(
         # column's Date type: SQLite stores dates as text, and an aggregate
         # over them returns the text.
         stored_calls_from = connection.execute(
-            select(seat_call.c.computed_at)
-            .order_by(seat_call.c.computed_at.desc())
-            .limit(1)
+            select(seat_call.c.computed_at).order_by(seat_call.c.computed_at.desc()).limit(1)
         ).scalar()
-        if projection.seat_calls and (
-            stored_calls_from is None or day >= stored_calls_from
-        ):
+        if projection.seat_calls and (stored_calls_from is None or day >= stored_calls_from):
             connection.execute(delete(seat_call))
             connection.execute(
                 seat_call.insert(),
@@ -275,9 +270,7 @@ def save_snapshot(
                 },
             ),
         ):
-            connection.execute(
-                delete(table).where(table.c.computed_at == day)
-            )
+            connection.execute(delete(table).where(table.c.computed_at == day))
             connection.execute(table.insert(), row)
 
 
@@ -292,9 +285,7 @@ def load_projections(engine: Engine) -> Sequence[Projection]:
     """
     with engine.connect() as connection:
         calls_by_day: dict[date, list[SeatCall]] = {}
-        for row in connection.execute(
-            select(seat_call).order_by(seat_call.c.code)
-        ).mappings():
+        for row in connection.execute(select(seat_call).order_by(seat_call.c.code)).mappings():
             calls_by_day.setdefault(row["computed_at"], []).append(
                 SeatCall(
                     code=row["code"],
@@ -316,9 +307,7 @@ def load_projections(engine: Engine) -> Sequence[Projection]:
         ]
 
 
-def save_poll_calibrations(
-    engine: Engine, reports: Iterable[PollCalibration]
-) -> int:
+def save_poll_calibrations(engine: Engine, reports: Iterable[PollCalibration]) -> int:
     """Store `reports` as Poll Calibration points. Returns the count written.
 
     Each report replaces any stored one for the same publisher and fieldwork
@@ -333,8 +322,7 @@ def save_poll_calibrations(
             connection.execute(
                 delete(poll_calibration_snapshot).where(
                     poll_calibration_snapshot.c.publisher == report.publisher,
-                    poll_calibration_snapshot.c.fieldwork_end
-                    == report.fieldwork_end,
+                    poll_calibration_snapshot.c.fieldwork_end == report.fieldwork_end,
                 )
             )
             connection.execute(
@@ -348,9 +336,7 @@ def save_poll_calibrations(
                     "fieldwork_start": report.fieldwork_start,
                     "sample_size": report.sample_size,
                     "margin_of_error": report.margin_of_error,
-                    "leader_ratings": [
-                        rating.as_mapping() for rating in report.leader_ratings
-                    ],
+                    "leader_ratings": [rating.as_mapping() for rating in report.leader_ratings],
                 },
             )
             written += 1
@@ -377,8 +363,7 @@ def load_poll_calibrations(engine: Engine) -> Sequence[PollCalibration]:
                 sample_size=row["sample_size"],
                 margin_of_error=row["margin_of_error"],
                 leader_ratings=tuple(
-                    LeaderRating.from_mapping(rating)
-                    for rating in row["leader_ratings"]
+                    LeaderRating.from_mapping(rating) for rating in row["leader_ratings"]
                 ),
             )
             for row in rows

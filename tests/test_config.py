@@ -79,9 +79,7 @@ def test_umno_is_found_in_the_mixed_case_as_well_as_the_shouted_one():
     # NST, FMT and Bernama write "Umno"; the Malay papers write "UMNO".
     # Matching is case-sensitive, so listing only the shouted form missed BN's
     # commonest alias in exactly the outlets that use the other one.
-    assert "BN" in attribute_sentences(
-        "Umno and DAP maintain cordial ties.", SHIPPED_ALIASES
-    )
+    assert "BN" in attribute_sentences("Umno and DAP maintain cordial ties.", SHIPPED_ALIASES)
     assert "BN" in attribute_sentences("UMNO menang 16 kerusi DUN.", SHIPPED_ALIASES)
 
 

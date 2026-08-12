@@ -28,3 +28,9 @@ public/index.html
 # judge couldn't resolve (see docs/agents/citation-check.md) — written next
 # to the page it checked, not meant to be committed.
 public/learn/*.pending.json
+
+# Local Claude Code state — machine-specific settings and scheduled-task
+# locks, not project content. The skills themselves live in ~/.claude/skills;
+# nothing under .claude/ belongs in the repo (we did not vendor skills into
+# it; see the CI-gate decision).
+.claude/

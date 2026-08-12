@@ -6,9 +6,10 @@ without a network or a model. The parts themselves are tested in their own
 suites.
 """
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 from fixtures import PH, PN, government_config, two_coalition_seats
+
 from lpa.domain import Article, Outlet
 from lpa.pipeline import run_pipeline, today_in_malaysia
 from lpa.storage import (
@@ -26,7 +27,7 @@ def article(text: str) -> Article:
     return Article(
         source="Test Outlet",
         url="https://x/1",
-        published_at=datetime(2026, 8, 6, tzinfo=timezone.utc),
+        published_at=datetime(2026, 8, 6, tzinfo=UTC),
         title="Headline",
         text=text,
     )
@@ -69,7 +70,7 @@ def test_a_headline_counts_as_coverage_even_when_the_body_does_not_name_anyone()
             Article(
                 source="Test Outlet",
                 url="https://x/1",
-                published_at=datetime(2026, 8, 6, tzinfo=timezone.utc),
+                published_at=datetime(2026, 8, 6, tzinfo=UTC),
                 title="PN was praised today",
                 text="The announcement came late in the afternoon.",
             )
@@ -195,7 +196,7 @@ def test_the_sentiment_snapshot_records_what_it_was_built_from():
 def test_the_run_is_dated_by_the_malaysian_day_not_utc():
     # 00:30 on 7 August in Kuala Lumpur is still 6 August in UTC. Dating by UTC
     # would file a Malaysian day's coverage under the day before.
-    instant = datetime(2026, 8, 6, 16, 30, tzinfo=timezone.utc)
+    instant = datetime(2026, 8, 6, 16, 30, tzinfo=UTC)
 
     assert today_in_malaysia(now=lambda tz: instant.astimezone(tz)) == date(2026, 8, 7)
     assert instant.date() == date(2026, 8, 6)  # what UTC would have given

@@ -9,7 +9,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0"]
+dev = ["pytest>=8.0", "ruff>=0.8", "mypy>=1.13"]
 sentiment = ["transformers>=4.40", "torch>=2.0", "sentencepiece>=0.2", "protobuf>=4.0"]
 dashboard = ["streamlit>=1.37", "pandas>=2.0", "altair>=5.0"]
 postgres = ["psycopg[binary]>=3.1"]
@@ -36,3 +36,31 @@ markers = [
     "model: needs the self-hosted sentiment model; downloads weights and runs CPU inference",
     "network: makes a real HTTP request; run with `pytest -m network`",
 ]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = ["docs", "public", "scripts"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src"]
+# The Streamlit dashboard is the one untyped surface in the package, and by
+# design has no automated tests (issue #1) — it is verified by running the
+# pipeline and looking at the page. It is also the only importer of
+# pandas/altair, so excluding it keeps the type-check on the model code,
+# which is where a type error costs something, without dragging in the
+# pandas/numpy stub layer. Typing it is a later, separate piece of work.
+exclude = ["src/lpa/dashboard.py"]
+# Type-check this package, not the bodies of its third-party dependencies:
+# `transformers` pulls in numpy, whose stubs use a Python 3.12-only `type`
+# statement that mypy refuses to parse at `python_version = 3.11`. Skipping
+# external imports keeps the 3.11-compat check on our own code (matching
+# `requires-python`) while leaving the vendor stubs unexamined.
+follow_imports = "skip"
+check_untyped_defs = true
+disallow_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_return_any = true
+no_implicit_reexport = true

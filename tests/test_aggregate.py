@@ -3,14 +3,14 @@
 Pure — the scores are given, so no model runs here.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from pytest import approx
 
 from lpa.aggregate import aggregate_sentiment
 from lpa.domain import Article
 
-NOW = datetime(2026, 8, 6, 12, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 8, 6, 12, 0, tzinfo=UTC)
 
 
 def article(hours_old: float = 0.0, source: str = "FMT") -> Article:

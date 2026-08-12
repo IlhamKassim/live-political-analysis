@@ -6,9 +6,9 @@ so that one behaviour is pinned here against in-memory SQLite.
 from dataclasses import replace
 from datetime import date
 
+from fixtures import PH, PN, government_config, two_coalition_seats
 from pytest import raises
 
-from fixtures import PH, PN, government_config, two_coalition_seats
 from lpa.aggregate import AggregatedSentiment
 from lpa.poll_calibration import LeaderRating, PollCalibration
 from lpa.storage import (
@@ -29,17 +29,16 @@ def test_a_hosted_postgres_url_gains_the_driver_this_project_installs():
     # postgresql:// as psycopg2, which is not a dependency here, so pasting
     # the URL verbatim would fail on a missing driver rather than on
     # anything true about the database.
-    assert normalise_database_url(
-        "postgresql://user:pw@ep-x.aws.neon.tech/lpa?sslmode=require"
-    ) == "postgresql+psycopg://user:pw@ep-x.aws.neon.tech/lpa?sslmode=require"
+    assert (
+        normalise_database_url("postgresql://user:pw@ep-x.aws.neon.tech/lpa?sslmode=require")
+        == "postgresql+psycopg://user:pw@ep-x.aws.neon.tech/lpa?sslmode=require"
+    )
 
 
 def test_the_older_postgres_scheme_is_accepted_too():
     # SQLAlchemy 2 rejects postgres:// outright, and it is still what some
     # providers and older docs hand out.
-    assert normalise_database_url("postgres://user:pw@host/db").startswith(
-        "postgresql+psycopg://"
-    )
+    assert normalise_database_url("postgres://user:pw@host/db").startswith("postgresql+psycopg://")
 
 
 def test_a_url_that_already_names_its_driver_is_left_alone():
@@ -97,16 +96,16 @@ def test_margin_and_demographics_survive_the_round_trip():
 
 
 def poll(fieldwork_end: date, publisher: str = "Merdeka Center", **overrides):
-    defaults = dict(
-        publisher=publisher,
-        title="Perceptions Towards Economy, Leadership & Current Issues",
-        report_url="https://merdeka.org/91060-2/",
-        published_on=date(2026, 6, 25),
-        fieldwork_start=date(2026, 3, 12),
-        fieldwork_end=fieldwork_end,
-        sample_size=1209,
-        margin_of_error=2.82,
-        leader_ratings=(
+    defaults = {
+        "publisher": publisher,
+        "title": "Perceptions Towards Economy, Leadership & Current Issues",
+        "report_url": "https://merdeka.org/91060-2/",
+        "published_on": date(2026, 6, 25),
+        "fieldwork_start": date(2026, 3, 12),
+        "fieldwork_end": fieldwork_end,
+        "sample_size": 1209,
+        "margin_of_error": 2.82,
+        "leader_ratings": (
             LeaderRating(
                 leader="Anwar Ibrahim",
                 satisfied=52,
@@ -121,7 +120,7 @@ def poll(fieldwork_end: date, publisher: str = "Merdeka Center", **overrides):
                 note="Outside UMNO during fieldwork.",
             ),
         ),
-    )
+    }
     return PollCalibration(**{**defaults, **overrides})
 
 
@@ -185,9 +184,7 @@ def projection_for(day: date, sentiment: dict[str, float] | None = None):
     )
 
 
-EMPTY_SENTIMENT = AggregatedSentiment(
-    scores={}, article_counts={}, total_articles=0, sources=[]
-)
+EMPTY_SENTIMENT = AggregatedSentiment(scores={}, article_counts={}, total_articles=0, sources=[])
 
 
 def test_the_latest_projections_seat_calls_read_back_with_it():
