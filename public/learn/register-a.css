@@ -13,9 +13,14 @@
 
    What lives here: the palette/type tokens, the paper grain, and the base
    register elements every content page needs (masthead, theme toggle,
-   running prose, colophon). What does NOT live here: layout specific to
-   one page's content (e.g. glossary.html's term-entry structure) — that
-   stays in the page's own <style> block, built on these tokens.
+   table of contents, the italic one-line gloss under a heading, running
+   prose, colophon). What does NOT live here: layout specific to one
+   page's content (e.g. glossary.html's term-entry structure) — that stays
+   in the page's own <style> block, built on these tokens.
+
+   The theme toggle's behaviour (not just its look) lives in register-a.js,
+   for the same reason — link it, don't paste the pre-paint read and the
+   click handler into a fourth page.
    ═══════════════════════════════════════════════════════════════════════ */
 
 :root {
@@ -24,6 +29,9 @@
   --surface:     #F2F3EE;
   --ink:         #17191A;
   --ink-soft:    #55584F;
+  /* #8A8D83 in the mockup is 2.79:1 on --ground and carries every eyebrow,
+     label and key. The handoff's suggested #6C6F66 measures 4.23:1 — still
+     short. This is 4.62:1. */
   --ink-faint:   #666960;
   --rule:        #C8CAC0;
   --rule-hair:   #D8DAD1;
@@ -156,6 +164,31 @@ body::before {
 .theme-btn:hover { color: var(--ink); border-color: var(--ink-faint); }
 .theme-btn:focus-visible { outline: 2px solid var(--pn); outline-offset: 2px; }
 
+/* ── table of contents — a row of chips linking to the page's sections ── */
+.toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin: clamp(22px, 4vw, 34px) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.toc li { margin: 0; }
+.toc a {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .04em;
+  color: var(--ink-soft);
+  text-decoration: none;
+  border: 1px solid var(--rule);
+  padding: 5px 11px;
+}
+.toc a:hover { color: var(--ink); border-color: var(--ink-faint); }
+.toc a:focus-visible { outline: 2px solid var(--pn); outline-offset: 2px; }
+
+:target { scroll-margin-top: 24px; }
+
 /* ── opening — eyebrow + a large lede, for a page's own standfirst ── */
 .opening {
   padding: clamp(30px, 5vw, 52px) 0 clamp(24px, 4vw, 36px);
@@ -187,6 +220,18 @@ body::before {
 }
 .lede b { font-weight: inherit; color: var(--ink); }
 
+/* ── gloss — the italic one-line summary under a section heading; e.g.
+   glossary.html's term-gloss, coalitions.html's coalition-gloss, and
+   ge16-process.html's step-gloss are all this same rule, three names for
+   one idiom. Use this class directly rather than re-declaring it. ── */
+.gloss {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--ink-faint);
+  font-size: 15px;
+  margin: 0 0 16px;
+}
+
 /* ── running prose ────────────────────────────────────── */
 .prose { padding: clamp(34px, 5vw, 56px) 0 0; }
 .strip {
@@ -206,6 +251,9 @@ body::before {
   color: var(--ink);
 }
 .prose p:last-child { margin-bottom: 0; }
+.prose p a { color: inherit; border-bottom: 1px solid var(--rule); text-decoration: none; }
+.prose p a:hover { border-bottom-color: var(--ink-faint); }
+.prose p a:focus-visible { outline: 2px solid var(--pn); outline-offset: 2px; }
 
 /* ── colophon ─────────────────────────────────────────── */
 .colophon {
@@ -232,6 +280,8 @@ body::before {
   color: var(--ink-soft);
   margin: 0;
 }
+.colophon a { color: inherit; }
+.colophon a:focus-visible { outline: 2px solid var(--pn); outline-offset: 2px; }
 .caveat { border-left: 2px solid var(--ph); padding-left: 14px; }
 .caveat p { color: var(--ink); }
 
