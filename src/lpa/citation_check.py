@@ -53,7 +53,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import secrets
 import subprocess
 import sys
@@ -415,13 +414,37 @@ def _judge_prompt(claim: Claim, source_text: str) -> str:
     )
 
 
-_VERDICT_JSON = re.compile(r'\{[^{}]*"verdict"\s*:\s*"[^"]*"[^{}]*\}')
-"""Matches a flat `{"verdict": ..., "detail": ...}` object anywhere in a
-subagent's reply. The prompt asks for nothing else in the response, but a
-model that ignores that and wraps the JSON in a code fence or a sentence of
-preamble should still be readable — the schema has no nested braces, so the
-last such object in the text is taken as the actual answer (over any earlier
-JSON-shaped text in a preamble)."""
+def _find_verdict_json(text: str) -> dict | None:
+    """Find the last `{"verdict": ...}`-shaped object anywhere in `text`.
+
+    A model asked for nothing else in its reply should still be readable if
+    it wraps the JSON in a code fence or a sentence of preamble — so this
+    scans for every `{` and asks `json.JSONDecoder.raw_decode` whether an
+    object starts there, rather than trying to spot the object's boundaries
+    with a regex. A regex built on counting literal braces (an earlier
+    version of this function used `\\{[^{}]*"verdict"...\\}`) breaks the
+    moment a judge's `detail` field quotes source text that itself contains
+    braces — a Wikipedia infobox's `{{start date|...}}` template, say — since
+    those braces are inside a JSON *string*, not part of the object's actual
+    structure, and a regex can't tell the difference. `raw_decode` already
+    knows how to skip over quoted content correctly, so it doesn't need to.
+    """
+    decoder = json.JSONDecoder()
+    found = None
+    pos = 0
+    while True:
+        brace = text.find("{", pos)
+        if brace == -1:
+            break
+        try:
+            candidate, end = decoder.raw_decode(text, brace)
+        except json.JSONDecodeError:
+            pos = brace + 1
+            continue
+        if isinstance(candidate, dict) and "verdict" in candidate:
+            found = candidate
+        pos = max(end, brace + 1)
+    return found
 
 
 def _parse_subagent_verdict(stdout: str) -> tuple[Verdict, str]:
@@ -429,8 +452,8 @@ def _parse_subagent_verdict(stdout: str) -> tuple[Verdict, str]:
     JSON it should contain in `result`, per `_judge_prompt`'s instructions.
 
     Tolerates the result not being *pure* JSON (a code fence, a sentence of
-    preamble) by pulling out the last `{"verdict": ...}`-shaped substring —
-    see `_VERDICT_JSON` — rather than requiring the whole field to parse.
+    preamble) via `_find_verdict_json` rather than requiring the whole field
+    to parse.
     """
     try:
         payload = json.loads(stdout)
@@ -442,19 +465,18 @@ def _parse_subagent_verdict(stdout: str) -> tuple[Verdict, str]:
             f"could not parse subagent output as the claude CLI's json envelope "
             f"({type(error).__name__}: {error}): {preview!r}",
         )
-    matches = _VERDICT_JSON.findall(result)
-    if not matches:
+    verdict_json = _find_verdict_json(result)
+    if verdict_json is None:
         return (
             Verdict.NEEDS_JUDGMENT,
             f"subagent reply had no verdict JSON: {result.strip()[:200]!r}",
         )
     try:
-        verdict_json = json.loads(matches[-1])
         verdict = Verdict(verdict_json["verdict"])
-    except (json.JSONDecodeError, KeyError, ValueError) as error:
+    except (KeyError, ValueError) as error:
         return (
             Verdict.NEEDS_JUDGMENT,
-            f"could not parse subagent's verdict JSON ({type(error).__name__}: {error}): {matches[-1]!r}",
+            f"could not parse subagent's verdict JSON ({type(error).__name__}: {error}): {verdict_json!r}",
         )
     if verdict not in (Verdict.SUPPORTED, Verdict.CONTRADICTED, Verdict.UNCLEAR):
         return Verdict.NEEDS_JUDGMENT, f"subagent returned {verdict.value!r}, not a judgment"
