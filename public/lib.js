@@ -416,3 +416,22 @@ export function formatResultCard(r) {
     runnerUp: formatRunnerUp(r),
   };
 }
+// Pure viewBox calculator for seat zoom framing. Aspect-ratio matched to the full map.
+// Returns [x, y, w, h]. Bounds degenerate / missing bboxes safely back to full viewBox.
+export function seatViewBox(bbox, full = [0, 0, 799.85, 352.74]) {
+  const f = (Array.isArray(full) && full.length >= 4 && Number.isFinite(full[2]) && Number.isFinite(full[3]) && full[2] > 0 && full[3] > 0)
+    ? full : [0, 0, 799.85, 352.74];
+  if (!bbox || typeof bbox !== "object" || !Number.isFinite(bbox.x) || !Number.isFinite(bbox.y) ||
+      !Number.isFinite(bbox.w) || !Number.isFinite(bbox.h) || bbox.w <= 0 || bbox.h <= 0) {
+    return f.slice();
+  }
+  const pad = Math.max(bbox.w, bbox.h) * 0.9 + 10;
+  const w = bbox.w + pad * 2;
+  const h = bbox.h + pad * 2;
+  const ar = f[2] / f[3];
+  let vw = w, vh = h;
+  if (vw / vh > ar) vh = vw / ar; else vw = vh * ar;
+  const cx = bbox.x + bbox.w / 2;
+  const cy = bbox.y + bbox.h / 2;
+  return [cx - vw / 2, cy - vh / 2, vw, vh];
+}

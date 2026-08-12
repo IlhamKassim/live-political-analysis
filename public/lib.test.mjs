@@ -11,7 +11,7 @@ import {
   formatParty, candidateCount, formatRunnerUp, formatResultCard, fitBox,
   partyColor, COALITION_COLORS, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues, swatchTextColor,
-  competitivenessFromMajorityPct, withCurrentAffiliation,
+  competitivenessFromMajorityPct, withCurrentAffiliation, seatViewBox,
 } from "./lib.js";
 import { I18N } from "./i18n.js";
 
@@ -1068,3 +1068,24 @@ test("swatchTextColor: accepts short hex and falls back on invalid input", () =>
   assert.equal(swatchTextColor("not-a-colour"), "#fff");
   assert.equal(swatchTextColor(null), "#fff");
 });
+
+test("seatViewBox: framing byte-identical to expected aspect ratio and centered", () => {
+  const bbox = { x: 100, y: 50, w: 40, h: 30 };
+  const full = [0, 0, 800, 400];
+  const [x, y, w, h] = seatViewBox(bbox, full);
+  // aspect ratio of returned viewBox equals full's aspect ratio (800/400 = 2)
+  assert.equal(w / h, 2);
+  // center of viewBox matches center of bbox (120, 65)
+  assert.equal(x + w / 2, 120);
+  assert.equal(y + h / 2, 65);
+});
+
+test("seatViewBox: degenerate / missing / non-finite bbox returns full viewBox copy", () => {
+  const full = [0, 0, 799.85, 352.74];
+  assert.deepEqual(seatViewBox(null, full), full);
+  assert.deepEqual(seatViewBox({}, full), full);
+  assert.deepEqual(seatViewBox({ x: 0, y: 0, w: 0, h: 10 }, full), full);
+  assert.deepEqual(seatViewBox({ x: 0, y: 0, w: -5, h: 10 }, full), full);
+  assert.deepEqual(seatViewBox({ x: NaN, y: 0, w: 10, h: 10 }, full), full);
+});
+

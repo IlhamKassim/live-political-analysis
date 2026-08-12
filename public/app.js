@@ -5,7 +5,7 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues, swatchTextColor,
-  competitivenessFromMajorityPct, withCurrentAffiliation } from "./lib.js?v=145";
+  competitivenessFromMajorityPct, withCurrentAffiliation, seatViewBox } from "./lib.js?v=145";
 import { I18N } from "./i18n.js?v=153";
 
 const SVG = document.getElementById("map");
@@ -1916,16 +1916,8 @@ function animateTo(target, ms = 260, ease = (t) => 1 - Math.pow(1 - t, 3)) {
   animId = requestAnimationFrame(step);
 }
 function zoomToSeat(seat) {
-  const b = seat.bbox;
-  const pad = Math.max(b.w, b.h) * 0.9 + 10;
-  const w = b.w + pad * 2;
-  const h = b.h + pad * 2;
-  // keep map aspect ratio so preserveAspectRatio doesn't distort framing
-  const ar = FULL[2] / FULL[3];
-  let vw = w, vh = h;
-  if (vw / vh > ar) vh = vw / ar; else vw = vh * ar;
-  const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
-  animateTo([cx - vw / 2, cy - vh / 2, vw, vh]);
+  if (!seat || !seat.bbox) return;
+  animateTo(seatViewBox(seat.bbox, FULL));
 }
 function zoomFull() { animateTo(FULL.slice()); }
 // the viewBox that frames a whole state into the upper part of the map (state centre
@@ -3069,7 +3061,7 @@ function renderSummary() {
   if (!data) return;   // boundary layer unavailable — error overlay is showing instead
   const states = new Set(data.seats.map((s) => s.state));
   $("#summary").innerHTML =
-    `<dt>${t("seats")}</dt><dd>${data.count}</dd>` +
+    `<dt>${t("seats")}</dt><dd>${data.count ?? (data.seats ? data.seats.length : 0)}</dd>` +
     `<dt>${t("states")}</dt><dd>${states.size}</dd>` +
     `<dt>${t("layer")}</dt><dd>${state.tier === "parlimen" ? t("tier_parlimen") : t("tier_dun")}</dd>`;
   // legend reflects current color mode
@@ -3566,6 +3558,7 @@ Q.addEventListener("keydown", (e) => {
     const pick = activeResult >= 0 ? opts[activeResult] : opts[0];   // highlighted, else first
     if (pick) pick.click();
   } else if (e.key === "Escape") {
+    if (Q.value === "" && RESULTS.hidden) return;
     // Clear the search only — stopPropagation so the event doesn't bubble to the
     // document handler that deselects the seat (one Escape, one action). A second
     // Escape with focus outside #q still deselects via the global handler.
