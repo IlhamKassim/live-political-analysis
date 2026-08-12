@@ -20,6 +20,7 @@
 })();
 </script>
 <link rel="stylesheet" href="register-a.css">
+<script src="register-a.js"></script>
 <style>
   /* Page-specific layout only — tokens, masthead, prose and colophon come
      from register-a.css (see that file's header for why it's shared). */
@@ -29,7 +30,7 @@
     padding: clamp(30px, 5vw, 48px) 0 clamp(30px, 5vw, 48px) clamp(52px, 8vw, 76px);
     border-top: 1px solid var(--rule-hair);
   }
-  .step:first-of-type { border-top: none; padding-top: clamp(10px, 2vw, 18px); }
+  .opening + .step { border-top: none; padding-top: clamp(10px, 2vw, 18px); }
   .step-index {
     position: absolute;
     left: 0;
@@ -43,7 +44,7 @@
     padding-right: 14px;
     border-right: 2px solid var(--rule);
   }
-  .step:first-of-type .step-index { top: clamp(12px, 2.4vw, 20px); }
+  .opening + .step .step-index { top: clamp(12px, 2.4vw, 20px); }
   .step h2 {
     font-family: var(--serif);
     font-weight: 400;
@@ -51,14 +52,6 @@
     letter-spacing: -.015em;
     margin: 0 0 4px;
   }
-  .step-gloss {
-    font-family: var(--serif);
-    font-style: italic;
-    color: var(--ink-faint);
-    font-size: 15px;
-    margin: 0 0 16px;
-  }
-
   .states {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -104,29 +97,6 @@
     .state-block:last-child { border-bottom: none; }
   }
 
-  .toc {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 10px;
-    margin: clamp(22px, 4vw, 34px) 0 0;
-    padding: 0;
-    list-style: none;
-  }
-  .toc li { margin: 0; }
-  .toc a {
-    display: inline-block;
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: .04em;
-    color: var(--ink-soft);
-    text-decoration: none;
-    border: 1px solid var(--rule);
-    padding: 5px 11px;
-  }
-  .toc a:hover { color: var(--ink); border-color: var(--ink-faint); }
-  .toc a:focus-visible { outline: 2px solid var(--pn); outline-offset: 2px; }
-
-  :target { scroll-margin-top: 24px; }
 </style>
 </head>
 <body>
@@ -162,7 +132,7 @@
   <section class="prose step" id="step-dissolution">
     <span class="step-index">01</span>
     <h2>Dissolution</h2>
-    <p class="step-gloss">the act that starts a Malaysian general election</p>
+    <p class="gloss">the act that starts a Malaysian general election</p>
     <p>
       <span data-claim data-cite="https://www.malaysianbar.org.my/legal/general_news/royal_powers_after_dissolution.html" id="dissolution-starts-it">A Malaysian general election begins with the dissolution of the Dewan Rakyat, Parliament's elected lower house — the event that opens the interim period running through to the appointment of the next elected government.</span>
       <span data-claim data-cite="https://www.malaysianbar.org.my/legal/general_news/royal_powers_after_dissolution.html" id="dissolution-two-routes">Unless elections are called prematurely, the Dewan Rakyat's five-year term simply runs its course and dissolution follows.</span>
@@ -178,10 +148,10 @@
   <section class="prose step" id="step-nomination">
     <span class="step-index">02</span>
     <h2>Nomination</h2>
-    <p class="step-gloss">where the Election Commission sets the dates dissolution itself doesn't fix</p>
+    <p class="gloss">where the Election Commission sets the dates dissolution itself doesn't fix</p>
     <p>
       <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="dissolution-doesnt-set-dates">Dissolution does not itself fix when nomination day or polling day fall — the Election Commission of Malaysia sets and announces those separately, after dissolution has already happened.</span>
-      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="gap-is-typical">This project's own data notes record that gap as typically running a week or two, not a fixed number of days set by law.</span>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="gap-is-typical">This project's own data notes record that gap as typically running a week or two.</span>
     </p>
     <p>
       <span data-claim data-cite="https://www.malaysianbar.org.my/article/news/legal-and-general-news/members-opinions/ge13-abiding-by-the-nomination-process" id="nomination-centres">On nomination day, candidates present their nomination papers to the returning officer for their constituency, and those papers can be rejected if they don't comply with the Elections (Conduct of Elections) Regulations.</span>
@@ -191,15 +161,21 @@
   <section class="prose step" id="step-polling">
     <span class="step-index">03</span>
     <h2>Polling</h2>
-    <p class="step-gloss">where voters decide the Dewan Rakyat's 222 Seats</p>
+    <p class="gloss">where voters decide, inside the window dissolution opened</p>
     <p>
-      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md" id="polling-seats">The Dewan Rakyat, Malaysia's elected parliamentary chamber, is made up of 222 Seats — the term this site uses for what are otherwise called parliamentary constituencies.</span>
+      Polling day itself falls inside the same 60-day window Article 55(4)
+      sets running from dissolution (see <a href="#step-dissolution">Dissolution</a>
+      above) — nomination, the campaign that follows it, and polling all
+      have to land inside that one constitutional deadline. For what a
+      Seat is and how many the Dewan Rakyat has, see the
+      <a href="glossary.html#term-seat">glossary</a>.
       <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md" id="polling-not-model-input">Once a polling date is set, it is context for reading this site's Projection, not an input the Swing Model consumes.</span>
     </p>
   </section>
 
-  <section class="prose" id="the-three-states">
+  <section class="prose step" id="the-three-states">
     <div class="strip"><div class="eyebrow">What the dashboard actually renders</div></div>
+    <h2>The three states</h2>
     <p>
       <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="three-states-summary">This dashboard's Election Status is driven by two dates — when the Dewan Rakyat was dissolved, and when polling was set — and derives what it displays from which of those two dates are present.</span>
     </p>
@@ -207,7 +183,7 @@
     <div class="states">
       <div class="state-block">
         <span class="state-tag">Not called</span>
-        <h3>Neither date is set</h3>
+        <h3>No dissolution date</h3>
         <p>
           <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="state-not-called">Before the Dewan Rakyat is dissolved, GE16 has simply not been called, and this dashboard records no dissolution date and no polling date.</span>
           <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="state-not-called-deadline">The Dewan Rakyat continues sitting, bound only by the constitutional deadline the five-year term and the 60-day rule together set.</span>
@@ -262,23 +238,6 @@
   </footer>
 
 </div>
-<script>
-(function () {
-  var btn = document.getElementById("themeBtn");
-  function dark() {
-    var set = document.documentElement.getAttribute("data-theme");
-    return set ? set === "dark"
-      : window.matchMedia("(prefers-color-scheme: dark)").matches;
-  }
-  function label() { btn.textContent = dark() ? "Light" : "Dark"; }
-  btn.addEventListener("click", function () {
-    var next = dark() ? "light" : "dark";
-    document.documentElement.setAttribute("data-theme", next);
-    try { localStorage.setItem("theme", next); } catch (e) {}
-    label();
-  });
-  label();
-})();
-</script>
+<script>initThemeToggle("themeBtn");</script>
 </body>
 </html>
