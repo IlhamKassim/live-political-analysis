@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The GE16 process — reading this site | Live Political Analysis</title>
+<meta name="description" content="How GE16 actually unfolds — dissolution, then nomination, then polling — and why 'called, no polling date yet' is a real, distinct state this dashboard tracks, not a half-filled record.">
+<script>
+/* Theme, read before first paint — same pattern as public_page.py's
+   _THEME_INIT_SCRIPT (HANDOFF defect 7), so a returning reader's stored
+   theme applies before anything renders rather than flashing the system
+   default and then swapping. */
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved === "dark" || saved === "light") {
+      document.documentElement.setAttribute("data-theme", saved);
+    }
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="register-a.css">
+<script src="register-a.js"></script>
+<style>
+  /* Page-specific layout only — tokens, masthead, prose and colophon come
+     from register-a.css (see that file's header for why it's shared). */
+
+  .step {
+    position: relative;
+    padding: clamp(30px, 5vw, 48px) 0 clamp(30px, 5vw, 48px) clamp(52px, 8vw, 76px);
+    border-top: 1px solid var(--rule-hair);
+  }
+  .opening + .step { border-top: none; padding-top: clamp(10px, 2vw, 18px); }
+  .step-index {
+    position: absolute;
+    left: 0;
+    top: clamp(32px, 5.4vw, 50px);
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .04em;
+    color: var(--ink-faint);
+    width: clamp(38px, 6vw, 56px);
+    text-align: right;
+    padding-right: 14px;
+    border-right: 2px solid var(--rule);
+  }
+  .opening + .step .step-index { top: clamp(12px, 2.4vw, 20px); }
+  .step h2 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(24px, 3.2vw, 33px);
+    letter-spacing: -.015em;
+    margin: 0 0 4px;
+  }
+  .states {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    margin: clamp(24px, 4vw, 36px) 0 0;
+    border-top: 2px solid var(--ink);
+  }
+  .state-block {
+    padding: clamp(18px, 3vw, 26px) clamp(16px, 2.5vw, 22px);
+    border-right: 1px solid var(--rule);
+  }
+  .state-block:last-child { border-right: none; }
+  .state-tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    border: 1px solid var(--rule);
+    padding: 3px 8px;
+    margin: 0 0 12px;
+  }
+  .state-block h3 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 18px;
+    letter-spacing: -.01em;
+    margin: 0 0 10px;
+  }
+  .state-block p {
+    font-family: var(--serif);
+    font-size: 14.5px;
+    line-height: 1.55;
+    color: var(--ink);
+    margin: 0 0 .9em;
+  }
+  .state-block p:last-child { margin-bottom: 0; }
+
+  @media (max-width: 760px) {
+    .states { grid-template-columns: 1fr; }
+    .state-block { border-right: none; border-bottom: 1px solid var(--rule); }
+    .state-block:last-child { border-bottom: none; }
+  }
+
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <header class="masthead">
+    <div class="wordmark"><a href="../index.html">Live Political Analysis</a> <em>— reading this site</em></div>
+    <div class="stamp">
+      <span>PROCESS · GE16</span>
+      <button class="theme-btn" id="themeBtn" type="button">Dark</button>
+    </div>
+  </header>
+
+  <section class="opening">
+    <div class="eyebrow">How the election actually unfolds</div>
+    <h1>The GE16 process</h1>
+    <p class="lede">
+      This dashboard tracks three states for GE16: not called, called with
+      no polling date yet, and called with a polling date set. This page
+      explains the sequence behind those states — dissolution, then
+      nomination, then polling — and why the middle state, called but
+      undated, is a real stage of the process rather than a gap in the
+      record.
+    </p>
+    <ul class="toc">
+      <li><a href="#step-dissolution">Dissolution</a></li>
+      <li><a href="#step-nomination">Nomination</a></li>
+      <li><a href="#step-polling">Polling</a></li>
+      <li><a href="#the-three-states">The three states</a></li>
+    </ul>
+  </section>
+
+  <section class="prose step" id="step-dissolution">
+    <span class="step-index">01</span>
+    <h2>Dissolution</h2>
+    <p class="gloss">the act that starts a Malaysian general election</p>
+    <p>
+      <span data-claim data-cite="https://www.malaysianbar.org.my/legal/general_news/royal_powers_after_dissolution.html" id="dissolution-starts-it">A Malaysian general election begins with the dissolution of the Dewan Rakyat, Parliament's elected lower house — the event that opens the interim period running through to the appointment of the next elected government.</span>
+      <span data-claim data-cite="https://www.malaysianbar.org.my/legal/general_news/royal_powers_after_dissolution.html" id="dissolution-two-routes">Unless elections are called prematurely, the Dewan Rakyat's five-year term simply runs its course and dissolution follows.</span>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="dissolution-early-is-ordinary">Dissolving early is the ordinary case this project's own data notes describe, rather than the exception.</span>
+    </p>
+    <p>
+      <span data-claim data-cite="https://www.malaysianbar.org.my/legal/general_news/royal_powers_after_dissolution.html" id="deadline-60-days">Article 55(4) of the Federal Constitution requires a general election to be held within 60 days of the Dewan Rakyat's dissolution.</span>
+      <span data-claim data-cite="https://www.malaysianbar.org.my/legal/general_news/by_elections_and_the_constitution.html" id="art-55-3">The Dewan Rakyat's five-year mandate expires under Article 55(3) of the Federal Constitution.</span>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="deadline-worked-example">Combined, the two provisions fix GE16's own deadline: the current Dewan Rakyat's first sitting was on 19 December 2022, so it dissolves automatically five years later, on 19 December 2027, if not dissolved earlier, putting the last possible date for GE16 at 17 February 2028.</span>
+    </p>
+  </section>
+
+  <section class="prose step" id="step-nomination">
+    <span class="step-index">02</span>
+    <h2>Nomination</h2>
+    <p class="gloss">where the Election Commission sets the dates dissolution itself doesn't fix</p>
+    <p>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="dissolution-doesnt-set-dates">Dissolution does not itself fix when nomination day or polling day fall — the Election Commission of Malaysia sets and announces those separately, after dissolution has already happened.</span>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="gap-is-typical">This project's own data notes record that gap as typically running a week or two.</span>
+    </p>
+    <p>
+      <span data-claim data-cite="https://www.malaysianbar.org.my/article/news/legal-and-general-news/members-opinions/ge13-abiding-by-the-nomination-process" id="nomination-centres">On nomination day, candidates present their nomination papers to the returning officer for their constituency, and those papers can be rejected if they don't comply with the Elections (Conduct of Elections) Regulations.</span>
+    </p>
+  </section>
+
+  <section class="prose step" id="step-polling">
+    <span class="step-index">03</span>
+    <h2>Polling</h2>
+    <p class="gloss">where voters decide, inside the window dissolution opened</p>
+    <p>
+      Polling day itself falls inside the same 60-day window Article 55(4)
+      sets running from dissolution (see <a href="#step-dissolution">Dissolution</a>
+      above) — nomination, the campaign that follows it, and polling all
+      have to land inside that one constitutional deadline. For what a
+      Seat is and how many the Dewan Rakyat has, see the
+      <a href="glossary.html#term-seat">glossary</a>.
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md" id="polling-not-model-input">Once a polling date is set, it is context for reading this site's Projection, not an input the Swing Model consumes.</span>
+    </p>
+  </section>
+
+  <section class="prose step" id="the-three-states">
+    <div class="strip"><div class="eyebrow">What the dashboard actually renders</div></div>
+    <h2>The three states</h2>
+    <p>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="three-states-summary">This dashboard's Election Status is driven by two dates — when the Dewan Rakyat was dissolved, and when polling was set — and derives what it displays from which of those two dates are present.</span>
+    </p>
+
+    <div class="states">
+      <div class="state-block">
+        <span class="state-tag">Not called</span>
+        <h3>No dissolution date</h3>
+        <p>
+          <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="state-not-called">Before the Dewan Rakyat is dissolved, GE16 has simply not been called, and this dashboard records no dissolution date and no polling date.</span>
+          <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="state-not-called-deadline">The Dewan Rakyat continues sitting, bound only by the constitutional deadline the five-year term and the 60-day rule together set.</span>
+        </p>
+      </div>
+      <div class="state-block">
+        <span class="state-tag">Called, no polling date</span>
+        <h3>Dissolved, dates not yet announced</h3>
+        <p>
+          <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="state-called-no-polling">Between dissolution and the Election Commission's announcement of the timetable, this dashboard records a dissolution date and no polling date.</span>
+          <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="state-called-no-polling-no-guess">This dashboard leaves the polling field unset for that interval rather than filling it with a guess.</span>
+        </p>
+      </div>
+      <div class="state-block">
+        <span class="state-tag">Called, polling date set</span>
+        <h3>Both dates on record</h3>
+        <p>
+          <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="state-called-with-polling">Once the Election Commission announces the timetable, this dashboard's record has both dates: the dissolution date set earlier, and the polling date the Commission has now announced.</span>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="colophon">
+    <div>
+      <h3>Source</h3>
+      <p>
+        Facts about how the Malaysian election process works cite Article 55
+        of the Federal Constitution, by way of the Malaysian Bar's published
+        legal commentary and reporting on it. Facts about what this
+        dashboard itself tracks cite <code>data/election_status.json</code>
+        and <code>CONTEXT.md</code> at the repository root.
+      </p>
+    </div>
+    <div>
+      <h3>Register</h3>
+      <p>
+        Set in the same print register as the projection dashboard —
+        serif prose, mono labels, printed-ink palette — via the shared
+        stylesheet <code>register-a.css</code>, so this page reads as a
+        continuation of the dashboard rather than a different site.
+      </p>
+    </div>
+    <div class="caveat">
+      <h3>Not a live status</h3>
+      <p>
+        This page explains the process and the three states in the
+        abstract; it states no current date of its own. For GE16's current
+        status, read the <a href="../index.html">dashboard</a>.
+      </p>
+    </div>
+  </footer>
+
+</div>
+<script>initThemeToggle("themeBtn");</script>
+</body>
+</html>
