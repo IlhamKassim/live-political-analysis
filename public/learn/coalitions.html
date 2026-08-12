@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The five Coalitions — reading this site | Live Political Analysis</title>
+<meta name="description" content="What a Coalition is in Malaysian politics, and how each of the five this site tracks — PH, BN, PN, GPS and GRS — was formed: founding dates, component parties, and the splits and mergers behind them, each traced to a cited source.">
+<script>
+/* Theme, read before first paint — same pattern as public_page.py's
+   _THEME_INIT_SCRIPT (HANDOFF defect 7), so a returning reader's stored
+   theme applies before anything renders rather than flashing the system
+   default and then swapping. */
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved === "dark" || saved === "light") {
+      document.documentElement.setAttribute("data-theme", saved);
+    }
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="register-a.css">
+<style>
+  /* Page-specific layout only — tokens, masthead, prose and colophon come
+     from register-a.css (see that file's header for why it's shared).
+
+     A Coalition profile is not a term-definition, so this page does not
+     reuse glossary.html's .term-entry. Each of the five wants the same
+     four hard facts up front (founded, registered, formed from, component
+     parties) and then a short cited history, so the entry is built as a
+     labelled fact table followed by running prose. */
+
+  .coalition {
+    padding: clamp(34px, 5vw, 56px) 0 0;
+    border-top: 1px solid var(--rule-hair);
+  }
+  .coalition:first-of-type { border-top: none; }
+  .coalition h2 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(26px, 3.4vw, 36px);
+    letter-spacing: -.015em;
+    margin: 0 0 4px;
+  }
+  /* The abbreviation carries the coalition's ink from register-a.css, the
+     same one the dashboard's chamber uses for that Coalition's Seats. */
+  .coalition h2 .abbr {
+    font-family: var(--mono);
+    font-size: .5em;
+    letter-spacing: .08em;
+    vertical-align: .35em;
+    margin-left: 10px;
+    padding: 2px 7px;
+    border: 1px solid currentColor;
+  }
+  #ph  h2 .abbr { color: var(--ph); }
+  #bn  h2 .abbr { color: var(--bn); }
+  #pn  h2 .abbr { color: var(--pn); }
+  #gps h2 .abbr { color: var(--gps); }
+  #grs h2 .abbr { color: var(--grs); }
+
+  .coalition-gloss {
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--ink-faint);
+    font-size: 15px;
+    margin: 0 0 20px;
+  }
+
+  /* The four structural facts, as a definition list rather than prose —
+     they are the part of a Coalition profile a reader scans for. */
+  .facts {
+    margin: 0 0 clamp(18px, 3vw, 28px);
+    padding: 16px 0 4px;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    display: grid;
+    grid-template-columns: minmax(120px, 170px) 1fr;
+    gap: 0;
+  }
+  .facts dt {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    padding: 0 16px 12px 0;
+  }
+  .facts dd {
+    font-family: var(--serif);
+    font-size: 15.5px;
+    line-height: 1.45;
+    color: var(--ink);
+    margin: 0;
+    padding: 0 0 12px;
+  }
+
+  .sub-note {
+    margin-top: clamp(22px, 3.5vw, 34px);
+    padding-left: clamp(16px, 2.5vw, 26px);
+    border-left: 2px solid var(--rule);
+  }
+  .sub-note h3 {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 0 0 10px;
+  }
+
+  .toc {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    margin: clamp(22px, 4vw, 34px) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .toc li { margin: 0; }
+  .toc a {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .04em;
+    color: var(--ink-soft);
+    text-decoration: none;
+    border: 1px solid var(--rule);
+    padding: 5px 11px;
+  }
+  .toc a:hover { color: var(--ink); border-color: var(--ink-faint); }
+  .toc a:focus-visible { outline: 2px solid var(--pn); outline-offset: 2px; }
+
+  .colophon a { color: inherit; }
+  .colophon a:focus-visible { outline: 2px solid var(--pn); outline-offset: 2px; }
+  .source-list { margin: 0; padding: 0; list-style: none; }
+  .source-list li {
+    font-family: var(--serif);
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    margin: 0 0 6px;
+  }
+
+  :target { scroll-margin-top: 24px; }
+
+  @media (max-width: 560px) {
+    .facts { grid-template-columns: 1fr; }
+    .facts dt { padding-bottom: 4px; }
+    .facts dd { padding-bottom: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <header class="masthead">
+    <div class="wordmark"><a href="../index.html">Live Political Analysis</a> <em>— reading this site</em></div>
+    <div class="stamp">
+      <span>THE FIVE COALITIONS</span>
+      <button class="theme-btn" id="themeBtn" type="button">Dark</button>
+    </div>
+  </header>
+
+  <section class="opening">
+    <div class="eyebrow">Who the projection is projecting</div>
+    <h1>The five Coalitions</h1>
+    <p class="lede">
+      Every seat count on this site is reported per Coalition. This page
+      says what each of the five is and how it came to exist — founding
+      dates, the parties inside it, and the splits and mergers that
+      produced it. It is a structural account only: it records what was
+      formed, when, and out of which parties, and it leaves the question
+      of <em>why</em> to the sources it cites.
+    </p>
+    <ul class="toc">
+      <li><a href="#what-is-a-coalition">What a Coalition is</a></li>
+      <li><a href="#ph">PH</a></li>
+      <li><a href="#bn">BN</a></li>
+      <li><a href="#pn">PN</a></li>
+      <li><a href="#gps">GPS</a></li>
+      <li><a href="#grs">GRS</a></li>
+      <li><a href="#why-five">Why five</a></li>
+    </ul>
+  </section>
+
+  <section class="prose coalition" id="what-is-a-coalition">
+    <h2>What a Coalition is</h2>
+    <p class="coalition-gloss">the unit this site counts Seats in</p>
+    <p>
+      <span data-claim id="coalition-definition" data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">On this site, a Coalition means a group of parties that contests and governs together.</span>
+      <span data-claim id="coalition-five" data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">The five Coalitions this site tracks are PH, BN, PN, GPS and GRS.</span>
+      A Coalition is not a single party. Each of the five below is an
+      agreement among parties that keep their own names, memberships and
+      officers, and the profiles on this page describe those parties and
+      the agreements that bind them — not what any of them believes or
+      wants.
+    </p>
+    <p>
+      Why there are five rather than three, and what separates two of them
+      from the other three, is set out under
+      <a href="#why-five">Why five</a> below.
+    </p>
+  </section>
+
+  <section class="prose coalition" id="ph">
+    <h2>Pakatan Harapan <span class="abbr">PH</span></h2>
+    <p class="coalition-gloss">formed 2015, to succeed an earlier coalition</p>
+    <dl class="facts">
+      <dt>Founded</dt>
+      <dd data-claim id="ph-founded" data-cite="https://en.wikipedia.org/wiki/Pakatan_Harapan?action=raw">Pakatan Harapan was founded on 22 September 2015.</dd>
+      <dt>Registered</dt>
+      <dd data-claim id="ph-legalised" data-cite="https://en.wikipedia.org/wiki/Pakatan_Harapan?action=raw">Pakatan Harapan was legalised on 16 May 2018.</dd>
+      <dt>Formed from</dt>
+      <dd data-claim id="ph-predecessor" data-cite="https://en.wikipedia.org/wiki/Pakatan_Harapan?action=raw">Pakatan Harapan's predecessor was the Pakatan Rakyat coalition, which it was formed to succeed.</dd>
+      <dt>Component parties</dt>
+      <dd data-claim id="ph-members" data-cite="https://en.wikipedia.org/wiki/Pakatan_Harapan?action=raw">Pakatan Harapan's member parties are PKR, DAP and AMANAH.</dd>
+    </dl>
+    <p>
+      <span data-claim id="ph-succession" data-cite="https://en.wikipedia.org/wiki/Pakatan_Harapan?action=raw">Pakatan Harapan is a Malaysian political coalition which was formed in 2015 to succeed the Pakatan Rakyat coalition.</span>
+      <span data-claim id="ph-gov-2018" data-cite="https://en.wikipedia.org/wiki/Pakatan_Harapan?action=raw">Pakatan Harapan led a single-coalition government from May 2018 to February 2020.</span>
+      <span data-claim id="ph-gov-2022" data-cite="https://en.wikipedia.org/wiki/Pakatan_Harapan?action=raw">Pakatan Harapan has led a grand coalition government since November 2022.</span>
+    </p>
+  </section>
+
+  <section class="prose coalition" id="bn">
+    <h2>Barisan Nasional <span class="abbr">BN</span></h2>
+    <p class="coalition-gloss">formed 1974, out of a coalition two decades older</p>
+    <dl class="facts">
+      <dt>Founded</dt>
+      <dd data-claim id="bn-founded" data-cite="https://en.wikipedia.org/wiki/Barisan_Nasional?action=raw">Barisan Nasional was founded on 1 June 1974.</dd>
+      <dt>Formed from</dt>
+      <dd data-claim id="bn-predecessor" data-cite="https://en.wikipedia.org/wiki/Barisan_Nasional?action=raw">Barisan Nasional's predecessor was the Alliance Party.</dd>
+      <dt>Component parties</dt>
+      <dd data-claim id="bn-members" data-cite="https://en.wikipedia.org/wiki/Barisan_Nasional?action=raw">Barisan Nasional's member parties are UMNO, MCA, MIC, PBRS and PPP.</dd>
+      <dt>Later split</dt>
+      <dd data-claim id="bn-successor" data-cite="https://en.wikipedia.org/wiki/Barisan_Nasional?action=raw">Barisan Nasional's successor in Sarawak, from 2018, is Gabungan Parti Sarawak.</dd>
+    </dl>
+    <p>
+      <span data-claim id="bn-founding" data-cite="https://en.wikipedia.org/wiki/Barisan_Nasional?action=raw">Barisan Nasional was founded in 1974 to succeed the Alliance Party, and first competed in the general election of that year.</span>
+      <span data-claim id="bn-ppp-seats" data-cite="https://en.wikipedia.org/wiki/Barisan_Nasional?action=raw">Of Barisan Nasional's component parties, the People's Progressive Party has no representation in the Dewan Rakyat.</span>
+    </p>
+
+    <div class="sub-note">
+      <h3>The Alliance Party, 1952–1974</h3>
+      <p>
+        <span data-claim id="alliance-members" data-cite="https://en.wikipedia.org/wiki/Alliance_Party_(Malaysia)?action=raw">The Alliance Party's membership comprised UMNO, MCA and MIC.</span>
+        <span data-claim id="alliance-origin" data-cite="https://en.wikipedia.org/wiki/Alliance_Party_(Malaysia)?action=raw">The Alliance Party originated in a temporary electoral arrangement between local branches of UMNO and MCA to contest the Kuala Lumpur municipal election in 1952.</span>
+        <span data-claim id="alliance-mic" data-cite="https://en.wikipedia.org/wiki/Alliance_Party_(Malaysia)?action=raw">MIC joined the alliance of UMNO and MCA in 1954.</span>
+        <span data-claim id="alliance-registered" data-cite="https://en.wikipedia.org/wiki/Alliance_Party_(Malaysia)?action=raw">The Alliance Party was informally founded in 1952 and formally registered as a political organisation on 30 October 1957.</span>
+      </p>
+      <p>
+        <span data-claim id="alliance-1971" data-cite="https://en.wikipedia.org/wiki/Alliance_Party_(Malaysia)?action=raw">Negotiations with former opposition parties began after the Malaysian Parliament reconvened in 1971.</span>
+        <span data-claim id="alliance-expansion" data-cite="https://en.wikipedia.org/wiki/Alliance_Party_(Malaysia)?action=raw">Gerakan and the People's Progressive Party both joined the Alliance Party in 1972, quickly followed by PMIP.</span>
+        <span data-claim id="alliance-to-bn" data-cite="https://en.wikipedia.org/wiki/Alliance_Party_(Malaysia)?action=raw">The Alliance Party was the ruling coalition of Malaya from 1957 to 1963 and of Malaysia from 1963 to 1974, and became known as Barisan Nasional in 1974.</span>
+      </p>
+    </div>
+  </section>
+
+  <section class="prose coalition" id="pn">
+    <h2>Perikatan Nasional <span class="abbr">PN</span></h2>
+    <p class="coalition-gloss">formed February 2020, registered that August</p>
+    <dl class="facts">
+      <dt>Founded</dt>
+      <dd data-claim id="pn-founded" data-cite="https://en.wikipedia.org/wiki/Perikatan_Nasional?action=raw">Perikatan Nasional was founded on 29 February 2020.</dd>
+      <dt>Registered</dt>
+      <dd data-claim id="pn-registered" data-cite="https://en.wikipedia.org/wiki/Perikatan_Nasional?action=raw">Perikatan Nasional was registered on 7 August 2020.</dd>
+      <dt>Split from</dt>
+      <dd data-claim id="pn-split" data-cite="https://en.wikipedia.org/wiki/Perikatan_Nasional?action=raw">Perikatan Nasional split from Pakatan Harapan and Gagasan Sejahtera.</dd>
+      <dt>At registration</dt>
+      <dd data-claim id="pn-at-registration" data-cite="https://en.wikipedia.org/wiki/Perikatan_Nasional?action=raw">As a formal coalition, Perikatan Nasional consisted of BERSATU, PAS and STAR at the time of its registration in August 2020.</dd>
+    </dl>
+    <p>
+      <span data-claim id="pn-informal" data-cite="https://en.wikipedia.org/wiki/Perikatan_Nasional?action=raw">As an informal coalition, Perikatan Nasional was formed by BERSATU, PAS, Barisan Nasional, Gabungan Parti Sarawak and STAR at the beginning of the 2020–2022 Malaysian political crisis.</span>
+      <span data-claim id="pn-muhyiddin" data-cite="https://en.wikipedia.org/wiki/Perikatan_Nasional?action=raw">Perikatan Nasional's de facto leader Muhyiddin Yassin was sworn in as the 8th Prime Minister of Malaysia on 1 March 2020.</span>
+      <span data-claim id="pn-govt" data-cite="https://en.wikipedia.org/wiki/Perikatan_Nasional?action=raw">Perikatan Nasional formed a coalition government with Barisan Nasional, Gabungan Parti Sarawak, Gabungan Rakyat Sabah and other political parties, which ruled from 2020 to 2022.</span>
+    </p>
+    <p>
+      <span data-claim id="pn-accessions" data-cite="https://en.wikipedia.org/wiki/Perikatan_Nasional?action=raw">Perikatan Nasional was expanded to include SAPP in August 2020, GERAKAN in February 2021, and the Malaysian Indian People's Party in April 2024.</span>
+      Those accessions are the ones the cited source records; PN's formal
+      membership has continued to change since. A reader checking which
+      parties sit inside PN today should read the cited source directly
+      rather than treat this page as current on that point.
+    </p>
+  </section>
+
+  <section class="prose coalition" id="gps">
+    <h2>Gabungan Parti Sarawak <span class="abbr">GPS</span></h2>
+    <p class="coalition-gloss">formed 2018, when four parties left BN</p>
+    <dl class="facts">
+      <dt>Founded</dt>
+      <dd data-claim id="gps-founded" data-cite="https://en.wikipedia.org/wiki/Gabungan_Parti_Sarawak?action=raw">Gabungan Parti Sarawak was founded on 12 June 2018.</dd>
+      <dt>Registered</dt>
+      <dd data-claim id="gps-legalised" data-cite="https://en.wikipedia.org/wiki/Gabungan_Parti_Sarawak?action=raw">Gabungan Parti Sarawak was legalised on 19 November 2018.</dd>
+      <dt>Split from</dt>
+      <dd data-claim id="gps-split" data-cite="https://en.wikipedia.org/wiki/Gabungan_Parti_Sarawak?action=raw">Gabungan Parti Sarawak split from Barisan Nasional.</dd>
+      <dt>Component parties</dt>
+      <dd data-claim id="gps-members" data-cite="https://en.wikipedia.org/wiki/Gabungan_Parti_Sarawak?action=raw">Gabungan Parti Sarawak's member parties are PBB, PDP, SUPP and PRS.</dd>
+    </dl>
+    <p>
+      <span data-claim id="gps-formation" data-cite="https://en.wikipedia.org/wiki/Gabungan_Parti_Sarawak?action=raw">GPS was formed on 12 June 2018, consisting of Parti Pesaka Bumiputera Bersatu, the Progressive Democratic Party, the Sarawak United Peoples' Party and Parti Rakyat Sarawak.</span>
+      <span data-claim id="gps-from-bn" data-cite="https://en.wikipedia.org/wiki/Gabungan_Parti_Sarawak?action=raw">Gabungan Parti Sarawak was established in 2018 by four former Barisan Nasional component parties operating solely in Sarawak, following the federal coalition's defeat in the 2018 Malaysian general election.</span>
+      <span data-claim id="gps-sarawak-govt" data-cite="https://en.wikipedia.org/wiki/Gabungan_Parti_Sarawak?action=raw">Gabungan Parti Sarawak forms the government in the state of Sarawak.</span>
+    </p>
+  </section>
+
+  <section class="prose coalition" id="grs">
+    <h2>Gabungan Rakyat Sabah <span class="abbr">GRS</span></h2>
+    <p class="coalition-gloss">formed 2020 as an alliance, registered as a coalition in 2022</p>
+    <dl class="facts">
+      <dt>Founded</dt>
+      <dd data-claim id="grs-founded" data-cite="https://en.wikipedia.org/wiki/Gabungan_Rakyat_Sabah?action=raw">Gabungan Rakyat Sabah was established in September 2020, when Hajiji Noor set up an informal alliance of that name.</dd>
+      <dt>Registered</dt>
+      <dd data-claim id="grs-legalised" data-cite="https://en.wikipedia.org/wiki/Gabungan_Rakyat_Sabah?action=raw">Gabungan Rakyat Sabah was legalised on 11 March 2022.</dd>
+      <dt>Formed from</dt>
+      <dd data-claim id="grs-predecessor" data-cite="https://en.wikipedia.org/wiki/Gabungan_Rakyat_Sabah?action=raw">Gabungan Rakyat Sabah's predecessor was Gabungan Bersatu Sabah, the United Alliance of Sabah.</dd>
+      <dt>Component parties</dt>
+      <dd data-claim id="grs-members" data-cite="https://en.wikipedia.org/wiki/Gabungan_Rakyat_Sabah?action=raw">Gabungan Rakyat Sabah's member parties are GAGASAN, PBS, UPKO, PHRS, LDP and PCS.</dd>
+    </dl>
+    <p>
+      <span data-claim id="grs-sabah-based" data-cite="https://en.wikipedia.org/wiki/Gabungan_Rakyat_Sabah?action=raw">Gabungan Rakyat Sabah is a Malaysian coalition of Sabah-based parties.</span>
+      <span data-claim id="grs-established" data-cite="https://en.wikipedia.org/wiki/Gabungan_Rakyat_Sabah?action=raw">Gabungan Rakyat Sabah was established in 2020 and then registered in 2022 by former component parties of the United Alliance of Sabah and the United Borneo Alliance, operating solely in Sabah.</span>
+      <span data-claim id="grs-gps-formula" data-cite="https://en.wikipedia.org/wiki/Gabungan_Rakyat_Sabah?action=raw">According to Wikipedia's account, Gabungan Rakyat Sabah was formed inspired by the formula of the Sarawak-based coalition Gabungan Parti Sarawak.</span>
+    </p>
+    <p>
+      <span data-claim id="grs-upko" data-cite="https://www.malaymail.com/news/malaysia/2026/06/18/upko-joins-grs-expanding-sabah-ruling-coalition-to-six-parties/224325">Malay Mail reported that on 18 June 2026 Gabungan Rakyat Sabah officially accepted the United Progressive Kinabalu Organisation as its newest component party, expanding the Sabah ruling coalition to six parties.</span>
+      That accession is why the component-party list above runs to six.
+    </p>
+  </section>
+
+  <section class="prose coalition" id="why-five">
+    <h2>Why five</h2>
+    <p class="coalition-gloss">three federal Coalitions, two Borneo ones</p>
+    <p>
+      The count is five because two of the Coalitions are constituted for
+      a single state each.
+      <span data-claim id="why-gps-sarawak" data-cite="https://en.wikipedia.org/wiki/Gabungan_Parti_Sarawak?action=raw">Gabungan Parti Sarawak is a Sarawak-based political alliance whose four founding parties operated solely in Sarawak.</span>
+      <span data-claim id="why-grs-sabah" data-cite="https://en.wikipedia.org/wiki/Gabungan_Rakyat_Sabah?action=raw">Gabungan Rakyat Sabah is a Malaysian coalition of Sabah-based parties.</span>
+      Each is recorded above with the date it was formed and the parties
+      that formed it.
+    </p>
+    <p>
+      That is a structural distinction, not a claim about what any of these
+      parties want. GPS is constituted for Sarawak and GRS for Sabah; the
+      other three are not constituted for a single state. Because the Dewan Rakyat's 222
+      Seats include Sarawak's and Sabah's, a projection that ignored the
+      two Borneo Coalitions would be projecting a chamber that does not
+      exist — which is why this site counts five rather than three.
+    </p>
+  </section>
+
+  <footer class="colophon">
+    <div>
+      <h3>Sources</h3>
+      <ul class="source-list">
+        <li><a href="https://en.wikipedia.org/wiki/Pakatan_Harapan">Pakatan Harapan</a></li>
+        <li><a href="https://en.wikipedia.org/wiki/Barisan_Nasional">Barisan Nasional</a></li>
+        <li><a href="https://en.wikipedia.org/wiki/Alliance_Party_(Malaysia)">Alliance Party (Malaysia)</a></li>
+        <li><a href="https://en.wikipedia.org/wiki/Perikatan_Nasional">Perikatan Nasional</a></li>
+        <li><a href="https://en.wikipedia.org/wiki/Gabungan_Parti_Sarawak">Gabungan Parti Sarawak</a></li>
+        <li><a href="https://en.wikipedia.org/wiki/Gabungan_Rakyat_Sabah">Gabungan Rakyat Sabah</a></li>
+        <li><a href="https://www.malaymail.com/news/malaysia/2026/06/18/upko-joins-grs-expanding-sabah-ruling-coalition-to-six-parties/224325">Malay Mail, 18 June 2026 — Upko joins GRS</a></li>
+      </ul>
+      <p>
+        Each claim carries a <code>data-cite</code> pointing at the raw
+        source text of the article listed here — for Wikipedia, its
+        <code>?action=raw</code> view. That is the exact text
+        <code>lpa.citation_check</code> fetches and judges each claim
+        against; the readable articles are the links above.
+      </p>
+    </div>
+    <div>
+      <h3>What this page will not do</h3>
+      <p>
+        It records founding dates, registrations, splits and component
+        parties. It does not explain why a party joined or left a
+        Coalition, or say what any Coalition or party stands for. Where a
+        source offers such an account, this page either attributes it or
+        leaves it in the source.
+      </p>
+    </div>
+    <div class="caveat">
+      <h3>Not a forecast</h3>
+      <p>
+        This page states no seat numbers. Coalition membership and
+        standings both change; for the current count read the
+        <a href="../index.html">dashboard</a>, and for the terms it uses,
+        the <a href="glossary.html">glossary</a>.
+      </p>
+    </div>
+  </footer>
+
+</div>
+<script>
+(function () {
+  var btn = document.getElementById("themeBtn");
+  function dark() {
+    var set = document.documentElement.getAttribute("data-theme");
+    return set ? set === "dark"
+      : window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+  function label() { btn.textContent = dark() ? "Light" : "Dark"; }
+  btn.addEventListener("click", function () {
+    var next = dark() ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    try { localStorage.setItem("theme", next); } catch (e) {}
+    label();
+  });
+  label();
+})();
+</script>
+</body>
+</html>
