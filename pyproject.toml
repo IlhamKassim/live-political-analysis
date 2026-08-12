@@ -64,3 +64,11 @@ warn_unused_ignores = true
 warn_redundant_casts = true
 warn_return_any = true
 no_implicit_reexport = true
+
+# `transformers` is an optional extra (`.[sentiment]`), deliberately not
+# installed by the CI gate (which installs `.[dev]`). Its import in
+# sentiment.py is lazy and already `# type: ignore`'d at the call site, so
+# mypy must not flag the module as missing when the extra isn't present.
+[[tool.mypy.overrides]]
+module = "transformers"
+ignore_missing_imports = true
