@@ -6,6 +6,14 @@
 # Runs the same fast, offline suite as local `pytest` (the `model` and
 # `network` markers are already excluded by addopts in pyproject.toml), plus
 # `ruff` lint/format and `mypy` on `src/`. A failed check blocks the merge.
+#
+# `mypy` also checks `scripts/deepseek_agent.py` specifically, though the
+# rest of `scripts/` stays unchecked (see `pyproject.toml`'s `[tool.ruff]`
+# comment and `docs/agents/deepseek-agent.md`'s "Why this repo breaks its
+# own pattern" section) — that one script grants a model real shell/file/git
+# access, which is `docs/agents/model-effort.md` trigger #4
+# (security/correctness-critical engineering), so it gets the same gate as
+# the package itself rather than staying manual-only.
 name: CI
 
 on:
@@ -34,7 +42,7 @@ jobs:
         run: ruff format --check .
 
       - name: Mypy
-        run: mypy src
+        run: mypy src scripts/deepseek_agent.py
 
       - name: Test
         run: pytest
