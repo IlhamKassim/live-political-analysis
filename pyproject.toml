@@ -44,7 +44,7 @@ extend-exclude = ["docs", "public", "scripts"]
 
 [tool.mypy]
 python_version = "3.11"
-files = ["src"]
+files = ["src", "scripts/deepseek_agent.py"]
 # The Streamlit dashboard is the one untyped surface in the package, and by
 # design has no automated tests (issue #1) — it is verified by running the
 # pipeline and looking at the page. It is also the only importer of
