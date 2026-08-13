@@ -30,7 +30,7 @@ packages = ["src/lpa"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "scripts"]
 addopts = "-m 'not model and not network'"
 markers = [
     "model: needs the self-hosted sentiment model; downloads weights and runs CPU inference",
