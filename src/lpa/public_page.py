@@ -446,7 +446,7 @@ def status_sentence(status: ElectionStatus) -> str:
     dissolved = _long_date(status.dissolved_on)  # type: ignore[arg-type]
     if status.polling_date is None:
         return (
-            f"GE16 has been called — the Dewan Rakyat was dissolved on {dissolved}. "
+            f"GE16 has been called. The Dewan Rakyat was dissolved on {dissolved}. "
             "The Election Commission has not yet announced a polling day."
         )
     return (
