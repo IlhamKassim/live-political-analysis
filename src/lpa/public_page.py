@@ -303,9 +303,9 @@ def _ledger(
         at_baseline[seat.winner] = at_baseline.get(seat.winner, 0) + 1
 
     too_close: dict[Coalition, int] = {}
-    for chamber in seats:
-        if chamber.tier == Tier.TIGHT:
-            too_close[chamber.coalition] = too_close.get(chamber.coalition, 0) + 1
+    for seat in seats:
+        if seat.tier == Tier.TIGHT:
+            too_close[seat.coalition] = too_close.get(seat.coalition, 0) + 1
 
     rows = [
         LedgerRow(
