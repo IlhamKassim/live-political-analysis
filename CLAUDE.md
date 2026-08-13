@@ -27,3 +27,11 @@ content, code review, security/correctness-critical engineering, or an
 irreversible/hard-to-reverse decision. `to-tickets` runs in this repo state a
 model/effort line per ticket; any agent dispatch here should too. See
 `docs/agents/model-effort.md`.
+
+### DeepSeek agent loop
+
+`scripts/deepseek_agent.py` runs a bounded, autonomous DeepSeek tool-calling
+session in an isolated `git worktree` — files, a fixed shell allowlist, and
+local git only, never push/PR/merge. Attended/manual dispatch only (ADR
+0002); a mandatory `/code-review` pass is required before it's trusted for a
+real task. See `docs/agents/deepseek-agent.md`.

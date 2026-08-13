@@ -34,3 +34,10 @@ public/learn/*.pending.json
 # nothing under .claude/ belongs in the repo (we did not vendor skills into
 # it; see the CI-gate decision).
 .claude/
+
+# Working directories for scripts/deepseek_agent.py runs — a linked git
+# worktree plus its transcript per run, kept by default for post-hoc review
+# (see docs/agents/deepseek-agent.md). Diagnostic/working output, same as
+# public/learn/*.pending.json above: written next to what it's about, not
+# meant to be committed.
+.deepseek-agent-runs/
