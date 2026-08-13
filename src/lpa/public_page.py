@@ -299,8 +299,8 @@ def _ledger(
     how a ledger column comes to disagree with the chamber above it.
     """
     at_baseline: dict[Coalition, int] = {}
-    for seat in baseline:
-        at_baseline[seat.winner] = at_baseline.get(seat.winner, 0) + 1
+    for baseline_seat in baseline:
+        at_baseline[baseline_seat.winner] = at_baseline.get(baseline_seat.winner, 0) + 1
 
     too_close: dict[Coalition, int] = {}
     for seat in seats:
