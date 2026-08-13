@@ -53,6 +53,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import secrets
 import subprocess
 import sys
@@ -80,6 +81,19 @@ comprehension task, not open-ended reasoning, so the cheapest model that
 reads reliably is the right default — override with `--judge-model` for a
 page whose claims need more care.
 """
+
+DEEPSEEK_JUDGE_MODEL = "deepseek-chat"
+"""Default model for `deepseek_judge` — DeepSeek-V3.2, the fast/cheap chat
+tier, the closest analogue to defaulting the Claude judge to Haiku."""
+
+_VOCAB_RETRY_REMINDER = (
+    "\n\nYour previous reply could not be read as a valid verdict. Reply "
+    'again, using ONLY one of these three exact words for "verdict": '
+    '"supported", "contradicted", or "unclear" — no other word, and no '
+    "markdown fences or explanation outside the JSON object."
+)
+"""Appended to the prompt on `deepseek_judge`'s retry after an unparsable
+first reply — see its docstring."""
 
 _VOID_ELEMENTS = frozenset(
     {
@@ -382,6 +396,86 @@ def subagent_judge(
     return judge
 
 
+def deepseek_judge(
+    model: str = DEEPSEEK_JUDGE_MODEL,
+    timeout: float = 120.0,
+    api_key: str | None = None,
+    post: Callable[..., httpx.Response] = httpx.post,
+) -> Judge:
+    """An experimental `Judge` backend: DeepSeek's chat-completions API
+    instead of the `claude` CLI subagent `subagent_judge` uses.
+
+    Opt-in only (`--judge-backend deepseek`), never the default: unlike the
+    Claude judge, this reaches a metered third-party API directly rather
+    than the free subscription-seat CLI call ADR 0002 relies on for every
+    other scripted/unattended path in this project. Kept deliberately
+    outside the default so a manual comparison run can't silently become a
+    recurring cost.
+
+    Shares `_judge_prompt` and `_parse_verdict_text` with `subagent_judge`
+    so the two backends are graded on the identical prompt and the same
+    forgiving-parse rules — the only variable under test is which model
+    answers it.
+
+    `api_key` defaults to the `DEEPSEEK_API_KEY` environment variable. A
+    missing key comes back as NEEDS_JUDGMENT for every claim rather than
+    raising, same as any other Judge failure mode here — a bad or absent
+    credential must not crash the whole page's check.
+
+    A first reply that `_parse_verdict_text` can't turn into a judgment —
+    observed in practice: DeepSeek answering "unsupported", outside the
+    three-word vocabulary the prompt asks for — is retried once with an
+    explicit reminder appended, since the model has usually already formed
+    an opinion and just needs to restate it in the required shape; only a
+    second unparsable reply (or a network/API failure) falls back to
+    NEEDS_JUDGMENT. NEEDS_JUDGMENT is never itself a legitimate verdict —
+    `_parse_verdict_text` only returns it on a parse failure — so this can't
+    accidentally re-ask a claim that was already validly judged.
+    """
+    key = api_key or os.environ.get("DEEPSEEK_API_KEY")
+
+    def call(prompt: str) -> tuple[Verdict, str]:
+        try:
+            response = post(
+                "https://api.deepseek.com/chat/completions",
+                headers={"Authorization": f"Bearer {key}"},
+                json={
+                    "model": model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "stream": False,
+                },
+                timeout=timeout,
+            )
+            response.raise_for_status()
+        except httpx.HTTPError as error:
+            return (
+                Verdict.NEEDS_JUDGMENT,
+                f"deepseek judge unavailable: {type(error).__name__}: {error}",
+            )
+        try:
+            payload = response.json()
+            content = payload["choices"][0]["message"]["content"]
+        except (json.JSONDecodeError, KeyError, IndexError, TypeError) as error:
+            preview = response.text.strip()[:200]
+            return (
+                Verdict.NEEDS_JUDGMENT,
+                "could not parse deepseek response envelope "
+                + f"({type(error).__name__}: {error}): {preview!r}",
+            )
+        return _parse_verdict_text(content)
+
+    def judge(claim: Claim, source_text: str) -> tuple[Verdict, str]:
+        if not key:
+            return Verdict.NEEDS_JUDGMENT, "DEEPSEEK_API_KEY not set"
+        prompt = _judge_prompt(claim, source_text)
+        verdict, detail = call(prompt)
+        if verdict == Verdict.NEEDS_JUDGMENT:
+            verdict, detail = call(prompt + _VOCAB_RETRY_REMINDER)
+        return verdict, detail
+
+    return judge
+
+
 def _judge_prompt(claim: Claim, source_text: str) -> str:
     """Build the judging prompt, with the fetched source fenced off as data.
 
@@ -432,7 +526,23 @@ def _judge_prompt(claim: Claim, source_text: str) -> str:
         '{"verdict": "supported" | "contradicted" | "unclear", "detail": "one sentence why"}\n'
         'Use "contradicted" when the source states something different from the '
         'claim. Use "unclear" when the source doesn\'t clearly settle it either '
-        'way. Do not default to "supported" when in doubt.'
+        'way. Do not default to "supported" when in doubt.\n\n'
+        "Two judging rules that are easy to get wrong:\n"
+        "1. A source can document a general rule, procedure, or state even when "
+        "the source's own present values or data are not currently in that "
+        'state — e.g. a config file whose comments explain what "field X set, '
+        'field Y unset" means is still SUPPORTING a claim about that state even '
+        "if the file's current values don't happen to be in it right now. Judge "
+        "the claim against everything the source documents, not only against "
+        "whichever specific data point happens to be current. Only use "
+        '"contradicted" when the source\'s own stated facts or explanation — '
+        "not merely today's snapshot of a value — actually conflict with the "
+        "claim.\n"
+        "2. A claim stated with less precision than the source (a month where "
+        "the source gives an exact day, a rounded figure where the source gives "
+        "an exact one) is still SUPPORTED if the underlying fact matches. "
+        'Reserve "contradicted" for when the two facts actually disagree, not '
+        "when they merely differ in how precisely they're stated."
     )
 
 
@@ -475,7 +585,9 @@ def _parse_subagent_verdict(stdout: str) -> tuple[Verdict, str]:
 
     Tolerates the result not being *pure* JSON (a code fence, a sentence of
     preamble) via `_find_verdict_json` rather than requiring the whole field
-    to parse.
+    to parse. The envelope is specific to the `claude` CLI's
+    `--output-format json`; once `result` is extracted, verdict parsing
+    itself is shared with every other Judge backend via `_parse_verdict_text`.
     """
     try:
         payload = json.loads(stdout)
@@ -487,11 +599,25 @@ def _parse_subagent_verdict(stdout: str) -> tuple[Verdict, str]:
             "could not parse subagent output as the claude CLI's json envelope "
             + f"({type(error).__name__}: {error}): {preview!r}",
         )
-    verdict_json = _find_verdict_json(result)
+    return _parse_verdict_text(result)
+
+
+def _parse_verdict_text(text: str) -> tuple[Verdict, str]:
+    """Extract a Verdict from a judge's raw reply text, per `_judge_prompt`'s
+    instructions.
+
+    Tolerates the reply not being *pure* JSON (a code fence, a sentence of
+    preamble) via `_find_verdict_json`, and an out-of-vocabulary or missing
+    verdict value. Shared by every Judge backend that gets its answer back
+    as free text — `subagent_judge` (via `_parse_subagent_verdict`, which
+    peels off the `claude` CLI's json envelope first) and `deepseek_judge`
+    (whose reply content needs no envelope unwrapped).
+    """
+    verdict_json = _find_verdict_json(text)
     if verdict_json is None:
         return (
             Verdict.NEEDS_JUDGMENT,
-            f"subagent reply had no verdict JSON: {result.strip()[:200]!r}",
+            f"subagent reply had no verdict JSON: {text.strip()[:200]!r}",
         )
     try:
         verdict = Verdict(verdict_json["verdict"])
@@ -657,14 +783,31 @@ def main(argv: list[str] | None = None) -> int:
         help="where to write claims the automated judge couldn't resolve (default: <page>.pending.json)",
     )
     parser.add_argument(
+        "--judge-backend",
+        choices=["claude", "deepseek"],
+        default="claude",
+        help=(
+            "which Judge implementation runs the automated pass (default: "
+            "%(default)s) — deepseek is experimental and opt-in only, see "
+            "deepseek_judge's docstring"
+        ),
+    )
+    parser.add_argument(
         "--judge-model",
-        default=DEFAULT_JUDGE_MODEL,
-        help="model the automated judge subagent runs as (default: %(default)s)",
+        default=None,
+        help=(
+            "model the judge subagent runs as (default: claude-haiku-4-5 for "
+            "--judge-backend claude, deepseek-chat for --judge-backend deepseek)"
+        ),
     )
     args = parser.parse_args(argv)
 
     html_text = args.page.read_text(encoding="utf-8")
-    judge: Judge = subagent_judge(model=args.judge_model)
+    judge: Judge
+    if args.judge_backend == "deepseek":
+        judge = deepseek_judge(model=args.judge_model or DEEPSEEK_JUDGE_MODEL)
+    else:
+        judge = subagent_judge(model=args.judge_model or DEFAULT_JUDGE_MODEL)
     if args.verdicts:
         judge = override_judge(verdicts_from_file(args.verdicts), judge)
 

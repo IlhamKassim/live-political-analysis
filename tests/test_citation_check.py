@@ -15,12 +15,15 @@ import json
 import re
 import subprocess
 
+import httpx
+
 from lpa.citation_check import (
     CitationCheckResult,
     Claim,
     FetchResult,
     Verdict,
     check_page,
+    deepseek_judge,
     deferred_judge,
     extract_claims,
     http_fetch,
@@ -599,7 +602,20 @@ def test_a_source_that_tries_to_dictate_its_verdict_still_reaches_the_judge():
     prompt = prompt_for(INJECTION_PAYLOAD)
 
     assert INJECTION_PAYLOAD in prompt
-    assert prompt.rstrip().endswith('Do not default to "supported" when in doubt.')
+    assert 'Do not default to "supported" when in doubt.' in prompt
+    assert prompt.rstrip().endswith(
+        "when they merely differ in how precisely they're stated."
+    )
+
+
+def test_the_prompt_warns_against_snapshot_vs_general_state_confusion():
+    prompt = prompt_for("x")
+    assert "not currently in that" in prompt
+
+
+def test_the_prompt_warns_against_treating_precision_differences_as_contradictions():
+    prompt = prompt_for("x")
+    assert "differ in how precisely" in prompt
 
 
 def test_subagent_judge_grants_no_tools_to_the_subagent():
@@ -727,6 +743,215 @@ def test_subagent_judge_treats_a_timeout_as_needs_judgment():
     verdict, _detail = judge(Claim("claim-1", "x", "https://x/1"), "y")
 
     assert verdict == Verdict.NEEDS_JUDGMENT
+
+
+# --- deepseek_judge (the experimental Judge backend) -----------------------
+#
+# Same idea as subagent_judge's tests, but stubbing `post` (an httpx-shaped
+# callable) instead of `run` — no network, no real DeepSeek call. Parsing
+# itself is shared with subagent_judge via `_parse_verdict_text`, so these
+# focus on wiring (prompt content, auth header, error handling) rather than
+# re-covering every parse edge case already exercised above.
+
+
+class FakeHttpxResponse:
+    def __init__(self, json_body=None, text="", status_error=None):
+        self._json_body = json_body
+        self.text = text
+        self._status_error = status_error
+
+    def json(self):
+        if self._json_body is None:
+            raise json.JSONDecodeError("no body", self.text, 0)
+        return self._json_body
+
+    def raise_for_status(self):
+        if self._status_error:
+            raise self._status_error
+
+
+def _deepseek_response(content: str) -> FakeHttpxResponse:
+    return FakeHttpxResponse(json_body={"choices": [{"message": {"content": content}}]})
+
+
+def test_deepseek_judge_parses_a_supported_verdict():
+    def fake_post(url, **kwargs):
+        return _deepseek_response('{"verdict": "supported", "detail": "matches"}')
+
+    judge = deepseek_judge(api_key="k", post=fake_post)
+    verdict, detail = judge(
+        Claim("claim-1", "112 seats is a Majority.", "https://x/1"), "112 or more is a Majority."
+    )
+
+    assert verdict == Verdict.SUPPORTED
+    assert detail == "matches"
+
+
+def test_deepseek_judge_parses_a_contradicted_verdict():
+    def fake_post(url, **kwargs):
+        return _deepseek_response('{"verdict": "contradicted", "detail": "source says 112"}')
+
+    judge = deepseek_judge(api_key="k", post=fake_post)
+    verdict, detail = judge(
+        Claim("claim-1", "100 seats is a Majority.", "https://x/1"), "112 or more is a Majority."
+    )
+
+    assert verdict == Verdict.CONTRADICTED
+    assert detail == "source says 112"
+
+
+def test_deepseek_judge_extracts_the_verdict_from_a_reply_with_preamble():
+    def fake_post(url, **kwargs):
+        reply = (
+            "Let me check the source text against the claim.\n\n"
+            "```json\n"
+            '{"verdict": "contradicted", "detail": "source says 112, not 100"}\n'
+            "```"
+        )
+        return _deepseek_response(reply)
+
+    judge = deepseek_judge(api_key="k", post=fake_post)
+    verdict, detail = judge(Claim("claim-1", "x", "https://x/1"), "y")
+
+    assert verdict == Verdict.CONTRADICTED
+    assert detail == "source says 112, not 100"
+
+
+def test_deepseek_judge_embeds_the_claim_and_source_and_sends_the_model_and_auth():
+    calls = []
+
+    def fake_post(url, **kwargs):
+        calls.append((url, kwargs))
+        return _deepseek_response('{"verdict": "supported", "detail": "x"}')
+
+    judge = deepseek_judge(model="deepseek-chat", api_key="secret-key", post=fake_post)
+    judge(
+        Claim("claim-1", "GPS formed in 2018.", "https://x/1"), "GPS was formed in 2018 in Sarawak."
+    )
+
+    [(url, kwargs)] = calls
+    assert url == "https://api.deepseek.com/chat/completions"
+    assert kwargs["headers"]["Authorization"] == "Bearer secret-key"
+    body = kwargs["json"]
+    assert body["model"] == "deepseek-chat"
+    prompt = body["messages"][0]["content"]
+    assert "GPS formed in 2018." in prompt
+    assert "GPS was formed in 2018 in Sarawak." in prompt
+
+
+def test_deepseek_judge_reads_the_api_key_from_the_environment_by_default(monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "env-key")
+    calls = []
+
+    def fake_post(url, **kwargs):
+        calls.append(kwargs)
+        return _deepseek_response('{"verdict": "supported", "detail": "x"}')
+
+    deepseek_judge(post=fake_post)(Claim("claim-1", "x", "https://x/1"), "y")
+
+    [kwargs] = calls
+    assert kwargs["headers"]["Authorization"] == "Bearer env-key"
+
+
+def test_deepseek_judge_treats_a_missing_api_key_as_needs_judgment(monkeypatch):
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    calls = []
+
+    def fake_post(url, **kwargs):
+        calls.append(kwargs)
+        return _deepseek_response('{"verdict": "supported", "detail": "x"}')
+
+    judge = deepseek_judge(post=fake_post)
+    verdict, detail = judge(Claim("claim-1", "x", "https://x/1"), "y")
+
+    assert verdict == Verdict.NEEDS_JUDGMENT
+    assert "DEEPSEEK_API_KEY" in detail
+    assert not calls, "a missing key must not reach the network at all"
+
+
+def test_deepseek_judge_treats_an_http_error_as_needs_judgment():
+    def fake_post(url, **kwargs):
+        return FakeHttpxResponse(
+            status_error=httpx.HTTPStatusError("rate limited", request=None, response=None)
+        )
+
+    judge = deepseek_judge(api_key="k", post=fake_post)
+    verdict, detail = judge(Claim("claim-1", "x", "https://x/1"), "y")
+
+    assert verdict == Verdict.NEEDS_JUDGMENT
+    assert "rate limited" in detail
+
+
+def test_deepseek_judge_treats_a_malformed_response_envelope_as_needs_judgment():
+    def fake_post(url, **kwargs):
+        return FakeHttpxResponse(json_body={"unexpected": "shape"}, text='{"unexpected": "shape"}')
+
+    judge = deepseek_judge(api_key="k", post=fake_post)
+    verdict, detail = judge(Claim("claim-1", "x", "https://x/1"), "y")
+
+    assert verdict == Verdict.NEEDS_JUDGMENT
+    assert detail
+
+
+def test_deepseek_judge_treats_an_out_of_vocabulary_verdict_as_needs_judgment_after_a_retry():
+    def fake_post(url, **kwargs):
+        return _deepseek_response('{"verdict": "definitely maybe", "detail": "x"}')
+
+    judge = deepseek_judge(api_key="k", post=fake_post)
+    verdict, _detail = judge(Claim("claim-1", "x", "https://x/1"), "y")
+
+    assert verdict == Verdict.NEEDS_JUDGMENT
+
+
+def test_deepseek_judge_retries_once_after_an_unparsable_reply_and_can_recover():
+    # Observed in practice: DeepSeek sometimes answers "unsupported" instead
+    # of the requested vocabulary. The model has usually already formed an
+    # opinion, so a retry with a vocabulary reminder can recover it.
+    prompts = []
+
+    def fake_post(url, **kwargs):
+        prompt = kwargs["json"]["messages"][0]["content"]
+        prompts.append(prompt)
+        if len(prompts) == 1:
+            return _deepseek_response('{"verdict": "unsupported", "detail": "no match"}')
+        return _deepseek_response('{"verdict": "contradicted", "detail": "recovered"}')
+
+    judge = deepseek_judge(api_key="k", post=fake_post)
+    verdict, detail = judge(Claim("claim-1", "x", "https://x/1"), "y")
+
+    assert verdict == Verdict.CONTRADICTED
+    assert detail == "recovered"
+    assert len(prompts) == 2
+    assert "valid verdict" in prompts[1]
+    assert prompts[1].startswith(prompts[0])
+
+
+def test_deepseek_judge_does_not_retry_a_validly_judged_reply():
+    calls = []
+
+    def fake_post(url, **kwargs):
+        calls.append(kwargs)
+        return _deepseek_response('{"verdict": "unclear", "detail": "ambiguous"}')
+
+    judge = deepseek_judge(api_key="k", post=fake_post)
+    verdict, _detail = judge(Claim("claim-1", "x", "https://x/1"), "y")
+
+    assert verdict == Verdict.UNCLEAR
+    assert len(calls) == 1
+
+
+def test_deepseek_judge_gives_up_after_a_second_unparsable_reply():
+    calls = []
+
+    def fake_post(url, **kwargs):
+        calls.append(kwargs)
+        return _deepseek_response('{"verdict": "unsupported", "detail": "x"}')
+
+    judge = deepseek_judge(api_key="k", post=fake_post)
+    verdict, _detail = judge(Claim("claim-1", "x", "https://x/1"), "y")
+
+    assert verdict == Verdict.NEEDS_JUDGMENT
+    assert len(calls) == 2
 
 
 def test_check_page_wires_subagent_judge_end_to_end_with_a_stub_run():
