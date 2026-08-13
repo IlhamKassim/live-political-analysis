@@ -440,7 +440,12 @@ def _tool_read_file(worktree: Path, path: str, offset: int, limit: int) -> str:
 
 
 def _tool_grep(
-    worktree: Path, run_subprocess: RunSubprocess, pattern: str, path: str, glob: str | None
+    worktree: Path,
+    run_subprocess: RunSubprocess,
+    pattern: str,
+    path: str,
+    glob: str | None,
+    timeout: float,
 ) -> str:
     target = resolve_in_worktree(worktree, path)
     scoped = str(target.relative_to(worktree)) or "."
@@ -459,7 +464,7 @@ def _tool_grep(
     ]
     if glob:
         cmd.append(f":(glob){glob}")
-    completed = run_subprocess(cmd, capture_output=True, text=True, timeout=DEFAULT_COMMAND_TIMEOUT)
+    completed = run_subprocess(cmd, capture_output=True, text=True, timeout=timeout)
     if completed.returncode not in (0, 1):  # 1 == "ran fine, no matches"
         return f"error: git grep failed: {completed.stderr.strip()[:200]}"
     return fence_untrusted(f"grep:{pattern}", completed.stdout or "(no matches)")
@@ -502,18 +507,18 @@ def _tool_run_command(
     return fence_untrusted(f"command:{binary}", output)
 
 
-def _tool_git_status(worktree: Path, run_subprocess: RunSubprocess) -> str:
+def _tool_git_status(worktree: Path, run_subprocess: RunSubprocess, timeout: float) -> str:
     completed = run_subprocess(
         ["git", "-C", str(worktree), "status", "--porcelain"],
         capture_output=True,
         text=True,
-        timeout=DEFAULT_COMMAND_TIMEOUT,
+        timeout=timeout,
     )
-    return completed.stdout or "(clean)"
+    return fence_untrusted("git:status", completed.stdout or "(clean)")
 
 
 def _tool_git_diff(
-    worktree: Path, run_subprocess: RunSubprocess, staged: bool, path: str | None
+    worktree: Path, run_subprocess: RunSubprocess, staged: bool, path: str | None, timeout: float
 ) -> str:
     cmd = ["git", "-C", str(worktree), "diff"]
     if staged:
@@ -521,11 +526,13 @@ def _tool_git_diff(
     if path:
         resolve_in_worktree(worktree, path)
         cmd += ["--", path]
-    completed = run_subprocess(cmd, capture_output=True, text=True, timeout=DEFAULT_COMMAND_TIMEOUT)
-    return completed.stdout or "(no diff)"
+    completed = run_subprocess(cmd, capture_output=True, text=True, timeout=timeout)
+    return fence_untrusted("git:diff", completed.stdout or "(no diff)")
 
 
-def _tool_git_add(worktree: Path, run_subprocess: RunSubprocess, paths: list[str]) -> str:
+def _tool_git_add(
+    worktree: Path, run_subprocess: RunSubprocess, paths: list[str], timeout: float
+) -> str:
     if not paths:
         return "error: git_add requires at least one path"
     for p in paths:
@@ -536,14 +543,16 @@ def _tool_git_add(worktree: Path, run_subprocess: RunSubprocess, paths: list[str
         ["git", "-C", str(worktree), "add", "--", *paths],
         capture_output=True,
         text=True,
-        timeout=DEFAULT_COMMAND_TIMEOUT,
+        timeout=timeout,
     )
     if completed.returncode != 0:
         return f"error: git add failed: {completed.stderr.strip()[:200]}"
-    return f"staged: {', '.join(paths)}"
+    return fence_untrusted("git:add", f"staged: {', '.join(paths)}")
 
 
-def _tool_git_commit(worktree: Path, run_subprocess: RunSubprocess, message: str) -> str:
+def _tool_git_commit(
+    worktree: Path, run_subprocess: RunSubprocess, message: str, timeout: float
+) -> str:
     if not message.strip():
         return "error: commit message must not be empty"
     completed = run_subprocess(
@@ -561,12 +570,12 @@ def _tool_git_commit(worktree: Path, run_subprocess: RunSubprocess, message: str
         ],
         capture_output=True,
         text=True,
-        timeout=DEFAULT_COMMAND_TIMEOUT,
+        timeout=timeout,
     )
     if completed.returncode != 0:
         detail = (completed.stdout.strip() + " " + completed.stderr.strip())[:300]
         return f"error: git commit failed: {detail}"
-    return completed.stdout.strip() or "committed"
+    return fence_untrusted("git:commit", completed.stdout.strip() or "committed")
 
 
 def dispatch_tool_call(
@@ -610,6 +619,7 @@ def dispatch_tool_call(
                     args["pattern"],
                     args.get("path", "."),
                     args.get("glob"),
+                    command_timeout,
                 ),
                 None,
             )
@@ -627,15 +637,21 @@ def dispatch_tool_call(
                 None,
             )
         if name == "git_status":
-            return _tool_git_status(worktree, run_subprocess), None
+            return _tool_git_status(worktree, run_subprocess, command_timeout), None
         if name == "git_diff":
             return _tool_git_diff(
-                worktree, run_subprocess, args.get("staged", False), args.get("path")
+                worktree,
+                run_subprocess,
+                args.get("staged", False),
+                args.get("path"),
+                command_timeout,
             ), None
         if name == "git_add":
-            return _tool_git_add(worktree, run_subprocess, args["paths"]), None
+            return _tool_git_add(worktree, run_subprocess, args["paths"], command_timeout), None
         if name == "git_commit":
-            return _tool_git_commit(worktree, run_subprocess, args["message"]), None
+            return _tool_git_commit(
+                worktree, run_subprocess, args["message"], command_timeout
+            ), None
         if name == "finish_task":
             status = args.get("status")
             summary = args.get("summary", "")
@@ -946,7 +962,17 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--max-wall-clock-seconds", type=float, default=DEFAULT_MAX_WALL_CLOCK_SECONDS
     )
     parser.add_argument("--turn-timeout", type=float, default=DEFAULT_TURN_TIMEOUT)
-    parser.add_argument("--command-timeout", type=float, default=DEFAULT_COMMAND_TIMEOUT)
+    parser.add_argument(
+        "--command-timeout",
+        type=float,
+        default=DEFAULT_COMMAND_TIMEOUT,
+        help=(
+            "per-call timeout for every tool that shells out during a turn "
+            "(run_command, grep, git_status/diff/add/commit). Does not affect "
+            "worktree setup/teardown or the final diff/log summary, which "
+            "always use the module default"
+        ),
+    )
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--api-key", default=None, help="default: $DEEPSEEK_API_KEY")
     parser.add_argument("--keep-worktree", dest="keep_worktree", action="store_true", default=True)
@@ -958,7 +984,12 @@ def _print_setup_failure(status: RunStatus, error: str) -> None:
     print(json.dumps({"status": status.value, "error": error}, indent=2))
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None, *, post: Post = httpx.post) -> int:
+    """CLI entry point. `post` is injected purely for tests — mirrors every
+    other injected-callable seam in this module — so the missing-key
+    fail-closed path and the final-summary construction can both be
+    exercised against a real scratch git repo without a real DeepSeek call.
+    """
     args = build_arg_parser().parse_args(argv)
 
     api_key = args.api_key or os.environ.get("DEEPSEEK_API_KEY")
@@ -993,6 +1024,7 @@ def main(argv: list[str] | None = None) -> int:
         max_wall_clock_seconds=args.max_wall_clock_seconds,
         turn_timeout=args.turn_timeout,
         command_timeout=args.command_timeout,
+        post=post,
         progress=lambda line: print(line, file=sys.stderr),
     )
 

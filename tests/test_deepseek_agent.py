@@ -32,6 +32,7 @@ from deepseek_agent import (
     fence_untrusted,
     git_diff_stat,
     git_log_oneline,
+    main,
     remove_worktree,
     resolve_in_worktree,
     resolve_repo_root,
@@ -435,6 +436,57 @@ def test_git_commit_rejects_an_empty_message_without_running_it(tmp_path):
     )
 
     assert "error" in text
+
+
+@pytest.mark.parametrize(
+    ("tool", "kwargs"),
+    [
+        ("grep", {"pattern": "x"}),
+        ("git_status", {}),
+        ("git_diff", {}),
+        ("git_add", {"paths": ["a.txt"]}),
+        ("git_commit", {"message": "x"}),
+    ],
+)
+def test_the_callers_command_timeout_reaches_every_shelling_out_tool(tmp_path, tool, kwargs):
+    # A prior version silently ignored the caller-supplied command_timeout
+    # for every tool except run_command, always using the module default
+    # instead — this pins that the given value actually reaches the
+    # subprocess call's `timeout=` kwarg for each one.
+    (tmp_path / "a.txt").write_text("x")
+    captured_timeouts = []
+
+    def fake_run(cmd, **kw):
+        captured_timeouts.append(kw.get("timeout"))
+        return FakeCompletedProcess(stdout="ok", returncode=0)
+
+    dispatch_tool_call(
+        _call(tool, **kwargs), worktree=tmp_path, run_subprocess=fake_run, command_timeout=7.5
+    )
+
+    assert captured_timeouts == [7.5]
+
+
+@pytest.mark.parametrize(
+    ("tool", "kwargs"),
+    [
+        ("git_status", {}),
+        ("git_diff", {}),
+        ("git_add", {"paths": ["a.txt"]}),
+        ("git_commit", {"message": "x"}),
+    ],
+)
+def test_every_git_tools_output_is_fenced_as_untrusted(tmp_path, tool, kwargs):
+    (tmp_path / "a.txt").write_text("x")
+
+    def fake_run(cmd, **kw):
+        return FakeCompletedProcess(stdout="some repo-derived output", returncode=0)
+
+    text, _ = dispatch_tool_call(
+        _call(tool, **kwargs), worktree=tmp_path, run_subprocess=fake_run, command_timeout=5
+    )
+
+    assert "UNTRUSTED DATA" in text
 
 
 # --- dispatch_tool_call: finish_task and error handling ------------------
@@ -954,3 +1006,76 @@ def test_no_keep_worktree_flag_flips_the_default():
 def test_task_file_missing_raises_via_argparse():
     with pytest.raises(SystemExit):
         build_arg_parser().parse_args([])
+
+
+def test_main_fails_closed_on_a_missing_api_key_without_creating_a_worktree(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    repo = _init_scratch_repo(tmp_path)
+    task_file = tmp_path / "task.md"
+    task_file.write_text("do the thing")
+
+    code = main(["--task-file", str(task_file), "--repo-root", str(repo)])
+
+    assert code == 2
+    printed = json.loads(capsys.readouterr().out)
+    assert printed["status"] == RunStatus.SETUP_FAILED.value
+    assert not (repo / ".deepseek-agent-runs").exists()
+
+
+def test_main_builds_the_final_summary_from_real_git_state_not_the_models_claim(tmp_path, capsys):
+    # finish_task's self-reported summary is deliberately not trusted as the
+    # source of truth — files_changed/commits must come from real git state.
+    repo = _init_scratch_repo(tmp_path)
+    task_file = tmp_path / "task.md"
+    task_file.write_text("write a file")
+
+    def fake_post(url, **kwargs):
+        return _reply(
+            tool_calls=[
+                {
+                    "id": "1",
+                    "function": {
+                        "name": "write_file",
+                        "arguments": json.dumps({"path": "new.txt", "content": "hi"}),
+                    },
+                },
+                {
+                    "id": "2",
+                    "function": {
+                        "name": "git_add",
+                        "arguments": json.dumps({"paths": ["new.txt"]}),
+                    },
+                },
+                {
+                    "id": "3",
+                    "function": {
+                        "name": "git_commit",
+                        "arguments": json.dumps({"message": "add new.txt"}),
+                    },
+                },
+                _finish_call(summary="a total lie about what happened"),
+            ]
+        )
+
+    code = main(
+        [
+            "--task-file",
+            str(task_file),
+            "--repo-root",
+            str(repo),
+            "--branch-name",
+            "summary-test",
+            "--api-key",
+            "test-key",
+        ],
+        post=fake_post,
+    )
+
+    assert code == 0
+    printed = json.loads(capsys.readouterr().out)
+    assert printed["status"] == RunStatus.FINISHED.value
+    assert printed["self_reported_summary"] == "a total lie about what happened"
+    assert "new.txt" in printed["files_changed"]
+    assert any("add new.txt" in commit for commit in printed["commits"])
