@@ -59,3 +59,11 @@ The Coalition each of the 222 Seats is projected to fall to, with the projected 
 **Seat Call**:
 One Seat's entry in the Seat-Level Projection: the Coalition projected to take it and the projected margin over the runner-up. Named in code as `SeatCall`.
 _Avoid_: Prediction, forecast (both imply a precision ADR 0003 says this model does not have)
+
+**Audience**:
+Younger Malaysians who first encounter this project's content secondhand — a shared Seat Call card, a screenshot, a repost — rather than by navigating to the dashboard directly, and who are not already politically engaged. The target for #22 (site-literacy) and #23 (shareable cards). Distinct from an existing politically-engaged reader who would seek the dashboard out regardless.
+_Avoid_: Users, readers (both too generic — use Audience when the younger, secondhand-discovery reader is specifically meant)
+
+**Return Trigger**:
+A real-world event — a news cycle, a state election, GE16 being called, a Projection swing worth noticing — that makes an Audience member who already knows this site come back to it, as opposed to a scheduled habit (there is no daily check-in loop; the site updates once a day per ADR 0006 and has no accounts or push). Retention here means the site is easy to return to and freshest right at a Return Trigger, not that it earns a recurring visit slot.
+_Avoid_: Engagement, retention loop, habit (imply a scheduled/compulsive-use pattern this project isn't building toward)
