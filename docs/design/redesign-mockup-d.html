@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Redesign D — formal civic gazette | Live Political Analysis (mockup)</title>
+<style>
+  :root {
+    /* cream paper + ink — formal stock */
+    --paper:  #F5F3EC;
+    --paper-2:#FBF9F3;
+    --ink:    #211F1A;
+    --ink-soft:#4E4A40;
+    --ink-faint:#8A8576;
+    --rule:   #C9C4B6;
+    --rule-soft:#DDD8CA;
+    --rule-hair:#E9E5D9;
+
+    --ph:  #B23A2E;
+    --bn:  #1D4E89;
+    --pn:  #2B7A78;
+    --gps: #8A6D1F;
+    --grs: #6A4A7C;
+    --minor:#B9B6AC;
+
+    --serif: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+    --mono:  ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 16px;
+    line-height: 1.6;
+    padding: 40px 20px 60px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .sheet {
+    max-width: 780px;
+    margin: 0 auto;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    padding: 56px clamp(28px, 7vw, 72px) 48px;
+    box-shadow: 0 1px 3px rgba(40,36,24,.06);
+  }
+
+  /* ── mockstamp banner ─────────────────────────────────── */
+  .mockstamp {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: #B23A2E;
+    border: 1px solid currentColor;
+    padding: 5px 10px;
+    margin-bottom: 26px;
+  }
+
+  /* ── masthead / crest ─────────────────────────────────── */
+  .masthead {
+    text-align: center;
+    border-bottom: 3px double var(--rule);
+    padding-bottom: 24px;
+    margin-bottom: 34px;
+  }
+  .masthead .title {
+    font-size: 21px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    margin: 12px 0 4px;
+  }
+  .masthead .sub {
+    font-size: 13px;
+    color: var(--ink-soft);
+    font-style: italic;
+    margin-bottom: 10px;
+  }
+  .masthead .no {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  /* abstract line-art seal — invented, not any real emblem */
+  .seal { display: block; margin: 0 auto 8px; width: 96px; height: 96px; }
+  .seal .ring { stroke: var(--ink); stroke-width: 1.4; fill: none; }
+  .seal .inner { stroke: var(--ink); stroke-width: .9; fill: none; }
+  .seal .h { stroke: var(--ink); stroke-width: .9; fill: none; }
+  .seal .r { stroke: var(--ph); stroke-width: 1.1; fill: none; }
+
+  /* ── section headers ──────────────────────────────────── */
+  section { margin-bottom: 38px; }
+  h2 {
+    font-size: 16.5px;
+    font-weight: 600;
+    letter-spacing: .01em;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--rule);
+  }
+  h2 .num { color: var(--ink-faint); margin-right: 10px; }
+  .preamble {
+    font-size: 14px;
+    color: var(--ink-soft);
+    margin-bottom: 22px;
+    max-width: 62ch;
+  }
+  .preamble b { color: var(--ink); font-weight: 600; }
+  .preamble .dict { color: var(--ink); }
+
+  /* ── I. composition / tally ───────────────────────────── */
+  .tally {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    border: 1px solid var(--rule);
+    padding: 20px 24px;
+    margin-bottom: 18px;
+  }
+  .tally .fig {
+    font-size: 56px;
+    line-height: 1;
+    letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .tally .of { color: var(--ink-faint); font-size: 17px; }
+  .tally .desc { font-size: 14.5px; color: var(--ink-soft); }
+  .tally .desc b { color: var(--ink); }
+
+  /* ── II. seating diagram (labeled floor plan) ─────────── */
+  .floorplan-note { font-size: 13px; color: var(--ink-soft); font-style: italic; margin-bottom: 14px; }
+  .floorplan { border: 1px solid var(--rule); padding: 20px; }
+  .floorplan .row { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px; }
+  .seat {
+    width: 26px; height: 26px;
+    border: 1px solid var(--ink);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--ink);
+    background: var(--paper-2);
+  }
+  .seat.filled { color: var(--paper-2); }
+  .seat.filled.ph  { background: var(--ph); border-color: var(--ph); }
+  .seat.filled.bn  { background: var(--bn); border-color: var(--bn); }
+  .seat.filled.pn  { background: var(--pn); border-color: var(--pn); }
+  .seat.filled.gps { background: var(--gps); border-color: var(--gps); }
+  .seat.filled.grs { background: var(--grs); border-color: var(--grs); }
+  .seat.filled.min { background: var(--minor); border-color: var(--minor); }
+  .seat .rowlab { font-size: 8px; }
+  .floorplan .isle { height: 8px; }
+  .floorplan .key { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--rule-soft); font-size: 12.5px; color: var(--ink-soft); display: flex; flex-wrap: wrap; gap: 8px 20px; }
+  .floorplan .key span { display: inline-flex; align-items: center; gap: 7px; }
+  .floorplan .key i { width: 11px; height: 11px; display: inline-block; border: 1px solid var(--ink); }
+  .legend-total { margin: 18px 0 0; font-size: 14px; }
+  .legend-total b { font-weight: 600; }
+
+  /* ── III. ledger / schedule with rule lines ───────────── */
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 14px; }
+  thead th {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 400;
+    text-align: right;
+    padding: 8px 10px;
+    border-top: 2px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+  }
+  thead th:first-child { text-align: left; }
+  tbody td {
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--rule-hair);
+    text-align: right;
+  }
+  tbody td:first-child { text-align: left; }
+  tbody tr.gov td { font-weight: 600; }
+  tbody tr.total td { border-top: 1.5px solid var(--ink); border-bottom: 2px solid var(--ink); font-weight: 600; }
+  .coal { display: inline-flex; align-items: center; gap: 9px; }
+  .coal i { width: 10px; height: 10px; display: inline-block; border: 1px solid var(--ink); }
+  .delta-pos { color: var(--ink); }
+  .delta-neg { color: var(--ink); }
+  .foot-note { font-size: 12.5px; color: var(--ink-faint); font-style: italic; margin-top: 12px; }
+
+  /* ── IV. notice / disclaimer footer ───────────────────── */
+  footer { border-top: 3px double var(--rule); padding-top: 18px; }
+  footer h2 { border-bottom: none; padding-bottom: 0; }
+  footer p { font-size: 13px; color: var(--ink-soft); margin-bottom: 10px; max-width: 62ch; }
+  footer .sched { font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; color: var(--ink-faint); letter-spacing: .03em; }
+  footer .sched span { margin-right: 18px; }
+
+  .sign { margin-top: 26px; display: flex; justify-content: space-between; align-items: flex-end; font-size: 13px; color: var(--ink-soft); }
+  .sign .name { color: var(--ink); font-weight: 600; }
+
+  @media (max-width: 520px) {
+    .tally { flex-wrap: wrap; }
+    .seat { width: 22px; height: 22px; font-size: 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="mockstamp">Mockup — placeholder figures</div>
+
+  <header class="masthead">
+    <!-- invented abstract line-art seal — not any real emblem -->
+    <svg class="seal" viewBox="0 0 96 96" role="img" aria-label="Abstract line-art seal mark.">
+      <circle class="ring" cx="48" cy="48" r="46"/>
+      <circle class="inner" cx="48" cy="48" r="37"/>
+      <path class="h" d="M26 64 V38 H37 L48 54 L59 38 H70 V64 L59 62.2 V48 L48 61.8 L37 48 V62.2 Z"/>
+      <path class="r" d="M26 64 A22 22 0 0 1 70 64"/>
+    </svg>
+    <div class="title">Dewan Rakyat — Projection of the House</div>
+    <div class="sub">Returned at the dissolution — a formal schedule of the 222 Seats</div>
+    <div class="no">Mockup No. D · GE15 Baseline · Not real data</div>
+  </header>
+
+  <section>
+    <h2><span class="num">I.</span>Composition of the Dewan Rakyat</h2>
+    <p class="preamble">
+      The <span class="dict">Government Coalition</span> — PH, BN, GPS and GRS — together with
+      minor parties, is projected to hold <b>150</b> of the 222 Seats, passing the
+      <b>112-Seat</b> Majority line with <b>38</b> Seats to spare. Each Seat Call is
+      arithmetic against its GE15 Baseline; it is a figure, not a judgement on the
+      constituency.
+    </p>
+    <div class="tally">
+      <span class="fig">150</span><span class="of">of 222 Seats</span>
+      <span class="desc">Government Coalition holds a <b>Majority</b> — 38 clear of the 112 line.</span>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">II.</span>Seating Diagram of the House</h2>
+    <p class="floorplan-note">A floor plan, not a graphic. Seats are numbered by row and block; each is one of the 222.</p>
+
+    <div class="floorplan" id="floor">
+      <!-- seat blocks injected here -->
+      <div class="key" id="key"></div>
+    </div>
+    <p class="legend-total">Total presented: <b>222 Seats</b> · Government Coalition 150 · Non-government 72.</p>
+  </section>
+
+  <section>
+    <h2><span class="num">III.</span>Schedule of Projected Seats</h2>
+    <table>
+      <thead>
+        <tr><th scope="col">Coalition</th><th scope="col">Projected</th><th scope="col">GE15</th><th scope="col">Swing</th></tr>
+      </thead>
+      <tbody>
+        <tr class="gov"><td class="coal"><i style="background:var(--ph)"></i>Pakatan Harapan</td><td>80</td><td>78</td><td class="delta-pos">+2</td></tr>
+        <tr class="gov"><td class="coal"><i style="background:var(--bn)"></i>Barisan Nasional</td><td>30</td><td>24</td><td class="delta-pos">+6</td></tr>
+        <tr class="gov"><td class="coal"><i style="background:var(--gps)"></i>Gabungan Parti Sarawak</td><td>20</td><td>20</td><td class="delta-pos">+0</td></tr>
+        <tr class="gov"><td class="coal"><i style="background:var(--grs)"></i>Gabungan Rakyat Sabah</td><td>8</td><td>7</td><td class="delta-pos">+1</td></tr>
+        <tr class="gov"><td class="coal"><i style="background:var(--minor)"></i>Minor & independents</td><td>12</td><td>14</td><td class="delta-neg">−2</td></tr>
+        <tr class="gov total"><td class="coal">Government Coalition total</td><td>150</td><td>143</td><td class="delta-pos">+7</td></tr>
+        <tr><td class="coal"><i style="background:var(--pn)"></i>Perikatan Nasional (Non-government)</td><td>72</td><td>79</td><td class="delta-neg">−7</td></tr>
+      </tbody>
+    </table>
+    <p class="foot-note">* A Majority requires 112 or more of the 222 Seats.</p>
+  </section>
+
+  <footer>
+    <h2><span class="num">IV.</span>Notice and Disclaimer</h2>
+    <p>
+      This schedule is a <b>Projection</b> — a seat-count estimate per Coalition for GE16,
+      computed by a uniform swing from each Seat's GE15 Baseline. It is not a prediction or
+      forecast of a fixed outcome, and every Seat Call is arithmetic only.
+    </p>
+    <p>
+      <b>These are placeholder figures for a design mockup.</b> They are not a Projection of
+      anything real and must not be cited as one.
+    </p>
+    <p>Election status: GE16 has not been called. The Dewan Rakyat must dissolve by 19 December 2027; polling follows within sixty days.</p>
+    <p class="sched">
+      <span>Issued: 18 August 2026</span>
+      <span>Chamber: 222</span>
+      <span>Majority: 112</span>
+    </p>
+    <div class="sign">
+      <span class="name">Live Political Analysis</span>
+      <span>Mockup — placeholder figures</span>
+    </div>
+  </footer>
+</div>
+
+<script>
+  // Formal labeled floor plan: 222 Seats as lettered/numbered blocks in rows.
+  // Coalition ordering = the ledger order, so blocks sit in coherent bands.
+  var blocks = [
+    { code:"ph",  name:"PH",  n:80 },
+    { code:"bn",  name:"BN",  n:30 },
+    { code:"gps", name:"GPS", n:20 },
+    { code:"grs", name:"GRS", n:8 },
+    { code:"min", name:"MIN", n:12 },
+    { code:"pn",  name:"PN",  n:72 }
+  ];
+  var cols = 15;               // seats across each row (a formal block grid)
+  var floor = document.getElementById("floor");
+  var out = "";
+  var acc = 0;
+  for (var i=0;i<blocks.length;i++){
+    var b = blocks[i];
+    var placed = 0;
+    while (placed < b.n) {
+      var cells = [];
+      for (var c=0; c<cols && placed < b.n; c++, placed++) {
+        cells.push('<span class="seat filled '+b.code+'" title="'+b.name+' — Seat '+(acc+1)+'">'
+                   + (acc+1) + '</span>');
+        acc++;
+      }
+      out += '<div class="row">' + cells.join('') + '</div>';
+    }
+  }
+  floor.insertAdjacentHTML('afterbegin', out);
+
+  // legend
+  var key = document.getElementById("key");
+  var names = {"ph":"PH","bn":"BN","gps":"GPS","grs":"GRS","min":"Minor & independents","pn":"PN (Non-government)"};
+  var html = "";
+  for (var i=0;i<blocks.length;i++){
+    html += '<span><i style="background:var(--'+blocks[i].code+')"></i>'+names[blocks[i].code]+' ['+blocks[i].n+']</span>';
+  }
+  key.innerHTML = html;
+</script>
+</body>
+</html>
+</write_to_file>
