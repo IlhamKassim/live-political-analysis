@@ -12,6 +12,7 @@ import {
   partyColor, COALITION_COLORS, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues, swatchTextColor,
   competitivenessFromMajorityPct, withCurrentAffiliation, seatViewBox,
+  getRepPhotoUrl, formatSocialShareText, buildEmbedCode,
 } from "./lib.js";
 import { I18N } from "./i18n.js";
 
@@ -1087,5 +1088,46 @@ test("seatViewBox: degenerate / missing / non-finite bbox returns full viewBox c
   assert.deepEqual(seatViewBox({ x: 0, y: 0, w: 0, h: 10 }, full), full);
   assert.deepEqual(seatViewBox({ x: 0, y: 0, w: -5, h: 10 }, full), full);
   assert.deepEqual(seatViewBox({ x: NaN, y: 0, w: 10, h: 10 }, full), full);
+});
+
+test("getRepPhotoUrl: resolves MP photo from politicians roster", () => {
+  const politicians = {
+    mps: {
+      "P.003": { name: "Shahidan Kassim", photo: "assets/politicians/P.003.webp" },
+    },
+  };
+  assert.equal(getRepPhotoUrl({ code: "P.003" }, null, politicians, null), "assets/politicians/P.003.webp");
+  assert.equal(getRepPhotoUrl({ code: "P.999" }, null, politicians, null), null);
+  assert.equal(getRepPhotoUrl(null, null, politicians, null), null);
+});
+
+test("formatSocialShareText: generates bilingual share text with deep-link", () => {
+  const seat = { code: "P.121", name: "Lembah Pantai" };
+  const res = { name: "Fahmi Fadzil", coalition: "PH", majority: 13912 };
+  const en = formatSocialShareText(seat, res, "parlimen", "en", "https://mypolitik.my");
+  assert.equal(en.title, "P.121 Lembah Pantai — MyPolitik");
+  assert.match(en.text, /Fahmi Fadzil \(PH\)/);
+  assert.match(en.text, /Majority: 13,912 votes/);
+  assert.equal(en.url, "https://mypolitik.my/#parlimen/parti/P.121");
+
+  const ms = formatSocialShareText(seat, res, "parlimen", "ms", "https://mypolitik.my");
+  assert.match(ms.text, /Ketahui wakil rakyat kawasan P.121 Lembah Pantai/);
+  assert.match(ms.text, /Majoriti: 13,912 undi/);
+
+  // Missing result fallback
+  const fallback = formatSocialShareText(seat, null, "parlimen", "en", "https://mypolitik.my");
+  assert.match(fallback.text, /Explore P.121 Lembah Pantai/);
+});
+
+test("buildEmbedCode: produces responsive iframe tag with seat URL", () => {
+  const seat = { code: "P.121", name: "Lembah Pantai" };
+  const code = buildEmbedCode(seat, "parlimen", { baseUrl: "https://mypolitik.my" });
+  assert.match(code, /^<iframe/);
+  assert.match(code, /src="https:\/\/mypolitik\.my\/embed\.html#parlimen\/parti\/P\.121"/);
+  assert.match(code, /title="Lembah Pantai - MyPolitik"/);
+  assert.match(code, /width="100%"/);
+  assert.match(code, /loading="lazy"/);
+
+  assert.equal(buildEmbedCode(null), "");
 });
 

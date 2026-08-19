@@ -5,7 +5,8 @@
 import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues, swatchTextColor,
-  competitivenessFromMajorityPct, withCurrentAffiliation, seatViewBox } from "./lib.js?v=145";
+  competitivenessFromMajorityPct, withCurrentAffiliation, seatViewBox,
+  getRepPhotoUrl, formatSocialShareText, buildEmbedCode } from "./lib.js?v=145";
 import { I18N } from "./i18n.js?v=153";
 
 const SVG = document.getElementById("map");
@@ -36,6 +37,15 @@ const CARD_PREVIEW = document.getElementById("card-preview");
 const CARD_PREVIEW_IMG = document.getElementById("card-preview-img");
 const CARD_PREVIEW_DOWNLOAD = document.getElementById("card-preview-download");
 const CARD_PREVIEW_CLOSE = document.getElementById("card-preview-close");
+const CARD_PREVIEW_COPY_IMG = document.getElementById("card-preview-copy-img");
+const CARD_SHARE_WHATSAPP = document.getElementById("card-share-whatsapp");
+const CARD_SHARE_X = document.getElementById("card-share-x");
+const CARD_SHARE_NATIVE = document.getElementById("card-share-native");
+const EMBED_MODAL = document.getElementById("embed-modal");
+const EMBED_IFRAME_PREVIEW = document.getElementById("embed-iframe-preview");
+const EMBED_CODE_INPUT = document.getElementById("embed-code-input");
+const EMBED_COPY_BTN = document.getElementById("embed-copy-btn");
+const EMBED_MODAL_CLOSE = document.getElementById("embed-modal-close");
 const TAP_HINT = document.getElementById("tap-hint");
 const TAP_HINT_X = document.getElementById("tap-hint-x");
 const SHEET_HANDLE = document.getElementById("sheet-handle");
@@ -2381,6 +2391,7 @@ function seatDetailActionsHTML() {
     <div class="seat-detail-actions">
       <button class="share-btn seat-detail-action" type="button" data-share-link>${esc(t("share_btn"))}</button>
       <button class="share-btn seat-detail-action" type="button" data-share-card>${esc(t("card_btn"))}</button>
+      <button class="share-btn seat-detail-action" type="button" data-share-embed>${esc(t("embed_btn"))}</button>
     </div>
   `;
 }
@@ -2762,11 +2773,23 @@ function drawBlueprintBackground(ctx, accent) {
   ctx.restore();
 
 }
-function drawSeatCard(seat) {
+function loadImageAsync(url) {
+  if (!url) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+
+async function drawSeatCard(seat) {
   const isP = state.tier === "parlimen";
   const r = resultFor(seat);
   const ownDun = !!ownDunResult(seat);
   const accent = r ? partyColor(r.coalition) : "#5d6b7d";
+  const textCol = swatchTextColor(accent);
 
   const cv = document.createElement("canvas");
   cv.width = CARD_W; cv.height = CARD_H;
@@ -2792,8 +2815,8 @@ function drawSeatCard(seat) {
   ctx.textAlign = "left";
 
   // seat silhouette in a centred region, tinted by the bloc colour
-  const REG = { x: 78, y: 180, w: CARD_W - 156, h: 540 };
-  const fit = fitBox(seat.bbox, REG.w, REG.h, 52);
+  const REG = { x: 78, y: 160, w: CARD_W - 156, h: 490 };
+  const fit = fitBox(seat.bbox, REG.w, REG.h, 48);
   if (fit) {
     try {
       const path = new Path2D(seat.d);
@@ -2827,55 +2850,120 @@ function drawSeatCard(seat) {
   // kicker · code
   const kicker = isP ? `${t("kicker_parlimen")} · ${seat.code}` : `DUN · ${seat.dun_code}`;
   ctx.fillStyle = accent;
-  ctx.font = "600 30px 'Space Grotesk', system-ui, sans-serif";
-  ctx.fillText(kicker.toUpperCase(), 72, 790);
+  ctx.font = "600 28px 'Space Grotesk', system-ui, sans-serif";
+  ctx.fillText(kicker.toUpperCase(), 72, 715);
 
   // seat name (clamped to width)
   ctx.fillStyle = "#f5f8fb";
   let name = String(seat.name || "");
   setFittedFont(ctx, name, CARD_W - 144, {
     weight: 700,
-    size: 94,
-    min: 58,
+    size: 88,
+    min: 52,
     family: "'Redaction 20', Georgia, 'Times New Roman', serif",
   });
-  ctx.fillText(name, 72, 884);
+  ctx.fillText(name, 72, 796);
 
   // state
   ctx.fillStyle = "#9fb0c0";
-  ctx.font = "500 34px 'Space Grotesk', system-ui, sans-serif";
-  ctx.fillText(`${t("state_label")}: ${seat.state || ""}`, 72, 940);
+  ctx.font = "500 30px 'Space Grotesk', system-ui, sans-serif";
+  ctx.fillText(`${t("state_label")}: ${seat.state || ""}`, 72, 846);
 
-  // representative + bloc pill, or a gentle "data soon" line
-  const infoY = 998;
+  // Representative section
+  const infoY = 885;
 
   if (r) {
+    const repPhotoUrl = getRepPhotoUrl(seat, r, state.politicians, state.govPhotos);
+    const repImg = repPhotoUrl ? await loadImageAsync(repPhotoUrl) : null;
+    const avatarR = 60;
+    const avatarX = 72 + avatarR;
+    const avatarY = infoY + 70;
+
+    if (repImg) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(avatarX, avatarY, avatarR, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(repImg, avatarX - avatarR, avatarY - avatarR, avatarR * 2, avatarR * 2);
+      ctx.restore();
+
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(avatarX, avatarY, avatarR, 0, Math.PI * 2);
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = "rgba(255, 255, 255, 0.07)";
+      ctx.beginPath();
+      ctx.arc(avatarX, avatarY, avatarR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.fillStyle = "#e2e8f0";
+      ctx.font = "700 38px 'Space Grotesk', system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText((r.name || "YB").slice(0, 2).toUpperCase(), avatarX, avatarY);
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+    }
+
+    const textX = avatarX + avatarR + 24;
     const repName = String(r.name || "");
+
     ctx.fillStyle = "#7f95a9";
-    ctx.font = "600 22px 'JetBrains Mono', monospace";
-    ctx.fillText(t("card_current_yb").toUpperCase(), 72, infoY + 48);
-    ctx.fillStyle = "#e8edf3";
-    ctx.font = "700 42px 'Space Grotesk', system-ui, sans-serif";
-    ctx.fillText(fitCanvasText(ctx, repName, 610, 12), 72, infoY + 104);
-    // bloc pill
-    const label = String(r.coalition || "");
-    ctx.font = "600 30px 'Space Grotesk', system-ui, sans-serif";
-    const pw = ctx.measureText(label).width + 40;
-    ctx.fillStyle = accent;
-    roundRect(ctx, 72, infoY + 124, pw, 50, 25);
-    ctx.fill();
+    ctx.font = "600 20px 'JetBrains Mono', monospace";
+    ctx.fillText(t("card_current_yb").toUpperCase(), textX, infoY + 40);
+
     ctx.fillStyle = "#ffffff";
-    ctx.fillText(label, 92, infoY + 158);
+    ctx.font = "700 38px 'Space Grotesk', system-ui, sans-serif";
+    ctx.fillText(fitCanvasText(ctx, repName, CARD_W - textX - 72, 12), textX, infoY + 86);
+
+    const label = String(r.coalition || r.party || "");
+    if (label) {
+      ctx.font = "700 24px 'Space Grotesk', system-ui, sans-serif";
+      const pw = ctx.measureText(label).width + 36;
+      ctx.fillStyle = accent;
+      roundRect(ctx, textX, infoY + 104, pw, 42, 21);
+      ctx.fill();
+      ctx.fillStyle = textCol;
+      ctx.fillText(label, textX + 18, infoY + 134);
+    }
+
+    // Results / Margin Box
+    const statsY = infoY + 175;
+    ctx.fillStyle = "rgba(255, 255, 255, 0.03)";
+    roundRect(ctx, 72, statsY, CARD_W - 144, 114, 16);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.06)";
+    ctx.lineWidth = 1;
+    roundRect(ctx, 72, statsY, CARD_W - 144, 114, 16);
+    ctx.stroke();
+
     if (r.majority != null) {
-      ctx.fillStyle = "#9fb0c0";
-      ctx.font = "500 30px 'JetBrains Mono', monospace";
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "600 19px 'JetBrains Mono', monospace";
+      ctx.fillText(t(ownDun ? "majority_prn" : "majority").toUpperCase(), 96, statsY + 42);
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "700 32px 'JetBrains Mono', monospace";
+      const majStr = Number(r.majority).toLocaleString() + (r.majority_pct != null ? ` (${r.majority_pct}%)` : "");
+      ctx.fillText(majStr, 96, statsY + 84);
+    }
+
+    if (r.runner_up && r.runner_up.name) {
       ctx.textAlign = "right";
-      ctx.fillText(`${t(ownDun ? "majority_prn" : "majority")}: ${Number(r.majority).toLocaleString()}`, CARD_W - 110, infoY + 88);
-      if (r.votes != null) {
-        ctx.fillStyle = "#6f8498";
-        ctx.font = "400 26px 'JetBrains Mono', monospace";
-        ctx.fillText(`${t("win_votes")}: ${Number(r.votes).toLocaleString()}`, CARD_W - 110, infoY + 130);
-      }
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "600 19px 'JetBrains Mono', monospace";
+      ctx.fillText(t("runner").toUpperCase(), CARD_W - 96, statsY + 42);
+
+      ctx.fillStyle = "#cbd5e1";
+      ctx.font = "600 26px 'Space Grotesk', system-ui, sans-serif";
+      const runnerStr = fitCanvasText(ctx, `${r.runner_up.name} (${r.runner_up.party || ""})`, 440, 8);
+      ctx.fillText(runnerStr, CARD_W - 96, statsY + 84);
       ctx.textAlign = "left";
     }
   } else {
@@ -2884,19 +2972,22 @@ function drawSeatCard(seat) {
     ctx.fillText(t("rep_ph"), 72, infoY + 96);
   }
 
-  // footer: provenance only, no dev/local URL baked into the share image
+  // footer: provenance
   ctx.fillStyle = "#7d8da0";
-  ctx.font = "500 26px 'Space Grotesk', system-ui, sans-serif";
-  ctx.fillText("MyPolitik / public electoral data", 72, CARD_H - 94);
+  ctx.font = "500 24px 'Space Grotesk', system-ui, sans-serif";
+  ctx.fillText("MyPolitik / public electoral data", 72, CARD_H - 80);
   ctx.fillStyle = "#5d6b7d";
-  ctx.font = "400 23px 'Space Grotesk', system-ui, sans-serif";
-  if (r) ctx.fillText(resultSourceText(r, ownDun), 72, CARD_H - 56);
+  ctx.font = "400 22px 'Space Grotesk', system-ui, sans-serif";
+  if (r) ctx.fillText(resultSourceText(r, ownDun), 72, CARD_H - 46);
+
   return cv;
 }
+
 let sharingCard = false;
 let cardPreviewURL = null;
 let cardPreviewBlob = null;
 let cardPreviewName = "";
+let cardPreviewSeat = null;
 let cardPreviewReturnTo = null;
 
 function cardFileName(seat) {
@@ -2907,6 +2998,7 @@ function clearCardPreviewURL() {
   cardPreviewURL = null;
   cardPreviewBlob = null;
   cardPreviewName = "";
+  cardPreviewSeat = null;
   if (CARD_PREVIEW_IMG) {
     CARD_PREVIEW_IMG.removeAttribute("src");
     CARD_PREVIEW_IMG.alt = "";
@@ -2918,6 +3010,7 @@ function openCardPreview(blob, fname, seat, returnTo) {
   cardPreviewURL = URL.createObjectURL(blob);
   cardPreviewBlob = blob;
   cardPreviewName = fname;
+  cardPreviewSeat = seat;
   cardPreviewReturnTo = returnTo || document.activeElement;
   CARD_PREVIEW_IMG.src = cardPreviewURL;
   CARD_PREVIEW_IMG.alt = t("card_preview_alt", { seat: seat.name || "" });
@@ -2948,6 +3041,87 @@ function downloadCardPreview() {
   showToast("card_download_ok");
 }
 
+async function copyCardImagePreview() {
+  if (!cardPreviewBlob) { showToast("share_copy_img_fail"); return; }
+  try {
+    if (navigator.clipboard && window.ClipboardItem) {
+      await navigator.clipboard.write([
+        new ClipboardItem({ "image/png": cardPreviewBlob }),
+      ]);
+      showToast("share_copy_img_ok");
+    } else {
+      showToast("share_copy_img_fail");
+    }
+  } catch (_) {
+    showToast("share_copy_img_fail");
+  }
+}
+
+function shareCardWhatsApp() {
+  if (!cardPreviewSeat) return;
+  const r = resultFor(cardPreviewSeat);
+  const share = formatSocialShareText(cardPreviewSeat, r, state.tier, lang, window.location.origin);
+  const text = encodeURIComponent(`${share.text}\n${share.url}`);
+  window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank", "noopener,noreferrer");
+}
+
+function shareCardX() {
+  if (!cardPreviewSeat) return;
+  const r = resultFor(cardPreviewSeat);
+  const share = formatSocialShareText(cardPreviewSeat, r, state.tier, lang, window.location.origin);
+  const text = encodeURIComponent(share.text);
+  const url = encodeURIComponent(share.url);
+  window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, "_blank", "noopener,noreferrer");
+}
+
+async function shareCardNative() {
+  if (!cardPreviewSeat) return;
+  const r = resultFor(cardPreviewSeat);
+  const share = formatSocialShareText(cardPreviewSeat, r, state.tier, lang, window.location.origin);
+  if (navigator.share) {
+    try {
+      const shareData = { title: share.title, text: share.text, url: share.url };
+      if (cardPreviewBlob && navigator.canShare && navigator.canShare({ files: [new File([cardPreviewBlob], cardPreviewName || "card.png", { type: "image/png" })] })) {
+        shareData.files = [new File([cardPreviewBlob], cardPreviewName || "card.png", { type: "image/png" })];
+      }
+      await navigator.share(shareData);
+    } catch (_) {}
+  } else {
+    shareLink();
+  }
+}
+
+function openEmbedModal(seat) {
+  if (!EMBED_MODAL) return;
+  const s = seat || (state.selected && state.data[state.tier]?.byCode.get(state.selected));
+  if (!s) return;
+  const origin = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, "");
+  const code = buildEmbedCode(s, state.tier, { baseUrl: origin });
+  const embedUrl = `embed.html#${state.tier}/parti/${encodeURIComponent(s.code || s.dun_code)}`;
+
+  if (EMBED_CODE_INPUT) EMBED_CODE_INPUT.value = code;
+  if (EMBED_IFRAME_PREVIEW) EMBED_IFRAME_PREVIEW.src = embedUrl;
+
+  if (EMBED_MODAL.showModal) EMBED_MODAL.showModal();
+  else EMBED_MODAL.setAttribute("open", "");
+}
+
+function closeEmbedModal() {
+  if (!EMBED_MODAL) return;
+  if (EMBED_IFRAME_PREVIEW) EMBED_IFRAME_PREVIEW.src = "about:blank";
+  if (EMBED_MODAL.open && EMBED_MODAL.close) EMBED_MODAL.close();
+  else EMBED_MODAL.removeAttribute("open");
+}
+
+function copyEmbedCode() {
+  if (!EMBED_CODE_INPUT || !EMBED_CODE_INPUT.value) return;
+  navigator.clipboard.writeText(EMBED_CODE_INPUT.value).then(() => {
+    showToast("embed_copied");
+  }).catch(() => {
+    EMBED_CODE_INPUT.select();
+  });
+}
+
 async function shareCard(trigger) {
   if (sharingCard) return;
   const seat = state.selected && state.data[state.tier] &&
@@ -2963,7 +3137,7 @@ async function shareCard(trigger) {
     if (document.fonts && document.fonts.ready) {
       try { await document.fonts.ready; } catch (_) {}
     }
-    const cv = drawSeatCard(seat);
+    const cv = await drawSeatCard(seat);
     if (!cv) { showToast("card_fail"); return; }
     const blob = await new Promise((res) =>
       cv.toBlob ? cv.toBlob(res, "image/png") : res(null));
@@ -2984,9 +3158,14 @@ PANEL_SEAT.addEventListener("click", (e) => {
   if (handleCandidateCardClick(e)) return;
   if (e.target.closest("#share-link, [data-share-link]")) shareLink();
   else if (e.target.closest("#share-card, [data-share-card]")) shareCard(e.target);
+  else if (e.target.closest("#share-embed, [data-share-embed]")) openEmbedModal();
 });
 PANEL_SEAT.addEventListener("keydown", handleCandidateCardKeydown);
 CARD_PREVIEW_DOWNLOAD?.addEventListener("click", downloadCardPreview);
+CARD_PREVIEW_COPY_IMG?.addEventListener("click", copyCardImagePreview);
+CARD_SHARE_WHATSAPP?.addEventListener("click", shareCardWhatsApp);
+CARD_SHARE_X?.addEventListener("click", shareCardX);
+CARD_SHARE_NATIVE?.addEventListener("click", shareCardNative);
 CARD_PREVIEW_CLOSE?.addEventListener("click", closeCardPreview);
 CARD_PREVIEW?.addEventListener("click", (e) => {
   if (e.target === CARD_PREVIEW) closeCardPreview();
@@ -2998,6 +3177,11 @@ CARD_PREVIEW?.addEventListener("close", () => {
   if (returnTo && document.contains(returnTo)) {
     returnTo.focus({ preventScroll: true });
   }
+});
+EMBED_COPY_BTN?.addEventListener("click", copyEmbedCode);
+EMBED_MODAL_CLOSE?.addEventListener("click", closeEmbedModal);
+EMBED_MODAL?.addEventListener("click", (e) => {
+  if (e.target === EMBED_MODAL) closeEmbedModal();
 });
 
 // ---- summary + legend (empty panel) ----
@@ -6317,6 +6501,13 @@ function stateSpotlightHTML() {
   const ru = card.runnerUp;
   const runner = ru && ru.name
     ? `<div class="bento-spot-runner muted">${esc(t("runner"))}: ${esc(ru.name)}${ru.party ? ` · ${esc(ru.party)}` : ""}${ru.votes != null ? ` · ${ru.votes.toLocaleString()}` : ""}</div>` : "";
+  const actions = `
+    <div class="bento-spot-actions-bar" style="display:flex;gap:8px;margin-top:12px;margin-bottom:8px;">
+      <button class="share-btn seat-detail-action" type="button" data-share-card data-code="${esc(seat.code)}">${esc(t("card_btn"))}</button>
+      <button class="share-btn seat-detail-action" type="button" data-share-link data-code="${esc(seat.code)}">${esc(t("share_btn"))}</button>
+      <button class="share-btn seat-detail-action" type="button" data-share-embed data-code="${esc(seat.code)}">${esc(t("embed_btn"))}</button>
+    </div>
+  `;
   return `${head()}${yb}
     <div class="prn-inc bento-spot-result">
       <div class="prn-inc-top"><span class="prn-inc-kicker">${esc(t("bento_last_result"))}</span>${badge}</div>
@@ -6326,6 +6517,7 @@ function stateSpotlightHTML() {
         : (r.pending ? `<div class="prn-inc-stat muted">${esc(t("prn_count_pending"))}</div>` : "")}
       ${runner}
     </div>
+    ${actions}
     ${resultSourceLine(r, !isP && !!(state.resultsDun && state.resultsDun[seat.code]))}
     ${isP ? dewanSpotHTML(seat) : ""}`;
 }
@@ -7809,6 +8001,7 @@ PANEL_STATE.addEventListener("click", (e) => {
   }
   if (e.target.closest("#share-link, [data-share-link]")) shareLink();
   else if (e.target.closest("#share-card, [data-share-card]")) shareCard(e.target);
+  else if (e.target.closest("#share-embed, [data-share-embed]")) openEmbedModal();
   else if (e.target === PANEL_STATE) goBack();   // tap the empty backdrop (behind the state) → step back
 });
 PANEL_STATE.addEventListener("keydown", (e) => {
@@ -7896,4 +8089,34 @@ if (MAP_INSPECT_TRAY) {
   }, true);
 }
 
-BENTO.addEventListener("click", (e) => { openFallbackYbBento(e, BENTO, bentoSeat); });
+BENTO.addEventListener("click", (e) => {
+  const shareCardBtn = e.target.closest("#share-card, [data-share-card]");
+  if (shareCardBtn) {
+    const code = shareCardBtn.dataset.code || bentoSeat || state.selected;
+    const seat = code && state.data[seatTierOf(code) || state.tier]?.byCode.get(code);
+    if (seat) {
+      state.selected = seat.code;
+      shareCard(shareCardBtn);
+    }
+    return;
+  }
+  const shareLinkBtn = e.target.closest("#share-link, [data-share-link]");
+  if (shareLinkBtn) {
+    const code = shareLinkBtn.dataset.code || bentoSeat || state.selected;
+    if (code) {
+      state.selected = code;
+      shareLink();
+    }
+    return;
+  }
+  const shareEmbedBtn = e.target.closest("#share-embed, [data-share-embed]");
+  if (shareEmbedBtn) {
+    const code = shareEmbedBtn.dataset.code || bentoSeat || state.selected;
+    const seat = code && state.data[seatTierOf(code) || state.tier]?.byCode.get(code);
+    if (seat) {
+      openEmbedModal(seat);
+    }
+    return;
+  }
+  openFallbackYbBento(e, BENTO, bentoSeat);
+});

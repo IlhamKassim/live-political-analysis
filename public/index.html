@@ -225,6 +225,9 @@
           <button id="share-card" class="share-icon" type="button" data-i18n-aria="card_btn" aria-label="Download card" data-i18n-title="card_btn" title="Download card">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.4" y="4.4" width="17.2" height="13.8" rx="2.2"/><circle cx="8.1" cy="8.5" r="1.3"/><path d="m4.4 15 4.2-4 3.1 3 1.7-1.6 3.8 3.8"/><path d="M12 19.2v-6"/><path d="m9.7 17 2.3 2.3 2.3-2.3"/></svg>
           </button>
+          <button id="share-embed" class="share-icon" type="button" data-i18n-aria="embed_btn" aria-label="Embed widget" data-i18n-title="embed_btn" title="Embed widget">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          </button>
         </div>
       </div>
       <div class="state-map-wrap">
@@ -254,9 +257,53 @@
         <img id="card-preview-img" alt="" />
       </div>
       <div class="card-preview-actions">
-        <button id="card-preview-download" class="preview-download" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v11"/><path d="m7.5 10 4.5 4.5L16.5 10"/><path d="M5 20h14"/></svg>
-          <span data-i18n="card_preview_download">Download PNG</span>
+        <div class="primary-download-row">
+          <button id="card-preview-download" class="preview-download" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v11"/><path d="m7.5 10 4.5 4.5L16.5 10"/><path d="M5 20h14"/></svg>
+            <span data-i18n="card_preview_download">Download PNG</span>
+          </button>
+          <button id="card-preview-copy-img" class="preview-action-btn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <span data-i18n="share_copy_img">Copy image</span>
+          </button>
+        </div>
+        <div class="social-share-row">
+          <button id="card-share-whatsapp" class="social-share-btn btn-whatsapp" type="button" aria-label="Share on WhatsApp">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.301-.15-1.78-.878-2.056-.978-.276-.1-.477-.15-.678.15-.2.3-.777.978-.953 1.179-.176.2-.351.226-.652.075-.301-.15-1.272-.469-2.423-1.496-.895-.799-1.5-1.786-1.676-2.087-.176-.301-.019-.464.132-.614.136-.135.301-.351.452-.527.15-.176.2-.301.301-.502.1-.2.05-.376-.025-.526-.075-.15-.678-1.636-.929-2.242-.244-.59-.493-.51-.678-.52-.176-.008-.376-.01-.577-.01-.2 0-.527.075-.803.376-.276.3-1.054 1.03-1.054 2.51 0 1.48 1.079 2.91 1.23 3.111.15.2 2.124 3.243 5.145 4.547.719.31 1.28.496 1.718.636.722.23 1.378.197 1.898.12.58-.087 1.78-.727 2.03-1.43.25-.703.25-1.305.176-1.43-.075-.126-.276-.201-.577-.352zM12.04 2C6.52 2 2.04 6.48 2.04 12c0 1.87.52 3.62 1.42 5.13L2 22l5.03-1.42C8.5 21.36 10.22 21.84 12.04 21.84c5.52 0 10-4.48 10-10S17.56 2 12.04 2z"/></svg>
+            <span>WhatsApp</span>
+          </button>
+          <button id="card-share-x" class="social-share-btn btn-x" type="button" aria-label="Share on X">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            <span>X</span>
+          </button>
+          <button id="card-share-native" class="social-share-btn btn-native" type="button" aria-label="More share options">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            <span data-i18n="share_native">Share…</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+  <dialog id="embed-modal" class="card-preview embed-modal" aria-labelledby="embed-modal-title">
+    <div class="card-preview-shell embed-shell">
+      <div class="card-preview-head">
+        <h2 id="embed-modal-title" data-i18n="embed_modal_title">Embed seat widget</h2>
+        <button id="embed-modal-close" class="card-preview-close" type="button" data-i18n-aria="card_preview_close" aria-label="Close preview">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><line x1="6" x2="18" y1="6" y2="18"/><line x1="6" x2="18" y1="18" y2="6"/></svg>
+        </button>
+      </div>
+      <p class="embed-modal-desc" data-i18n="embed_modal_desc">Copy and paste this iframe code to embed this interactive seat card on your news site, blog, or article.</p>
+      <div class="embed-preview-box">
+        <iframe id="embed-iframe-preview" title="Widget Preview" loading="lazy"></iframe>
+      </div>
+      <div class="embed-code-wrap">
+        <label for="embed-code-input" class="embed-code-label" data-i18n="embed_code_label">Embed code</label>
+        <textarea id="embed-code-input" class="embed-code-input" readonly rows="3" spellcheck="false"></textarea>
+      </div>
+      <div class="card-preview-actions">
+        <button id="embed-copy-btn" class="preview-download" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          <span data-i18n="embed_copy_btn">Copy embed code</span>
         </button>
       </div>
     </div>

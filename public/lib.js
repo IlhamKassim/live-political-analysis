@@ -435,3 +435,83 @@ export function seatViewBox(bbox, full = [0, 0, 799.85, 352.74]) {
   const cy = bbox.y + bbox.h / 2;
   return [cx - vw / 2, cy - vh / 2, vw, vh];
 }
+
+// Resolve representative photo URL from politician metadata.
+// Pure: returns string path or null.
+export function getRepPhotoUrl(seat, result, politicians, govPhotos) {
+  if (!seat || typeof seat !== "object") return null;
+  const code = seat.code || seat.dun_code;
+  if (!code) return null;
+
+  if (politicians && typeof politicians === "object" && politicians.mps) {
+    const mp = politicians.mps[code] || (seat.parlimen && politicians.mps[seat.parlimen]);
+    if (mp && typeof mp.photo === "string" && mp.photo.trim()) {
+      return mp.photo.trim();
+    }
+  }
+
+  if (govPhotos && typeof govPhotos === "object" && seat.state) {
+    const gov = govPhotos[seat.state];
+    if (gov && typeof gov.photo === "string" && gov.photo.trim()) {
+      if (!result || !result.name || (gov.file && gov.file.toLowerCase().includes(result.name.toLowerCase().split(" ")[0]))) {
+        return gov.photo.trim();
+      }
+    }
+  }
+
+  return null;
+}
+
+// Generate social share copy and URL for Twitter/X, WhatsApp, etc.
+// Pure: returns structured { title, text, url }.
+export function formatSocialShareText(seat, result, tier = "parlimen", lang = "ms", baseUrl = "https://mypolitik.my") {
+  if (!seat || typeof seat !== "object") return { title: "MyPolitik", text: "MyPolitik — Interactive map of Malaysia's electoral seats", url: baseUrl };
+  const name = seat.name || seat.code || "";
+  const code = tier === "parlimen" ? (seat.code || "") : (seat.dun_code || seat.code || "");
+  const yb = result && result.name ? result.name : null;
+  const party = result && (result.coalition || result.party) ? `(${result.coalition || result.party})` : "";
+  const maj = result && Number.isFinite(result.majority) ? Number(result.majority).toLocaleString() : null;
+
+  const hash = `#${tier}/parti/${seat.code}`;
+  const url = `${baseUrl.replace(/\/+$/, "")}/${hash}`;
+
+  let text = "";
+  if (lang === "en") {
+    if (yb) {
+      text = `See who represents ${code} ${name} on MyPolitik: ${yb} ${party}`.trim();
+      if (maj) text += ` · Majority: ${maj} votes`;
+    } else {
+      text = `Explore ${code} ${name} electoral data and boundaries on MyPolitik`;
+    }
+  } else {
+    if (yb) {
+      text = `Ketahui wakil rakyat kawasan ${code} ${name} di MyPolitik: ${yb} ${party}`.trim();
+      if (maj) text += ` · Majoriti: ${maj} undi`;
+    } else {
+      text = `Terokai data pilihan raya dan sempadan ${code} ${name} di MyPolitik`;
+    }
+  }
+  text += ` 📍`;
+
+  return {
+    title: `${code} ${name} — MyPolitik`,
+    text,
+    url,
+  };
+}
+
+// Build responsive iframe embed HTML snippet.
+// Pure: returns iframe HTML string.
+export function buildEmbedCode(seat, tier = "parlimen", options = {}) {
+  if (!seat || typeof seat !== "object") return "";
+  const baseUrl = (options.baseUrl || "").replace(/\/+$/, "");
+  const code = seat.code || seat.dun_code || "";
+  const width = options.width || "100%";
+  const height = options.height || 360;
+  const embedPath = baseUrl ? `${baseUrl}/embed.html` : "embed.html";
+  const embedUrl = `${embedPath}#${tier}/parti/${code}`;
+  const title = `${seat.name || code} - MyPolitik`;
+
+  return `<iframe src="${embedUrl}" width="${width}" height="${height}" style="border:1px solid rgba(255,255,255,0.12);border-radius:14px;max-width:540px;width:100%;display:block;" title="${title}" loading="lazy"></iframe>`;
+}
+

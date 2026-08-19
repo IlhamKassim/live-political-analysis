@@ -2093,11 +2093,20 @@ body.map-inspect:not(.prn-mode) .state-makeup-glance {
   background: #0f141b;
 }
 .card-preview-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   border-top: 1px solid var(--line);
+  padding: 14px;
+}
+.primary-download-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
 }
 .preview-download {
   min-height: 44px;
-  width: 100%;
+  flex: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2114,6 +2123,131 @@ body.map-inspect:not(.prn-mode) .state-makeup-glance {
 .preview-download svg { width: 18px; height: 18px; }
 .preview-download:hover { filter: brightness(.92); }
 .preview-download:disabled { opacity: .6; cursor: progress; }
+
+.preview-action-btn {
+  min-height: 44px;
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-2);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.preview-action-btn svg { width: 18px; height: 18px; }
+.preview-action-btn:hover {
+  background: var(--bg-3, #222938);
+  border-color: var(--line-2);
+}
+
+.social-share-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+.social-share-btn {
+  flex: 1;
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s ease, filter 0.15s ease;
+}
+.social-share-btn:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+.social-share-btn.btn-whatsapp {
+  background: #128c7e;
+  color: #ffffff;
+  border-color: #075e54;
+}
+.social-share-btn.btn-x {
+  background: #000000;
+  color: #f1f5f9;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+.social-share-btn.btn-native {
+  background: var(--bg-2);
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+/* ---- embed widget modal ---- */
+.embed-modal {
+  width: min(560px, calc(100vw - 28px));
+}
+.embed-shell {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.embed-modal-desc {
+  font-size: 13px;
+  color: var(--ink-dim);
+  padding: 0 16px;
+  line-height: 1.45;
+  margin: 0;
+}
+.embed-preview-box {
+  margin: 0 16px;
+  background: #0b0f17;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  height: 240px;
+}
+.embed-preview-box iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+.embed-code-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 16px;
+}
+.embed-code-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  letter-spacing: 0.5px;
+}
+.embed-code-input {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.4;
+  resize: none;
+  outline: none;
+}
+.embed-code-input:focus {
+  border-color: var(--accent);
+}
 
 /* ---- state-first overview: hide internal seat borders so states read as blobs ---- */
 #seats.overview .seat { stroke: var(--stroke); stroke-width: 1; }
