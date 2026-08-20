@@ -263,6 +263,50 @@ def test_the_page_states_the_same_totals_the_model_computed():
     assert page.count('class="seat-dot"') == len(model.seats)
 
 
+def test_the_page_carries_open_graph_and_twitter_card_tags():
+    # #41: a link pasted into WhatsApp/X should preview as something, not a
+    # bare URL — confirmed there were no og:*/twitter:* tags at all before.
+    model = model_for()
+    page = render_html(model)
+
+    assert 'property="og:title" content="GE16 Projection' in page
+    assert (
+        'property="og:url" content="https://ilhamkassim.github.io/live-political-analysis/"' in page
+    )
+    assert (
+        'property="og:image" content="https://ilhamkassim.github.io/live-political-analysis/og-image.png"'
+        in page
+    )
+    assert 'name="twitter:card" content="summary_large_image"' in page
+    assert (
+        'name="twitter:image" content="https://ilhamkassim.github.io/live-political-analysis/og-image.png"'
+        in page
+    )
+    # Reuses the existing description copy rather than inventing new prose.
+    description_meta = re.search(r'name="description" content="([^"]+)"', page)
+    og_description_meta = re.search(r'property="og:description" content="([^"]+)"', page)
+    assert description_meta.group(1) == og_description_meta.group(1)
+
+
+def test_the_stylesheet_carries_a_print_block_that_hides_the_theme_toggle():
+    # #49: a real browser print should render the register-a page as a clean
+    # one-pager, not whatever the screen layout produces (HANDOFF's "print,
+    # not dashboard" register was a metaphor before this — no @media print
+    # existed at all).
+    page = render_html(model_for())
+
+    assert "@media print" in page
+    print_block = page[page.index("@media print") :]
+    assert ".theme-btn { display: none; }" in print_block
+    assert "print-color-adjust: exact" in print_block
+    # Printed paper is light with dark ink regardless of which theme was on
+    # screen — the print block must force the light palette even where the
+    # dark theme was explicitly selected (`data-theme="dark"`), not only the
+    # system-preference case.
+    assert ':root[data-theme="dark"]' in print_block
+    assert "--ground:    #E9EAE4;" in print_block
+
+
 def test_a_seat_name_carrying_markup_cannot_break_out_of_its_tooltip():
     # Seat names come from an ingested dataset, not from this repo.
     baseline = two_coalition_seats()
