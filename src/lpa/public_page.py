@@ -30,7 +30,7 @@ from __future__ import annotations
 import html
 import math
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from enum import StrEnum
 
@@ -46,6 +46,7 @@ from lpa.domain import (
     SwingModelConfig,
     government_seat_total,
 )
+from lpa.swing_model import swing_model
 
 SITE_URL = "https://ilhamkassim.github.io/live-political-analysis/"
 """The published GitHub Pages URL — the repo's own project-pages address.
@@ -64,6 +65,15 @@ to cover the error those imply rather than the error a fitted model would have.
 
 LIKELY_MARGIN = 0.12
 """Below this a Seat is shown at half tone, above it as solid."""
+
+SENSITIVITY_ROWS: tuple[float, ...] = (0.05, 0.10, 0.20)
+"""The `sentiment_sensitivity` values #51's table recomputes the Government
+Coalition total at — settled 20 Aug 2026 (triage on #51): exactly these
+three, with the shipped 0.10 in the middle so the table reads as "today's
+number, and the same model half and double as sensitive." Never a fourth
+column varying `state_signal_weight` too — two constants moving at once
+makes the table's meaning ambiguous.
+"""
 
 
 class Tier(StrEnum):
@@ -144,6 +154,43 @@ class PageModel:
     article_count: int
     state_signals: tuple[tuple[str, int], ...]
     """Each state that has voted since GE15, with how many Seats it moves."""
+    article_counts: tuple[tuple[str, int], ...]
+    """Each Coalition named in the latest run's Sentiment, with how many
+    articles fed its score (#52) — counts only, ordered most-covered first.
+    Empty when Storage has a Projection but no Sentiment snapshot."""
+    sensitivity_table: tuple[tuple[float, int], ...]
+    """The Government Coalition total, recomputed at each of `SENSITIVITY_ROWS`
+    (#51) — sensitivity to an unfitted judgement call (ADR 0003), never a
+    confidence interval. Pure Baseline+Sentiment arithmetic, independent of
+    the real Projection's own `sentiment_sensitivity`."""
+
+    @property
+    def threshold_seat(self) -> ChamberSeat | None:
+        """The Seat sitting at the Majority line in the chamber's ordering (#50).
+
+        `seats` runs Government-block-then-Opposition-block, so the Seat at
+        position `majority_threshold` is where the Government block would
+        have to reach to cross the line — "where the count crosses 112
+        today," not a claim about that Seat itself (ADR 0005). `None` only
+        when the threshold falls outside the chamber, the same guard
+        `_hemicycle` uses before drawing the line at all.
+        """
+        if not (0 < self.majority_threshold <= len(self.seats)):
+            return None
+        return self.seats[self.majority_threshold - 1]
+
+    @property
+    def threshold_swing(self) -> float | None:
+        """The uniform swing, in points, that would flip `threshold_seat` (#50).
+
+        The Seat's own margin: a uniform swing of exactly that size erases
+        its current holder's lead. Pure arithmetic on the already-ordered
+        Baseline margins — it never touches `sentiment_sensitivity` or
+        `state_signal_weight`, so ADR 0003's unfitted constants cannot
+        corrupt this one figure.
+        """
+        seat = self.threshold_seat
+        return seat.margin if seat is not None else None
 
     @property
     def buffer(self) -> int:
@@ -242,6 +289,63 @@ def page_model(
             (state, sum(1 for s in baseline if s.state == state))
             for state in sorted({s.state for s in state_election_signals})
         ),
+        article_counts=_article_counts(sentiment, names),
+        sensitivity_table=_sensitivity_table_rows(
+            baseline, sentiment, state_election_signals, config, projection.computed_at
+        ),
+    )
+
+
+def _article_counts(
+    sentiment: AggregatedSentiment | None, names: Mapping[Coalition, str]
+) -> tuple[tuple[str, int], ...]:
+    """Each Coalition's article count, most-covered first (#52).
+
+    Counts only — no headlines, scores, or outlets travel with them here, so
+    this cannot be read as reporting rather than "this many articles fed the
+    number" (the ticket's own guardrail).
+    """
+    if not sentiment:
+        return ()
+    return tuple(
+        sorted(
+            ((names.get(c, c), n) for c, n in sentiment.article_counts.items()),
+            key=lambda pair: (-pair[1], pair[0]),
+        )
+    )
+
+
+def _sensitivity_table_rows(
+    baseline: Sequence[SeatBaseline],
+    sentiment: AggregatedSentiment | None,
+    state_election_signals: Sequence[StateElectionSignal],
+    config: SwingModelConfig,
+    computed_at: date,
+) -> tuple[tuple[float, int], ...]:
+    """The Government Coalition total, recomputed at each of `SENSITIVITY_ROWS` (#51).
+
+    `swing_model` is pure (ADR 0002), so re-running it at a different
+    `sentiment_sensitivity` costs nothing and needs no new model output —
+    this recomputes the whole Projection at each alternate value and reads
+    off the same Government Coalition total the real page states elsewhere,
+    so the two can never silently disagree about what that phrase means.
+    """
+    scores = sentiment.scores if sentiment else {}
+    return tuple(
+        (
+            value,
+            government_seat_total(
+                swing_model(
+                    baseline,
+                    scores,
+                    state_election_signals,
+                    replace(config, sentiment_sensitivity=value),
+                    computed_at,
+                ).coalition_seat_totals,
+                config,
+            ),
+        )
+        for value in SENSITIVITY_ROWS
     )
 
 
@@ -887,6 +991,100 @@ def _stress(model: PageModel) -> str:
     )
 
 
+def _ge15_delta(model: PageModel) -> str:
+    """A plain "X at GE15 → Y projected" line per Coalition (#44).
+
+    Reuses `model.ledger` rather than recomputing — `_ledger`'s own
+    docstring states the same principle for its own columns: two paths to
+    one number is how this line comes to disagree with the ledger table
+    below it. The Government Coalition itself is deliberately absent: it
+    formed after GE15 by agreement (`_GOV_TOTAL_GE15_NOTE`), so it has no
+    honest GE15 total to state a delta against — #44's own example line
+    names that aggregate, but stating it here would either invent a number
+    or repeat the ledger's "—", neither of which is a plainly-worded line.
+    """
+    if not model.ledger:
+        return ""
+    items = "".join(
+        f"<li>{html.escape(row.name)}: {row.baseline} at GE15 → {row.projected} projected</li>"
+        for row in model.ledger
+    )
+    return f'<ul class="ge15-delta">{items}</ul>'
+
+
+def _tipping_point(model: PageModel) -> str:
+    """Where the count crosses the Majority line today, and by how much (#50).
+
+    Wording is the framing decision settled on the issue itself (Phase 0, 20
+    Aug 2026) — reused verbatim, not reinvented here, to keep it from
+    drifting into the bellwether language ADR 0005 forbids. The `None`
+    guard mirrors `_hemicycle`'s own: a threshold outside the chamber draws
+    no line there, so this states nothing about one either.
+    """
+    seat = model.threshold_seat
+    swing = model.threshold_swing
+    if seat is None or swing is None:
+        return ""
+    name = html.escape(seat.name)
+    return (
+        # One <div>, not two bare <p>s, because .strip is a flex row with
+        # justify-content: space-between — two direct flex children land at
+        # opposite ends of the row instead of stacking together.
+        '<div class="tipping-point-wrap">'
+        '<p class="tipping-point">'
+        f"Today, the count crosses {model.majority_threshold} at "
+        f"<b>{name}</b> ({html.escape(seat.state)}). A uniform swing of "
+        f"<b>{_points(swing)} points</b> would move the Majority line to "
+        "the other side of it."
+        "</p>"
+        '<p class="tipping-point-caveat">'
+        f"This states a position in a sort, not a claim about {name} itself "
+        "— the same arithmetic applied to any Seat at this position in the "
+        "ordering."
+        "</p>"
+        "</div>"
+    )
+
+
+def _sensitivity_table(model: PageModel) -> str:
+    """The Government Coalition total at each of `SENSITIVITY_ROWS` (#51).
+
+    Row label is "Government Coalition total," never "confidence," and the
+    caption states plainly this is sensitivity to a judgement call, not a
+    range of likely outcomes — both settled on the issue itself (triage, 20
+    Aug 2026), reused verbatim rather than reworded here. A fixed table, not
+    a slider (ADR 0006; HANDOFF's "templated dashboard" failure mode).
+    """
+    rows = "".join(
+        f"<tr><td>{value:.2f}</td><td>{total}</td></tr>" for value, total in model.sensitivity_table
+    )
+    return (
+        '<div class="sensitivity">'
+        '<div class="strip"><div class="eyebrow">Sensitivity to the unfitted constant</div></div>'
+        '<p class="sensitivity-note">The same Projection, recomputed at '
+        "other values of an unfitted model constant — not a range of "
+        "likely outcomes.</p>"
+        '<div class="ledger-scroll"><table class="sensitivity-table">'
+        "<thead><tr><th>Sentiment sensitivity</th>"
+        "<th>Government Coalition total</th></tr></thead>"
+        f"<tbody>{rows}</tbody></table></div>"
+        "</div>"
+    )
+
+
+def _article_counts_line(model: PageModel) -> str:
+    """The colophon's per-Coalition article-count sentence (#52).
+
+    Counts only, appended to the existing site-wide total sentence rather
+    than a new block — "this many articles fed the number," nothing about
+    which ones or what they said (the ticket's own guardrail).
+    """
+    if not model.article_counts:
+        return ""
+    parts = " · ".join(f"{html.escape(name)} {count}" for name, count in model.article_counts)
+    return f" By Coalition: {parts}."
+
+
 _CSS = """
   :root {
     /* paper + ink — a green-grey stock, not cream */
@@ -1134,6 +1332,23 @@ _CSS = """
   }
   .lede .buffer { font-variant-numeric: tabular-nums; }
 
+  /* #44: a third .verdict grid child needs an explicit column, or CSS Grid's
+     row-major auto-placement puts it under .tally (column 1) instead of
+     under .lede where it visually belongs. */
+  .ge15-delta {
+    grid-column: 2;
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .01em;
+    color: var(--ink-soft);
+  }
+
   .chamber { padding: clamp(30px, 5vw, 52px) 0 0; }
   .strip {
     display: flex;
@@ -1157,6 +1372,21 @@ _CSS = """
     max-width: 46ch;
     line-height: 1.5;
     margin: 0;
+  }
+  /* A single flex item, not two loose <p>s directly in .strip's flex row —
+     forced full-width so it always starts its own line below the eyebrow
+     and caption rather than competing with them for space-between's ends. */
+  .tipping-point-wrap { flex: 1 1 100%; margin-top: 10px; }
+  .tipping-point b {
+    font-weight: inherit;
+    box-shadow: inset 0 -.28em 0 color-mix(in srgb, var(--pn) 22%, transparent);
+  }
+  /* Both a specificity bump over the plain ".strip p" rule above (a bare
+     class selector alone loses that fight) and the actual override. */
+  .strip .tipping-point-caveat {
+    font-size: 12.5px;
+    color: var(--ink-faint);
+    margin: 6px 0 0;
   }
 
   .visually-hidden {
@@ -1355,6 +1585,19 @@ _CSS = """
   }
   .cell p { font-family: var(--serif); font-size: 13.5px; line-height: 1.5; color: var(--ink-soft); margin: 0; }
 
+  .sensitivity { margin: clamp(46px, 7vw, 78px) 0 0; }
+  .sensitivity-note {
+    font-family: var(--serif);
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    max-width: 52ch;
+    margin: 0 0 16px;
+  }
+  .sensitivity-table { width: auto; min-width: 0; max-width: 480px; }
+  .sensitivity-table th:first-child,
+  .sensitivity-table td:first-child { padding-right: 28px; }
+
   .colophon {
     margin-top: clamp(52px, 8vw, 90px);
     padding-top: 22px;
@@ -1437,7 +1680,7 @@ _CSS = """
     .theme-btn { display: none; }
     .seat-filter { display: none; }
     .sheet { max-width: none; padding: 0 var(--gutter) 24px; }
-    .verdict, .ledger-table, .stress, .colophon { break-inside: avoid; }
+    .verdict, .ledger-table, .stress, .colophon, .sensitivity { break-inside: avoid; }
     tr { break-inside: avoid; }
     /* The hidden accessibility table (.seat-table, 222 rows — see
        _seat_table's docstring) stays hidden here too, via its existing
@@ -1576,6 +1819,7 @@ def render_html(model: PageModel) -> str:
       <span class="tally-of">of {model.total_seats} seats — {model.majority_threshold} needed</span>
     </div>
     <p class="lede">{lede(model)}</p>
+    {_ge15_delta(model)}
   </section>
 
   <section class="chamber">
@@ -1592,6 +1836,7 @@ def render_html(model: PageModel) -> str:
         marks the {model.majority_threshold} needed for a Majority — which
         Seats are too close to call is in the ledger below.
       </p>
+      {_tipping_point(model)}
     </div>
 
     <div class="seat-filter">
@@ -1617,6 +1862,7 @@ def render_html(model: PageModel) -> str:
     <div class="ledger-scroll">{_ledger_table(model)}</div>
     {_ledger_narrow(model)}
     <dl class="stress">{_stress(model)}</dl>
+    {_sensitivity_table(model)}
   </section>
 
   <footer class="colophon">
@@ -1629,7 +1875,9 @@ def render_html(model: PageModel) -> str:
     </div>
     <div>
       <h3>Read from</h3>
-      <p>{read_from}. {model.article_count} articles in the latest run.</p>
+      <p>{read_from}. {model.article_count} articles in the latest run.{
+        _article_counts_line(model)
+    }</p>
     </div>
     <div>
       <h3>Election status</h3>
