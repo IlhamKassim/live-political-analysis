@@ -172,10 +172,15 @@ class PageModel:
         position `majority_threshold` is where the Government block would
         have to reach to cross the line — "where the count crosses 112
         today," not a claim about that Seat itself (ADR 0005). `None` only
-        when the threshold falls outside the chamber, the same guard
-        `_hemicycle` uses before drawing the line at all.
+        when the threshold falls outside the chamber — the exact same
+        `0 < threshold < total` bound `_hemicycle` uses before drawing the
+        line at all (strict on both sides: at `threshold == total` there is
+        no seat beyond the line for the swing to move it past, so the
+        chamber draws no line there and this states nothing about one
+        either — code review, 20 Aug 2026, catching a `<=` that would have
+        let this property answer where `_hemicycle` stays silent).
         """
-        if not (0 < self.majority_threshold <= len(self.seats)):
+        if not (0 < self.majority_threshold < len(self.seats)):
             return None
         return self.seats[self.majority_threshold - 1]
 
@@ -992,7 +997,7 @@ def _stress(model: PageModel) -> str:
 
 
 def _ge15_delta(model: PageModel) -> str:
-    """A plain "X at GE15 → Y projected" line per Coalition (#44).
+    """A plain "X seats at GE15 → Y projected" line per Coalition (#44).
 
     Reuses `model.ledger` rather than recomputing — `_ledger`'s own
     docstring states the same principle for its own columns: two paths to
@@ -1002,14 +1007,25 @@ def _ge15_delta(model: PageModel) -> str:
     honest GE15 total to state a delta against — #44's own example line
     names that aggregate, but stating it here would either invent a number
     or repeat the ledger's "—", neither of which is a plainly-worded line.
+    A one-line note says so explicitly when the Government Coalition
+    actually has more than one member — only then does a reader have real
+    reason to expect (and miss) that aggregate's own line, since a
+    single-Coalition government's own line already is that number.
     """
     if not model.ledger:
         return ""
     items = "".join(
-        f"<li>{html.escape(row.name)}: {row.baseline} at GE15 → {row.projected} projected</li>"
+        f"<li>{html.escape(row.name)}: {row.baseline} seats at GE15 → {row.projected} projected</li>"
         for row in model.ledger
     )
-    return f'<ul class="ge15-delta">{items}</ul>'
+    note = ""
+    if len(model.government_coalitions) > 1:
+        note = (
+            '<li class="ge15-delta-note">The Government Coalition itself has '
+            "no GE15 total to compare — it formed after GE15, by "
+            "agreement.</li>"
+        )
+    return f'<ul class="ge15-delta">{items}{note}</ul>'
 
 
 def _tipping_point(model: PageModel) -> str:
@@ -1348,6 +1364,7 @@ _CSS = """
     letter-spacing: .01em;
     color: var(--ink-soft);
   }
+  .ge15-delta-note { color: var(--ink-faint); font-style: italic; }
 
   .chamber { padding: clamp(30px, 5vw, 52px) 0 0; }
   .strip {
@@ -1622,6 +1639,12 @@ _CSS = """
   @media (max-width: 720px) {
     .verdict { grid-template-columns: 1fr; align-items: start; gap: 22px; }
     .lede { max-width: none; }
+    /* Code review, 20 Aug 2026: .verdict's explicit grid-column: 2 (set
+       above for a 2-column grid) survives the 1-column collapse otherwise —
+       CSS Grid creates an implicit second column to satisfy it rather than
+       stacking .ge15-delta below .lede, the opposite of what this
+       breakpoint exists to do. */
+    .ge15-delta { grid-column: 1; }
   }
 
   /* Sub-600px fallback (HANDOFF defect 4): the hemicycle overflows its

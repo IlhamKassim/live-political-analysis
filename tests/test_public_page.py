@@ -654,13 +654,14 @@ def test_a_state_that_has_voted_is_counted_by_the_seats_it_moves():
 def test_the_verdict_states_a_ge15_delta_line_per_named_coalition():
     # #44: the headline comparison a first-time visitor wants first, stated
     # plainly near the top rather than requiring the ledger table below to
-    # be read and the arithmetic done by hand.
+    # be read and the arithmetic done by hand. "Seats" stated explicitly,
+    # matching the unit the issue's own example line used.
     model = model_for()
     page = render_html(model)
 
     delta = page.split('<ul class="ge15-delta">')[1].split("</ul>")[0]
-    assert "Pakatan Harapan: 4 at GE15 → 4 projected" in delta
-    assert "Perikatan Nasional: 2 at GE15 → 2 projected" in delta
+    assert "Pakatan Harapan: 4 seats at GE15 → 4 projected" in delta
+    assert "Perikatan Nasional: 2 seats at GE15 → 2 projected" in delta
 
 
 def test_the_ge15_delta_never_states_a_government_coalition_total():
@@ -668,11 +669,31 @@ def test_the_ge15_delta_never_states_a_government_coalition_total():
     # honest GE15 total (see _GOV_TOTAL_GE15_NOTE) — so #44's own example
     # line, which uses that aggregate, would either invent a number or state
     # the ledger's "—" a second time. Neither is "a short, plainly-worded
-    # line," so the aggregate is left out of this callout entirely.
+    # line," so the aggregate is left out of this callout's numbered lines
+    # (a caveat sentence explaining the omission is allowed to name it —
+    # see the note test below — just never with a number attached).
     page = render_html(model_for())
 
     delta = page.split('<ul class="ge15-delta">')[1].split("</ul>")[0]
-    assert "Government" not in delta
+    assert "Government Coalition: " not in delta
+
+
+def test_the_ge15_delta_explains_the_omission_only_when_it_would_be_missed():
+    # #44 code review, 20 Aug 2026: a reader following the issue's own
+    # example line has real reason to expect (and miss) a Government
+    # Coalition aggregate line only when that bloc actually has more than
+    # one member — a single-Coalition government's own delta line already
+    # is that number, so the caveat would be explaining an absence nobody
+    # would have expected in the first place.
+    two_party = model_for()  # government_config()'s PH + GPS
+    assert len(two_party.government_coalitions) == 2
+    delta = render_html(two_party).split('<ul class="ge15-delta">')[1].split("</ul>")[0]
+    assert "no GE15 total to compare" in delta
+
+    one_party = model_for(config=government_config(government_coalitions=frozenset({PH})))
+    assert len(one_party.government_coalitions) == 1
+    delta = render_html(one_party).split('<ul class="ge15-delta">')[1].split("</ul>")[0]
+    assert "no GE15 total to compare" not in delta
 
 
 def test_the_tipping_point_names_the_seat_at_the_majority_line():
@@ -710,6 +731,18 @@ def test_the_tipping_point_is_absent_when_the_threshold_falls_outside_the_chambe
     assert model.threshold_seat is None
     assert model.threshold_swing is None
     assert '<p class="tipping-point">' not in render_html(model)
+
+
+def test_the_tipping_point_is_absent_when_the_threshold_exactly_equals_the_seat_count():
+    # Code review, 20 Aug 2026: threshold_seat originally guarded with
+    # `<=`, disagreeing with _hemicycle's strict `<` at this exact boundary
+    # — the tipping-point prose would have named a Seat on a page whose
+    # chamber drew no line for it. Pinning the boundary so it cannot
+    # silently drift back apart.
+    model = model_for(config=government_config(majority_threshold=6))  # == len(seats)
+
+    assert model.threshold_seat is None
+    assert model.threshold_swing is None
 
 
 def test_the_sensitivity_table_has_exactly_the_three_settled_rows():
