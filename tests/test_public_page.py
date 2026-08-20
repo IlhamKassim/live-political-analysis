@@ -24,7 +24,9 @@ from lpa.aggregate import AggregatedSentiment
 from lpa.domain import ElectionStatus, Projection, SeatCall, StateElectionSignal
 from lpa.public_page import (
     TIER_LABEL,
+    ChamberSeat,
     Tier,
+    _search_blob,
     _slots,
     lede,
     page_model,
@@ -470,9 +472,9 @@ def test_every_seat_row_carries_a_stable_id_a_shared_card_can_link_to():
     page = render_html(model)
 
     for seat in model.seats:
-        assert f'<tr id="seat-{seat.code}">' in page
+        assert f'<tr id="seat-{seat.code}"' in page
     # One id per Seat, no collisions across the 222 rows.
-    ids = re.findall(r'<tr id="(seat-[^"]+)">', page)
+    ids = re.findall(r'<tr id="(seat-[^"]+)"', page)
     assert len(ids) == len(set(ids)) == len(model.seats)
 
 
@@ -489,6 +491,65 @@ def test_the_chamber_dot_carries_a_data_seat_attribute_not_a_duplicate_id():
     assert page.count(f'id="seat-{model.seats[0].code}"') == 1
 
 
+def test_the_search_blob_carries_every_field_47_asks_a_reader_search_by():
+    # #47: "by Seat name, code, state, Coalition, or certainty tier" — both
+    # the Coalition's short code and its full name, so "PH" and "Pakatan
+    # Harapan" both find the same Seats.
+    seat = ChamberSeat(
+        code="P.048",
+        name="Bagan",
+        state="Penang",
+        coalition=PH,
+        margin=0.12,
+        tier=Tier.SAFE,
+        government=True,
+    )
+    blob = _search_blob(seat, {PH: "Pakatan Harapan"})
+
+    assert blob == "bagan p.048 penang ph pakatan harapan safe"
+
+
+def test_the_search_blob_falls_back_to_the_code_for_an_unknown_coalition():
+    # Every Coalition a Seat can carry comes from the same ledger this blob
+    # is built from, so this path should not be reachable in practice — but
+    # falling back rather than raising keeps a bad lookup from taking the
+    # whole page down.
+    seat = ChamberSeat(
+        code="P.001",
+        name="X",
+        state="Y",
+        coalition="ZZ",
+        margin=0.1,
+        tier=Tier.LIKELY,
+        government=False,
+    )
+    assert "zz" in _search_blob(seat, {})
+
+
+def test_every_row_carries_a_data_search_attribute_the_script_can_read():
+    model = model_for()
+    page = render_html(model)
+
+    first = model.seats[0]
+    row = page[page.index(f'id="seat-{first.code}"') :].split("</tr>")[0]
+    assert "data-search=" in row
+    assert first.name.lower() in row.lower()
+    assert first.state.lower() in row.lower()
+
+
+def test_the_seat_filter_control_is_on_the_page_and_keyboard_operable():
+    # #47: register-a styling, not a generic search-bar component — reuses
+    # the page's existing input/label idiom rather than a new one — and it
+    # must not regress the keyboard-only path #42/HANDOFF defect 5 rely on,
+    # so a plain <input> with a real <label>, not a div-as-button widget.
+    page = render_html(model_for())
+
+    assert '<label for="seatFilter">' in page
+    assert '<input type="search" id="seatFilter"' in page
+    assert 'aria-live="polite"' in page
+    assert "seatFilter" in page[page.index("<script>") :]
+
+
 def test_a_seat_name_carrying_markup_cannot_break_out_of_the_hidden_table():
     baseline = two_coalition_seats()
     baseline[0] = type(baseline[0])(
@@ -502,6 +563,24 @@ def test_a_seat_name_carrying_markup_cannot_break_out_of_the_hidden_table():
     table = page.split('<table class="visually-hidden seat-table">')[1].split("</table>")[0]
     assert "<script>alert" not in table
     assert "&lt;script&gt;" in table
+
+
+def test_a_seat_name_carrying_a_quote_cannot_break_out_of_data_search():
+    # #47's data-search is an attribute value, not element content — a
+    # double quote in the source name needs escaping too, or it closes the
+    # attribute early and the rest of the blob becomes bare markup.
+    baseline = two_coalition_seats()
+    baseline[0] = type(baseline[0])(
+        code=baseline[0].code,
+        name='Bagan" onmouseover="alert(1)',
+        state=baseline[0].state,
+        vote_share=baseline[0].vote_share,
+    )
+    page = render_html(model_for(baseline=baseline))
+
+    table = page.split('<table class="visually-hidden seat-table">')[1].split("</table>")[0]
+    assert 'onmouseover="alert' not in table
+    assert "&quot;" in table
 
 
 def test_the_chamber_eyebrow_carries_the_settled_bm_wording():

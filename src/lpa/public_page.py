@@ -755,6 +755,24 @@ def _seat_bar(model: PageModel) -> str:
     )
 
 
+def _search_blob(seat: ChamberSeat, coalition_names: Mapping[Coalition, str]) -> str:
+    """The text `_SEAT_FILTER_SCRIPT` (#47) matches a query against.
+
+    Name, code, state, Coalition (both the short code and its full name, so
+    "PH" and "Pakatan Harapan" both find the same Seats), and the certainty
+    tier's prose label — the fields #47 asks a reader be able to search by.
+    """
+    fields = (
+        seat.name,
+        seat.code,
+        seat.state,
+        seat.coalition,
+        coalition_names.get(seat.coalition, seat.coalition),
+        TIER_LABEL[seat.tier],
+    )
+    return " ".join(fields).lower()
+
+
 def _seat_table(model: PageModel) -> str:
     """Every Seat as a row, reachable without a mouse.
 
@@ -771,9 +789,34 @@ def _seat_table(model: PageModel) -> str:
     dot for the same Seat gets a `data-seat` attribute instead of an `id`,
     since an `id` can only anchor to one element per document and this table
     is the one a fragment link should resolve to.
+
+    Each row also carries `data-seat` and `data-search` (#47): `data-seat`
+    is the plain code, so `_SEAT_FILTER_SCRIPT` can find a row's matching
+    chamber dot without parsing it back out of `id="seat-{code}"`; `data-
+    search` is the lowercased name, code, state, Coalition code, Coalition
+    name, and certainty tier, space-joined — the index the script matches a
+    query against, so the matching text lives here once rather than being
+    re-derived from visible markup at runtime.
+
+    Filtering hides a non-matching row with the native `hidden` attribute —
+    which does remove it from the accessibility tree, same as this table
+    itself must never be hidden by default. The difference is what "hidden"
+    means in each case: this table's own `visually-hidden` is permanent and
+    universal, and would erase a Seat's only keyboard/screen-reader path
+    outright (HANDOFF defect 5) — but a non-match while a search is active is
+    the accessible-filter pattern used by any standard filterable list
+    (ARIA APG's combobox/listbox filtering): the input and its result count
+    (`aria-live="polite"`) stay reachable throughout, and clearing the query
+    restores every row. A screen reader user narrowing 222 rows to the ones
+    they typed for is the feature working, not the regression #47 warns
+    against — the regression would be shipping a filter that still forces
+    them to read all 222 to find a match, which defeats the point of adding
+    search at all.
     """
+    coalition_names = {row.coalition: row.name for row in model.ledger}
     rows = "".join(
-        f'<tr id="seat-{html.escape(seat.code)}">'
+        f'<tr id="seat-{html.escape(seat.code)}" data-seat="{html.escape(seat.code)}" '
+        f'data-search="{html.escape(_search_blob(seat, coalition_names))}">'
         f"<td>{html.escape(seat.name)}</td>"
         f"<td>{html.escape(seat.state)}</td>"
         f"<td>{html.escape(seat.coalition)}</td>"
@@ -992,6 +1035,43 @@ _CSS = """
   }
   .theme-btn:hover { color: var(--ink); border-color: var(--ink-faint); }
   .theme-btn:focus-visible { outline: 2px solid var(--pn); outline-offset: 2px; }
+
+  .seat-filter {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    margin: 4px 0 20px;
+  }
+  .seat-filter label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .seat-filter input {
+    font-family: var(--serif);
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    padding: 6px 10px;
+    min-width: 240px;
+  }
+  .seat-filter input::placeholder { color: var(--ink-faint); }
+  .seat-filter input:focus-visible { outline: 2px solid var(--pn); outline-offset: 2px; }
+  .seat-filter-count {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .05em;
+    color: var(--ink-faint);
+    margin: 0;
+  }
+  /* A dimmed dot is not a fourth certainty tier — this multiplies over
+     whatever fill-opacity/stroke the Tier already set (_hemicycle), so a
+     Safe and a Too-close dot both fade the same amount when filtered out. */
+  .seat-dot--filtered-out { opacity: .12; }
 
   .nav-link {
     font-family: var(--mono);
@@ -1355,6 +1435,7 @@ _CSS = """
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     body::before { display: none; }
     .theme-btn { display: none; }
+    .seat-filter { display: none; }
     .sheet { max-width: none; padding: 0 var(--gutter) 24px; }
     .verdict, .ledger-table, .stress, .colophon { break-inside: avoid; }
     tr { break-inside: avoid; }
@@ -1401,13 +1482,51 @@ _THEME_SCRIPT = """
 })();
 """
 
+_SEAT_FILTER_SCRIPT = """
+(function () {
+  var input = document.getElementById("seatFilter");
+  var count = document.getElementById("seatFilterCount");
+  var rows = Array.prototype.slice.call(document.querySelectorAll(".seat-table tbody tr"));
+  var total = rows.length;
+
+  function dotFor(code) {
+    return document.querySelector('.seat-dot[data-seat="' + CSS.escape(code) + '"]');
+  }
+
+  function apply() {
+    var query = input.value.trim().toLowerCase();
+    var matched = 0;
+    rows.forEach(function (row) {
+      var isMatch = row.dataset.search.indexOf(query) !== -1;
+      row.hidden = !isMatch;
+      if (isMatch) matched += 1;
+      var dot = dotFor(row.dataset.seat);
+      if (dot) dot.classList.toggle("seat-dot--filtered-out", !isMatch);
+    });
+    count.textContent = query ? matched + " of " + total + " Seats match" : "";
+  }
+
+  input.addEventListener("input", apply);
+})();
+"""
+"""Client-side only (#47, ADR 0006) — filters the accessible seat table's
+222 rows and the chamber's dots by the shared `data-search`/`data-seat`
+attributes `_seat_table`/`_hemicycle` already render (see `_seat_table`'s
+docstring for why hiding a non-match here is the accessible-filter pattern,
+not the "erase the table" regression #47 warns against). An empty query
+matches every row (`"".indexOf(query)` is always found), so clearing the
+input is the same code path as any other query, not a special case.
+"""
+
 
 def render_html(model: PageModel) -> str:
     """The whole page as one self-contained document.
 
     Decides nothing. Every figure here comes from `model`, so a claim on the
-    page can be traced to the arithmetic that produced it — and the only
-    script is the theme toggle, which the page reads correctly without.
+    page can be traced to the arithmetic that produced it. Two scripts run:
+    the theme toggle, and the Seat filter (#47) — the page reads correctly
+    without either; a script-disabled reader keeps a fully populated,
+    unfiltered table and chamber, never a broken or empty one.
     """
     read_from = " · ".join(html.escape(s) for s in model.sources) or "No outlets read"
     title = "GE16 Projection — the Dewan Rakyat, projected"
@@ -1475,6 +1594,13 @@ def render_html(model: PageModel) -> str:
       </p>
     </div>
 
+    <div class="seat-filter">
+      <label for="seatFilter">Find a Seat</label>
+      <input type="search" id="seatFilter" autocomplete="off" spellcheck="false"
+        placeholder="Name, state, coalition, or certainty">
+      <p class="seat-filter-count" id="seatFilterCount" aria-live="polite"></p>
+    </div>
+
     <div class="hemicycle-wrap">{_hemicycle(model)}</div>
     {_seat_bar(model)}
     {_seat_table(model)}
@@ -1517,6 +1643,7 @@ def render_html(model: PageModel) -> str:
   </footer>
 </div>
 <script>{_THEME_SCRIPT}</script>
+<script>{_SEAT_FILTER_SCRIPT}</script>
 </body>
 </html>
 """
