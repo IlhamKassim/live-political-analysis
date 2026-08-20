@@ -649,3 +649,165 @@ def test_a_state_that_has_voted_is_counted_by_the_seats_it_moves():
     assert model.state_signals == (("Johor", 6),)
     assert model.state_signal_seats == 6
     assert "Johor (6)" in render_html(model)
+
+
+def test_the_verdict_states_a_ge15_delta_line_per_named_coalition():
+    # #44: the headline comparison a first-time visitor wants first, stated
+    # plainly near the top rather than requiring the ledger table below to
+    # be read and the arithmetic done by hand. "Seats" stated explicitly,
+    # matching the unit the issue's own example line used.
+    model = model_for()
+    page = render_html(model)
+
+    delta = page.split('<ul class="ge15-delta">')[1].split("</ul>")[0]
+    assert "Pakatan Harapan: 4 seats at GE15 → 4 projected" in delta
+    assert "Perikatan Nasional: 2 seats at GE15 → 2 projected" in delta
+
+
+def test_the_ge15_delta_never_states_a_government_coalition_total():
+    # The Government Coalition formed after GE15 by agreement — it has no
+    # honest GE15 total (see _GOV_TOTAL_GE15_NOTE) — so #44's own example
+    # line, which uses that aggregate, would either invent a number or state
+    # the ledger's "—" a second time. Neither is "a short, plainly-worded
+    # line," so the aggregate is left out of this callout's numbered lines
+    # (a caveat sentence explaining the omission is allowed to name it —
+    # see the note test below — just never with a number attached).
+    page = render_html(model_for())
+
+    delta = page.split('<ul class="ge15-delta">')[1].split("</ul>")[0]
+    assert "Government Coalition: " not in delta
+
+
+def test_the_ge15_delta_explains_the_omission_only_when_it_would_be_missed():
+    # #44 code review, 20 Aug 2026: a reader following the issue's own
+    # example line has real reason to expect (and miss) a Government
+    # Coalition aggregate line only when that bloc actually has more than
+    # one member — a single-Coalition government's own delta line already
+    # is that number, so the caveat would be explaining an absence nobody
+    # would have expected in the first place.
+    two_party = model_for()  # government_config()'s PH + GPS
+    assert len(two_party.government_coalitions) == 2
+    delta = render_html(two_party).split('<ul class="ge15-delta">')[1].split("</ul>")[0]
+    assert "no GE15 total to compare" in delta
+
+    one_party = model_for(config=government_config(government_coalitions=frozenset({PH})))
+    assert len(one_party.government_coalitions) == 1
+    delta = render_html(one_party).split('<ul class="ge15-delta">')[1].split("</ul>")[0]
+    assert "no GE15 total to compare" not in delta
+
+
+def test_the_tipping_point_names_the_seat_at_the_majority_line():
+    # #50: government_config()'s 4-seat bar over two_coalition_seats() puts
+    # the threshold at model.seats[3] — P004, PH's 4-point marginal.
+    model = model_for()
+    page = render_html(model)
+
+    assert model.threshold_seat.code == "P004"
+    assert model.threshold_swing == approx(0.04)
+    assert "Today, the count crosses 4 at <b>P004</b> (Selangor)" in page
+    assert "A uniform swing of <b>4.0 points</b>" in page
+
+
+def test_the_tipping_point_never_implies_the_seat_decides_the_election():
+    # Framing decision settled on #50 itself (Phase 0, 20 Aug 2026): a
+    # position in a sort, never bellwether language about one constituency
+    # (ADR 0005). Pinning the forbidden phrases so a future edit cannot
+    # silently reintroduce them.
+    page = render_html(model_for())
+
+    tipping = page[page.index('class="tipping-point"') :].split("</p>", 2)
+    block = "".join(tipping[:2])
+    assert "decides" not in block.lower()
+    assert "bellwether" not in block.lower()
+    assert "the one to watch" not in block.lower()
+    assert "not a claim about" in block
+
+
+def test_the_tipping_point_is_absent_when_the_threshold_falls_outside_the_chamber():
+    # Mirrors _hemicycle's own guard: a threshold at or beyond the seat
+    # count draws no line there, so this states nothing about one either.
+    model = model_for(config=government_config(majority_threshold=99))
+
+    assert model.threshold_seat is None
+    assert model.threshold_swing is None
+    assert '<p class="tipping-point">' not in render_html(model)
+
+
+def test_the_tipping_point_is_absent_when_the_threshold_exactly_equals_the_seat_count():
+    # Code review, 20 Aug 2026: threshold_seat originally guarded with
+    # `<=`, disagreeing with _hemicycle's strict `<` at this exact boundary
+    # — the tipping-point prose would have named a Seat on a page whose
+    # chamber drew no line for it. Pinning the boundary so it cannot
+    # silently drift back apart.
+    model = model_for(config=government_config(majority_threshold=6))  # == len(seats)
+
+    assert model.threshold_seat is None
+    assert model.threshold_swing is None
+
+
+def test_the_sensitivity_table_has_exactly_the_three_settled_rows():
+    # Triage resolution on #51 (20 Aug 2026): exactly 0.05 / 0.10 / 0.20,
+    # never a fourth column varying state_signal_weight too.
+    model = model_for()
+
+    assert [value for value, _ in model.sensitivity_table] == [0.05, 0.10, 0.20]
+
+
+def test_the_sensitivity_table_recomputes_the_government_total_honestly():
+    # Each row is a real re-run of the pure Swing Model at that sensitivity
+    # (ADR 0002 — costs nothing), not a guess — the middle row (0.10, the
+    # shipped value) must agree with the real Projection's own total. In
+    # production (pipeline.py) both the real Projection and this table are
+    # built from the same `sentiment.scores`, so the fixture wires the two
+    # together the same way rather than leaving `model_for`'s default,
+    # unrelated `sentiment` fixture in place.
+    scores = {PH: -0.6, PN: 0.6}
+    model = model_for(
+        scores=scores,
+        sentiment=AggregatedSentiment(
+            scores=scores,
+            article_counts={},
+            total_articles=12,
+            sources=["Free Malaysia Today"],
+        ),
+    )
+
+    by_value = dict(model.sensitivity_table)
+    assert by_value[0.10] == model.government_seats
+
+
+def test_the_sensitivity_table_is_labelled_as_a_judgement_call_not_a_confidence_interval():
+    # #51's framing risk: this must never read as sampling/statistical
+    # uncertainty. Both guardrails settled in triage, reused verbatim.
+    page = render_html(model_for())
+
+    block = page[page.index('class="sensitivity"') :].split("</div>\n  </section>")[0]
+    assert "Government Coalition total" in block
+    assert "confidence" not in block.lower()
+    assert "not a range of likely outcomes" in block
+
+
+def test_the_colophon_states_article_counts_per_coalition_most_covered_first():
+    # #52: counts only, next to the existing site-wide total.
+    model = model_for(
+        sentiment=AggregatedSentiment(
+            scores={},
+            article_counts={PH: 5, PN: 7},
+            total_articles=12,
+            sources=["Free Malaysia Today"],
+        )
+    )
+    page = render_html(model)
+
+    assert model.article_counts == (("Perikatan Nasional", 7), ("Pakatan Harapan", 5))
+    assert "By Coalition: Perikatan Nasional 7 · Pakatan Harapan 5." in page
+
+
+def test_the_colophon_omits_the_coalition_breakdown_with_no_sentiment_snapshot():
+    # A hand-seeded database can have a Projection with no Sentiment
+    # snapshot at all (page_model's own docstring) — nothing to break down.
+    model = model_for(sentiment=None)
+    page = render_html(model)
+
+    assert model.article_counts == ()
+    assert "By Coalition" not in page
