@@ -91,8 +91,10 @@ def state_swing(
     Coalition — is otherwise thrown away once `swing_model` has used it. A
     per-state rollup (#53) wants to publish exactly this figure, not
     re-derive an approximation of it from the Seat Calls that came out the
-    other end; calling this a second time (it is pure and cheap, ADR 0002)
-    keeps that figure honest rather than reconstructed.
+    other end; calling this a second time costs one dict-comprehension pass
+    over a dozen states, so `run_pipeline` does, rather than widen
+    `swing_model`'s own return type and touch every place that already
+    pattern-matches or type-checks a `Projection`.
     """
     sentiment_swing = {
         coalition: score * config.sentiment_sensitivity for coalition, score in sentiment.items()
@@ -102,14 +104,14 @@ def state_swing(
 
     swings: dict[str, Mapping[Coalition, float]] = {}
     for state in {seat.state for seat in baseline}:
-        state_swing = observed.get(state)
-        if not state_swing:
+        observed_swing = observed.get(state)
+        if not observed_swing:
             swings[state] = sentiment_swing
             continue
         swings[state] = {
             coalition: (1 - weight) * sentiment_swing.get(coalition, 0.0)
-            + weight * state_swing.get(coalition, 0.0)
-            for coalition in set(sentiment_swing) | set(state_swing)
+            + weight * observed_swing.get(coalition, 0.0)
+            for coalition in set(sentiment_swing) | set(observed_swing)
         }
     return swings
 
