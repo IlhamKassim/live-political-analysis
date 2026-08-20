@@ -37,6 +37,7 @@ from sqlalchemy.engine import Engine
 from lpa.aggregate import AggregatedSentiment
 from lpa.domain import Coalition, ElectionStatus, Projection, SeatBaseline, SeatCall
 from lpa.poll_calibration import LeaderRating, PollCalibration
+from lpa.return_trigger import PreviousWatch
 
 DEFAULT_DATABASE_URL = "sqlite+pysqlite:///lpa.db"
 
@@ -164,6 +165,23 @@ state_swing_snapshot = Table(
     # The Swing applied to this state's Seats, per Coalition:
     # Mapping[Coalition, float].
     Column("swing", JSON, nullable=False),
+)
+
+trigger_watch = Table(
+    "trigger_watch",
+    metadata,
+    # #40's Return Trigger detection needs "what was this yesterday" for
+    # Election Status and which states have a State Election Signal — both
+    # come from hand-maintained config files, not a daily snapshot, so
+    # nothing else in Storage already answers that. One row per day the
+    # pipeline ran, kept forever like `projection_snapshot` — a few hundred
+    # bytes a day, not worth pruning.
+    Column("computed_at", Date, primary_key=True),
+    Column("election_called", Boolean, nullable=False),
+    Column("polling_date", Date, nullable=True),
+    # Sorted list[str] — every state with a State Election Signal in play
+    # as of this run.
+    Column("state_signal_states", JSON, nullable=False),
 )
 
 
@@ -476,6 +494,60 @@ def load_state_swing(engine: Engine, computed_at: date) -> Mapping[str, Mapping[
             select(state_swing_snapshot).where(state_swing_snapshot.c.computed_at == computed_at)
         ).mappings()
         return {row["state"]: row["swing"] for row in rows}
+
+
+def save_trigger_watch(
+    engine: Engine,
+    computed_at: date,
+    status: ElectionStatus,
+    signal_states: Iterable[str],
+) -> None:
+    """Record today's Election-Status/State-Signal watch state (#40).
+
+    Keyed on the date, replacing that day if present, the same "a re-run
+    corrects the day" pattern every other snapshot table in this module
+    follows.
+    """
+    with engine.begin() as connection:
+        connection.execute(delete(trigger_watch).where(trigger_watch.c.computed_at == computed_at))
+        connection.execute(
+            trigger_watch.insert(),
+            {
+                "computed_at": computed_at,
+                "election_called": status.called,
+                "polling_date": status.polling_date,
+                "state_signal_states": sorted(signal_states),
+            },
+        )
+
+
+def load_previous_trigger_watch(engine: Engine, before: date) -> PreviousWatch | None:
+    """The most recent watch row strictly before `before`, or `None`.
+
+    Strictly before rather than "yesterday" by calendar subtraction: a
+    skipped day (a failed run, a quiet stretch) must not make `detect_
+    triggers` compare today against a day that never happened, and reading
+    the latest row before today already does the right thing whether the
+    gap is one day or ten.
+    """
+    with engine.connect() as connection:
+        row = (
+            connection.execute(
+                select(trigger_watch)
+                .where(trigger_watch.c.computed_at < before)
+                .order_by(trigger_watch.c.computed_at.desc())
+                .limit(1)
+            )
+            .mappings()
+            .first()
+        )
+    if row is None:
+        return None
+    return PreviousWatch(
+        election_called=row["election_called"],
+        polling_date=row["polling_date"],
+        signal_states=frozenset(row["state_signal_states"]),
+    )
 
 
 def save_poll_calibrations(engine: Engine, reports: Iterable[PollCalibration]) -> int:
