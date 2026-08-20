@@ -16,6 +16,7 @@ from lpa.storage import (
     connect,
     load_frozen_projections,
     load_poll_calibrations,
+    load_previous_trigger_watch,
     load_projections,
     load_seat_baselines,
     load_state_swing,
@@ -23,6 +24,7 @@ from lpa.storage import (
     save_poll_calibrations,
     save_seat_baselines,
     save_snapshot,
+    save_trigger_watch,
 )
 from lpa.swing_model import swing_model
 
@@ -412,3 +414,43 @@ def test_state_swing_from_an_older_day_is_left_alone_by_a_later_save():
 
     assert load_state_swing(engine, date(2026, 8, 5)) == {"Selangor": {PH: -0.01, PN: 0.01}}
     assert load_state_swing(engine, date(2026, 8, 6)) == {"Selangor": {PH: -0.04, PN: 0.04}}
+
+
+def test_a_stored_trigger_watch_reads_back_via_load_previous():
+    # #40: what Election Status/State Signal detection needs to know about
+    # "yesterday" — neither has any other stored history to read.
+    engine = connect("sqlite+pysqlite:///:memory:")
+    save_trigger_watch(engine, date(2026, 8, 6), called_status(), ["Johor"])
+
+    previous = load_previous_trigger_watch(engine, date(2026, 8, 7))
+    assert previous.election_called is True
+    assert previous.polling_date is None
+    assert previous.signal_states == frozenset({"Johor"})
+
+
+def test_load_previous_trigger_watch_is_none_with_no_prior_row():
+    engine = connect("sqlite+pysqlite:///:memory:")
+    assert load_previous_trigger_watch(engine, date(2026, 8, 6)) is None
+
+
+def test_load_previous_trigger_watch_skips_a_gap_to_the_last_real_row():
+    # A failed run or a quiet stretch must not make detect_triggers compare
+    # against a day that never happened — the latest row strictly before
+    # `before` is correct whether the gap is one day or ten.
+    engine = connect("sqlite+pysqlite:///:memory:")
+    not_called = ElectionStatus(constitutional_deadline=date(2028, 2, 17), source="x")
+    save_trigger_watch(engine, date(2026, 8, 1), not_called, [])
+
+    previous = load_previous_trigger_watch(engine, date(2026, 8, 11))
+    assert previous.election_called is False
+
+
+def test_a_rerun_replaces_that_days_trigger_watch_rather_than_duplicating_it():
+    engine = connect("sqlite+pysqlite:///:memory:")
+    not_called = ElectionStatus(constitutional_deadline=date(2028, 2, 17), source="x")
+    save_trigger_watch(engine, date(2026, 8, 6), not_called, [])
+    save_trigger_watch(engine, date(2026, 8, 6), called_status(), ["Johor"])
+
+    previous = load_previous_trigger_watch(engine, date(2026, 8, 7))
+    assert previous.election_called is True
+    assert previous.signal_states == frozenset({"Johor"})
