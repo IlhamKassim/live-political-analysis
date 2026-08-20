@@ -875,3 +875,22 @@ def test_the_state_rollup_marks_which_state_had_a_state_election_signal():
     selangor_row = rollup[rollup.index("Selangor") :].split("</tr>")[0]
     assert "State result" in johor_row
     assert "State result" not in selangor_row
+
+
+def test_a_signal_with_no_reported_vote_share_does_not_mark_a_state_active():
+    # Code review, 20 Aug 2026: a StateElectionSignal with an empty
+    # vote_share is legitimate per its own docstring ("may omit Coalitions
+    # the result does not report," including all of them) — but it never
+    # reaches _observed_state_swings' collected dict, so state_swing() falls
+    # back to Sentiment alone for that state. Marking it "State result"
+    # anyway would claim a state election moved a state whose Swing is, in
+    # fact, pure Sentiment.
+    baseline = two_state_seats()
+    empty_signal = StateElectionSignal(state="Johor", held_on=date(2026, 3, 1), vote_share={})
+    model = model_for(baseline=baseline, state_election_signals=[empty_signal])
+    page = render_html(model)
+
+    assert model.state_signals == ()
+    rollup = page[page.index('class="state-rollup"') :].split("</table>")[0]
+    johor_row = rollup[rollup.index("Johor") :].split("</tr>")[0]
+    assert "State result" not in johor_row

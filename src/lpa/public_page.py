@@ -307,6 +307,14 @@ def page_model(
 
     by_code = {seat.code: seat for seat in baseline}
     seats = _ordered_seats(projection, by_code, config)
+    # A signal with an empty vote_share (legitimate per its own docstring —
+    # "may omit Coalitions the result does not report," including all of
+    # them) never actually reaches `_observed_state_swings`' `collected`
+    # dict, so `state_swing()` falls back to Sentiment alone for that state.
+    # Filtered here so neither this Projection's "State swing, applied
+    # locally" line nor #53's rollup claims a state result moved a state
+    # whose Swing is, in fact, pure Sentiment (code review, 20 Aug 2026).
+    signal_states = {s.state for s in state_election_signals if s.vote_share}
     return PageModel(
         computed_at=projection.computed_at,
         total_seats=total_seats,
@@ -322,14 +330,13 @@ def page_model(
         sources=tuple(sentiment.sources) if sentiment else (),
         article_count=sentiment.total_articles if sentiment else 0,
         state_signals=tuple(
-            (state, sum(1 for s in baseline if s.state == state))
-            for state in sorted({s.state for s in state_election_signals})
+            (state, sum(1 for s in baseline if s.state == state)) for state in sorted(signal_states)
         ),
         article_counts=_article_counts(sentiment, names),
         sensitivity_table=_sensitivity_table_rows(
             baseline, sentiment, state_election_signals, config, projection.computed_at
         ),
-        state_rollup=_state_rollup(baseline, seats, state_swing, state_election_signals),
+        state_rollup=_state_rollup(baseline, seats, state_swing, signal_states),
     )
 
 
@@ -474,7 +481,7 @@ def _state_rollup(
     baseline: Sequence[SeatBaseline],
     seats: Sequence[ChamberSeat],
     state_swing: Mapping[str, Mapping[Coalition, float]],
-    state_election_signals: Sequence[StateElectionSignal],
+    signal_states: set[str],
 ) -> tuple[StateRollupRow, ...]:
     """One row per state (#53), alphabetical.
 
@@ -484,8 +491,12 @@ def _state_rollup(
     already carrying `.state`/`.coalition`) gives the projected half; the
     Baseline's own `.winner` gives GE15's, so both totals trace to the same
     per-Seat data the rest of the page reads, not a re-derivation of it.
+
+    `signal_states` arrives pre-computed rather than as the raw
+    `state_election_signals` sequence: `page_model` already builds this same
+    set for `PageModel.state_signals`, and recomputing it here a second time
+    would be the same derivation written twice.
     """
-    signal_states = {s.state for s in state_election_signals}
 
     def counted(coalitions: Iterable[Coalition]) -> tuple[tuple[Coalition, int], ...]:
         counts: dict[Coalition, int] = {}
