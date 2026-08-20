@@ -62,11 +62,14 @@ def render() -> str:
     """The page as the Action would publish it, from a freshly imported module.
 
     Reloaded rather than imported once so an edit to the renderer takes effect
-    without restarting the server — the whole point of the preview.
+    without restarting the server — the whole point of the preview. Discards
+    the `computed_at` half of `build_page`'s return (#55 added it for `main`
+    to name the dated permalink with, which this preview never writes).
     """
     module = importlib.import_module("lpa.public_page")
     importlib.reload(module)
-    return module.build_page(connect())
+    html, _computed_at = module.build_page(connect())
+    return html
 
 
 def render_or_report() -> tuple[str, bool]:

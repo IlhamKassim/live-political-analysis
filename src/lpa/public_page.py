@@ -191,6 +191,12 @@ class PageModel:
     state_rollup: tuple[StateRollupRow, ...]
     """One row per state (#53), alphabetical — the model's actual unit of
     variation (ADR 0001/0003) made legible as a rollup, never a map."""
+    sentiment_sensitivity: float
+    state_signal_weight: float
+    """The two Swing Model constants in force this run (ADR 0003) — stated
+    in the "cite this" block (#55) so a figure quoted from this page can be
+    checked against the exact provisional values that produced it, not just
+    the fact that they were provisional."""
 
     @property
     def threshold_seat(self) -> ChamberSeat | None:
@@ -337,6 +343,8 @@ def page_model(
             baseline, sentiment, state_election_signals, config, projection.computed_at
         ),
         state_rollup=_state_rollup(baseline, seats, state_swing, signal_states),
+        sentiment_sensitivity=config.sentiment_sensitivity,
+        state_signal_weight=config.state_signal_weight,
     )
 
 
@@ -1247,6 +1255,36 @@ def _article_counts_line(model: PageModel) -> str:
     return f" By Coalition: {parts}."
 
 
+def _permalink_path(computed_at: date) -> str:
+    """Where this day's dated copy lives, relative to the site root (#55).
+
+    Shared by the colophon's "cite this" link and `main`'s own file write,
+    so the URL stated on the page and the file that answers it can never
+    name two different paths.
+    """
+    return f"{computed_at:%Y}/{computed_at:%m}/{computed_at:%d}.html"
+
+
+def _cite_this(model: PageModel) -> str:
+    """The colophon's provenance block (#55): what to cite, and against
+    exactly which constants and sources.
+
+    A figure quoted from this page today is unverifiable tomorrow once the
+    daily render overwrites `index.html` — this states the model-run date,
+    the two Swing Model constants actually in force (ADR 0003's "provisional"
+    made concrete, not just named), which outlets fed News Sentiment, and a
+    dated permalink stable against that overwrite.
+    """
+    read_from = ", ".join(html.escape(s) for s in model.sources) or "no outlets read"
+    return (
+        f"<p>Model run {html.escape(_long_date(model.computed_at))}. Swing Model: "
+        f"sentiment sensitivity {model.sentiment_sensitivity:.2f}, state signal "
+        f"weight {model.state_signal_weight:.2f}. Read from: {read_from}.</p>"
+        f'<p><a href="{SITE_URL}{_permalink_path(model.computed_at)}">A dated copy '
+        "of this exact run</a>, unaffected by tomorrow's overwrite.</p>"
+    )
+
+
 _CSS = """
   :root {
     /* paper + ink — a green-grey stock, not cream */
@@ -1781,6 +1819,14 @@ _CSS = """
     margin: 0 0 10px;
   }
   .colophon p { font-family: var(--serif); font-size: 13.5px; line-height: 1.55; color: var(--ink-soft); margin: 0; }
+  .colophon p + p { margin-top: 8px; }
+  .colophon a {
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px solid var(--rule);
+  }
+  .colophon a:hover { border-color: var(--ink-faint); }
+  .colophon a:focus-visible { outline: 2px solid var(--pn); outline-offset: 2px; }
   .caveat { border-left: 2px solid var(--ph); padding-left: 14px; }
   .caveat p { color: var(--ink); }
 
@@ -1858,6 +1904,9 @@ _CSS = """
        .visually-hidden clip. Deliberate: dumping 222 rows would contradict
        "a genuinely clean one-pager"; the visible .ledger-table above is
        "the seat table" this block's page-break rule means. */
+    /* #55: a printed "cite this" link cannot be clicked, so the permalink
+       it points to has to be legible as plain text on paper too. */
+    .colophon a::after { content: " (" attr(href) ")"; color: var(--ink-faint); }
     @page { margin: 16mm; }
   }
 """
@@ -2060,6 +2109,10 @@ def render_html(model: PageModel) -> str:
       <p>Two constants in the Swing Model were set by judgement, not fitted to
       data. Treat every figure here as a direction, not a forecast.</p>
     </div>
+    <div>
+      <h3>Cite this</h3>
+      {_cite_this(model)}
+    </div>
   </footer>
 </div>
 <script>{_THEME_SCRIPT}</script>
@@ -2069,12 +2122,16 @@ def render_html(model: PageModel) -> str:
 """
 
 
-def build_page(engine: Engine) -> str:
+def build_page(engine: Engine) -> tuple[str, date]:
     """Read Storage and render the page. The whole I/O half, in one place.
 
     Separate from `main` so the preview server in `scripts/` can render
     exactly what the Action publishes, rather than a second wiring of the
-    same parts that can drift from it.
+    same parts that can drift from it. Returns the day rendered alongside
+    the HTML (#55) rather than a bare `str` — `main` needs it to name the
+    dated permalink, and re-reading `load_projections` a second time to get
+    it could race a concurrent write and name the file after a different
+    day than the one actually rendered into it.
     """
     from lpa.config import (
         coalition_names,
@@ -2111,11 +2168,17 @@ def build_page(engine: Engine) -> str:
         total_seats=config["total_seats"],
         state_swing=load_state_swing(engine, projections[-1].computed_at),
     )
-    return render_html(model)
+    return render_html(model), model.computed_at
 
 
 def main() -> None:
-    """Render the public page from Storage and write it to disk."""
+    """Render the public page from Storage and write it to disk.
+
+    Also writes a dated as-of copy alongside it (#55) — `index.html` is
+    overwritten every day, so a figure quoted from it today is otherwise
+    unverifiable tomorrow. Same content, one extra static-file write at
+    this page's current size (ADR 0002).
+    """
     import argparse
     from pathlib import Path
 
@@ -2130,10 +2193,18 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    page = build_page(connect())
+    page, computed_at = build_page(connect())
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(page, encoding="utf-8")
     print(f"Wrote {args.output} ({len(page):,} bytes)")
+
+    # The exact day rendered into `page`, not a second Storage read — a
+    # fresh read here could race a concurrent write and name this file
+    # after a different day than the one actually inside it.
+    dated_path = args.output.parent / _permalink_path(computed_at)
+    dated_path.parent.mkdir(parents=True, exist_ok=True)
+    dated_path.write_text(page, encoding="utf-8")
+    print(f"Wrote {dated_path} ({len(page):,} bytes)")
 
 
 if __name__ == "__main__":
