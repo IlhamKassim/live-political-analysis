@@ -47,6 +47,13 @@ from lpa.domain import (
     government_seat_total,
 )
 
+SITE_URL = "https://ilhamkassim.github.io/live-political-analysis/"
+"""The published GitHub Pages URL — the repo's own project-pages address.
+
+Named here rather than left implicit so `og:url`/`og:image` have one place to
+change from if the site ever moves to a custom domain.
+"""
+
 TIGHT_MARGIN = 0.06
 """Below this projected lead a Seat is shown as too close to call.
 
@@ -1305,6 +1312,21 @@ _CSS = """
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
   }
+
+  /* The register is already print-styled by design (HANDOFF's "decisions
+     already made" #3) — hairlines, printed ink, a ruled table. This makes an
+     actual browser print match that intent rather than whatever the screen
+     layout happens to produce: background colours kept rather than stripped,
+     interactive-only chrome removed, sensible breaks around the ledger. */
+  @media print {
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body::before { display: none; }
+    .theme-btn { display: none; }
+    .sheet { max-width: none; padding: 0 var(--gutter) 24px; }
+    .verdict, .ledger-table, .stress, .colophon { break-inside: avoid; }
+    tr { break-inside: avoid; }
+    @page { margin: 16mm; }
+  }
 """
 
 _THEME_INIT_SCRIPT = """
@@ -1350,18 +1372,27 @@ def render_html(model: PageModel) -> str:
     script is the theme toggle, which the page reads correctly without.
     """
     read_from = " · ".join(html.escape(s) for s in model.sources) or "No outlets read"
+    title = "GE16 Projection — the Dewan Rakyat, projected"
+    description = html.escape(
+        f"Projection of the {model.total_seats} Seats of the Dewan Rakyat at GE16, "
+        f"computed {_long_date(model.computed_at)}. Model-driven and not calibrated."
+    )
     return f"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GE16 Projection — the Dewan Rakyat, projected</title>
-<meta name="description" content="{
-        html.escape(
-            f"Projection of the {model.total_seats} Seats of the Dewan Rakyat at GE16, "
-            f"computed {_long_date(model.computed_at)}. Model-driven and not calibrated."
-        )
-    }">
+<title>{title}</title>
+<meta name="description" content="{description}">
+<meta property="og:title" content="{title}">
+<meta property="og:description" content="{description}">
+<meta property="og:url" content="{SITE_URL}">
+<meta property="og:type" content="website">
+<meta property="og:image" content="{SITE_URL}og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{title}">
+<meta name="twitter:description" content="{description}">
+<meta name="twitter:image" content="{SITE_URL}og-image.png">
 <script>{_THEME_INIT_SCRIPT}</script>
 <style>{_CSS}</style>
 </head>
