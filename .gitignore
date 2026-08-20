@@ -24,6 +24,10 @@ public/index.html
 public/projection.json
 public/projection.csv
 
+# Rendered by `python -m lpa.seat_call_card --all`, one SVG per Seat Call —
+# same reasoning again.
+public/cards/
+
 # public/learn/ is different: hand-authored content pages (#26/#27/#28), not
 # generated. They are tracked so the daily Action's checkout has them to
 # publish alongside the freshly-rendered index.html — see daily.yml's

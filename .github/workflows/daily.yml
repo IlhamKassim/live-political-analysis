@@ -92,6 +92,11 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m lpa.public_export
 
+      - name: Render the shareable Seat Call cards
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m lpa.seat_call_card --all
+
       - name: Configure Pages
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b
 

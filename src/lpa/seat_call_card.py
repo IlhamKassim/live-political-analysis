@@ -15,10 +15,12 @@ The module follows public_page's seam, and the seam is the point:
   nothing; if a figure appears here that `card_model` did not compute, that is
   a bug.
 
-Output is a static SVG. The Telegram push channel that will later carry it as
-a post image is a separate, blocked-by-this-one ticket (#40); rasterizing SVG
-to PNG is that ticket's call. So this module ships with no consumer wired into
-the daily pipeline yet, and daily.yml is left untouched.
+Output is a static SVG, one per Seat Call, written to `public/cards/` by the
+same daily run that renders the public page — `daily.yml`'s "Render the
+shareable Seat Call cards" step calls `main(--all)`. The Telegram push
+channel that will carry a card as a post image is a separate, blocked-by-
+this-one ticket (#40); rasterizing SVG to PNG is that ticket's call, not this
+one's.
 """
 
 from __future__ import annotations
@@ -415,8 +417,8 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("out/cards"),
-        help="where to write cards — a directory for --all, a file for --seat (default: out/cards)",
+        default=Path("public/cards"),
+        help="where to write cards — a directory for --all, a file for --seat (default: public/cards)",
     )
     args = parser.parse_args()
     if not args.seat and not args.all:
