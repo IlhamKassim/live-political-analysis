@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seat Call card samples — register comparison | Live Political Analysis</title>
+<meta name="description" content="Two 1080x1080 prototype share cards for one example Seat Call, one in the dashboard print register, one in the register-a content register — exploratory samples for issue #23.">
+<style>
+  /* ── page backdrop ────────────────────────────────────────────────
+     Everything above the cards themselves is just so the two 1080×1080
+     crops are easy to see and screenshot. The cards sit on the same
+     green-grey ground both registers share; the crop edge is drawn by a
+     1px hairline rule. Neither register owns a different palette — that
+     is the point: register-a is the dashboard's tokens, lifted (see
+     public/learn/register-a.css's header). So the two samples differ in
+     composition, typography and voice, not colour. */
+
+  :root {
+    --ground:  #E9EAE4;
+    --surface: #F2F3EE;
+    --ink:     #17191A;
+    --ink-soft:#55584F;
+    --ink-faint:#666960;
+    --rule:    #C8CAC0;
+    --rule-hair:#D8DAD1;
+
+    --ph:  #B23A2E;
+    --bn:  #1D4E89;
+    --pn:  #2B7A78;
+    --gps: #8A6D1F;
+    --grs: #6A4A7C;
+
+    --serif: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+    --sans:  ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    --mono:  ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--surface);
+    color: var(--ink);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page-head {
+    padding: 36px 40px 24px;
+    max-width: 2260px;
+    margin: 0 auto;
+  }
+  .page-head h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 28px;
+    letter-spacing: -.015em;
+    margin: 0 0 10px;
+  }
+  .page-head p {
+    font-family: var(--serif);
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    max-width: 92ch;
+    margin: 0;
+  }
+  .page-head p b { color: var(--ink); font-weight: inherit; }
+
+  .samples {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 44px;
+    padding: 0 40px 60px;
+    max-width: 2260px;
+    margin: 0 auto;
+  }
+
+  .sample { flex: 0 0 auto; }
+
+  /* ── the two cards ─────────────────────────────────────────────── */
+  .card {
+    width: 1080px;
+    height: 1080px;
+    position: relative;
+    overflow: hidden;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--serif);
+    border: 1px solid var(--rule-hair);
+  }
+
+  /* the same faint press grain both registers already carry */
+  .grain {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: .035;
+  }
+  .card > *:not(.grain) { position: relative; z-index: 1; }
+
+  /* ── card A — the dashboard's print register ───────────────────── */
+  .card-a {
+    display: flex;
+    flex-direction: column;
+    padding: 62px 70px 50px;
+  }
+
+  .a-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .a-stamp {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--ph);
+    border: 1px solid currentColor;
+    padding: 4px 10px;
+  }
+
+  .a-seat {
+    margin: 50px 0 4px;
+    font-size: 46px;
+    letter-spacing: -.015em;
+  }
+  .a-code {
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0;
+  }
+
+  /* the hollow ring — the dashboard's exact "too close" form, grown */
+  .a-ring {
+    margin: 46px 0 0 10px;
+    width: 300px;
+    height: 300px;
+    display: block;
+  }
+  .a-ring-edge {
+    fill: none;
+    stroke: var(--pn);
+    stroke-width: 3;
+  }
+  .a-ring-value { fill: var(--ink); }
+  .a-ring-coal { fill: var(--pn); }
+  .a-ring-caption {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 14px 0 0 10px;
+  }
+
+  /* the small ruled fact list */
+  .a-facts {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    border-top: 1px solid var(--ink);
+    margin-top: 50px;
+  }
+  .a-facts dt {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    padding: 18px 0;
+    border-bottom: 1px solid var(--rule-hair);
+  }
+  .a-facts dd {
+    margin: 0;
+    font-size: 17.5px;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--rule-hair);
+    text-align: right;
+  }
+  .a-facts .coal {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+  .a-facts .coal i {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+  }
+
+  /* the caveat — same promise as the dashboard colophon, kept red */
+  .a-caveat {
+    margin-top: auto;
+    padding-top: 26px;
+    border-top: 1px solid var(--rule);
+  }
+  .a-caveat p {
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--ink);
+    margin: 0;
+  }
+  .a-caveat p b { font-weight: inherit; color: var(--ph); }
+
+  /* ── card B — the register-a content register ──────────────────── */
+  .card-b {
+    display: flex;
+    flex-direction: column;
+    padding: 68px 84px 50px;
+  }
+
+  .b-wordmark {
+    font-family: var(--serif);
+    font-size: 15px;
+    color: var(--ink-soft);
+  }
+  .b-wordmark b { font-weight: inherit; color: var(--ink); }
+
+  .b-eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 64px 0 0;
+  }
+
+  .b-title {
+    font-size: 58px;
+    letter-spacing: -.02em;
+    margin: 10px 0 0;
+  }
+  .b-state {
+    font-family: var(--mono);
+    font-size: 14px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 6px 0 0;
+  }
+
+  .b-gloss {
+    font-style: italic;
+    color: var(--ink-faint);
+    font-size: 17px;
+    margin: 34px 0 0;
+  }
+
+  /* the small margin bar */
+  .b-bar {
+    margin: 36px 0 0;
+    width: 100%;
+    height: 200px;
+    display: block;
+  }
+
+  /* the plain-language read-out */
+  .b-note {
+    font-size: 23px;
+    line-height: 1.5;
+    color: var(--ink);
+    margin: 38px 0 0;
+    max-width: 42ch;
+  }
+
+  /* the warm arithmetic note */
+  .b-foot {
+    margin-top: auto;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+  }
+  .b-foot p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+  .b-foot p b { font-weight: inherit; color: var(--ink); }
+
+  /* ── the rationale paragraphs, under each card ─────────────────── */
+  .rationale { padding: 26px 0 0; max-width: 1080px; }
+  .rationale h2 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 21px;
+    margin: 0 0 12px;
+  }
+  .rationale p {
+    font-family: var(--serif);
+    font-size: 15.5px;
+    line-height: 1.62;
+    color: var(--ink-soft);
+    margin: 0 0 14px;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <h1>Seat Call — two prototype share cards</h1>
+  <p>Both are 1080×1080 for a single example Seat Call, one in the dashboard&rsquo;s
+  print register and one in the register-a content register, so the design can be
+  compared and one picked, or a synthesis asked for. Both cards are <b>placeholders</b>:
+  the figures are invented and stamped SAMPLE, because the real Baseline lives in the
+  database, not this checkout. Neither card is wired to the site; this is exploration
+  only.</p>
+</div>
+
+<div class="samples">
+
+  <!-- ────────────── CARD A — the print register ────────────────── -->
+  <div class="sample">
+    <div class="card card-a" role="img"
+      aria-label="Prototype share card in the dashboard print register: Bukit Bendera, Penang, projected to Perikatan Nasional by 3.4 points, inside the six-point too-close band. Not calibrated; sample figures.">
+      <svg class="grain" xmlns="http://www.w3.org/2000/svg" width="140" height="140" aria-hidden="true">
+        <filter id="grain-a"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3"/></filter>
+        <rect width="140" height="140" filter="url(#grain-a)"/>
+      </svg>
+
+      <div class="a-head">
+        <span>Seat-Level Projection · GE16</span>
+        <span class="a-stamp">SAMPLE</span>
+      </div>
+
+      <div class="a-seat">Bukit Bendera</div>
+      <p class="a-code">P048 · Penang</p>
+
+      <svg class="a-ring" viewBox="0 0 300 300" aria-hidden="true">
+        <circle cx="150" cy="150" r="118" class="a-ring-edge"/>
+        <text x="150" y="138" text-anchor="middle" class="a-ring-value" font-size="42" font-family="ui-serif, Georgia, serif">3.4 pts</text>
+        <text x="150" y="168" text-anchor="middle" class="a-ring-coal" font-size="15" font-family="ui-monospace, Menlo, monospace" letter-spacing=".12em">PN</text>
+      </svg>
+      <p class="a-ring-caption">too close · inside six points</p>
+
+      <dl class="a-facts">
+        <dt>Projected</dt>
+        <dd><span class="coal"><span>Perikatan Nasional</span><i style="background:var(--pn)"></i></span></dd>
+        <dt>GE15 held by</dt>
+        <dd><span class="coal"><span>Pakatan Harapan</span><i style="background:var(--ph)"></i></span></dd>
+        <dt>Margin</dt>
+        <dd>3.4 points</dd>
+        <dt>Band</dt>
+        <dd>Too close to call</dd>
+      </dl>
+
+      <div class="a-caveat">
+        <p>Seat-Level Projection, not a judgement on Bukit Bendera itself: a uniform,
+        state-level swing applied to the seat&rsquo;s GE15 margin. <b>Not calibrated.</b></p>
+      </div>
+    </div>
+
+    <div class="rationale">
+      <h2>Sample A — the dashboard&rsquo;s print register</h2>
+      <p>This is a cut-out of the dashboard page at card scale, built to carry the
+      credibility the dashboard itself is built around (HANDOFF decision 7): the green-grey
+      paper ground with the faint press grain, a mono eyebrow and wordmark, one hairline-ruled
+      fact list instead of cards, and the same printed-ink coalition colours. A single seat
+      leaves no room for a hemicycle, so the uncertainty the page encodes as a hollow
+      ring on a 222-seat chamber becomes the hero here: one large hollow ring in the
+      projected coalition&rsquo;s ink, reading &ldquo;too close &middot; inside six points&rdquo;. It
+      states 3.4 points plainly rather than as a claim of precision, exactly as the
+      dashboard&rsquo;s seat tip would. The caveat stays red in the colophon position — the
+      &ldquo;Not calibrated&rdquo; discipline is load-bearing, not decoration. It reads like a report
+      card: credible, formal, authorial, and deliberately un-tagline-like.</p>
+    </div>
+  </div>
+
+  <!-- ────────────── CARD B — the register-a register ───────────── │ -->
+  <div class="sample">
+    <div class="card card-b" role="img"
+      aria-label="Prototype share card in the register-a content register: Bukit Bendera, one entry in the Seat-Level Projection, projected to Perikatan Nasional by 3.4 points. Sample figures.">
+      <svg class="grain" xmlns="http://www.w3.org/2000/svg" width="140" height="140" aria-hidden="true">
+        <filter id="grain-b"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3"/></filter>
+        <rect width="140" height="140" filter="url(#grain-b)"/>
+      </svg>
+
+      <div class="b-wordmark">Live Political Analysis <b>&middot; reading this site</b></div>
+
+      <p class="b-eyebrow">Seat-Level Projection · GE16</p>
+      <div class="b-title">Bukit Bendera</div>
+      <p class="b-state">P048 &middot; Penang</p>
+
+      <p class="b-gloss">one entry in the Seat-Level Projection</p>
+
+      <svg class="b-bar" viewBox="0 0 912 200" aria-hidden="true">
+        <rect x="0" y="88" width="912" height="24" rx="12" fill="#C8CAC0"/>
+        <rect x="0" y="88" width="498" height="24" rx="12" fill="#B23A2E"/>
+        <rect x="548" y="88" width="364" height="24" rx="12" fill="#2B7A78"/>
+        <circle cx="548" cy="100" r="17" fill="#F2F3EE" stroke="#2B7A78" stroke-width="4"/>
+        <text x="548" y="160" text-anchor="middle" font-family="ui-serif, Georgia, serif" font-size="26" fill="#17191A">3.4 pts</text>
+        <text x="548" y="184" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="13" letter-spacing=".14em" fill="#666960">PN &middot; TOO CLOSE</text>
+      </svg>
+
+      <p class="b-note">The projection puts Bukit Bendera with Perikatan Nasional,
+      ahead by 3.4 points.</p>
+
+      <div class="b-foot">
+        <p>That is a <b>Seat-Level Projection</b>: arithmetic against the seat&rsquo;s GE15
+        result under a swing that is the same across the whole state — not a judgement
+        about Bukit Bendera itself. <b>Sample figures.</b></p>
+      </div>
+    </div>
+
+    <div class="rationale">
+      <h2>Sample B — the register-a content register</h2>
+      <p>This reads as one of the site&rsquo;s learn pages, not as the dashboard: the same
+      shared tokens, but a border-lean, white-space-led composition that opens on the seat
+      name as a large serif heading with an italic gloss under it, in the register-a idiom.
+      Where Sample A shows the arithmetic as a ruled table, this one catches the reader with
+      a short plain-language sentence and a small, friendly margin bar — the same hollow-ring
+      &ldquo;too close&rdquo; signal, but as a dot you can read at a glance rather than a statistic to
+      inspect. The arithmetic framing is kept, in the softer ink-faint voice instead of the
+      red caveat. It reads like an approachable explainer post meant for someone new to the
+      site — warmer and more shareable-feeling, at the cost of some of Sample A&rsquo;s
+      data-desk authority.</p>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

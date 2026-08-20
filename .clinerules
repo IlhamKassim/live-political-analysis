@@ -1,0 +1,62 @@
+# live-political-analysis — Cline instructions
+
+This repo's full conventions live in `CLAUDE.md` and `docs/agents/*.md`. Read
+those directly when working here — this file is a condensed, Cline-specific
+adaptation, not a replacement.
+
+## Scope: what Cline is for here
+
+This repo uses a split workflow (decided 2026-08-17): judgment-heavy work —
+scoping, design/visual decisions, editorial calls on sensitive content,
+anything hard to reverse — happens in a separate planning session (Claude
+Code), which produces a fully-specified GitHub issue. **Cline's job is to
+execute an already-specified task, not to make the judgment calls itself.**
+
+**If a task you're given isn't fully specified** — it asks you to make a
+design/visual choice, a call on sensitive editorial content, or a decision
+that would be expensive to undo — **stop and say so instead of guessing.**
+Report back what's undecided rather than picking an answer. This is the
+substitute for the model-escalation this repo would otherwise do (see
+`docs/agents/model-effort.md`) — you're running on DeepSeek, not Claude, so
+route judgment calls back to the human instead of resolving them yourself.
+
+## Issue tracker
+
+Issues live as GitHub issues on `IlhamKassim/live-political-analysis`, via
+the `gh` CLI (see `docs/agents/issue-tracker.md`):
+
+- Read a ticket: `gh issue view <number> --comments`
+- Comment: `gh issue comment <number> --body "..."`
+- Labels: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
+- Label vocabulary (`docs/agents/triage-labels.md`): `needs-triage`,
+  `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`.
+- PRs are not a request surface — issues only.
+
+## Domain vocabulary
+
+`CONTEXT.md` at the repo root is the glossary — canonical terms (Coalition,
+Seat, Majority, Projection, Seat Call, Audience, Return Trigger, etc.) and
+words to avoid. Use its terms exactly; don't introduce synonyms. If a task
+needs a new term or seems to conflict with an existing one, flag it rather
+than deciding silently — term definitions are a judgment call per the rule
+above.
+
+`docs/adr/` holds architecture decisions — in particular:
+- ADR 0002/0006: zero recurring cost, static site, no persistent server.
+- ADR 0003/0005: never say "prediction"/"forecast" — use "Projection"/"Seat
+  Call"; every Seat Call is framed as arithmetic against the GE15 Baseline,
+  never as a bespoke judgement about that seat.
+
+## Guardrails (Cline has no sandboxing here — these are load-bearing)
+
+- **Never run `git push`, open a PR, or merge anything.** Local commits only,
+  and only when explicitly asked. Report the diff; let the human decide.
+- **Never run destructive git** (`reset --hard`, `clean -f`, `checkout --`,
+  force-push, branch deletion) without being explicitly told to.
+- **Never add a recurring-cost dependency or external API call** without
+  flagging it first — this project has a hard zero-cost constraint (ADR
+  0002/0006).
+- Stay inside this repo's working tree. Don't touch files elsewhere on the
+  machine.
+- Run the existing test suite before reporting a task done; don't claim
+  success from your own narrative if the tests weren't actually run.

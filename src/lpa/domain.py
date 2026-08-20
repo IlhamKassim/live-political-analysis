@@ -184,8 +184,8 @@ class Projection:
     """The Seat-Level Projection the totals are the tally of.
 
     Empty is a real state and not a missing one: Storage keeps per-Seat rows
-    for the latest Projection only (ADR 0005), so every earlier day in a
-    history read carries totals alone.
+    for the latest two Projections only (ADR 0005, extended by #54), so every
+    earlier day in a history read carries totals alone.
     """
 
 
@@ -203,6 +203,34 @@ def government_seat_total(
         seats
         for coalition, seats in coalition_seat_totals.items()
         if coalition in config.government_coalitions
+    )
+
+
+def changed_seat_calls(
+    older: Projection, newer: Projection
+) -> tuple[tuple[SeatCall, SeatCall], ...]:
+    """Seats whose call differs between two Projections — the overnight diff #54 exists for.
+
+    Pairs are `(older call, newer call)`, one pair per Seat whose Coalition
+    changed. Empty when nothing changed, which is the ordinary case, and
+    exactly what "surface only when non-empty" (the Return Trigger framing
+    rule — see CONTEXT.md; a standing daily diff feed is the habit loop this
+    project rejects) needs to check before doing anything with the result.
+
+    A Seat present in only one of the two Projections carries no prior or
+    current call to compare and is skipped rather than reported as a change —
+    that can only happen right after the two-day window itself changes size,
+    and self-corrects the next day.
+
+    Pure and Storage-agnostic on purpose: a caller (#40's trigger detection)
+    supplies whichever two Projections it read, rather than this function
+    reaching into Storage itself.
+    """
+    older_by_code = {call.code: call for call in older.seat_calls}
+    return tuple(
+        (older_by_code[call.code], call)
+        for call in newer.seat_calls
+        if call.code in older_by_code and older_by_code[call.code].coalition != call.coalition
     )
 
 

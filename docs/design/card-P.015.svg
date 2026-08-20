@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080" role="img" aria-label="Shareable Seat Call card for Sungai Petani (Kedah): Pakatan Harapan is projected to take the Seat, ahead by 3.9 points (Too close, under six points). Not calibrated.">
+  <rect width="1080" height="1080" fill="#E9EAE4"/>
+  <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".15" numOctaves="3"/></filter>
+  <rect width="1080" height="1080" filter="url(#grain)" opacity=".035"/>
+  <g>
+    <text x="84" y="46" font-family="ui-serif, Georgia, 'Times New Roman', serif" font-size="15" fill="#55584F">Live Political Analysis <tspan fill="#17191A">· reading this site</tspan></text>
+    <text x="84" y="118" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" letter-spacing=".18em" fill="#666960">Seat-Level Projection · GE16</text>
+    <text x="84" y="188" font-family="ui-serif, Georgia, 'Times New Roman', serif" font-size="58" letter-spacing="-0.02em" fill="#17191A">Sungai Petani</text>
+    <text x="84" y="212" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="14" letter-spacing=".1em" fill="#666960">P.015 · KEDAH</text>
+    <text x="84" y="262" font-family="ui-serif, Georgia, 'Times New Roman', serif" font-size="17" font-style="italic" fill="#666960">one entry in the Seat-Level Projection</text>
+    <rect x="84" y="300" width="912" height="24" rx="12" fill="#C8CAC0"/><rect x="84.0" y="300" width="438.9" height="24" fill="#B23A2E"/><rect x="566.8" y="300" width="429.2" height="24" fill="#2B7A78"/><circle cx="522.9" cy="312.0" r="17" fill="#F2F3EE" stroke="#B23A2E" stroke-width="4"/><text x="522.9" y="372" text-anchor="middle" font-family="ui-serif, Georgia, 'Times New Roman', serif" font-size="26" fill="#17191A">3.9 pts</text><text x="522.9" y="396" text-anchor="middle" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="13" letter-spacing=".14em" fill="#666960">PH · TOO CLOSE</text>
+    <g><text x="84" y="458" font-family="ui-serif, Georgia, 'Times New Roman', serif" font-size="23" fill="#17191A" font-weight="normal">The projection puts Sungai Petani with Pakatan Harapan, ahead by 3.9 points.</text></g>
+    <line x1="84" y1="986" x2="996" y2="986" stroke="#C8CAC0" stroke-width="1"/>
+    <g><text x="84" y="1006" font-family="ui-serif, Georgia, 'Times New Roman', serif" font-size="14" fill="#55584F">That is a <tspan fill="#17191A">Seat-Level Projection</tspan>: arithmetic against the seat&#x27;s GE15 result under a swing that is</text><text x="84" y="1030" font-family="ui-serif, Georgia, 'Times New Roman', serif" font-size="14" fill="#55584F" font-weight="normal">the same across the whole state — not a judgement about Sungai Petani itself. Not calibrated.</text></g>
+  </g>
+</svg>

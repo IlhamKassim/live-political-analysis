@@ -35,7 +35,7 @@ from sqlalchemy import (
 from sqlalchemy.engine import Engine
 
 from lpa.aggregate import AggregatedSentiment
-from lpa.domain import Projection, SeatBaseline, SeatCall
+from lpa.domain import ElectionStatus, Projection, SeatBaseline, SeatCall
 from lpa.poll_calibration import LeaderRating, PollCalibration
 
 DEFAULT_DATABASE_URL = "sqlite+pysqlite:///lpa.db"
@@ -95,10 +95,42 @@ projection_snapshot = Table(
 seat_call = Table(
     "seat_call",
     metadata,
-    # The latest Projection's Seat Calls and no others — ADR 0005 keeps one
-    # day's ~222 rows rather than ~81k a year against a free-tier Postgres.
+    # The latest two Projections' Seat Calls and no others — ADR 0005 keeps a
+    # short window (~444 rows) rather than ~81k a year against a free-tier
+    # Postgres, extended from one day to two (#54) so an overnight diff (which
+    # Seats crossed the Majority line since yesterday) is computable. Two, not
+    # more: the diff is the only consumer, and it never needs a third day.
     # `computed_at` is stored so a read can tell which Projection these belong
-    # to, not to key a history that is deliberately not kept.
+    # to, not to key a history that is deliberately not kept in full.
+    Column("computed_at", Date, primary_key=True),
+    Column("code", String, primary_key=True),
+    Column("coalition", String, nullable=False),
+    Column("margin", Float, nullable=False),
+)
+
+frozen_projection = Table(
+    "frozen_projection",
+    metadata,
+    # Permanent, unlike projection_snapshot: one row per day the pipeline ran
+    # while Election Status was "called" (#54). A batch pipeline cannot know
+    # in advance which day will turn out to be the last one before polling —
+    # the campaign period's length is not known ahead of time, and a run can
+    # fail or be skipped — so every called day is archived rather than
+    # guessing which one is "the" final day; the final pre-poll Projection is
+    # simply whichever archived row has the latest `computed_at` at or before
+    # polling day, read back after the fact. Never pruned by ordinary
+    # retention; a same-day rerun replaces its own row rather than doubling
+    # it, the same as `projection_snapshot`.
+    Column("computed_at", Date, primary_key=True),
+    Column("coalition_seat_totals", JSON, nullable=False),
+    Column("government_majority", Boolean, nullable=False),
+)
+
+frozen_seat_call = Table(
+    "frozen_seat_call",
+    metadata,
+    # The Seat-Level half of `frozen_projection`, split out the same way
+    # `seat_call` is split from `projection_snapshot`.
     Column("computed_at", Date, primary_key=True),
     Column("code", String, primary_key=True),
     Column("coalition", String, nullable=False),
@@ -207,6 +239,8 @@ def save_snapshot(
     engine: Engine,
     projection: Projection,
     sentiment: AggregatedSentiment,
+    *,
+    status: ElectionStatus | None = None,
 ) -> None:
     """Record one day's Projection and Sentiment, replacing that day if present.
 
@@ -214,30 +248,46 @@ def save_snapshot(
     instead of leaving two answers for it. History across days is what the
     dashboard's trend line reads (issue #1, story 15).
 
-    Seat Calls are the exception. Storage keeps one Projection's (ADR 0005) —
-    the newest that came with any — so a write replaces them only if it is at
-    least as new *and* has calls of its own. Both halves matter:
+    Seat Calls are the exception. Storage keeps the latest two Projections'
+    (ADR 0005, extended by #54) — the newest that came with any, plus the one
+    immediately before it — so a write replaces/extends them only if it is at
+    least as new as what is already there *and* has calls of its own. Both
+    halves matter:
 
-    - Only replacing a day at least as new keeps the write order-independent.
+    - Only accepting a day at least as new keeps the write order-independent.
       `scripts/seed_dev_snapshots.py` backfills days behind today, and running
       it after a real run must not leave the current Projection showing a
-      seeded day's calls.
+      seeded day's calls, nor evict a kept day the seeded one is older than.
     - Only replacing when there are calls to put there means a Projection
       carrying none cannot empty the table. `load_projections` hands back every
       day but the newest with `seat_calls` empty, so a round-tripped Projection
       re-saved under a later day would otherwise silently destroy the only
       per-Seat rows in Storage.
+
+    `status`: when supplied and `status.called`, this day's full Seat-Level
+    Projection is additionally archived into `frozen_projection`/
+    `frozen_seat_call` — permanent, never pruned by the two-day window above.
+    See those tables' comments for why every called day is archived rather
+    than only the one that turns out to be last before polling.
     """
     day = projection.computed_at
     with engine.begin() as connection:
         # Ordered rather than `max()`, so the value comes back through the
         # column's Date type: SQLite stores dates as text, and an aggregate
         # over them returns the text.
-        stored_calls_from = connection.execute(
+        newest_calls_day = connection.execute(
             select(seat_call.c.computed_at).order_by(seat_call.c.computed_at.desc()).limit(1)
         ).scalar()
-        if projection.seat_calls and (stored_calls_from is None or day >= stored_calls_from):
-            connection.execute(delete(seat_call))
+        if projection.seat_calls and (newest_calls_day is None or day >= newest_calls_day):
+            # A same-day rerun replaces only that day's rows. A genuinely new
+            # day becomes the newest of the two kept days, which evicts
+            # anything older than the *previous* newest — leaving exactly the
+            # new day and the one before it.
+            connection.execute(delete(seat_call).where(seat_call.c.computed_at == day))
+            if newest_calls_day is not None and day > newest_calls_day:
+                connection.execute(
+                    delete(seat_call).where(seat_call.c.computed_at < newest_calls_day)
+                )
             connection.execute(
                 seat_call.insert(),
                 [
@@ -273,15 +323,45 @@ def save_snapshot(
             connection.execute(delete(table).where(table.c.computed_at == day))
             connection.execute(table.insert(), row)
 
+        if status is not None and status.called:
+            connection.execute(
+                delete(frozen_projection).where(frozen_projection.c.computed_at == day)
+            )
+            connection.execute(
+                frozen_projection.insert(),
+                {
+                    "computed_at": day,
+                    "coalition_seat_totals": dict(projection.coalition_seat_totals),
+                    "government_majority": projection.government_majority,
+                },
+            )
+            if projection.seat_calls:
+                connection.execute(
+                    delete(frozen_seat_call).where(frozen_seat_call.c.computed_at == day)
+                )
+                connection.execute(
+                    frozen_seat_call.insert(),
+                    [
+                        {
+                            "computed_at": day,
+                            "code": call.code,
+                            "coalition": call.coalition,
+                            "margin": call.margin,
+                        }
+                        for call in projection.seat_calls
+                    ],
+                )
+
 
 def load_projections(engine: Engine) -> Sequence[Projection]:
     """Every stored Projection, oldest first.
 
-    Only one of them carries Seat Calls — Storage keeps one Projection's alone
-    (ADR 0005). They are attached here, to the Projection whose day they were
-    computed on, rather than handed back separately: a caller that had to pair
-    them up itself could pair them wrongly, and a Seat Call shown under the
-    wrong date is indistinguishable from a right one.
+    Only the latest two carry Seat Calls — Storage keeps that two-day window
+    alone (ADR 0005, extended by #54). They are attached here, to the
+    Projection whose day they were computed on, rather than handed back
+    separately: a caller that had to pair them up itself could pair them
+    wrongly, and a Seat Call shown under the wrong date is indistinguishable
+    from a right one.
     """
     with engine.connect() as connection:
         calls_by_day: dict[date, list[SeatCall]] = {}
@@ -295,6 +375,42 @@ def load_projections(engine: Engine) -> Sequence[Projection]:
             )
         rows = connection.execute(
             select(projection_snapshot).order_by(projection_snapshot.c.computed_at)
+        ).mappings()
+        return [
+            Projection(
+                coalition_seat_totals=row["coalition_seat_totals"],
+                government_majority=row["government_majority"],
+                computed_at=row["computed_at"],
+                seat_calls=tuple(calls_by_day.get(row["computed_at"], ())),
+            )
+            for row in rows
+        ]
+
+
+def load_frozen_projections(engine: Engine) -> Sequence[Projection]:
+    """Every permanently archived day (#54), oldest first — see `frozen_projection`.
+
+    Every day the pipeline ran while Election Status was "called," not only
+    the eventual last one; a caller after polling day wanting *the* final
+    pre-poll Projection reads the last entry with `computed_at` at or before
+    polling day. Shaped exactly like `load_projections`'s return, for the
+    same reason: a caller pairing calls to totals itself could pair them
+    wrongly.
+    """
+    with engine.connect() as connection:
+        calls_by_day: dict[date, list[SeatCall]] = {}
+        for row in connection.execute(
+            select(frozen_seat_call).order_by(frozen_seat_call.c.code)
+        ).mappings():
+            calls_by_day.setdefault(row["computed_at"], []).append(
+                SeatCall(
+                    code=row["code"],
+                    coalition=row["coalition"],
+                    margin=row["margin"],
+                )
+            )
+        rows = connection.execute(
+            select(frozen_projection).order_by(frozen_projection.c.computed_at)
         ).mappings()
         return [
             Projection(

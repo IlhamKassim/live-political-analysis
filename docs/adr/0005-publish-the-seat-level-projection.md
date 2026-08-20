@@ -72,3 +72,18 @@ honest limit of the claim — state election signals accumulate as states vote,
 and recomputing an old day against today's file would answer a question nobody
 asked. It is also why the Coalition totals stay stored per day rather than being
 recomputed too.
+
+**Update (#54): extended to the latest two days, plus a permanent exception.**
+Something now does read one day of per-Seat history — a Return Trigger (Telegram
+push, #40) firing on a Seat crossing the Majority line needs yesterday's calls to
+diff against, which "latest Projection only" cannot supply. `seat_call` keeps two
+days rather than one; the cost argument above still holds two rows deep (~444
+rows, not ~81k). Separately, once Election Status is "called" (dissolved), every
+day's full Seat-Level Projection is archived permanently into
+`frozen_projection`/`frozen_seat_call`, exempt from that two-day window — the
+recoverability argument above stops applying past that point, because the inputs
+it depends on (state election signals, the config) keep changing during a live
+campaign, so a past called day's calls could no longer be honestly recomputed the
+way an ordinary past day's can. Every called day is archived, not only the one
+that turns out to be last before polling, because a batch pipeline cannot know in
+advance which day that will be.

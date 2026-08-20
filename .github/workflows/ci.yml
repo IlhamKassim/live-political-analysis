@@ -26,9 +26,9 @@ jobs:
     name: Lint, type, test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: "3.11"
 
@@ -46,3 +46,20 @@ jobs:
 
       - name: Test
         run: pytest
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    # Fails the run if Gitleaks finds a committed secret in the diff, so a
+    # leaked DATABASE_URL can never merge silently (this repo's one real
+    # secret). Pinned to the v3.0.0 commit so a future release cannot change
+    # what this gate checks without an explicit bump.
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Scan for secrets
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
