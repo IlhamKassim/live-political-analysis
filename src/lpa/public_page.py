@@ -1322,7 +1322,11 @@ _CSS = """
     /* Paper is already light with dark ink — printing the dark theme (if the
        browser prefers it, or a reader toggled it before printing) would put
        a near-black background on actual paper. Force the light palette
-       regardless of which selector set it on screen. */
+       regardless of which selector set it on screen. No preprocessor here
+       (HANDOFF), so these 13 values are a third copy of the light tokens
+       already declared under `:root` and `:root[data-theme="light"]` above —
+       if that palette ever changes (e.g. another contrast-ratio fix like
+       --ink-faint's), update these to match; nothing else enforces it. */
     :root, :root[data-theme="dark"], :root[data-theme="light"] {
       --ground:    #E9EAE4;
       --surface:   #F2F3EE;
@@ -1346,6 +1350,11 @@ _CSS = """
     .sheet { max-width: none; padding: 0 var(--gutter) 24px; }
     .verdict, .ledger-table, .stress, .colophon { break-inside: avoid; }
     tr { break-inside: avoid; }
+    /* The hidden accessibility table (.seat-table, 222 rows — see
+       _seat_table's docstring) stays hidden here too, via its existing
+       .visually-hidden clip. Deliberate: dumping 222 rows would contradict
+       "a genuinely clean one-pager"; the visible .ledger-table above is
+       "the seat table" this block's page-break rule means. */
     @page { margin: 16mm; }
   }
 """
