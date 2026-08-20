@@ -83,6 +83,7 @@ def main() -> None:
     from lpa.config import (
         coalition_aliases,
         load_coalition_config,
+        load_election_status,
         load_outlets,
         load_state_election_signals,
         swing_model_config,
@@ -116,7 +117,7 @@ def main() -> None:
             "replace today's real snapshot with an empty one built from the "
             "State Election Signal alone."
         )
-    save_snapshot(engine, projection, sentiment)
+    save_snapshot(engine, projection, sentiment, status=load_election_status())
 
     print(f"Read {sentiment.total_articles} Articles from {', '.join(sentiment.sources)}")
     print("\nSentiment per Coalition:")

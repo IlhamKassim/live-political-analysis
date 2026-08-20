@@ -10,9 +10,11 @@ from fixtures import PH, PN, government_config, two_coalition_seats
 from pytest import raises
 
 from lpa.aggregate import AggregatedSentiment
+from lpa.domain import ElectionStatus
 from lpa.poll_calibration import LeaderRating, PollCalibration
 from lpa.storage import (
     connect,
+    load_frozen_projections,
     load_poll_calibrations,
     load_projections,
     load_seat_baselines,
@@ -197,33 +199,51 @@ def test_the_latest_projections_seat_calls_read_back_with_it():
     assert stored == projection
 
 
-def test_only_the_newest_projections_seat_calls_are_kept():
-    # ADR 0005: per-Seat rows are the latest Projection's alone. The earlier
-    # day keeps its Coalition totals, which is what the trend line reads.
+def test_the_newest_two_projections_seat_calls_are_kept():
+    # ADR 0005 as extended by #54: per-Seat rows are the latest two
+    # Projections', not the latest one alone — an overnight diff needs
+    # yesterday's calls too. Earlier days than that keep their Coalition
+    # totals only, which is what the trend line reads.
     engine = connect("sqlite+pysqlite:///:memory:")
 
     save_snapshot(engine, projection_for(date(2026, 8, 5)), EMPTY_SENTIMENT)
     save_snapshot(engine, projection_for(date(2026, 8, 6)), EMPTY_SENTIMENT)
 
     older, newer = load_projections(engine)
-    assert older.seat_calls == ()
+    assert len(older.seat_calls) == 6
     assert older.coalition_seat_totals == {PH: 4, PN: 2}
     assert len(newer.seat_calls) == 6
 
 
-def test_storing_an_older_day_leaves_the_current_seat_calls_alone():
-    # `scripts/seed_dev_snapshots.py` backfills days behind today, and running
-    # it after a real pipeline run must not leave the newest Projection
-    # showing a seeded day's calls.
+def test_a_third_day_evicts_only_the_oldest_kept_day():
     engine = connect("sqlite+pysqlite:///:memory:")
+
+    save_snapshot(engine, projection_for(date(2026, 8, 5)), EMPTY_SENTIMENT)
+    save_snapshot(engine, projection_for(date(2026, 8, 6)), EMPTY_SENTIMENT)
+    save_snapshot(engine, projection_for(date(2026, 8, 7)), EMPTY_SENTIMENT)
+
+    oldest, middle, newest = load_projections(engine)
+    assert oldest.seat_calls == ()
+    assert len(middle.seat_calls) == 6
+    assert len(newest.seat_calls) == 6
+
+
+def test_storing_an_older_day_leaves_the_kept_seat_calls_alone():
+    # `scripts/seed_dev_snapshots.py` backfills days behind today, and running
+    # it after a real pipeline run must not leave the current window showing
+    # a seeded day's calls, nor evict a day the seeded one is older than.
+    engine = connect("sqlite+pysqlite:///:memory:")
+    yesterday = projection_for(date(2026, 8, 5))
     today = projection_for(date(2026, 8, 6), sentiment={PH: -0.4, PN: 0.4})
+    save_snapshot(engine, yesterday, EMPTY_SENTIMENT)
     save_snapshot(engine, today, EMPTY_SENTIMENT)
 
     save_snapshot(engine, projection_for(date(2026, 8, 1)), EMPTY_SENTIMENT)
 
-    backfilled, current = load_projections(engine)
+    backfilled, kept_older, kept_newer = load_projections(engine)
     assert backfilled.seat_calls == ()
-    assert current.seat_calls == today.seat_calls
+    assert kept_older.seat_calls == yesterday.seat_calls
+    assert kept_newer.seat_calls == today.seat_calls
 
 
 def test_a_projection_carrying_no_seat_calls_does_not_empty_the_stored_ones():
@@ -264,3 +284,60 @@ def test_a_seat_call_survives_the_round_trip_intact():
     called = {call.code: call for call in stored.seat_calls}
     assert called["P001"].coalition == PH
     assert called["P001"].margin == projection.seat_calls[0].margin
+
+
+def called_status(dissolved_on: date = date(2026, 8, 4)) -> ElectionStatus:
+    return ElectionStatus(
+        constitutional_deadline=date(2028, 2, 17),
+        source="test fixture",
+        dissolved_on=dissolved_on,
+    )
+
+
+def test_a_day_saved_while_not_called_is_not_archived():
+    engine = connect("sqlite+pysqlite:///:memory:")
+    save_snapshot(engine, projection_for(date(2026, 8, 6)), EMPTY_SENTIMENT, status=None)
+
+    assert load_frozen_projections(engine) == []
+
+
+def test_a_day_saved_while_called_is_archived_permanently():
+    engine = connect("sqlite+pysqlite:///:memory:")
+    projection = projection_for(date(2026, 8, 6))
+
+    save_snapshot(engine, projection, EMPTY_SENTIMENT, status=called_status())
+
+    (archived,) = load_frozen_projections(engine)
+    assert archived == projection
+
+
+def test_a_second_called_day_adds_to_the_archive_rather_than_replacing_it():
+    # Unlike seat_call's two-day window, frozen_projection is never pruned —
+    # a batch pipeline cannot know in advance which called day will turn out
+    # to be the last one before polling, so every one is kept.
+    engine = connect("sqlite+pysqlite:///:memory:")
+    save_snapshot(engine, projection_for(date(2026, 8, 6)), EMPTY_SENTIMENT, status=called_status())
+    save_snapshot(engine, projection_for(date(2026, 8, 7)), EMPTY_SENTIMENT, status=called_status())
+
+    archived = load_frozen_projections(engine)
+    assert [p.computed_at for p in archived] == [date(2026, 8, 6), date(2026, 8, 7)]
+    assert all(len(p.seat_calls) == 6 for p in archived)
+
+
+def test_rerunning_a_called_day_replaces_its_own_archived_row_only():
+    engine = connect("sqlite+pysqlite:///:memory:")
+    day = date(2026, 8, 6)
+    save_snapshot(engine, projection_for(day), EMPTY_SENTIMENT, status=called_status())
+    save_snapshot(
+        engine,
+        projection_for(date(2026, 8, 7)),
+        EMPTY_SENTIMENT,
+        status=called_status(),
+    )
+
+    corrected = projection_for(day, sentiment={PH: -0.4, PN: 0.4})
+    save_snapshot(engine, corrected, EMPTY_SENTIMENT, status=called_status())
+
+    archived = {p.computed_at: p for p in load_frozen_projections(engine)}
+    assert len(archived) == 2
+    assert archived[day] == corrected
