@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
+from enum import StrEnum
 
 from lpa.domain import (
     ElectionStatus,
@@ -56,14 +57,21 @@ class PreviousWatch:
     signal_states: frozenset[str]
 
 
+class ElectionStatusTriggerKind(StrEnum):
+    """The two sub-events #40's own scope folds into one trigger type
+    ("GE16 called, or a polling date set"). A closed set rather than a bare
+    string because a typo in a caller's comparison would silently never
+    match (the same reasoning `public_page.Tier` documents for itself)."""
+
+    CALLED = "called"
+    POLLING_DATE_SET = "polling_date_set"
+
+
 @dataclass(frozen=True)
 class ElectionStatusTrigger:
     """GE16 was called, or a polling date was set, since the last run."""
 
-    kind: str
-    """`"called"` or `"polling_date_set"` — the two sub-events #40's own
-    scope folds into one trigger type ("GE16 called, or a polling date
-    set")."""
+    kind: ElectionStatusTriggerKind
     status: ElectionStatus
 
 
@@ -84,11 +92,20 @@ class MajorityTrigger:
     older: Projection
     newer: Projection
     changed: tuple[tuple[SeatCall, SeatCall], ...]
-    """Seats whose call differs between the two Projections (`changed_seat_calls`).
-    Exactly one entry is the one case a Seat-anchored post is honest: the
-    Majority can only flip on a single Seat's own flip when the Government
-    Coalition sat exactly on the threshold, and a broader swing (the usual
-    way `MAJORITY_SWING_THRESHOLD` is cleared) always moves more than one."""
+    """Every Seat whose call differs between the two Projections
+    (`changed_seat_calls`) — including a Coalition reshuffle that never
+    touches which side of the Majority line a Seat sits on (PN to BN, say,
+    both Non-government). Not, on its own, "how many Seats caused this" —
+    see `government_relevant_changed` for that."""
+    government_relevant_changed: tuple[tuple[SeatCall, SeatCall], ...]
+    """The subset of `changed` where the Seat actually crossed from
+    Government to Non-government or back — code review, 20 Aug 2026: an
+    earlier version of this type claimed a bare `len(changed) == 1` was the
+    signal a Seat-anchored post is honest for, but `changed` also carries
+    reshuffles that never move the Majority count at all, which could
+    inflate that count on a day an unrelated reshuffle coincides with a
+    genuine single-Seat flip. This field is the one a future template
+    selector should count instead."""
     government_delta: int
     """The Government Coalition's seat-total change, signed."""
     majority_flipped: bool
@@ -107,9 +124,11 @@ def election_status_trigger(
     if previous is None:
         return None
     if current.called and not previous.election_called:
-        return ElectionStatusTrigger(kind="called", status=current)
+        return ElectionStatusTrigger(kind=ElectionStatusTriggerKind.CALLED, status=current)
     if current.polling_date is not None and previous.polling_date is None:
-        return ElectionStatusTrigger(kind="polling_date_set", status=current)
+        return ElectionStatusTrigger(
+            kind=ElectionStatusTriggerKind.POLLING_DATE_SET, status=current
+        )
     return None
 
 
@@ -147,10 +166,18 @@ def majority_trigger(
     flipped = older.government_majority != newer.government_majority
     if not flipped and abs(delta) < threshold:
         return None
+    changed = changed_seat_calls(older, newer)
+    government_relevant = tuple(
+        (older_call, newer_call)
+        for older_call, newer_call in changed
+        if (older_call.coalition in config.government_coalitions)
+        != (newer_call.coalition in config.government_coalitions)
+    )
     return MajorityTrigger(
         older=older,
         newer=newer,
-        changed=changed_seat_calls(older, newer),
+        changed=changed,
+        government_relevant_changed=government_relevant,
         government_delta=delta,
         majority_flipped=flipped,
     )

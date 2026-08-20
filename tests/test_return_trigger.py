@@ -2,11 +2,12 @@
 
 from datetime import date
 
-from fixtures import PH, PN, government_config
+from fixtures import BN, GPS, PH, PN, government_config
 
 from lpa.domain import ElectionStatus, Projection, SeatCall
 from lpa.return_trigger import (
     ElectionStatusTrigger,
+    ElectionStatusTriggerKind,
     MajorityTrigger,
     PreviousWatch,
     StateSignalTrigger,
@@ -60,7 +61,7 @@ def test_a_fresh_dissolution_fires_the_called_trigger():
     called = status(dissolved_on=date(2026, 8, 1))
 
     trigger = election_status_trigger(not_called, called)
-    assert trigger == ElectionStatusTrigger(kind="called", status=called)
+    assert trigger == ElectionStatusTrigger(kind=ElectionStatusTriggerKind.CALLED, status=called)
 
 
 def test_a_newly_set_polling_date_fires_its_own_trigger():
@@ -68,7 +69,9 @@ def test_a_newly_set_polling_date_fires_its_own_trigger():
     dated = status(dissolved_on=date(2026, 8, 1), polling_date=date(2026, 9, 20))
 
     trigger = election_status_trigger(called_no_date, dated)
-    assert trigger == ElectionStatusTrigger(kind="polling_date_set", status=dated)
+    assert trigger == ElectionStatusTrigger(
+        kind=ElectionStatusTriggerKind.POLLING_DATE_SET, status=dated
+    )
 
 
 def test_no_change_in_status_fires_nothing():
@@ -148,6 +151,47 @@ def test_a_flip_driven_by_one_seat_carries_exactly_that_seat():
 
     trigger = majority_trigger(older, newer, config, threshold=5)
     assert trigger.changed == ((older_call, newer_call),)
+    assert trigger.government_relevant_changed == ((older_call, newer_call),)
+
+
+def test_government_relevant_changed_excludes_a_same_side_reshuffle():
+    # Code review, 20 Aug 2026: `changed_seat_calls` reports every Coalition
+    # change, including one that never crosses the Majority line — a
+    # reshuffle between two Non-government Coalitions (PN to BN, here)
+    # alongside the one genuine Government-crossing flip must not inflate
+    # the count `government_relevant_changed` exists to keep accurate.
+    config = government_config()  # Government: PH + GPS
+    crossing_older = SeatCall(code="P001", coalition=PH, margin=0.01)
+    crossing_newer = SeatCall(code="P001", coalition=PN, margin=0.01)
+    reshuffle_older = SeatCall(code="P002", coalition=PN, margin=0.02)
+    reshuffle_newer = SeatCall(code="P002", coalition=BN, margin=0.02)
+    older = projection(crossing_older, reshuffle_older, seats={PH: 4, PN: 2}, majority=True)
+    newer = projection(
+        crossing_newer, reshuffle_newer, seats={PH: 3, PN: 3}, majority=False, day=date(2026, 8, 7)
+    )
+
+    trigger = majority_trigger(older, newer, config, threshold=5)
+    assert len(trigger.changed) == 2
+    assert trigger.government_relevant_changed == ((crossing_older, crossing_newer),)
+
+
+def test_government_relevant_changed_excludes_a_government_side_reshuffle():
+    # The mirror case: PH to GPS is still Government on both sides, so it
+    # must not count as a Majority-relevant flip either. Totals carry the
+    # separate genuine swing that actually clears the threshold — a
+    # reshuffle within the Government side moves no Government seats on its
+    # own, so it cannot be what fires this trigger.
+    config = government_config()  # Government: PH + GPS
+    reshuffle_older = SeatCall(code="P002", coalition=PH, margin=0.02)
+    reshuffle_newer = SeatCall(code="P002", coalition=GPS, margin=0.02)
+    older = projection(reshuffle_older, seats={PH: 10, PN: 0}, majority=True)
+    newer = projection(
+        reshuffle_newer, seats={PH: 4, GPS: 1, PN: 5}, majority=True, day=date(2026, 8, 7)
+    )
+
+    trigger = majority_trigger(older, newer, config, threshold=5)
+    assert trigger is not None
+    assert (reshuffle_older, reshuffle_newer) not in trigger.government_relevant_changed
 
 
 def test_a_broad_swing_carries_every_seat_that_moved():
