@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import html
 import math
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import date
 from enum import StrEnum
@@ -138,6 +138,31 @@ class LedgerRow:
 
 
 @dataclass(frozen=True)
+class StateRollupRow:
+    """One state's line in the per-state rollup (#53).
+
+    A rollup one level coarser than the per-Seat calls already on the page
+    — Seat count, GE15 and projected totals per Coalition, the Swing
+    actually applied there, and whether a State Election Signal fed it —
+    never a new per-Seat claim (ADR 0005) and never drawn as a map
+    (HANDOFF: Sarawak's land area would dominate its 31 Seats visually,
+    against its true 14%-of-the-chamber weight).
+    """
+
+    state: str
+    seats: int
+    baseline_totals: tuple[tuple[Coalition, int], ...]
+    projected_totals: tuple[tuple[Coalition, int], ...]
+    swing: tuple[tuple[Coalition, float], ...]
+    """The Swing actually applied to this state's Seats (#53a), per
+    Coalition — empty for a day stored before that plumbing existed, not a
+    reason to fail; the row simply states no figure for it."""
+    signal_active: bool
+    """Whether a State Election Signal fed this state's Swing, rather than
+    Sentiment alone."""
+
+
+@dataclass(frozen=True)
 class PageModel:
     """Every number the page states, and nothing about how it looks."""
 
@@ -163,6 +188,9 @@ class PageModel:
     (#51) — sensitivity to an unfitted judgement call (ADR 0003), never a
     confidence interval. Pure Baseline+Sentiment arithmetic, independent of
     the real Projection's own `sentiment_sensitivity`."""
+    state_rollup: tuple[StateRollupRow, ...]
+    """One row per state (#53), alphabetical — the model's actual unit of
+    variation (ADR 0001/0003) made legible as a rollup, never a map."""
 
     @property
     def threshold_seat(self) -> ChamberSeat | None:
@@ -255,6 +283,7 @@ def page_model(
     sentiment: AggregatedSentiment | None,
     state_election_signals: Sequence[StateElectionSignal],
     total_seats: int,
+    state_swing: Mapping[str, Mapping[Coalition, float]],
 ) -> PageModel:
     """Work out everything the page says, from one day's Projection.
 
@@ -262,7 +291,9 @@ def page_model(
     the pipeline already passes around rather than pre-split into the two or
     three fields the page happens to show. `sentiment` is `None` only for a
     Storage with a Projection and no Sentiment snapshot, which a hand-seeded
-    database can be.
+    database can be. `state_swing` (#53a) is empty rather than `None` for a
+    day stored before that plumbing existed — a state simply states no
+    Swing figure rather than the whole render failing.
 
     Raises `ValueError` on a Projection with no Seat Calls. The chamber is the
     page, and rendering 222 blanks would look like a result rather than like a
@@ -298,6 +329,7 @@ def page_model(
         sensitivity_table=_sensitivity_table_rows(
             baseline, sentiment, state_election_signals, config, projection.computed_at
         ),
+        state_rollup=_state_rollup(baseline, seats, state_swing, state_election_signals),
     )
 
 
@@ -436,6 +468,50 @@ def _ledger(
     ]
     live = [row for row in rows if row.projected or row.baseline]
     return tuple(sorted(live, key=lambda r: (not r.government, -r.projected, r.coalition)))
+
+
+def _state_rollup(
+    baseline: Sequence[SeatBaseline],
+    seats: Sequence[ChamberSeat],
+    state_swing: Mapping[str, Mapping[Coalition, float]],
+    state_election_signals: Sequence[StateElectionSignal],
+) -> tuple[StateRollupRow, ...]:
+    """One row per state (#53), alphabetical.
+
+    GE15 and projected totals are counted here rather than read from
+    `model.ledger` — that ledger is Coalition-level only, with no state
+    dimension to split by. `seats` (the chamber's own `ChamberSeat`s,
+    already carrying `.state`/`.coalition`) gives the projected half; the
+    Baseline's own `.winner` gives GE15's, so both totals trace to the same
+    per-Seat data the rest of the page reads, not a re-derivation of it.
+    """
+    signal_states = {s.state for s in state_election_signals}
+
+    def counted(coalitions: Iterable[Coalition]) -> tuple[tuple[Coalition, int], ...]:
+        counts: dict[Coalition, int] = {}
+        for coalition in coalitions:
+            counts[coalition] = counts.get(coalition, 0) + 1
+        return tuple(sorted(counts.items()))
+
+    baseline_by_state: dict[str, list[SeatBaseline]] = {}
+    for seat in baseline:
+        baseline_by_state.setdefault(seat.state, []).append(seat)
+
+    seats_by_state: dict[str, list[ChamberSeat]] = {}
+    for chamber_seat in seats:
+        seats_by_state.setdefault(chamber_seat.state, []).append(chamber_seat)
+
+    return tuple(
+        StateRollupRow(
+            state=state,
+            seats=len(baseline_by_state[state]),
+            baseline_totals=counted(s.winner for s in baseline_by_state[state]),
+            projected_totals=counted(s.coalition for s in seats_by_state.get(state, ())),
+            swing=tuple(sorted(state_swing.get(state, {}).items())),
+            signal_active=state in signal_states,
+        )
+        for state in sorted(baseline_by_state)
+    )
 
 
 # ── the chamber's geometry ────────────────────────────────────────────────
@@ -1088,6 +1164,65 @@ def _sensitivity_table(model: PageModel) -> str:
     )
 
 
+def _coalition_counts(totals: Sequence[tuple[Coalition, int]]) -> str:
+    """Per-Coalition Seat counts, compact — "PH 3 · PN 1" (#53)."""
+    return " · ".join(f"{coalition} {n}" for coalition, n in totals) or "—"
+
+
+def _coalition_swings(swing: Sequence[tuple[Coalition, float]]) -> str:
+    """Per-Coalition point Swing, signed and compact — "PH −2.0 · PN +2.0" (#53).
+
+    Empty for a state with no stored Swing figure (a day before #53a's
+    plumbing existed) — "—", the same not-applicable mark the ledger's own
+    Government total row uses, not a fabricated 0.0.
+    """
+    if not swing:
+        return "—"
+    parts = []
+    for coalition, value in swing:
+        points = value * 100
+        sign = "+" if points > 0 else "−" if points < 0 else "±"
+        parts.append(f"{coalition} {sign}{abs(points):.1f}")
+    return " · ".join(parts)
+
+
+def _state_rollup_table(model: PageModel) -> str:
+    """The per-state rollup (#53): one row per state, register-a ruled table.
+
+    Never a map (HANDOFF's settled decisions) — Sarawak's land area would
+    dominate its 31 Seats visually, against its true 14%-of-the-chamber
+    weight. A rollup one level coarser than the per-Seat calls already on
+    the page, so it adds no new per-Seat claim ADR 0005 would object to.
+    """
+    rows = "".join(
+        "<tr>"
+        f"<td>{html.escape(row.state)}</td>"
+        f"<td>{row.seats}</td>"
+        f"<td>{html.escape(_coalition_counts(row.baseline_totals))}</td>"
+        f"<td>{html.escape(_coalition_counts(row.projected_totals))}</td>"
+        f"<td>{html.escape(_coalition_swings(row.swing))}</td>"
+        f"<td>{'State result' if row.signal_active else '—'}</td>"
+        "</tr>"
+        for row in model.state_rollup
+    )
+    return (
+        '<div class="state-rollup">'
+        '<div class="strip"><div class="eyebrow">Per-state rollup — the Swing Model\'s own unit</div></div>'
+        '<p class="sensitivity-note">The Swing Model moves each state uniformly '
+        "(ADR 0001/0003) — this is that structure, not a claim about any one "
+        "Seat, and never drawn as a map (a choropleth would let a state's "
+        "land area dominate its actual seat weight).</p>"
+        '<div class="ledger-scroll"><table class="state-rollup-table">'
+        "<thead><tr>"
+        '<th scope="col">State</th><th scope="col">Seats</th>'
+        '<th scope="col">GE15</th><th scope="col">Projected</th>'
+        '<th scope="col">Swing</th><th scope="col">Signal</th>'
+        "</tr></thead>"
+        f"<tbody>{rows}</tbody></table></div>"
+        "</div>"
+    )
+
+
 def _article_counts_line(model: PageModel) -> str:
     """The colophon's per-Coalition article-count sentence (#52).
 
@@ -1615,6 +1750,8 @@ _CSS = """
   .sensitivity-table th:first-child,
   .sensitivity-table td:first-child { padding-right: 28px; }
 
+  .state-rollup { margin: clamp(46px, 7vw, 78px) 0 0; }
+
   .colophon {
     margin-top: clamp(52px, 8vw, 90px);
     padding-top: 22px;
@@ -1703,7 +1840,7 @@ _CSS = """
     .theme-btn { display: none; }
     .seat-filter { display: none; }
     .sheet { max-width: none; padding: 0 var(--gutter) 24px; }
-    .verdict, .ledger-table, .stress, .colophon, .sensitivity { break-inside: avoid; }
+    .verdict, .ledger-table, .stress, .colophon, .sensitivity, .state-rollup { break-inside: avoid; }
     tr { break-inside: avoid; }
     /* The hidden accessibility table (.seat-table, 222 rows — see
        _seat_table's docstring) stays hidden here too, via its existing
@@ -1886,6 +2023,7 @@ def render_html(model: PageModel) -> str:
     {_ledger_narrow(model)}
     <dl class="stress">{_stress(model)}</dl>
     {_sensitivity_table(model)}
+    {_state_rollup_table(model)}
   </section>
 
   <footer class="colophon">
@@ -1938,6 +2076,7 @@ def build_page(engine: Engine) -> str:
         load_projections,
         load_seat_baselines,
         load_sentiment_snapshots,
+        load_state_swing,
     )
 
     projections = load_projections(engine)
@@ -1959,6 +2098,7 @@ def build_page(engine: Engine) -> str:
         sentiment=latest,
         state_election_signals=load_state_election_signals(),
         total_seats=config["total_seats"],
+        state_swing=load_state_swing(engine, projections[-1].computed_at),
     )
     return render_html(model)
 
