@@ -106,6 +106,11 @@ class ElectionStatus:
     dissolved_on: date | None = None
     """When the Dewan Rakyat was dissolved, which is what calling an election
     means here. `None` until it happens, and the field `called` reads."""
+    nomination_date: date | None = None
+    """When candidates file nomination — the Election Commission gazettes
+    this alongside `polling_date` in the same announcement (#40, code
+    review 20 Aug 2026), not on a separate later schedule, so the two are
+    never in a state where one is known and the other genuinely isn't."""
     polling_date: date | None = None
     """When polling is held. `None` while the Election Commission has not
     announced it — including in the interval after dissolution, which is why
