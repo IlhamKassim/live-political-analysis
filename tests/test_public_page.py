@@ -450,7 +450,7 @@ def test_the_hidden_seat_table_lists_every_seat():
 
     table = page.split('<table class="visually-hidden seat-table">')[1].split("</table>")[0]
     body = table.split("<tbody>")[1]
-    rows = re.findall(r"<tr>(.*?)</tr>", body, re.DOTALL)
+    rows = re.findall(r"<tr[^>]*>(.*?)</tr>", body, re.DOTALL)
     assert len(rows) == len(model.seats)
     first = model.seats[0]
     assert first.name in rows[0]
@@ -459,6 +459,34 @@ def test_the_hidden_seat_table_lists_every_seat():
     # table because they cannot see the `.key` legend needs "Too close", not
     # the internal token "tight" (HANDOFF defect 5; code review 9 Aug 2026).
     assert TIER_LABEL[first.tier] in rows[0]
+
+
+def test_every_seat_row_carries_a_stable_id_a_shared_card_can_link_to():
+    # #42: a Seat Call card (#23) or Telegram post (#40) naming a Seat should
+    # be able to link to index.html#seat-{code} and land somewhere a
+    # keyboard/screen-reader user can actually use — the hidden table, not
+    # just a visual dot in the chamber.
+    model = model_for()
+    page = render_html(model)
+
+    for seat in model.seats:
+        assert f'<tr id="seat-{seat.code}">' in page
+    # One id per Seat, no collisions across the 222 rows.
+    ids = re.findall(r'<tr id="(seat-[^"]+)">', page)
+    assert len(ids) == len(set(ids)) == len(model.seats)
+
+
+def test_the_chamber_dot_carries_a_data_seat_attribute_not_a_duplicate_id():
+    # An `id` may only anchor one element per document, and the hidden table
+    # row is the one a fragment link should resolve to (see above) — so the
+    # chamber's own dot for the same Seat carries `data-seat` instead, never
+    # a second `id="seat-{code}"`.
+    model = model_for()
+    page = render_html(model)
+
+    for seat in model.seats:
+        assert f'data-seat="{seat.code}"' in page
+    assert page.count(f'id="seat-{model.seats[0].code}"') == 1
 
 
 def test_a_seat_name_carrying_markup_cannot_break_out_of_the_hidden_table():
