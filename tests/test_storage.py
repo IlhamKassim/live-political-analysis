@@ -20,11 +20,14 @@ from lpa.storage import (
     load_projections,
     load_seat_baselines,
     load_state_swing,
+    load_trigger_posts,
     normalise_database_url,
     save_poll_calibrations,
     save_seat_baselines,
     save_snapshot,
+    save_trigger_posts,
     save_trigger_watch,
+    trigger_watch_exists,
 )
 from lpa.swing_model import swing_model
 
@@ -454,3 +457,53 @@ def test_a_rerun_replaces_that_days_trigger_watch_rather_than_duplicating_it():
     previous = load_previous_trigger_watch(engine, date(2026, 8, 7))
     assert previous.election_called is True
     assert previous.signal_states == frozenset({"Johor"})
+
+
+def test_trigger_watch_exists_is_false_before_a_day_has_a_row():
+    engine = connect("sqlite+pysqlite:///:memory:")
+    assert trigger_watch_exists(engine, date(2026, 8, 6)) is False
+
+
+def test_trigger_watch_exists_is_true_once_the_day_is_recorded():
+    # #40: a same-day rerun of the posting step must skip evaluation
+    # entirely, since a Telegram post can't be unsent — this is the check
+    # that stops it from reaching detection a second time.
+    engine = connect("sqlite+pysqlite:///:memory:")
+    save_trigger_watch(engine, date(2026, 8, 6), called_status(), [])
+
+    assert trigger_watch_exists(engine, date(2026, 8, 6)) is True
+    assert trigger_watch_exists(engine, date(2026, 8, 7)) is False
+
+
+def test_logged_trigger_posts_read_back_oldest_first():
+    engine = connect("sqlite+pysqlite:///:memory:")
+    save_trigger_posts(engine, date(2026, 8, 6), [("GE16 has been called.", "caption one")])
+    save_trigger_posts(engine, date(2026, 8, 10), [("Polling day is set.", "caption two")])
+
+    posts = load_trigger_posts(engine)
+    assert [p.title for p in posts] == ["GE16 has been called.", "Polling day is set."]
+    assert posts[0].computed_at == date(2026, 8, 6)
+    assert posts[0].caption == "caption one"
+
+
+def test_saving_no_posts_for_a_day_writes_nothing():
+    engine = connect("sqlite+pysqlite:///:memory:")
+    save_trigger_posts(engine, date(2026, 8, 6), [])
+
+    assert load_trigger_posts(engine) == []
+
+
+def test_more_than_one_post_the_same_day_both_persist():
+    # Two triggers can fire the same run (e.g. GE16 called the same day a
+    # state result lands) — both must survive, not just the last one.
+    engine = connect("sqlite+pysqlite:///:memory:")
+    save_trigger_posts(
+        engine,
+        date(2026, 8, 6),
+        [("GE16 has been called.", "caption one"), ("Johor reported.", "caption two")],
+    )
+
+    assert [p.title for p in load_trigger_posts(engine)] == [
+        "GE16 has been called.",
+        "Johor reported.",
+    ]

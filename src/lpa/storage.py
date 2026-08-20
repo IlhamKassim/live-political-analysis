@@ -184,6 +184,22 @@ trigger_watch = Table(
     Column("state_signal_states", JSON, nullable=False),
 )
 
+trigger_post_log = Table(
+    "trigger_post_log",
+    metadata,
+    # A permanent log of every Return Trigger post composed (#40), for the
+    # RSS/Atom feed — the feed has to accumulate history across days, and
+    # nothing else in Storage keeps a record of what fired and when. Logged
+    # once per composed post regardless of whether the Telegram send itself
+    # succeeds: the feed is a record of what happened, not of the delivery
+    # channel's uptime. Autoincrementing rather than `computed_at` alone,
+    # since more than one trigger can fire the same day.
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("computed_at", Date, nullable=False),
+    Column("title", String, nullable=False),
+    Column("caption", String, nullable=False),
+)
+
 
 poll_calibration_snapshot = Table(
     "poll_calibration_snapshot",
@@ -548,6 +564,69 @@ def load_previous_trigger_watch(engine: Engine, before: date) -> PreviousWatch |
         polling_date=row["polling_date"],
         signal_states=frozenset(row["state_signal_states"]),
     )
+
+
+def trigger_watch_exists(engine: Engine, computed_at: date) -> bool:
+    """Whether a Return Trigger watch row already exists for `computed_at` (#40).
+
+    Read before evaluating a day's triggers, unlike every other snapshot
+    table here where a same-day rerun correcting the row is exactly right:
+    a Telegram post is public and cannot be unsent, so a rerun after a day
+    already has a watch row must skip evaluation entirely rather than
+    re-detect (and re-post) the same trigger a second time. A rerun after a
+    failure that happened *before* the watch row was written still retries
+    normally, since no row exists yet to skip on.
+    """
+    with engine.connect() as connection:
+        row = connection.execute(
+            select(trigger_watch.c.computed_at).where(trigger_watch.c.computed_at == computed_at)
+        ).first()
+    return row is not None
+
+
+def save_trigger_posts(engine: Engine, computed_at: date, posts: Iterable[tuple[str, str]]) -> None:
+    """Append this day's composed Return Trigger posts to the permanent log (#40).
+
+    `posts` is `(title, caption)` pairs, in the order they were composed.
+    Appends rather than replacing what a same-day rerun already logged:
+    `trigger_watch_exists` (above) is what stops a rerun from reaching this
+    function a second time in the first place, so there is nothing here to
+    deduplicate against.
+    """
+    rows = [
+        {"computed_at": computed_at, "title": title, "caption": caption} for title, caption in posts
+    ]
+    if not rows:
+        return
+    with engine.begin() as connection:
+        connection.execute(trigger_post_log.insert(), rows)
+
+
+@dataclass(frozen=True)
+class LoggedTriggerPost:
+    """One historical Return Trigger post, for the RSS/Atom feed (#40)."""
+
+    id: int
+    computed_at: date
+    title: str
+    caption: str
+
+
+def load_trigger_posts(engine: Engine) -> Sequence[LoggedTriggerPost]:
+    """Every logged Return Trigger post, oldest first — the feed's full history."""
+    with engine.connect() as connection:
+        rows = connection.execute(
+            select(trigger_post_log).order_by(trigger_post_log.c.id)
+        ).mappings()
+        return [
+            LoggedTriggerPost(
+                id=row["id"],
+                computed_at=row["computed_at"],
+                title=row["title"],
+                caption=row["caption"],
+            )
+            for row in rows
+        ]
 
 
 def save_poll_calibrations(engine: Engine, reports: Iterable[PollCalibration]) -> int:
