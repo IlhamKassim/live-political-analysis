@@ -350,11 +350,12 @@ def save_snapshot(
 def load_projections(engine: Engine) -> Sequence[Projection]:
     """Every stored Projection, oldest first.
 
-    Only one of them carries Seat Calls — Storage keeps one Projection's alone
-    (ADR 0005). They are attached here, to the Projection whose day they were
-    computed on, rather than handed back separately: a caller that had to pair
-    them up itself could pair them wrongly, and a Seat Call shown under the
-    wrong date is indistinguishable from a right one.
+    Only the latest two carry Seat Calls — Storage keeps that two-day window
+    alone (ADR 0005, extended by #54). They are attached here, to the
+    Projection whose day they were computed on, rather than handed back
+    separately: a caller that had to pair them up itself could pair them
+    wrongly, and a Seat Call shown under the wrong date is indistinguishable
+    from a right one.
     """
     with engine.connect() as connection:
         calls_by_day: dict[date, list[SeatCall]] = {}
