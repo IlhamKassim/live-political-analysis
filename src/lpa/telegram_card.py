@@ -189,6 +189,40 @@ def _tracked_text(
         x += draw.textlength(ch, font=font) + tracking
 
 
+def _wrap_by_pixel_width(
+    draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont, max_width: float
+) -> list[str]:
+    """Word-wrap `text` to fit `max_width` px under `font`, measured for
+    real rather than approximated by a character count the way
+    `seat_call_card.wrap_text` is.
+
+    That character-count budget is tuned for its own smaller prose fonts,
+    where the approximation is close enough; the aggregate card's headline
+    uses the card's largest font (52pt), where a proportional serif's
+    width per character varies too much for a character count to reliably
+    predict — a headline with more capitals and wider letters overflowed
+    the card's own frame at a character count another, narrower headline
+    fit comfortably under — caught by rendering and looking at a real
+    headline (#40's pipeline-wiring batch, 20 Aug 2026):
+    "Johor reported a state election result." — 39 characters, under the
+    40-character budget that was in place — measured 999px against this
+    card's 912px text width."""
+    words = text.split()
+    lines: list[str] = []
+    current = ""
+    for word in words:
+        candidate = f"{current} {word}".strip()
+        if draw.textlength(candidate, font=font) <= max_width:
+            current = candidate
+        else:
+            if current:
+                lines.append(current)
+            current = word
+    if current:
+        lines.append(current)
+    return lines
+
+
 def _draw_wordmark(draw: ImageDraw.ImageDraw, fonts: _Fonts) -> None:
     """The "Live Political Analysis · reading this site" line both card
     types open with, factored out rather than duplicated (code review, 20
@@ -410,7 +444,7 @@ def render_aggregate_card_png(model: AggregateCardModel) -> bytes:
     _draw_wordmark(draw, fonts)
 
     _tracked_text(draw, (PAD_X, 118), model.eyebrow, fonts.mono_12, INK_FAINT, 0.18)
-    headline_lines = wrap_text(model.headline, 40)
+    headline_lines = _wrap_by_pixel_width(draw, model.headline, fonts.serif_52, TRACK_W)
     for i, line in enumerate(headline_lines):
         draw.text(
             (PAD_X, _HEADLINE_TOP + i * _HEADLINE_LINE_H),

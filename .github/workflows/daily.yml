@@ -71,12 +71,19 @@ jobs:
           key: huggingface-twitter-xlm-roberta-base-sentiment
           restore-keys: huggingface-
 
+      - name: Install fonts for #40's card rendering
+        # telegram_post.py's aggregate/Seat-anchored card images (via
+        # telegram_card.py) need real .ttf files on disk — same step ci.yml
+        # already runs, kept in sync with it.
+        run: sudo apt-get update && sudo apt-get install -y fonts-dejavu-core
+
       - name: Install
         # No dashboard extra: that's the Streamlit internal view, unused
         # here. public_page renders server-side HTML/SVG with no extra
         # deps of its own. Postgres extra for the hosted database both the
-        # pipeline and public_page read.
-        run: pip install -e ".[sentiment,postgres]"
+        # pipeline and public_page read. telegram (Pillow) for #40's card
+        # rendering — cheap, no system deps beyond the fonts above.
+        run: pip install -e ".[sentiment,postgres,telegram]"
 
       - name: Run the pipeline
         env:
@@ -129,6 +136,22 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m lpa.seat_call_card --all
+
+      - name: Post a Return Trigger to Telegram, if one fired
+        # #40: detects whether today is worth a push, composes the post,
+        # and sends it — only if TELEGRAM_BOT_TOKEN/TELEGRAM_CHANNEL_ID are
+        # both set as repository secrets. Until a bot and channel exist,
+        # this step still runs safely: it detects and logs what it would
+        # have posted, and always (re)writes public/feed.xml from the full
+        # log, but sends nothing. Runs after the Seat Call cards so the
+        # Seat-anchored template's dependency (#23) is unambiguous, though
+        # nothing here actually reads their output — each step still reads
+        # Storage independently.
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+        run: python -m lpa.telegram_post
 
       - name: Configure Pages
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b
