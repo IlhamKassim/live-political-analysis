@@ -57,7 +57,7 @@ def swing_model(
     `computed_at` is passed in rather than read from the clock so the function
     stays pure and its output reproducible.
     """
-    swing_by_state = _swing_by_state(baseline, sentiment, state_election_signals, config)
+    swing_by_state = state_swing(baseline, sentiment, state_election_signals, config)
     calls = tuple(_call_seat(seat, swing_by_state[seat.state]) for seat in baseline)
     totals: Counter[Coalition] = Counter(
         {coalition: 0 for seat in baseline for coalition in seat.vote_share}
@@ -71,7 +71,7 @@ def swing_model(
     )
 
 
-def _swing_by_state(
+def state_swing(
     baseline: Sequence[SeatBaseline],
     sentiment: Mapping[Coalition, float],
     state_election_signals: Sequence[StateElectionSignal],
@@ -85,6 +85,16 @@ def _swing_by_state(
     that did vote the weighting applies to every Coalition alike — one the
     result omits is read as having no observed Swing, not as exempt from the
     blend.
+
+    Public (#53a): `swing_model` uses this to call every Seat, but the value
+    it computes here — the actual Swing a state's Seats moved by, per
+    Coalition — is otherwise thrown away once `swing_model` has used it. A
+    per-state rollup (#53) wants to publish exactly this figure, not
+    re-derive an approximation of it from the Seat Calls that came out the
+    other end; calling this a second time costs one dict-comprehension pass
+    over a dozen states, so `run_pipeline` does, rather than widen
+    `swing_model`'s own return type and touch every place that already
+    pattern-matches or type-checks a `Projection`.
     """
     sentiment_swing = {
         coalition: score * config.sentiment_sensitivity for coalition, score in sentiment.items()
@@ -94,14 +104,14 @@ def _swing_by_state(
 
     swings: dict[str, Mapping[Coalition, float]] = {}
     for state in {seat.state for seat in baseline}:
-        state_swing = observed.get(state)
-        if not state_swing:
+        observed_swing = observed.get(state)
+        if not observed_swing:
             swings[state] = sentiment_swing
             continue
         swings[state] = {
             coalition: (1 - weight) * sentiment_swing.get(coalition, 0.0)
-            + weight * state_swing.get(coalition, 0.0)
-            for coalition in set(sentiment_swing) | set(state_swing)
+            + weight * observed_swing.get(coalition, 0.0)
+            for coalition in set(sentiment_swing) | set(observed_swing)
         }
     return swings
 

@@ -14,7 +14,7 @@ therefore leaves 222 rows, not 444.
 from __future__ import annotations
 
 import os
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 
@@ -35,7 +35,7 @@ from sqlalchemy import (
 from sqlalchemy.engine import Engine
 
 from lpa.aggregate import AggregatedSentiment
-from lpa.domain import ElectionStatus, Projection, SeatBaseline, SeatCall
+from lpa.domain import Coalition, ElectionStatus, Projection, SeatBaseline, SeatCall
 from lpa.poll_calibration import LeaderRating, PollCalibration
 
 DEFAULT_DATABASE_URL = "sqlite+pysqlite:///lpa.db"
@@ -147,6 +147,25 @@ sentiment_snapshot = Table(
     Column("sources", JSON, nullable=False),
 )
 
+state_swing_snapshot = Table(
+    "state_swing_snapshot",
+    metadata,
+    # A new table, not a new column on `projection_snapshot` (#53a): `connect`
+    # only ever runs `metadata.create_all`, which creates a table that does
+    # not exist yet but never alters one that already does. A new column on
+    # an already-deployed table would silently never reach the live
+    # database, and the next `save_snapshot` call against it would fail on
+    # an unknown column. One row per state per day, kept forever like
+    # `projection_snapshot` rather than pruned like `seat_call` — roughly a
+    # dozen states, not 222 Seats, so a year of history is a few thousand
+    # rows, not tens of thousands.
+    Column("computed_at", Date, primary_key=True),
+    Column("state", String, primary_key=True),
+    # The Swing applied to this state's Seats, per Coalition:
+    # Mapping[Coalition, float].
+    Column("swing", JSON, nullable=False),
+)
+
 
 poll_calibration_snapshot = Table(
     "poll_calibration_snapshot",
@@ -239,14 +258,19 @@ def save_snapshot(
     engine: Engine,
     projection: Projection,
     sentiment: AggregatedSentiment,
+    state_swing: Mapping[str, Mapping[Coalition, float]],
     *,
     status: ElectionStatus | None = None,
 ) -> None:
-    """Record one day's Projection and Sentiment, replacing that day if present.
+    """Record one day's Projection, Sentiment, and per-state Swing (#53a),
+    replacing that day if present.
 
     Keyed on the date rather than appended, so a re-run corrects the day
     instead of leaving two answers for it. History across days is what the
-    dashboard's trend line reads (issue #1, story 15).
+    dashboard's trend line reads (issue #1, story 15). `state_swing` is
+    required rather than defaulted to `{}`: a caller that forgot to wire it
+    up would otherwise silently persist an empty per-state Swing for that
+    day forever, rather than failing loudly at the call site.
 
     Seat Calls are the exception. Storage keeps the latest two Projections'
     (ADR 0005, extended by #54) — the newest that came with any, plus the one
@@ -322,6 +346,20 @@ def save_snapshot(
         ):
             connection.execute(delete(table).where(table.c.computed_at == day))
             connection.execute(table.insert(), row)
+
+        # One row per state, like `seat_call` — outside the single-row loop
+        # above, which only fits a table with exactly one row per day.
+        connection.execute(
+            delete(state_swing_snapshot).where(state_swing_snapshot.c.computed_at == day)
+        )
+        if state_swing:
+            connection.execute(
+                state_swing_snapshot.insert(),
+                [
+                    {"computed_at": day, "state": state, "swing": dict(swing)}
+                    for state, swing in state_swing.items()
+                ],
+            )
 
         if status is not None and status.called:
             connection.execute(
@@ -421,6 +459,23 @@ def load_frozen_projections(engine: Engine) -> Sequence[Projection]:
             )
             for row in rows
         ]
+
+
+def load_state_swing(engine: Engine, computed_at: date) -> Mapping[str, Mapping[Coalition, float]]:
+    """One day's Swing per state (#53a) — empty for a day nothing was stored for.
+
+    Parameterized on the day rather than returning full history: a caller
+    already knows which Projection it is pairing this with (its own
+    `computed_at`), the same way `load_projections` pairs Seat Calls to a
+    Projection internally rather than handing the caller two lists to match
+    up itself — except here the caller, not this function, already holds
+    the day, so there is nothing to mismatch.
+    """
+    with engine.connect() as connection:
+        rows = connection.execute(
+            select(state_swing_snapshot).where(state_swing_snapshot.c.computed_at == computed_at)
+        ).mappings()
+        return {row["state"]: row["swing"] for row in rows}
 
 
 def save_poll_calibrations(engine: Engine, reports: Iterable[PollCalibration]) -> int:

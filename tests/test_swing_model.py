@@ -16,7 +16,7 @@ from fixtures import (
 from pytest import approx
 
 from lpa.domain import StateElectionSignal
-from lpa.swing_model import swing_model
+from lpa.swing_model import state_swing, swing_model
 
 
 def test_neutral_sentiment_and_no_state_signal_reproduces_the_baseline():
@@ -368,3 +368,44 @@ def test_the_baseline_winner_holds_even_when_a_rival_is_the_least_negative():
     (call,) = projection.seat_calls
     assert (call.coalition, call.margin) == (PN, 0.0)
     assert projection.coalition_seat_totals == {PN: 1, PH: 0, BN: 0}
+
+
+def test_state_swing_is_the_same_figure_swing_model_calls_every_seat_with():
+    # #53a: state_swing is public so a per-state rollup (#53) can publish the
+    # actual figure the model applied, not reconstruct one. Pinning that it
+    # is exactly the value from Sentiment alone where no state has voted —
+    # two_state_seats() has none — matching how every Seat there gets called.
+    swings = state_swing(
+        baseline=two_state_seats(),
+        sentiment={PH: -0.4, PN: 0.4},
+        state_election_signals=[],
+        config=government_config(),
+    )
+
+    assert swings == {
+        "Selangor": {PH: approx(-0.04), PN: approx(0.04)},
+        "Johor": {PH: approx(-0.04), PN: approx(0.04)},
+    }
+
+
+def test_state_swing_blends_the_observed_result_only_for_the_state_that_voted():
+    # Johor's Baseline average is PH 0.40 / PN 0.60 (two_state_seats()); a
+    # state result of PH 0.30 / PN 0.70 is an observed swing of -10pp/+10pp
+    # there. Blended 50/50 (government_config()'s default weight) with the
+    # 4pp Sentiment swing: Johor gets -7pp/+7pp. Selangor never voted, so it
+    # stays on Sentiment alone, at -4pp/+4pp — the two states must disagree,
+    # or this is reading the same number for both rather than a genuine
+    # per-state figure.
+    swings = state_swing(
+        baseline=two_state_seats(),
+        sentiment={PH: -0.4, PN: 0.4},
+        state_election_signals=[
+            StateElectionSignal(
+                state="Johor", held_on=date(2026, 3, 1), vote_share={PH: 0.30, PN: 0.70}
+            )
+        ],
+        config=government_config(),
+    )
+
+    assert swings["Selangor"] == {PH: approx(-0.04), PN: approx(0.04)}
+    assert swings["Johor"] == {PH: approx(-0.07), PN: approx(0.07)}
