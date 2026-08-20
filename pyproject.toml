@@ -13,6 +13,7 @@ dev = ["pytest>=8.0", "ruff>=0.8", "mypy>=1.13"]
 sentiment = ["transformers>=4.40", "torch>=2.0", "sentencepiece>=0.2", "protobuf>=4.0"]
 dashboard = ["streamlit>=1.37", "pandas>=2.0", "altair>=5.0"]
 postgres = ["psycopg[binary]>=3.1"]
+telegram = ["Pillow>=10.0"]
 
 [build-system]
 requires = ["hatchling"]
@@ -71,4 +72,11 @@ no_implicit_reexport = true
 # mypy must not flag the module as missing when the extra isn't present.
 [[tool.mypy.overrides]]
 module = "transformers"
+ignore_missing_imports = true
+
+# Same reasoning, for `Pillow` (`.[telegram]`, #40's card rasterization) —
+# lazy-imported in telegram_card.py so the pure card-model functions stay
+# importable (and testable) without it.
+[[tool.mypy.overrides]]
+module = "PIL.*"
 ignore_missing_imports = true
