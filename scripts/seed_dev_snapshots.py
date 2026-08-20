@@ -37,7 +37,7 @@ from lpa.storage import (
     load_sentiment_snapshots,
     save_snapshot,
 )
-from lpa.swing_model import swing_model
+from lpa.swing_model import state_swing, swing_model
 
 SEED = 20260816
 """Fixed, so two developers looking at the dashboard see the same history."""
@@ -72,9 +72,7 @@ def seeded_sentiment_history(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--days", type=int, default=14, help="days of back-history to seed"
-    )
+    parser.add_argument("--days", type=int, default=14, help="days of back-history to seed")
     args = parser.parse_args()
 
     # Resolved by `connect` from DATABASE_URL, then checked — rather than
@@ -89,9 +87,7 @@ def main() -> None:
 
     baseline = load_seat_baselines(engine)
     if not baseline:
-        raise SystemExit(
-            "No Seat Baseline in Storage. Run `python -m lpa.baseline_loader` first."
-        )
+        raise SystemExit("No Seat Baseline in Storage. Run `python -m lpa.baseline_loader` first.")
 
     config = load_coalition_config()
     coalitions = sorted(config["coalition_aliases"])
@@ -111,9 +107,7 @@ def main() -> None:
             continue
         sentiment = AggregatedSentiment(
             scores=scores,
-            article_counts={
-                coalition: ARTICLES_PER_COALITION for coalition in scores
-            },
+            article_counts={coalition: ARTICLES_PER_COALITION for coalition in scores},
             total_articles=ARTICLES_PER_COALITION * len(scores),
             sources=sources,
         )
@@ -121,6 +115,7 @@ def main() -> None:
             engine,
             swing_model(baseline, scores, signals, swing_model_config(config), day),
             sentiment,
+            state_swing(baseline, scores, signals, swing_model_config(config)),
         )
         written += 1
 

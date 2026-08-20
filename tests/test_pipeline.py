@@ -62,6 +62,26 @@ def test_a_run_turns_scraped_articles_into_a_projection():
     assert result.projection.computed_at == date(2026, 8, 6)
 
 
+def test_a_run_carries_the_state_swing_it_called_every_seat_with():
+    # #53a: PipelineResult.state_swing is the same figure the Swing Model
+    # applied to reach result.projection, not a value re-derived from it —
+    # two_coalition_seats() is all Selangor, so the -4pp/+4pp swing this
+    # coverage produces (the same arithmetic the first test above pins)
+    # should show up as that one state's entry.
+    result = run_pipeline(
+        outlets=OUTLETS,
+        fetch=fetch([article("PH was criticised."), article("PN was praised.")]),
+        classify=classify_by_keyword,
+        aliases=ALIASES,
+        baseline=two_coalition_seats(),
+        state_election_signals=[],
+        config=government_config(),
+        computed_at=date(2026, 8, 6),
+    )
+
+    assert result.state_swing == {"Selangor": {PH: -0.4 * 0.10, PN: 0.4 * 0.10}}
+
+
 def test_a_headline_counts_as_coverage_even_when_the_body_does_not_name_anyone():
     # In Malaysian coverage the Coalition is often named only in the headline.
     result = run_pipeline(
@@ -118,7 +138,7 @@ def test_a_run_stores_one_projection_and_one_sentiment_snapshot():
         computed_at=date(2026, 8, 6),
     )
 
-    save_snapshot(engine, result.projection, result.sentiment)
+    save_snapshot(engine, result.projection, result.sentiment, result.state_swing)
 
     assert len(load_projections(engine)) == 1
     assert len(load_sentiment_snapshots(engine)) == 1
@@ -141,8 +161,8 @@ def test_re_running_a_day_corrects_it_rather_than_recording_it_twice():
         )
 
     first, second = run("PH was criticised."), run("PH was praised.")
-    save_snapshot(engine, first.projection, first.sentiment)
-    save_snapshot(engine, second.projection, second.sentiment)
+    save_snapshot(engine, first.projection, first.sentiment, first.state_swing)
+    save_snapshot(engine, second.projection, second.sentiment, second.state_swing)
 
     stored = load_sentiment_snapshots(engine)
     assert len(stored) == 1
@@ -163,7 +183,7 @@ def test_snapshots_from_different_days_both_survive_for_the_trend_line():
             config=government_config(),
             computed_at=day,
         )
-        save_snapshot(engine, result.projection, result.sentiment)
+        save_snapshot(engine, result.projection, result.sentiment, result.state_swing)
 
     assert [p.computed_at for p in load_projections(engine)] == [
         date(2026, 8, 5),
@@ -184,7 +204,7 @@ def test_the_sentiment_snapshot_records_what_it_was_built_from():
         computed_at=date(2026, 8, 6),
     )
 
-    save_snapshot(engine, result.projection, result.sentiment)
+    save_snapshot(engine, result.projection, result.sentiment, result.state_swing)
     stored = load_sentiment_snapshots(engine)[0]
 
     assert stored.computed_at == date(2026, 8, 6)

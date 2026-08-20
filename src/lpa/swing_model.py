@@ -57,7 +57,7 @@ def swing_model(
     `computed_at` is passed in rather than read from the clock so the function
     stays pure and its output reproducible.
     """
-    swing_by_state = _swing_by_state(baseline, sentiment, state_election_signals, config)
+    swing_by_state = state_swing(baseline, sentiment, state_election_signals, config)
     calls = tuple(_call_seat(seat, swing_by_state[seat.state]) for seat in baseline)
     totals: Counter[Coalition] = Counter(
         {coalition: 0 for seat in baseline for coalition in seat.vote_share}
@@ -71,7 +71,7 @@ def swing_model(
     )
 
 
-def _swing_by_state(
+def state_swing(
     baseline: Sequence[SeatBaseline],
     sentiment: Mapping[Coalition, float],
     state_election_signals: Sequence[StateElectionSignal],
@@ -85,6 +85,14 @@ def _swing_by_state(
     that did vote the weighting applies to every Coalition alike — one the
     result omits is read as having no observed Swing, not as exempt from the
     blend.
+
+    Public (#53a): `swing_model` uses this to call every Seat, but the value
+    it computes here — the actual Swing a state's Seats moved by, per
+    Coalition — is otherwise thrown away once `swing_model` has used it. A
+    per-state rollup (#53) wants to publish exactly this figure, not
+    re-derive an approximation of it from the Seat Calls that came out the
+    other end; calling this a second time (it is pure and cheap, ADR 0002)
+    keeps that figure honest rather than reconstructed.
     """
     sentiment_swing = {
         coalition: score * config.sentiment_sensitivity for coalition, score in sentiment.items()

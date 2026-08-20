@@ -18,6 +18,7 @@ from lpa.storage import (
     load_poll_calibrations,
     load_projections,
     load_seat_baselines,
+    load_state_swing,
     normalise_database_url,
     save_poll_calibrations,
     save_seat_baselines,
@@ -187,13 +188,14 @@ def projection_for(day: date, sentiment: dict[str, float] | None = None):
 
 
 EMPTY_SENTIMENT = AggregatedSentiment(scores={}, article_counts={}, total_articles=0, sources=[])
+EMPTY_STATE_SWING: dict = {}
 
 
 def test_the_latest_projections_seat_calls_read_back_with_it():
     engine = connect("sqlite+pysqlite:///:memory:")
     projection = projection_for(date(2026, 8, 6))
 
-    save_snapshot(engine, projection, EMPTY_SENTIMENT)
+    save_snapshot(engine, projection, EMPTY_SENTIMENT, EMPTY_STATE_SWING)
 
     (stored,) = load_projections(engine)
     assert stored == projection
@@ -206,8 +208,8 @@ def test_the_newest_two_projections_seat_calls_are_kept():
     # totals only, which is what the trend line reads.
     engine = connect("sqlite+pysqlite:///:memory:")
 
-    save_snapshot(engine, projection_for(date(2026, 8, 5)), EMPTY_SENTIMENT)
-    save_snapshot(engine, projection_for(date(2026, 8, 6)), EMPTY_SENTIMENT)
+    save_snapshot(engine, projection_for(date(2026, 8, 5)), EMPTY_SENTIMENT, EMPTY_STATE_SWING)
+    save_snapshot(engine, projection_for(date(2026, 8, 6)), EMPTY_SENTIMENT, EMPTY_STATE_SWING)
 
     older, newer = load_projections(engine)
     assert len(older.seat_calls) == 6
@@ -218,9 +220,9 @@ def test_the_newest_two_projections_seat_calls_are_kept():
 def test_a_third_day_evicts_only_the_oldest_kept_day():
     engine = connect("sqlite+pysqlite:///:memory:")
 
-    save_snapshot(engine, projection_for(date(2026, 8, 5)), EMPTY_SENTIMENT)
-    save_snapshot(engine, projection_for(date(2026, 8, 6)), EMPTY_SENTIMENT)
-    save_snapshot(engine, projection_for(date(2026, 8, 7)), EMPTY_SENTIMENT)
+    save_snapshot(engine, projection_for(date(2026, 8, 5)), EMPTY_SENTIMENT, EMPTY_STATE_SWING)
+    save_snapshot(engine, projection_for(date(2026, 8, 6)), EMPTY_SENTIMENT, EMPTY_STATE_SWING)
+    save_snapshot(engine, projection_for(date(2026, 8, 7)), EMPTY_SENTIMENT, EMPTY_STATE_SWING)
 
     oldest, middle, newest = load_projections(engine)
     assert oldest.seat_calls == ()
@@ -235,10 +237,10 @@ def test_storing_an_older_day_leaves_the_kept_seat_calls_alone():
     engine = connect("sqlite+pysqlite:///:memory:")
     yesterday = projection_for(date(2026, 8, 5))
     today = projection_for(date(2026, 8, 6), sentiment={PH: -0.4, PN: 0.4})
-    save_snapshot(engine, yesterday, EMPTY_SENTIMENT)
-    save_snapshot(engine, today, EMPTY_SENTIMENT)
+    save_snapshot(engine, yesterday, EMPTY_SENTIMENT, EMPTY_STATE_SWING)
+    save_snapshot(engine, today, EMPTY_SENTIMENT, EMPTY_STATE_SWING)
 
-    save_snapshot(engine, projection_for(date(2026, 8, 1)), EMPTY_SENTIMENT)
+    save_snapshot(engine, projection_for(date(2026, 8, 1)), EMPTY_SENTIMENT, EMPTY_STATE_SWING)
 
     backfilled, kept_older, kept_newer = load_projections(engine)
     assert backfilled.seat_calls == ()
@@ -252,10 +254,10 @@ def test_a_projection_carrying_no_seat_calls_does_not_empty_the_stored_ones():
     # later day would otherwise destroy the only per-Seat rows in Storage.
     engine = connect("sqlite+pysqlite:///:memory:")
     today = projection_for(date(2026, 8, 6))
-    save_snapshot(engine, today, EMPTY_SENTIMENT)
+    save_snapshot(engine, today, EMPTY_SENTIMENT, EMPTY_STATE_SWING)
 
     call_less = replace(projection_for(date(2026, 8, 7)), seat_calls=())
-    save_snapshot(engine, call_less, EMPTY_SENTIMENT)
+    save_snapshot(engine, call_less, EMPTY_SENTIMENT, EMPTY_STATE_SWING)
 
     stored = {p.computed_at: p for p in load_projections(engine)}
     assert stored[date(2026, 8, 6)].seat_calls == today.seat_calls
@@ -265,10 +267,10 @@ def test_a_projection_carrying_no_seat_calls_does_not_empty_the_stored_ones():
 def test_re_running_a_day_replaces_its_seat_calls_rather_than_doubling_them():
     engine = connect("sqlite+pysqlite:///:memory:")
     day = date(2026, 8, 6)
-    save_snapshot(engine, projection_for(day), EMPTY_SENTIMENT)
+    save_snapshot(engine, projection_for(day), EMPTY_SENTIMENT, EMPTY_STATE_SWING)
 
     corrected = projection_for(day, sentiment={PH: -0.4, PN: 0.4})
-    save_snapshot(engine, corrected, EMPTY_SENTIMENT)
+    save_snapshot(engine, corrected, EMPTY_SENTIMENT, EMPTY_STATE_SWING)
 
     (stored,) = load_projections(engine)
     assert stored == corrected
@@ -278,7 +280,7 @@ def test_a_seat_call_survives_the_round_trip_intact():
     engine = connect("sqlite+pysqlite:///:memory:")
     projection = projection_for(date(2026, 8, 6))
 
-    save_snapshot(engine, projection, EMPTY_SENTIMENT)
+    save_snapshot(engine, projection, EMPTY_SENTIMENT, EMPTY_STATE_SWING)
 
     (stored,) = load_projections(engine)
     called = {call.code: call for call in stored.seat_calls}
@@ -296,7 +298,9 @@ def called_status(dissolved_on: date = date(2026, 8, 4)) -> ElectionStatus:
 
 def test_a_day_saved_while_not_called_is_not_archived():
     engine = connect("sqlite+pysqlite:///:memory:")
-    save_snapshot(engine, projection_for(date(2026, 8, 6)), EMPTY_SENTIMENT, status=None)
+    save_snapshot(
+        engine, projection_for(date(2026, 8, 6)), EMPTY_SENTIMENT, EMPTY_STATE_SWING, status=None
+    )
 
     assert load_frozen_projections(engine) == []
 
@@ -305,7 +309,7 @@ def test_a_day_saved_while_called_is_archived_permanently():
     engine = connect("sqlite+pysqlite:///:memory:")
     projection = projection_for(date(2026, 8, 6))
 
-    save_snapshot(engine, projection, EMPTY_SENTIMENT, status=called_status())
+    save_snapshot(engine, projection, EMPTY_SENTIMENT, EMPTY_STATE_SWING, status=called_status())
 
     (archived,) = load_frozen_projections(engine)
     assert archived == projection
@@ -316,8 +320,20 @@ def test_a_second_called_day_adds_to_the_archive_rather_than_replacing_it():
     # a batch pipeline cannot know in advance which called day will turn out
     # to be the last one before polling, so every one is kept.
     engine = connect("sqlite+pysqlite:///:memory:")
-    save_snapshot(engine, projection_for(date(2026, 8, 6)), EMPTY_SENTIMENT, status=called_status())
-    save_snapshot(engine, projection_for(date(2026, 8, 7)), EMPTY_SENTIMENT, status=called_status())
+    save_snapshot(
+        engine,
+        projection_for(date(2026, 8, 6)),
+        EMPTY_SENTIMENT,
+        EMPTY_STATE_SWING,
+        status=called_status(),
+    )
+    save_snapshot(
+        engine,
+        projection_for(date(2026, 8, 7)),
+        EMPTY_SENTIMENT,
+        EMPTY_STATE_SWING,
+        status=called_status(),
+    )
 
     archived = load_frozen_projections(engine)
     assert [p.computed_at for p in archived] == [date(2026, 8, 6), date(2026, 8, 7)]
@@ -327,17 +343,72 @@ def test_a_second_called_day_adds_to_the_archive_rather_than_replacing_it():
 def test_rerunning_a_called_day_replaces_its_own_archived_row_only():
     engine = connect("sqlite+pysqlite:///:memory:")
     day = date(2026, 8, 6)
-    save_snapshot(engine, projection_for(day), EMPTY_SENTIMENT, status=called_status())
+    save_snapshot(
+        engine, projection_for(day), EMPTY_SENTIMENT, EMPTY_STATE_SWING, status=called_status()
+    )
     save_snapshot(
         engine,
         projection_for(date(2026, 8, 7)),
         EMPTY_SENTIMENT,
+        EMPTY_STATE_SWING,
         status=called_status(),
     )
 
     corrected = projection_for(day, sentiment={PH: -0.4, PN: 0.4})
-    save_snapshot(engine, corrected, EMPTY_SENTIMENT, status=called_status())
+    save_snapshot(engine, corrected, EMPTY_SENTIMENT, EMPTY_STATE_SWING, status=called_status())
 
     archived = {p.computed_at: p for p in load_frozen_projections(engine)}
     assert len(archived) == 2
     assert archived[day] == corrected
+
+
+def test_stored_state_swing_reads_back_verbatim():
+    # #53a: a new table, keyed like seat_call — one row per state per day.
+    engine = connect("sqlite+pysqlite:///:memory:")
+    day = date(2026, 8, 6)
+    swing = {"Selangor": {PH: -0.04, PN: 0.04}, "Johor": {PH: -0.07, PN: 0.07}}
+
+    save_snapshot(engine, projection_for(day), EMPTY_SENTIMENT, swing)
+
+    assert load_state_swing(engine, day) == swing
+
+
+def test_load_state_swing_is_empty_for_a_day_nothing_was_stored_for():
+    engine = connect("sqlite+pysqlite:///:memory:")
+    save_snapshot(engine, projection_for(date(2026, 8, 6)), EMPTY_SENTIMENT, EMPTY_STATE_SWING)
+
+    assert load_state_swing(engine, date(2026, 8, 7)) == {}
+
+
+def test_a_rerun_replaces_that_days_state_swing_rather_than_duplicating_it():
+    engine = connect("sqlite+pysqlite:///:memory:")
+    day = date(2026, 8, 6)
+    save_snapshot(engine, projection_for(day), EMPTY_SENTIMENT, {"Selangor": {PH: -0.04, PN: 0.04}})
+
+    corrected = {"Selangor": {PH: -0.07, PN: 0.07}}
+    save_snapshot(
+        engine, projection_for(day, sentiment={PH: -0.4, PN: 0.4}), EMPTY_SENTIMENT, corrected
+    )
+
+    assert load_state_swing(engine, day) == corrected
+
+
+def test_state_swing_from_an_older_day_is_left_alone_by_a_later_save():
+    # Unlike seat_call's two-day window, state_swing follows
+    # projection_snapshot's own pattern: every day is kept, not pruned.
+    engine = connect("sqlite+pysqlite:///:memory:")
+    save_snapshot(
+        engine,
+        projection_for(date(2026, 8, 5)),
+        EMPTY_SENTIMENT,
+        {"Selangor": {PH: -0.01, PN: 0.01}},
+    )
+    save_snapshot(
+        engine,
+        projection_for(date(2026, 8, 6)),
+        EMPTY_SENTIMENT,
+        {"Selangor": {PH: -0.04, PN: 0.04}},
+    )
+
+    assert load_state_swing(engine, date(2026, 8, 5)) == {"Selangor": {PH: -0.01, PN: 0.01}}
+    assert load_state_swing(engine, date(2026, 8, 6)) == {"Selangor": {PH: -0.04, PN: 0.04}}
