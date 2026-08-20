@@ -25,6 +25,7 @@ def write_status(tmp_path, **fields):
     """A status file with the shipped shape, overridden field by field."""
     status = {
         "dissolved_on": None,
+        "nomination_date": None,
         "polling_date": None,
         "constitutional_deadline": DEADLINE.isoformat(),
         "source": "https://www.parlimen.gov.my/",
@@ -76,6 +77,46 @@ def test_polling_before_the_dissolution_is_rejected(tmp_path):
         )
 
 
+def test_the_loader_reads_a_nomination_date_gazetted_alongside_polling(tmp_path):
+    # #40, code review 20 Aug 2026: nomination day and polling day are
+    # gazetted together, not on separate schedules — added for the
+    # aggregate Telegram post's timeline, which needs a real third stop.
+    status = load_election_status(
+        write_status(
+            tmp_path,
+            dissolved_on="2026-10-01",
+            nomination_date="2026-10-20",
+            polling_date="2026-11-08",
+        )
+    )
+
+    assert status.nomination_date == date(2026, 10, 20)
+
+
+def test_a_nomination_date_with_no_dissolution_behind_it_is_rejected(tmp_path):
+    with pytest.raises(ValueError, match="no dissolution date"):
+        load_election_status(write_status(tmp_path, nomination_date="2026-10-20"))
+
+
+def test_nomination_before_the_dissolution_is_rejected(tmp_path):
+    with pytest.raises(ValueError, match="before the dissolution"):
+        load_election_status(
+            write_status(tmp_path, dissolved_on="2026-10-01", nomination_date="2026-09-25")
+        )
+
+
+def test_polling_before_nomination_is_rejected(tmp_path):
+    with pytest.raises(ValueError, match="before nomination"):
+        load_election_status(
+            write_status(
+                tmp_path,
+                dissolved_on="2026-10-01",
+                nomination_date="2026-10-20",
+                polling_date="2026-10-15",
+            )
+        )
+
+
 def test_the_shipped_file_says_ge16_has_not_been_called():
     # True as of August 2026 and the reason this issue exists. If a
     # dissolution has happened, this test is the reminder that the data file
@@ -83,6 +124,7 @@ def test_the_shipped_file_says_ge16_has_not_been_called():
     status = load_election_status()
 
     assert status.called is False
+    assert status.nomination_date is None
     assert status.polling_date is None
     assert status.constitutional_deadline == DEADLINE
     assert status.source

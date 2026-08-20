@@ -144,7 +144,7 @@ DEFAULT_ELECTION_STATUS_PATH = data_file("election_status.json")
 def load_election_status(path: Path | None = None) -> ElectionStatus:
     """Whether GE16 has been called, from `data/election_status.json`.
 
-    The two date fields are checked against each other rather than trusted.
+    The date fields are checked against each other rather than trusted.
     This file is edited by hand at exactly one moment — the day the Dewan
     Rakyat is dissolved, probably in a hurry — and it is the only input to a
     statement the Dashboard makes in its own voice near the headline. A
@@ -153,6 +153,7 @@ def load_election_status(path: Path | None = None) -> ElectionStatus:
     """
     config = json.loads((path or DEFAULT_ELECTION_STATUS_PATH).read_text())
     dissolved_on = _optional_date(config["dissolved_on"])
+    nomination_date = _optional_date(config["nomination_date"])
     polling_date = _optional_date(config["polling_date"])
 
     if polling_date is not None and dissolved_on is None:
@@ -165,11 +166,35 @@ def load_election_status(path: Path | None = None) -> ElectionStatus:
         raise ValueError(
             f"election status polls on {polling_date}, before the dissolution on {dissolved_on}."
         )
+    if nomination_date is not None and dissolved_on is None:
+        raise ValueError(
+            f"election status gives a nomination date of {nomination_date} but no "
+            "dissolution date. Nomination is gazetted after the Dewan Rakyat is "
+            "dissolved, so set dissolved_on too."
+        )
+    if (
+        dissolved_on is not None
+        and nomination_date is not None
+        and (nomination_date < dissolved_on)
+    ):
+        raise ValueError(
+            f"election status nominates on {nomination_date}, before the dissolution "
+            f"on {dissolved_on}."
+        )
+    if (
+        nomination_date is not None
+        and polling_date is not None
+        and (polling_date < nomination_date)
+    ):
+        raise ValueError(
+            f"election status polls on {polling_date}, before nomination on {nomination_date}."
+        )
 
     return ElectionStatus(
         constitutional_deadline=date.fromisoformat(config["constitutional_deadline"]),
         source=config["source"],
         dissolved_on=dissolved_on,
+        nomination_date=nomination_date,
         polling_date=polling_date,
     )
 

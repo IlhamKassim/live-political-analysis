@@ -2,9 +2,15 @@
 
 Two cards, both raster images: the Seat Call card (Sample B register,
 `docs/design/telegram-post-samples.html`) for a Seat-anchored post, and the
-aggregate card (Sample C: a timeline over a thin whole-chamber bar) for a
-post with no single Seat to point at. Two timeline stops here, not the
-mockup's three — see `_draw_timeline`'s own docstring for why.
+aggregate card (Sample C: a three-stop timeline over a thin whole-chamber
+bar) for a post with no single Seat to point at, matching the issue's own
+Scope section exactly (an earlier version of this file shipped only two
+stops, reasoning `ElectionStatus` had no `nomination_date` field to draw a
+real third from — code review, 20 Aug 2026, corrected: the Election
+Commission gazettes nomination day and polling day together, not on
+separate schedules, so a `nomination_date` field is never "permanently
+hollow" the way that reasoning assumed; `domain.ElectionStatus` now carries
+it).
 
 `render_aggregate_card_png` is trigger-agnostic on purpose: its
 `AggregateCardModel` takes the headline/gloss/caption prose as plain
@@ -69,6 +75,7 @@ from lpa.domain import ElectionStatus
 from lpa.return_trigger import ElectionStatusTriggerKind
 from lpa.seat_call_card import (
     CARD_W,
+    COALITION_INKS,
     DOT_R,
     GROUND,
     INK,
@@ -182,6 +189,19 @@ def _tracked_text(
         x += draw.textlength(ch, font=font) + tracking
 
 
+def _draw_wordmark(draw: ImageDraw.ImageDraw, fonts: _Fonts) -> None:
+    """The "Live Political Analysis · reading this site" line both card
+    types open with, factored out rather than duplicated (code review, 20
+    Aug 2026)."""
+    draw.text(
+        (PAD_X, 46), "Live Political Analysis ", font=fonts.serif_15, fill=INK_SOFT, anchor="ls"
+    )
+    wordmark_w = draw.textlength("Live Political Analysis ", font=fonts.serif_15)
+    draw.text(
+        (PAD_X + wordmark_w, 46), "· reading this site", font=fonts.serif_15, fill=INK, anchor="ls"
+    )
+
+
 def render_seat_card_png(model: CardModel) -> bytes:
     """The Seat Call card (Sample B) as PNG bytes, at its real 1080x1080.
 
@@ -198,13 +218,7 @@ def render_seat_card_png(model: CardModel) -> bytes:
     img = Image.new("RGB", (CARD_SIZE, CARD_SIZE), GROUND)
     draw = ImageDraw.Draw(img)
 
-    draw.text(
-        (PAD_X, 46), "Live Political Analysis ", font=fonts.serif_15, fill=INK_SOFT, anchor="ls"
-    )
-    wordmark_w = draw.textlength("Live Political Analysis ", font=fonts.serif_15)
-    draw.text(
-        (PAD_X + wordmark_w, 46), "· reading this site", font=fonts.serif_15, fill=INK, anchor="ls"
-    )
+    _draw_wordmark(draw, fonts)
 
     _tracked_text(
         draw, (PAD_X, 118), "Seat-Level Projection · GE16", fonts.mono_12, INK_FAINT, 0.18
@@ -287,11 +301,30 @@ AGGREGATE_CARD_H = 720
 `.card-wide` (the timeline reads better wide, and there is no dot needing a
 square frame the way the Seat Call card's bar has)."""
 
-MAJORITY_LINE_INK = "#B23A2E"
-"""The Majority line's accent colour, copied from the approved mockup. Not
-a Coalition's ink reused by accident — it marks a position on the bar, not
-any one of the four Coalitions the Government Coalition fill (below)
-deliberately avoids naming."""
+_HEADLINE_TOP = 186.0
+_HEADLINE_LINE_H = 58.0
+_HEADLINE_GLOSS_GAP = 44.0
+"""Space between the headline's last line and the gloss's first — the
+overall vertical rhythm below is an accumulated chain of these offsets
+(code review, 20 Aug 2026: named rather than left as bare arithmetic inline,
+since `render_aggregate_card_png` was folding several of them into one
+expression per line)."""
+_GLOSS_LINE_H = 26.0
+_GLOSS_TIMELINE_GAP = 44.0
+_TIMELINE_STANDING_GAP = 148.0
+_STANDING_BAR_GAP = 30.0
+_STANDING_FOOTER_GAP = 110.0
+
+MAJORITY_LINE_INK = COALITION_INKS["PH"]
+"""The Majority line's accent colour, matching the approved mockup exactly
+— which happens to be PH's own printed ink, reused here as a plain accent
+colour rather than referencing PH specifically (code review, 20 Aug 2026:
+an earlier version typed this hex independently rather than deriving it
+from `COALITION_INKS`, so a comment could claim it was unrelated while
+nothing kept the two from silently drifting apart). The line marks a
+position on the bar, not a Coalition — the Government Coalition fill
+(below) is the one place that must never use a Coalition's ink, since that
+block is four Coalitions."""
 
 
 @dataclass(frozen=True)
@@ -312,6 +345,7 @@ class AggregateCardModel:
     gloss: str
     caption: str
     dissolved_on: date | None
+    nomination_date: date | None
     polling_date: date | None
     government_seats: int
     total_seats: int
@@ -350,6 +384,7 @@ def election_status_aggregate_model(
             "the arithmetic."
         ),
         dissolved_on=status.dissolved_on,
+        nomination_date=status.nomination_date,
         polling_date=status.polling_date,
         government_seats=government_seats,
         total_seats=total_seats,
@@ -372,29 +407,33 @@ def render_aggregate_card_png(model: AggregateCardModel) -> bytes:
     img = Image.new("RGB", (CARD_W, AGGREGATE_CARD_H), GROUND)
     draw = ImageDraw.Draw(img)
 
-    draw.text(
-        (PAD_X, 46), "Live Political Analysis ", font=fonts.serif_15, fill=INK_SOFT, anchor="ls"
-    )
-    wordmark_w = draw.textlength("Live Political Analysis ", font=fonts.serif_15)
-    draw.text(
-        (PAD_X + wordmark_w, 46), "· reading this site", font=fonts.serif_15, fill=INK, anchor="ls"
-    )
+    _draw_wordmark(draw, fonts)
 
     _tracked_text(draw, (PAD_X, 118), model.eyebrow, fonts.mono_12, INK_FAINT, 0.18)
     headline_lines = wrap_text(model.headline, 40)
     for i, line in enumerate(headline_lines):
-        draw.text((PAD_X, 186.0 + i * 58), line, font=fonts.serif_52, fill=INK, anchor="ls")
-    gloss_y = 186 + len(headline_lines) * 58 - 58 + 44
+        draw.text(
+            (PAD_X, _HEADLINE_TOP + i * _HEADLINE_LINE_H),
+            line,
+            font=fonts.serif_52,
+            fill=INK,
+            anchor="ls",
+        )
+    gloss_y = _HEADLINE_TOP + (len(headline_lines) - 1) * _HEADLINE_LINE_H + _HEADLINE_GLOSS_GAP
     gloss_lines = wrap_text(model.gloss, 62)
     for i, line in enumerate(gloss_lines):
         draw.text(
-            (PAD_X, gloss_y + i * 26), line, font=fonts.serif_italic_19, fill=INK_FAINT, anchor="ls"
+            (PAD_X, gloss_y + i * _GLOSS_LINE_H),
+            line,
+            font=fonts.serif_italic_19,
+            fill=INK_FAINT,
+            anchor="ls",
         )
 
-    timeline_top = gloss_y + len(gloss_lines) * 26 + 44
+    timeline_top = gloss_y + len(gloss_lines) * _GLOSS_LINE_H + _GLOSS_TIMELINE_GAP
     _draw_timeline(draw, model, fonts, timeline_top)
 
-    standing_top = timeline_top + 148
+    standing_top = timeline_top + _TIMELINE_STANDING_GAP
     _tracked_text(
         draw,
         (PAD_X, standing_top),
@@ -403,9 +442,9 @@ def render_aggregate_card_png(model: AggregateCardModel) -> bytes:
         INK_FAINT,
         0.13,
     )
-    _draw_chamber_bar(draw, model, fonts, standing_top + 30)
+    _draw_chamber_bar(draw, model, fonts, standing_top + _STANDING_BAR_GAP)
 
-    footer_top = standing_top + 110
+    footer_top = standing_top + _STANDING_FOOTER_GAP
     draw.line([(PAD_X, footer_top), (PAD_X + TRACK_W, footer_top)], fill=RULE, width=1)
     caption_lines = wrap_text(model.caption, 96)
     for i, line in enumerate(caption_lines):
@@ -425,28 +464,34 @@ def render_aggregate_card_png(model: AggregateCardModel) -> bytes:
 def _draw_timeline(
     draw: ImageDraw.ImageDraw, model: AggregateCardModel, fonts: _Fonts, top: float
 ) -> None:
-    """Two stops (Dissolution, Polling) — deliberately not the approved
-    mockup's three. `ElectionStatus` has no `nomination_date` field to draw
-    a real third stop from, and a permanently-hollow "not set" stop that
-    could never fill in once nomination day is actually announced would be
-    worse than honest — it would look like live-tracked information this
-    project never actually tracks. Two real, tracked stops instead of three,
-    one of which would always lie by omission."""
+    """Three stops (Dissolution, Nomination, Polling), matching the approved
+    mockup and #40's own Scope section exactly — an earlier version of this
+    function drew only two, reasoning `ElectionStatus` had no
+    `nomination_date` field to draw a real third stop from, so a hollow one
+    would misrepresent something this project never tracked. Code review
+    (20 Aug 2026) corrected that: the Election Commission gazettes
+    nomination day and polling day together, in the same announcement, so
+    `nomination_date` is exactly as real a tracked date as `polling_date`
+    always was — `domain.ElectionStatus` now carries it.
+
+    Each spine segment is solid where the stop it leads to is known, dashed
+    otherwise (the mockup's own rule: "solid up to what has happened, dashed
+    after") — so Dissolution→Nomination reads on `nomination_date` alone,
+    and Nomination→Polling on `polling_date` alone, rather than one boolean
+    covering the whole spine."""
     spine_y = top + 40
     stop1_x = PAD_X + 60
-    stop2_x = PAD_X + TRACK_W - 60
+    stop2_x = PAD_X + TRACK_W / 2
+    stop3_x = PAD_X + TRACK_W - 60
     dot_r = 12
 
-    both_known = model.dissolved_on is not None and model.polling_date is not None
-    draw.line(
-        [(stop1_x, spine_y), (stop2_x, spine_y)],
-        fill=INK_SOFT if both_known else RULE,
-        width=2,
-    )
+    _draw_timeline_segment(draw, stop1_x, stop2_x, spine_y, solid=model.nomination_date is not None)
+    _draw_timeline_segment(draw, stop2_x, stop3_x, spine_y, solid=model.polling_date is not None)
 
     for x, label, day in (
         (stop1_x, "DISSOLUTION", model.dissolved_on),
-        (stop2_x, "POLLING", model.polling_date),
+        (stop2_x, "NOMINATION", model.nomination_date),
+        (stop3_x, "POLLING", model.polling_date),
     ):
         _tracked_text(draw, (x, top), label, fonts.mono_14, INK_FAINT, 0.13, center=True)
         if day is not None:
@@ -468,6 +513,22 @@ def _draw_timeline(
                 fill=INK_FAINT,
                 anchor="ms",
             )
+
+
+def _draw_timeline_segment(
+    draw: ImageDraw.ImageDraw, x1: float, x2: float, y: float, *, solid: bool
+) -> None:
+    """One length of the timeline's spine, solid once the stop it leads to
+    is known, dashed while it is not. Pillow has no native dashed line, so
+    a dash is drawn by hand as short segments with gaps between them."""
+    if solid:
+        draw.line([(x1, y), (x2, y)], fill=INK_SOFT, width=2)
+        return
+    dash, gap = 10, 8
+    x = x1
+    while x < x2:
+        draw.line([(x, y), (min(x + dash, x2), y)], fill=RULE, width=2)
+        x += dash + gap
 
 
 def _draw_chamber_bar(

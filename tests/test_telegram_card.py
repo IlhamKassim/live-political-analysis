@@ -103,11 +103,16 @@ def test_election_status_aggregate_model_uses_the_approved_called_copy():
     assert model.headline == "GE16 has been called."
     assert "not been set yet" in model.gloss
     assert model.dissolved_on == date(2026, 8, 14)
+    assert model.nomination_date is None
     assert model.polling_date is None
 
 
 def test_election_status_aggregate_model_states_the_polling_date():
-    dated = status(dissolved_on=date(2026, 8, 14), polling_date=date(2026, 9, 20))
+    dated = status(
+        dissolved_on=date(2026, 8, 14),
+        nomination_date=date(2026, 9, 5),
+        polling_date=date(2026, 9, 20),
+    )
     model = election_status_aggregate_model(
         ElectionStatusTriggerKind.POLLING_DATE_SET,
         dated,
@@ -117,6 +122,7 @@ def test_election_status_aggregate_model_states_the_polling_date():
     )
 
     assert model.headline == "Polling day is 20 September 2026."
+    assert model.nomination_date == date(2026, 9, 5)
     assert model.polling_date == date(2026, 9, 20)
 
 
@@ -136,16 +142,17 @@ def test_the_aggregate_render_is_a_real_png_at_the_cards_real_size():
     assert img.size == (CARD_SIZE, AGGREGATE_CARD_H)
 
 
-def test_the_aggregate_card_renders_with_both_timeline_stops_unknown():
+def test_the_aggregate_card_renders_with_all_three_timeline_stops_unknown():
     # Defensive: election_status_aggregate_model only ever calls with a real
     # dissolution (the trigger cannot fire otherwise), but the renderer
-    # itself must not crash if reused with neither date known.
+    # itself must not crash if reused with no date known at all.
     model = AggregateCardModel(
         eyebrow="Election Status · GE16",
         headline="Testing a headline",
         gloss="Testing a gloss",
         caption="Testing a caption.",
         dissolved_on=None,
+        nomination_date=None,
         polling_date=None,
         government_seats=1,
         total_seats=222,
@@ -156,13 +163,14 @@ def test_the_aggregate_card_renders_with_both_timeline_stops_unknown():
     assert Image.open(BytesIO(png)).size == (CARD_SIZE, AGGREGATE_CARD_H)
 
 
-def test_the_aggregate_card_renders_with_both_timeline_stops_known():
+def test_the_aggregate_card_renders_with_all_three_timeline_stops_known():
     model = AggregateCardModel(
         eyebrow="Election Status · GE16",
         headline="Polling day is 20 September 2026.",
         gloss="the Election Commission has set the date",
         caption="Testing a caption.",
         dissolved_on=date(2026, 8, 14),
+        nomination_date=date(2026, 9, 5),
         polling_date=date(2026, 9, 20),
         government_seats=118,
         total_seats=222,
@@ -183,6 +191,7 @@ def test_a_long_headline_gloss_and_caption_that_force_wrapping_still_render():
             "check the footer spacing still holds up cleanly without overlap."
         ),
         dissolved_on=None,
+        nomination_date=None,
         polling_date=None,
         government_seats=1,
         total_seats=222,
