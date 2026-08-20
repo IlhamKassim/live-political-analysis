@@ -285,7 +285,9 @@ def save_snapshot(
             # new day and the one before it.
             connection.execute(delete(seat_call).where(seat_call.c.computed_at == day))
             if newest_calls_day is not None and day > newest_calls_day:
-                connection.execute(delete(seat_call).where(seat_call.c.computed_at < newest_calls_day))
+                connection.execute(
+                    delete(seat_call).where(seat_call.c.computed_at < newest_calls_day)
+                )
             connection.execute(
                 seat_call.insert(),
                 [
@@ -322,7 +324,9 @@ def save_snapshot(
             connection.execute(table.insert(), row)
 
         if status is not None and status.called:
-            connection.execute(delete(frozen_projection).where(frozen_projection.c.computed_at == day))
+            connection.execute(
+                delete(frozen_projection).where(frozen_projection.c.computed_at == day)
+            )
             connection.execute(
                 frozen_projection.insert(),
                 {
@@ -332,7 +336,9 @@ def save_snapshot(
                 },
             )
             if projection.seat_calls:
-                connection.execute(delete(frozen_seat_call).where(frozen_seat_call.c.computed_at == day))
+                connection.execute(
+                    delete(frozen_seat_call).where(frozen_seat_call.c.computed_at == day)
+                )
                 connection.execute(
                     frozen_seat_call.insert(),
                     [
