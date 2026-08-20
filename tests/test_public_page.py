@@ -299,6 +299,12 @@ def test_the_stylesheet_carries_a_print_block_that_hides_the_theme_toggle():
     print_block = page[page.index("@media print") :]
     assert ".theme-btn { display: none; }" in print_block
     assert "print-color-adjust: exact" in print_block
+    # Printed paper is light with dark ink regardless of which theme was on
+    # screen — the print block must force the light palette even where the
+    # dark theme was explicitly selected (`data-theme="dark"`), not only the
+    # system-preference case.
+    assert ':root[data-theme="dark"]' in print_block
+    assert "--ground:    #E9EAE4;" in print_block
 
 
 def test_a_seat_name_carrying_markup_cannot_break_out_of_its_tooltip():

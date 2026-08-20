@@ -1319,6 +1319,27 @@ _CSS = """
      layout happens to produce: background colours kept rather than stripped,
      interactive-only chrome removed, sensible breaks around the ledger. */
   @media print {
+    /* Paper is already light with dark ink — printing the dark theme (if the
+       browser prefers it, or a reader toggled it before printing) would put
+       a near-black background on actual paper. Force the light palette
+       regardless of which selector set it on screen. */
+    :root, :root[data-theme="dark"], :root[data-theme="light"] {
+      --ground:    #E9EAE4;
+      --surface:   #F2F3EE;
+      --ink:       #17191A;
+      --ink-soft:  #55584F;
+      --ink-faint: #666960;
+      --rule:      #C8CAC0;
+      --rule-hair: #D8DAD1;
+      --ph:  #B23A2E;
+      --bn:  #1D4E89;
+      --pn:  #2B7A78;
+      --gps: #8A6D1F;
+      --grs: #6A4A7C;
+      --ink-pos: #256B69;
+      --ink-neg: #A33429;
+      color-scheme: light;
+    }
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     body::before { display: none; }
     .theme-btn { display: none; }
