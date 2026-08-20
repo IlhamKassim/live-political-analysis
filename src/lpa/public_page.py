@@ -574,7 +574,8 @@ def _hemicycle(model: PageModel) -> str:
             f"{seat.name} ({seat.state}) — {seat.coalition} by {_points(seat.margin)} points{close}"
         )
         parts.append(
-            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{dot:.1f}" class="seat-dot" '
+            f'<circle data-seat="{html.escape(seat.code)}" cx="{x:.1f}" cy="{y:.1f}" '
+            f'r="{dot:.1f}" class="seat-dot" '
             f"{paint}><title>{html.escape(tip)}</title></circle>"
         )
 
@@ -763,9 +764,16 @@ def _seat_table(model: PageModel) -> str:
     own call is reachable at all. `visually-hidden`, not `display: none`:
     the latter also removes content from the accessibility tree, which would
     defeat the point.
+
+    Each row carries `id="seat-{code}"` (#42) so a shared Seat Call card or
+    Telegram post can link straight to `index.html#seat-{code}` and land
+    somewhere a keyboard/screen-reader user can actually use — the chamber's
+    dot for the same Seat gets a `data-seat` attribute instead of an `id`,
+    since an `id` can only anchor to one element per document and this table
+    is the one a fragment link should resolve to.
     """
     rows = "".join(
-        "<tr>"
+        f'<tr id="seat-{html.escape(seat.code)}">'
         f"<td>{html.escape(seat.name)}</td>"
         f"<td>{html.escape(seat.state)}</td>"
         f"<td>{html.escape(seat.coalition)}</td>"
