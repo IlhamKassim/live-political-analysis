@@ -2122,12 +2122,16 @@ def render_html(model: PageModel) -> str:
 """
 
 
-def build_page(engine: Engine) -> str:
+def build_page(engine: Engine) -> tuple[str, date]:
     """Read Storage and render the page. The whole I/O half, in one place.
 
     Separate from `main` so the preview server in `scripts/` can render
     exactly what the Action publishes, rather than a second wiring of the
-    same parts that can drift from it.
+    same parts that can drift from it. Returns the day rendered alongside
+    the HTML (#55) rather than a bare `str` — `main` needs it to name the
+    dated permalink, and re-reading `load_projections` a second time to get
+    it could race a concurrent write and name the file after a different
+    day than the one actually rendered into it.
     """
     from lpa.config import (
         coalition_names,
@@ -2164,7 +2168,7 @@ def build_page(engine: Engine) -> str:
         total_seats=config["total_seats"],
         state_swing=load_state_swing(engine, projections[-1].computed_at),
     )
-    return render_html(model)
+    return render_html(model), model.computed_at
 
 
 def main() -> None:
@@ -2178,7 +2182,7 @@ def main() -> None:
     import argparse
     from pathlib import Path
 
-    from lpa.storage import connect, load_projections
+    from lpa.storage import connect
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -2189,16 +2193,14 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    engine = connect()
-    page = build_page(engine)
+    page, computed_at = build_page(connect())
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(page, encoding="utf-8")
     print(f"Wrote {args.output} ({len(page):,} bytes)")
 
-    # The same day _cite_this's permalink names, read the same way build_page
-    # itself sources the latest Projection — so the two can never disagree
-    # about which day this run was.
-    computed_at = load_projections(engine)[-1].computed_at
+    # The exact day rendered into `page`, not a second Storage read — a
+    # fresh read here could race a concurrent write and name this file
+    # after a different day than the one actually inside it.
     dated_path = args.output.parent / _permalink_path(computed_at)
     dated_path.parent.mkdir(parents=True, exist_ok=True)
     dated_path.write_text(page, encoding="utf-8")

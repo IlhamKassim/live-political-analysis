@@ -31,11 +31,12 @@ concurrency:
   group: storage-write
   cancel-in-progress: false
 
-# Read the checkout; the pipeline's only write goes to the database over the
-# network, never to the repository. pages/id-token are for the Pages deploy
-# step, which publishes the page this workflow renders.
+# contents: write is for the "Archive the dated permalink" step (#55) — the
+# pipeline's own writes still go to the database over the network, never the
+# repository. pages/id-token are for the Pages deploy step, which publishes
+# the page this workflow renders.
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -86,6 +87,38 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m lpa.public_page
+
+      - name: Archive the dated permalink
+        # #55: deploy-pages replaces the live site wholesale each run rather
+        # than merging into it, so a dated copy that only ever lived in this
+        # run's artifact would vanish the moment tomorrow's run deployed —
+        # the exact problem #55 exists to solve, one day later. Committing
+        # it here means every future run's checkout has every past day's
+        # file to publish alongside the new one. Never index.html itself —
+        # that stays the ephemeral daily overwrite by design.
+        #
+        # continue-on-error: a failure here (e.g. a push rejected by branch
+        # protection) must not take down the actual page deploy that
+        # follows — a day the archive step fails is a worse citation
+        # feature, not a worse site. Untested against this repo's live
+        # branch protection as of this change; watch the first few runs.
+        continue-on-error: true
+        run: |
+          shopt -s nullglob
+          files=(public/[0-9]*/*/*.html)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No dated permalink to archive."
+            exit 0
+          fi
+          git add "${files[@]}"
+          if git diff --cached --quiet; then
+            echo "Dated permalink unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "Archive the dated permalink (${files[*]})"
+          git push
 
       - name: Export the Projection as JSON/CSV
         env:

@@ -28,14 +28,19 @@ public/projection.csv
 # same reasoning again.
 public/cards/
 
-# Dated as-of permalink copies of index.html (#55), written next to it —
-# same reasoning: the Action publishes them, the repo does not carry them.
-public/[0-9][0-9][0-9][0-9]/
-
 # public/learn/ is different: hand-authored content pages (#26/#27/#28), not
 # generated. They are tracked so the daily Action's checkout has them to
 # publish alongside the freshly-rendered index.html — see daily.yml's
 # "Upload the page" step, which uploads the whole public/ directory.
+
+# public/<year>/<month>/<day>.html (#55) is also tracked, deliberately —
+# unlike index.html above, a dated permalink's whole point is to survive
+# past today. deploy-pages replaces the live site wholesale on every run
+# rather than merging into it, so a gitignored dated file would vanish the
+# moment the next day's Action deployed — the same problem #55 exists to
+# solve, just one day later. Committed by daily.yml's "Archive the dated
+# permalink" step instead, so a fresh checkout always has every past day's
+# file to publish alongside the new one.
 
 # Diagnostic output from `lpa.citation_check` for a claim the automated
 # judge couldn't resolve (see docs/agents/citation-check.md) — written next
