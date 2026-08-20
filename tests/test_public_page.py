@@ -24,9 +24,11 @@ from pytest import approx, raises
 from lpa.aggregate import AggregatedSentiment
 from lpa.domain import ElectionStatus, Projection, SeatCall, StateElectionSignal
 from lpa.public_page import (
+    SITE_URL,
     TIER_LABEL,
     ChamberSeat,
     Tier,
+    _permalink_path,
     _search_blob,
     _slots,
     lede,
@@ -894,3 +896,41 @@ def test_a_signal_with_no_reported_vote_share_does_not_mark_a_state_active():
     rollup = page[page.index('class="state-rollup"') :].split("</table>")[0]
     johor_row = rollup[rollup.index("Johor") :].split("</tr>")[0]
     assert "State result" not in johor_row
+
+
+def test_the_permalink_path_is_a_year_month_day_tree():
+    # #55: e.g. public/2026/08/20.html — the daily Action publishes public/
+    # wholesale, so this only needs to be a path under it.
+    assert _permalink_path(date(2026, 8, 6)) == "2026/08/06.html"
+
+
+def test_the_page_states_what_to_cite_and_against_which_constants():
+    # #55: the model-run date, the two Swing Model constants actually in
+    # force (not just that they're provisional — ADR 0003), and which
+    # outlets fed News Sentiment, so a quoted figure can be checked later.
+    model = model_for(config=government_config(sentiment_sensitivity=0.10, state_signal_weight=0.5))
+    page = render_html(model)
+
+    cite = page[page.index("<h3>Cite this</h3>") :].split("</div>")[0]
+    assert "Model run 6 August 2026" in cite
+    assert "sentiment sensitivity 0.10" in cite
+    assert "state signal weight 0.50" in cite
+    assert "Free Malaysia Today" in cite
+
+
+def test_the_cite_this_block_links_to_the_dated_permalink():
+    model = model_for()
+    page = render_html(model)
+
+    cite = page[page.index("<h3>Cite this</h3>") :].split("</div>")[0]
+    assert f'href="{SITE_URL}2026/08/06.html"' in cite
+
+
+def test_the_cite_this_link_shows_its_own_url_when_printed():
+    # #55: a printed page can't be clicked, so the permalink it names has to
+    # be legible as plain text on paper too.
+    page = render_html(model_for())
+
+    print_block = page[page.index("@media print") :]
+    assert ".colophon a::after" in print_block
+    assert "attr(href)" in print_block

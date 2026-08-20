@@ -28,6 +28,10 @@ public/projection.csv
 # same reasoning again.
 public/cards/
 
+# Dated as-of permalink copies of index.html (#55), written next to it —
+# same reasoning: the Action publishes them, the repo does not carry them.
+public/[0-9][0-9][0-9][0-9]/
+
 # public/learn/ is different: hand-authored content pages (#26/#27/#28), not
 # generated. They are tracked so the daily Action's checkout has them to
 # publish alongside the freshly-rendered index.html — see daily.yml's
