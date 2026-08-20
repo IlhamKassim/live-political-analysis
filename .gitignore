@@ -19,6 +19,11 @@ dist/
 # does not carry it.
 public/index.html
 
+# Rendered by `python -m lpa.public_export`, alongside index.html — same
+# reasoning: the Action publishes it, the repo does not carry it.
+public/projection.json
+public/projection.csv
+
 # public/learn/ is different: hand-authored content pages (#26/#27/#28), not
 # generated. They are tracked so the daily Action's checkout has them to
 # publish alongside the freshly-rendered index.html — see daily.yml's
