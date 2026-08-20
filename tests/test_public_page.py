@@ -17,6 +17,7 @@ from fixtures import (
     government_config,
     three_coalition_seats,
     two_coalition_seats,
+    two_state_seats,
 )
 from pytest import approx, raises
 
@@ -34,7 +35,7 @@ from lpa.public_page import (
     status_sentence,
     tier_for,
 )
-from lpa.swing_model import swing_model
+from lpa.swing_model import state_swing, swing_model
 
 NOT_CALLED = ElectionStatus(
     constitutional_deadline=date(2028, 2, 17),
@@ -66,6 +67,7 @@ def model_for(baseline=None, scores=None, config=None, **overrides):
         ),
         "state_election_signals": [],
         "total_seats": len(baseline),
+        "state_swing": {},
     }
     settings.update(overrides)
     return page_model(**settings)
@@ -811,3 +813,84 @@ def test_the_colophon_omits_the_coalition_breakdown_with_no_sentiment_snapshot()
 
     assert model.article_counts == ()
     assert "By Coalition" not in page
+
+
+def test_the_state_rollup_has_one_row_per_state_with_ge15_and_projected_totals():
+    # #53: GE15 and projected Coalition totals per state, one row each,
+    # alphabetical — two_state_seats()'s margins are wide enough that a 4pp
+    # swing flips nothing, so GE15 and Projected should read the same.
+    baseline = two_state_seats()
+    scores = {PH: -0.4, PN: 0.4}
+    swing_by_state = state_swing(baseline, scores, [], government_config())
+    model = model_for(baseline=baseline, scores=scores, state_swing=swing_by_state)
+    page = render_html(model)
+
+    rollup = page[page.index('class="state-rollup"') :].split("</table>")[0]
+    assert "Johor" in rollup
+    assert "Selangor" in rollup
+    # Selangor splits PH 2 / PN 2 at both GE15 and projected; Johor is PN 4,
+    # 0 both — a Coalition absent from a state is omitted, not stated as 0.
+    assert rollup.count("PH 2 · PN 2") == 2
+    assert rollup.count("PN 4") == 2
+    assert "PH 0" not in rollup
+
+
+def test_the_state_rollup_states_the_swing_actually_applied():
+    # #53: the real per-state Swing (#53a), not a value re-derived from the
+    # Seat Calls sitting next to it on the page.
+    baseline = two_state_seats()
+    scores = {PH: -0.4, PN: 0.4}
+    swing_by_state = state_swing(baseline, scores, [], government_config())
+    model = model_for(baseline=baseline, scores=scores, state_swing=swing_by_state)
+    page = render_html(model)
+
+    rollup = page[page.index('class="state-rollup"') :].split("</table>")[0]
+    assert rollup.count("PH −4.0 · PN +4.0") == 2
+
+
+def test_the_state_rollup_states_an_em_dash_for_a_day_before_53a_existed():
+    # A Projection stored before #53a's plumbing has no per-state Swing at
+    # all — state_swing() defaults to {} rather than the render failing or
+    # inventing a figure. GE15/Projected still show real totals; only the
+    # Swing column is affected.
+    model = model_for(state_swing={})
+    page = render_html(model)
+
+    rollup = page[page.index('class="state-rollup"') :].split("</table>")[0]
+    assert "PH 4 · PN 2" in rollup  # GE15/Projected totals, unaffected
+    assert "PH +" not in rollup and "PH −" not in rollup  # no swing invented
+    assert "—" in rollup
+
+
+def test_the_state_rollup_marks_which_state_had_a_state_election_signal():
+    baseline = two_state_seats()
+    signal = StateElectionSignal(
+        state="Johor", held_on=date(2026, 3, 1), vote_share={PH: 0.30, PN: 0.70}
+    )
+    model = model_for(baseline=baseline, state_election_signals=[signal])
+    page = render_html(model)
+
+    rollup = page[page.index('class="state-rollup"') :].split("</table>")[0]
+    johor_row = rollup[rollup.index("Johor") :].split("</tr>")[0]
+    selangor_row = rollup[rollup.index("Selangor") :].split("</tr>")[0]
+    assert "State result" in johor_row
+    assert "State result" not in selangor_row
+
+
+def test_a_signal_with_no_reported_vote_share_does_not_mark_a_state_active():
+    # Code review, 20 Aug 2026: a StateElectionSignal with an empty
+    # vote_share is legitimate per its own docstring ("may omit Coalitions
+    # the result does not report," including all of them) — but it never
+    # reaches _observed_state_swings' collected dict, so state_swing() falls
+    # back to Sentiment alone for that state. Marking it "State result"
+    # anyway would claim a state election moved a state whose Swing is, in
+    # fact, pure Sentiment.
+    baseline = two_state_seats()
+    empty_signal = StateElectionSignal(state="Johor", held_on=date(2026, 3, 1), vote_share={})
+    model = model_for(baseline=baseline, state_election_signals=[empty_signal])
+    page = render_html(model)
+
+    assert model.state_signals == ()
+    rollup = page[page.index('class="state-rollup"') :].split("</table>")[0]
+    johor_row = rollup[rollup.index("Johor") :].split("</tr>")[0]
+    assert "State result" not in johor_row
