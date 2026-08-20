@@ -755,7 +755,7 @@ def _seat_bar(model: PageModel) -> str:
     )
 
 
-def _search_blob(seat: ChamberSeat, coalition_name: Mapping[Coalition, str]) -> str:
+def _search_blob(seat: ChamberSeat, coalition_names: Mapping[Coalition, str]) -> str:
     """The text `_SEAT_FILTER_SCRIPT` (#47) matches a query against.
 
     Name, code, state, Coalition (both the short code and its full name, so
@@ -767,7 +767,7 @@ def _search_blob(seat: ChamberSeat, coalition_name: Mapping[Coalition, str]) -> 
         seat.code,
         seat.state,
         seat.coalition,
-        coalition_name.get(seat.coalition, seat.coalition),
+        coalition_names.get(seat.coalition, seat.coalition),
         TIER_LABEL[seat.tier],
     )
     return " ".join(fields).lower()
@@ -790,15 +790,33 @@ def _seat_table(model: PageModel) -> str:
     since an `id` can only anchor to one element per document and this table
     is the one a fragment link should resolve to.
 
-    Each row also carries `data-search` (#47): the lowercased name, code,
-    state, Coalition code, Coalition name, and certainty tier, space-joined —
-    the one index `_SEAT_FILTER_SCRIPT` reads to decide which rows and dots
-    match a query, so the matching text lives here once rather than being
-    re-derived from visible markup by the script.
+    Each row also carries `data-seat` and `data-search` (#47): `data-seat`
+    is the plain code, so `_SEAT_FILTER_SCRIPT` can find a row's matching
+    chamber dot without parsing it back out of `id="seat-{code}"`; `data-
+    search` is the lowercased name, code, state, Coalition code, Coalition
+    name, and certainty tier, space-joined — the index the script matches a
+    query against, so the matching text lives here once rather than being
+    re-derived from visible markup at runtime.
+
+    Filtering hides a non-matching row with the native `hidden` attribute —
+    which does remove it from the accessibility tree, same as this table
+    itself must never be hidden by default. The difference is what "hidden"
+    means in each case: this table's own `visually-hidden` is permanent and
+    universal, and would erase a Seat's only keyboard/screen-reader path
+    outright (HANDOFF defect 5) — but a non-match while a search is active is
+    the accessible-filter pattern used by any standard filterable list
+    (ARIA APG's combobox/listbox filtering): the input and its result count
+    (`aria-live="polite"`) stay reachable throughout, and clearing the query
+    restores every row. A screen reader user narrowing 222 rows to the ones
+    they typed for is the feature working, not the regression #47 warns
+    against — the regression would be shipping a filter that still forces
+    them to read all 222 to find a match, which defeats the point of adding
+    search at all.
     """
-    coalition_name = {row.coalition: row.name for row in model.ledger}
+    coalition_names = {row.coalition: row.name for row in model.ledger}
     rows = "".join(
-        f'<tr id="seat-{html.escape(seat.code)}" data-search="{html.escape(_search_blob(seat, coalition_name))}">'
+        f'<tr id="seat-{html.escape(seat.code)}" data-seat="{html.escape(seat.code)}" '
+        f'data-search="{html.escape(_search_blob(seat, coalition_names))}">'
         f"<td>{html.escape(seat.name)}</td>"
         f"<td>{html.escape(seat.state)}</td>"
         f"<td>{html.escape(seat.coalition)}</td>"
@@ -1477,24 +1495,15 @@ _SEAT_FILTER_SCRIPT = """
 
   function apply() {
     var query = input.value.trim().toLowerCase();
-    if (!query) {
-      rows.forEach(function (row) {
-        row.hidden = false;
-        var dot = dotFor(row.id.slice(5));
-        if (dot) dot.classList.remove("seat-dot--filtered-out");
-      });
-      count.textContent = "";
-      return;
-    }
     var matched = 0;
     rows.forEach(function (row) {
       var isMatch = row.dataset.search.indexOf(query) !== -1;
       row.hidden = !isMatch;
       if (isMatch) matched += 1;
-      var dot = dotFor(row.id.slice(5));
+      var dot = dotFor(row.dataset.seat);
       if (dot) dot.classList.toggle("seat-dot--filtered-out", !isMatch);
     });
-    count.textContent = matched + " of " + total + " Seats match";
+    count.textContent = query ? matched + " of " + total + " Seats match" : "";
   }
 
   input.addEventListener("input", apply);
@@ -1502,11 +1511,11 @@ _SEAT_FILTER_SCRIPT = """
 """
 """Client-side only (#47, ADR 0006) — filters the accessible seat table's
 222 rows and the chamber's dots by the shared `data-search`/`data-seat`
-attributes `_seat_table`/`_hemicycle` already render. Rows use the native
-`hidden` attribute rather than a CSS class, so a non-match leaves both the
-visual layout and the accessibility tree the same way (HANDOFF defect 5) —
-narrowing what a screen-reader user tabs through is the same outcome a
-sighted user gets from the dimmed chamber dots, not a regression of it.
+attributes `_seat_table`/`_hemicycle` already render (see `_seat_table`'s
+docstring for why hiding a non-match here is the accessible-filter pattern,
+not the "erase the table" regression #47 warns against). An empty query
+matches every row (`"".indexOf(query)` is always found), so clearing the
+input is the same code path as any other query, not a special case.
 """
 
 
