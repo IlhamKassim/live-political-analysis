@@ -80,11 +80,14 @@ def _points(margin: float) -> str:
     return f"{margin * 100:.1f}"
 
 
-def _wrap(text: str, width: int) -> list[str]:
+def wrap_text(text: str, width: int) -> list[str]:
     """Break `text` at spaces so no line exceeds `width` characters.
 
-    SVG has no automatic text wrapping, so the card's fixed-width prose lines
-    are broken here. A character count is the honest, portable approximation.
+    Neither SVG nor Pillow wraps text automatically, so the card's
+    fixed-width prose lines are broken here. A character count is the
+    honest, portable approximation. Public rather than module-private
+    (#40): `telegram_card.py`'s PNG renderer wraps the same prose the same
+    way, so the wrapping logic lives once rather than being copied.
     """
     words = text.split()
     lines: list[str] = []
@@ -287,8 +290,8 @@ def _line(
 
 def render_card(model: CardModel) -> str:
     """One card as a single self-contained SVG. Decides nothing."""
-    footnote_lines = _wrap(model.footnote, 96)
-    note_lines = _wrap(model.note, 78)
+    footnote_lines = wrap_text(model.footnote, 96)
+    note_lines = wrap_text(model.note, 78)
 
     note_text = "".join(
         _line(PAD_X, 458.0 + i * 35, line, SERIF, 23, INK) for i, line in enumerate(note_lines)

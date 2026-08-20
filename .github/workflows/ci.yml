@@ -32,8 +32,20 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install fonts for #40's card rendering
+        # telegram_card.py needs real .ttf files on disk (Pillow draws text
+        # from a font file, not a name) — explicit rather than relying on
+        # whatever the runner image happens to ship, which GitHub can change
+        # without notice. DejaVu is small, stable, and in Ubuntu's own repos
+        # rather than a third party.
+        run: sudo apt-get update && sudo apt-get install -y fonts-dejavu-core
+
       - name: Install
-        run: pip install -e ".[dev]"
+        # telegram (Pillow) is a cheap, no-system-deps extra installed here
+        # unlike sentiment/dashboard's heavy ML/data stacks, so #40's card
+        # rendering gets real, non-skipped test coverage rather than a
+        # perpetually-excluded marker.
+        run: pip install -e ".[dev,telegram]"
 
       - name: Ruff lint
         run: ruff check .
