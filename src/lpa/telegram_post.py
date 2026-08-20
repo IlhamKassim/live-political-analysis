@@ -36,10 +36,12 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
+from html import escape as _escape_html
 from typing import Protocol
 from xml.sax.saxutils import escape as _xml_escape
 
 import httpx
+from sqlalchemy.engine import Engine
 
 from lpa.domain import (
     Coalition,
@@ -70,13 +72,6 @@ TELEGRAM_API = "https://api.telegram.org"
 SITE_URL = "https://ilhamkassim.github.io/live-political-analysis/"
 
 
-def _escape_html(text: str) -> str:
-    """Telegram's HTML parse mode only needs the three characters that
-    could otherwise be read as markup — the same minimal escaping
-    `seat_call_card.py` already applies to SVG text for the same reason."""
-    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-
-
 def _long_date(day: date) -> str:
     return f"{day.day} {day.strftime('%B %Y')}"
 
@@ -99,9 +94,10 @@ def compose_election_status_post(
 ) -> PostContent:
     """Trigger 1 (#40): GE16 called, or a polling date newly set.
 
-    Caption voice matches Sample C's approved copy for the "called" case
-    verbatim; "polling date set" follows the same voice, since the mockup
-    has no sample for it.
+    Caption voice matches Sample C's approved copy for the "called" case,
+    minus "this morning" — dissolution timing isn't known at render time,
+    so it's dropped rather than guessed. "Polling date set" follows the
+    same voice, since the mockup has no sample for it.
     """
     model = election_status_aggregate_model(
         trigger.kind, trigger.status, government_seats, total_seats, majority_threshold
@@ -176,6 +172,14 @@ def compose_majority_post(
     Seat-anchored only when exactly one Seat crossed the Government/
     Non-government line — see the module docstring for why any other case
     falls through to the aggregate template.
+
+    Takes `config` rather than a precomputed `government_seats`, unlike its
+    two siblings in `compose_posts`: `trigger.newer` already carries the
+    Projection those totals come from (it's always the same Projection as
+    `compose_posts`'s `latest_projection`, by construction — a Majority
+    trigger only ever fires by diffing the latest two), so deriving them
+    here keeps this composer self-contained rather than trusting a caller
+    to have passed the matching value.
     """
     if len(trigger.government_relevant_changed) == 1:
         _, newer_call = trigger.government_relevant_changed[0]
@@ -187,7 +191,7 @@ def compose_majority_post(
         caption = (
             "<b>A Seat Call changed.</b> The Projection now puts "
             f"{_escape_html(model.name)} with {_escape_html(model.coalition_name)} "
-            f"by {model.margin_points} points — arithmetic against the 2022 result, "
+            f"by {model.margin_points} points — arithmetic against the GE15 result, "
             f"not calibrated{tight_suffix}.\n\n{SITE_URL}"
         )
         return PostContent(title=title, caption=caption, photo=photo)
@@ -327,6 +331,61 @@ def build_feed(posts: Sequence[LoggedPost]) -> str:
 """
 
 
+def _send_and_log(
+    engine: Engine,
+    today: date,
+    status: ElectionStatus,
+    signal_states: frozenset[str],
+    posts: Sequence[PostContent],
+    token: str | None,
+    channel_id: str | None,
+) -> None:
+    """Send `posts` (if credentials are set), then always log them and mark
+    today's trigger watch, before raising to surface any send failure.
+
+    Split out from `main` so this correctness-critical idempotency
+    behaviour is directly testable — the same `build_page`/`main` and
+    `build_export`/`main` split `public_page.py` and `public_export.py`
+    already use. A Telegram post can't be unsent, so a rerun must never
+    re-detect (and re-send) a trigger that already went out, even if a
+    *different* trigger the same run failed to send — the log and the
+    watch row are written regardless of a send failure, and the failure
+    is only raised afterward, so the run still fails loudly without
+    leaving the door open to a duplicate send on retry.
+    """
+    from lpa.storage import save_trigger_posts, save_trigger_watch
+
+    send_errors: list[str] = []
+    if posts and token and channel_id:
+        with httpx.Client(timeout=30.0) as client:
+            for post in posts:
+                try:
+                    send_post(client, token, channel_id, post)
+                except httpx.HTTPError as error:
+                    send_errors.append(f"{post.title}: {error}")
+        sent = len(posts) - len(send_errors)
+        print(f"Posted {sent}/{len(posts)} Return Trigger post(s) to Telegram.")
+    elif posts:
+        print(
+            f"{len(posts)} Return Trigger post(s) ready but TELEGRAM_BOT_TOKEN/"
+            "TELEGRAM_CHANNEL_ID are not both set — not sent:"
+        )
+        for post in posts:
+            print(f"  - {post.title}")
+    else:
+        print("No Return Trigger fired today.")
+
+    save_trigger_posts(engine, today, [(post.title, post.caption) for post in posts])
+    save_trigger_watch(engine, today, status, signal_states)
+
+    if send_errors:
+        raise SystemExit(
+            "Some Return Trigger post(s) failed to send (not retried on a "
+            "rerun — today is marked handled regardless, since a rerun "
+            "could otherwise re-send a post that already succeeded):\n" + "\n".join(send_errors)
+        )
+
+
 def main() -> None:
     """Detect today's Return Triggers, compose and send their posts, log
     them, and rewrite the RSS/Atom feed from the full log (#40's own
@@ -354,8 +413,6 @@ def main() -> None:
         load_projections,
         load_seat_baselines,
         load_trigger_posts,
-        save_trigger_posts,
-        save_trigger_watch,
         trigger_watch_exists,
     )
 
@@ -412,23 +469,7 @@ def main() -> None:
 
         token = os.environ.get("TELEGRAM_BOT_TOKEN")
         channel_id = os.environ.get("TELEGRAM_CHANNEL_ID")
-        if posts and token and channel_id:
-            with httpx.Client(timeout=30.0) as client:
-                for post in posts:
-                    send_post(client, token, channel_id, post)
-            print(f"Posted {len(posts)} Return Trigger post(s) to Telegram.")
-        elif posts:
-            print(
-                f"{len(posts)} Return Trigger post(s) ready but TELEGRAM_BOT_TOKEN/"
-                "TELEGRAM_CHANNEL_ID are not both set — not sent:"
-            )
-            for post in posts:
-                print(f"  - {post.title}")
-        else:
-            print("No Return Trigger fired today.")
-
-        save_trigger_posts(engine, today, [(post.title, post.caption) for post in posts])
-        save_trigger_watch(engine, today, status, signal_states)
+        _send_and_log(engine, today, status, signal_states, posts, token, channel_id)
 
     feed = build_feed(load_trigger_posts(engine))
     args.output_dir.mkdir(parents=True, exist_ok=True)

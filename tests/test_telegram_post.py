@@ -10,6 +10,7 @@ from fixtures import PH, PN, government_config, two_coalition_seats
 from PIL import Image
 from pytest import raises
 
+from lpa import telegram_post
 from lpa.domain import ElectionStatus, Projection, SeatCall
 from lpa.return_trigger import (
     ElectionStatusTrigger,
@@ -17,7 +18,7 @@ from lpa.return_trigger import (
     MajorityTrigger,
     StateSignalTrigger,
 )
-from lpa.storage import LoggedTriggerPost
+from lpa.storage import LoggedTriggerPost, connect, load_trigger_posts, trigger_watch_exists
 from lpa.telegram_card import AGGREGATE_CARD_H, CARD_SIZE
 from lpa.telegram_post import (
     PostContent,
@@ -283,6 +284,50 @@ def test_send_post_raises_on_an_error_response():
 
     with raises(httpx.HTTPStatusError):
         send_post(client, "TOKEN", "@channel", content)
+
+
+# ── _send_and_log ────────────────────────────────────────────────────────
+
+
+def test_a_send_failure_still_logs_and_marks_the_day_before_raising(monkeypatch):
+    # #40: a Telegram post can't be unsent, so even a partial failure (one
+    # post of several) must not leave the day unmarked — a rerun would
+    # otherwise re-detect and re-send the post that already succeeded.
+    engine = connect("sqlite+pysqlite:///:memory:")
+    posts = [
+        PostContent(title="First", caption="one", photo=b"x"),
+        PostContent(title="Second", caption="two", photo=b"y"),
+    ]
+    attempted = []
+
+    def fake_send_post(client, token, channel_id, content):
+        attempted.append(content.title)
+        if content.title == "Second":
+            raise httpx.HTTPError("boom")
+
+    monkeypatch.setattr(telegram_post, "send_post", fake_send_post)
+
+    with raises(SystemExit):
+        telegram_post._send_and_log(
+            engine, date(2026, 8, 6), status(), frozenset(), posts, "TOKEN", "@channel"
+        )
+
+    assert attempted == ["First", "Second"]
+    assert [p.title for p in load_trigger_posts(engine)] == ["First", "Second"]
+    assert trigger_watch_exists(engine, date(2026, 8, 6)) is True
+
+
+def test_no_credentials_still_logs_and_marks_the_day_without_sending(monkeypatch):
+    engine = connect("sqlite+pysqlite:///:memory:")
+    posts = [PostContent(title="First", caption="one", photo=b"x")]
+    sent = []
+    monkeypatch.setattr(telegram_post, "send_post", lambda *a: sent.append(a))
+
+    telegram_post._send_and_log(engine, date(2026, 8, 6), status(), frozenset(), posts, None, None)
+
+    assert sent == []
+    assert [p.title for p in load_trigger_posts(engine)] == ["First"]
+    assert trigger_watch_exists(engine, date(2026, 8, 6)) is True
 
 
 # ── build_feed ───────────────────────────────────────────────────────────
