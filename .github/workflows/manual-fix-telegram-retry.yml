@@ -1,0 +1,59 @@
+# One-off maintenance workflow: retry today's Return Trigger Telegram post
+# after the first attempt failed on a bad bot token (issue #40 setup).
+#
+# telegram_post.py's idempotency guard marks a day "handled" the moment it's
+# evaluated, even if the send itself failed, so a plain re-run of daily.yml
+# will not retry it. This clears just that day's trigger_watch/trigger_post_log
+# rows so the already-detected trigger gets re-evaluated and actually sent
+# with the now-corrected secrets, without re-running the scrape/render/deploy
+# steps daily.yml also does.
+#
+# Delete this file once the retry has succeeded — it exists only to unstick
+# this one incident.
+name: Manual fix - retry Telegram Return Trigger post
+
+on:
+  workflow_dispatch:
+
+jobs:
+  retry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.11"
+
+      - name: Install fonts for card rendering
+        run: sudo apt-get update && sudo apt-get install -y fonts-dejavu-core
+
+      - name: Install
+        run: pip install -e ".[postgres,telegram]"
+
+      - name: Clear today's stuck trigger_watch/trigger_post_log rows
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python -c "
+          from sqlalchemy import delete
+          from lpa.storage import connect, load_projections, trigger_watch, trigger_post_log
+
+          engine = connect()
+          projections = load_projections(engine)
+          if not projections:
+              raise SystemExit('No Projection stored.')
+          today = projections[-1].computed_at
+          print(f'Clearing trigger_watch/trigger_post_log for {today}')
+          with engine.begin() as connection:
+              connection.execute(delete(trigger_watch).where(trigger_watch.c.computed_at == today))
+              connection.execute(delete(trigger_post_log).where(trigger_post_log.c.computed_at == today))
+          "
+
+      - name: Retry the Telegram post
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+        run: python -m lpa.telegram_post
