@@ -4,9 +4,11 @@ Tracks sentiment on the Malaysian political landscape and projects the outcome
 of the next general election (GE16) — a Coalition-level seat estimate and
 whether the Government Coalition retains its Majority.
 
-Runs at zero recurring cost: the sentiment model is self-hosted and open
-source, the data sources are free, and nothing calls a paid API
-(see [ADR 0002](docs/adr/0002-zero-cost-self-hosted-sentiment-stack.md)).
+Runs at zero recurring cost by default: the sentiment model is self-hosted
+and open source, the data sources are free, and nothing calls a paid API
+(see [ADR 0002](docs/adr/0002-zero-cost-self-hosted-sentiment-stack.md),
+amended by [ADR 0007](docs/adr/0007-zero-cost-is-default-not-mandate.md) —
+free is the default everywhere in this repo, not a hard ceiling).
 
 Vocabulary — Coalition, Seat, Baseline, Sentiment, Swing, Projection — is
 defined in [`CONTEXT.md`](CONTEXT.md). Read that first; the code uses those
@@ -24,6 +26,13 @@ uv pip install --python .venv/bin/python -e ".[dev,sentiment,dashboard]"
 The `sentiment` extra pulls `torch`, `transformers`, `sentencepiece` and
 `protobuf`. All four are needed: the XLM-RoBERTa tokeniser fails without
 `sentencepiece` *and* `protobuf`, with an error that only mentions the first.
+
+Two more extras, not in the command above because most local work doesn't
+need them: `postgres` (`psycopg`) to point `DATABASE_URL` at a real hosted
+database instead of SQLite, and `telegram` (`Pillow`) to run
+`lpa.telegram_post`/`lpa.telegram_card` locally — Pillow is needed to
+compose the PNG card even when no `TELEGRAM_BOT_TOKEN` is set to actually
+send it.
 
 The `dashboard` extra pulls `streamlit` and `pandas`. It is separate from
 `sentiment` because the two never run together: the pipeline scores articles
@@ -130,8 +139,49 @@ without a build step:
 
 The page needs a Projection carrying Seat Calls, which means one computed since
 Seat-Level Projection shipped; it refuses to draw an empty chamber rather than
-render 222 blanks that look like a result. Storage keeps per-Seat rows for the
-latest Projection only, so it is always the most recent day that is drawn.
+render 222 blanks that look like a result.
+
+Each day's run also writes a **dated, citable copy** alongside the live page
+(`public/YYYY/MM/DD.html`) — the colophon's "cite this" link points at it, so
+a figure quoted from the site still resolves once tomorrow's run overwrites
+`index.html` (issue #55). It is served at
+[politikku.my](https://politikku.my) (`public/CNAME`).
+
+Three more surfaces are rendered from the same Storage, by the same daily run:
+
+- **Machine-readable export** — `python -m lpa.public_export` writes
+  `public/projection.json` and `public/projection.csv`: the same Projection
+  as data, for a journalist or third party who wants to cite or build on the
+  numbers directly rather than scrape the HTML.
+- **Shareable Seat Call cards** — `python -m lpa.seat_call_card --all`
+  writes one SVG per Seat Call to `public/cards/`, in the same register as
+  the public page (issue #23).
+- **Return Trigger push** — `python -m lpa.telegram_post` decides whether
+  today is worth a push (`return_trigger.py`; three trigger types: Election
+  Status change, a State Election Signal, or a chamber-wide Majority swing —
+  see `CONTEXT.md`'s Return Trigger definition), composes a Seat-anchored or
+  aggregate post with a PNG card (`telegram_card.py`), and sends it to a
+  Telegram channel if `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHANNEL_ID` are set as
+  repository secrets. Runs safely either way — without those secrets it logs
+  what it would have posted and sends nothing. Always (re)writes
+  `public/feed.xml`, an Atom feed of every Return Trigger post ever composed,
+  whether or not it was actually sent (issue #40).
+
+## Site-literacy pages
+
+`public/learn/` (glossary, Coalition explainer, GE16 process — issue #22) is
+hand-authored, not rendered by the pipeline: nothing in it depends on
+Storage or the day's Projection, so it doesn't regenerate daily.
+
+```sh
+.venv/bin/python -m lpa.citation_check public/learn/<page>.html
+```
+
+Verifies every factual claim on a page actually traces to its cited source —
+required before any site-literacy content counts as done (issue #22's
+"Verification — settled"), with no per-claim human gate. Shells out to the
+`claude` CLI's subscription seat as the judge, not the metered API ADR 0002
+rules out for unattended use.
 
 ## Deploying it
 
@@ -151,8 +201,15 @@ walks through the Streamlit deploy. Stop and re-run it at any point.
 
 `.github/workflows/daily.yml` runs at 15:00 UTC — 23:00 in Malaysia, late
 enough in the Malaysian day that a snapshot covers the day it is dated for.
-`bootstrap.yml` loads the Baseline and is run by hand, once, because the
-Baseline is historical fact rather than daily data.
+It runs the pipeline, renders every public surface above (page, dated
+permalink, export, cards, feed/Telegram), and deploys to GitHub Pages, all
+on GitHub's free hosted runners. `bootstrap.yml` loads the Baseline and is
+run by hand, once, because the Baseline is historical fact rather than
+daily data.
+
+`TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHANNEL_ID` are optional repository
+secrets — without them the Return Trigger step still runs and still writes
+`public/feed.xml`, it just doesn't send anything.
 
 The connection string a provider gives you works as-is:
 `storage.normalise_database_url` names the driver, so `postgresql://…` does
@@ -184,13 +241,21 @@ against fixtures with no network, so CI stays fast and offline.
 | `lpa/domain.py` | The record types: `SeatBaseline`, `Article`, `Projection`, … |
 | `lpa/swing_model.py` | The seam. Baseline + Sentiment + State Election Signal → Projection, pure |
 | `lpa/baseline_loader.py` | GE15 per-Seat Baseline from public datasets |
+| `lpa/sources.py` | The Baseline Loader's only I/O — fetches the underlying election/census CSVs |
 | `lpa/scraper.py` | Outlet feeds → Article records, robots.txt-aware |
 | `lpa/sentiment.py` | Self-hosted model, scored per Coalition |
 | `lpa/aggregate.py` | The day's Articles → one Sentiment per Coalition |
 | `lpa/poll_calibration.py` | Published survey reports → net approval per Coalition |
 | `lpa/pipeline.py` | Wires all of the above and stores a snapshot |
-| `lpa/storage.py` | Baseline table, daily Projection/Sentiment snapshots, Poll Calibration points |
+| `lpa/storage.py` | Baseline table, daily snapshots, Poll Calibration points, the frozen archive |
 | `lpa/dashboard.py` | Streamlit page rendering the latest stored Projection |
+| `lpa/public_page.py` | Static public page + dated permalink, rendered from Storage (ADR 0006) |
+| `lpa/public_export.py` | The Projection as `projection.json`/`projection.csv` |
+| `lpa/seat_call_card.py` | One shareable SVG per Seat Call, written to `public/cards/` |
+| `lpa/return_trigger.py` | Pure: does today's Storage state cross a Return Trigger threshold |
+| `lpa/telegram_card.py` | PNG rendering for the Telegram post images |
+| `lpa/telegram_post.py` | Composes and sends the Return Trigger post; writes `feed.xml` |
+| `lpa/citation_check.py` | Verifies a `public/learn/` page's claims against its cited sources |
 | `lpa/config.py` | Loads everything under `data/` |
 
 ## Configuration is data, not code
@@ -248,7 +313,10 @@ Other known limitations, each documented at its site in the code:
 - Bernama's feed dates no article, so those Articles carry no
   `published_at`. Nothing reads the field yet; anything that starts to must
   handle its absence.
-- Per-Seat rows are stored for the latest Projection only, so there is no
-  per-Seat history to look back over — just the current call for each Seat,
-  beside the Coalition totals that are kept per day
-  ([ADR 0005](docs/adr/0005-publish-the-seat-level-projection.md)).
+- Per-Seat rows are kept for the latest two days only (enough to diff for a
+  Return Trigger, issue #54), so there is no long per-Seat history to look
+  back over — just what changed since yesterday, beside the Coalition
+  totals that are kept per day. The exception: once Election Status is
+  "called," every day's full Seat-Level Projection is archived permanently
+  into `frozen_projection`/`frozen_seat_call`, exempt from the two-day
+  window ([ADR 0005](docs/adr/0005-publish-the-seat-level-projection.md)).
