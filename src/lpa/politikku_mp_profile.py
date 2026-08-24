@@ -270,7 +270,7 @@ def _seat_projection(
     left_pct = 100 * model.left_w / two_way if two_way else 0.0
     right_pct = 100 * model.right_w / two_way if two_way else 0.0
     left_coalition = model.incumbent
-    right_coalition = call.coalition if not holds else _runner_up(baseline, model.incumbent)
+    right_coalition = model.opponent
     return SeatProjection(
         headline=headline,
         note=model.note,
@@ -281,14 +281,6 @@ def _seat_projection(
         left_label=names.get(left_coalition, left_coalition),
         right_label=names.get(right_coalition, right_coalition),
     )
-
-
-def _runner_up(baseline: SeatBaseline, exclude: Coalition) -> Coalition:
-    ranked = sorted(
-        (c for c in baseline.vote_share if c != exclude),
-        key=lambda c: -baseline.vote_share[c],
-    )
-    return ranked[0] if ranked else exclude
 
 
 # ── rendering ─────────────────────────────────────────────────────────────
@@ -330,6 +322,13 @@ def _identity_band(model: MPProfilePageModel) -> str:
 """.strip()
 
 
+def _contact_buttons(actions: tuple[ContactAction, ...]) -> str:
+    return "".join(
+        f'<a class="pk-mp-contact-btn" href="{html.escape(a.href)}">{html.escape(a.label)}</a>'
+        for a in actions
+    )
+
+
 def _mobile_primary_actions(model: MPProfilePageModel) -> str:
     """Mobile-only duplicate of the Contact card's two buttons — README's
     mobile spec puts "identity and the two primary actions... first, above
@@ -339,11 +338,7 @@ def _mobile_primary_actions(model: MPProfilePageModel) -> str:
     two copies at a time per breakpoint, never both."""
     if not model.contact_actions:
         return ""
-    buttons = "".join(
-        f'<a class="pk-mp-contact-btn" href="{html.escape(a.href)}">{html.escape(a.label)}</a>'
-        for a in model.contact_actions
-    )
-    return f'<div class="pk-mp-mobile-actions">{buttons}</div>'
+    return f'<div class="pk-mp-mobile-actions">{_contact_buttons(model.contact_actions)}</div>'
 
 
 def _record_this_term(model: MPProfilePageModel) -> str:
@@ -363,7 +358,7 @@ def _record_this_term(model: MPProfilePageModel) -> str:
 </div>
 """.strip()
     return f"""
-<section class="pk-mp-record">
+<section class="pk-mp-record pk-mp-col-left">
   <div class="pk-eyebrow">Record this term</div>
   {card}
 </section>
@@ -390,7 +385,7 @@ def _voting_record(model: MPProfilePageModel) -> str:
             for d in model.divisions
         )
     return f"""
-<section class="pk-mp-voting">
+<section class="pk-mp-voting pk-mp-col-left">
   <h3>Voting record · last {DIVISIONS_SHOWN} divisions</h3>
   <div class="pk-mp-division-list">{rows}</div>
 </section>
@@ -406,7 +401,7 @@ def _bills_sponsored(model: MPProfilePageModel) -> str:
             for title in model.bills_sponsored
         )
     return f"""
-<section class="pk-mp-bills">
+<section class="pk-mp-bills pk-mp-col-left">
   <h3>Bills and motions sponsored</h3>
   {body}
 </section>
@@ -424,10 +419,7 @@ def _contact_card(model: MPProfilePageModel) -> str:
         if model.contact_opening_hours_note
         else ""
     )
-    buttons = "".join(
-        f'<a class="pk-mp-contact-btn" href="{html.escape(a.href)}">{html.escape(a.label)}</a>'
-        for a in model.contact_actions
-    )
+    buttons = _contact_buttons(model.contact_actions)
     profile_link = (
         f'<a class="pk-mp-parliament-link" href="{html.escape(model.profile_url)}">'
         "Parliament's own profile →</a>"
@@ -435,7 +427,7 @@ def _contact_card(model: MPProfilePageModel) -> str:
         else ""
     )
     return f"""
-<div class="pk-mp-card">
+<div class="pk-mp-card pk-mp-col-right pk-mp-contact">
   <h3>Contact &amp; service centre</h3>
   {address}
   {hours}
@@ -447,7 +439,7 @@ def _contact_card(model: MPProfilePageModel) -> str:
 
 def _who_lives_here(model: MPProfilePageModel) -> str:
     return f"""
-<div class="pk-mp-card">
+<div class="pk-mp-card pk-mp-col-right pk-mp-who-lives-here">
   <h3>Who lives here</h3>
   <p class="pk-mp-gap-note">{html.escape(model.who_lives_here_note)}</p>
 </div>
@@ -472,7 +464,7 @@ def _projection_bar(p: SeatProjection) -> str:
 def _seat_projection_section(model: MPProfilePageModel) -> str:
     p = model.projection
     return f"""
-<div class="pk-mp-card">
+<div class="pk-mp-card pk-mp-col-right pk-mp-projection">
   <h3>This Seat in the GE16 projection</h3>
   <div class="pk-mp-projection-headline">{html.escape(p.headline)} {_MODELLED_TAG}</div>
   <p class="pk-mp-projection-note">{html.escape(p.note)}</p>
@@ -483,26 +475,36 @@ def _seat_projection_section(model: MPProfilePageModel) -> str:
 
 def _source_footer() -> str:
     return (
-        '<p class="pk-mp-footer-note">Facts on this page — the MP, GE15 result, demographics — '
-        "come from SPR, DOSM and parlimen.gov.my. Only the projection is modelled.</p>"
+        '<p class="pk-mp-footer-note pk-mp-col-right">Facts on this page — the MP, GE15 '
+        "result, demographics — come from SPR, DOSM and parlimen.gov.my. "
+        "Only the projection is modelled.</p>"
     )
 
 
 def render_mp_profile_body(model: MPProfilePageModel) -> str:
-    """The profile page's `body_html`, without the persistent shell."""
-    left = f"{_record_this_term(model)}{_voting_record(model)}{_bills_sponsored(model)}"
-    right = (
-        f"{_contact_card(model)}{_who_lives_here(model)}{_seat_projection_section(model)}"
-        f"{_source_footer()}"
+    """The profile page's `body_html`, without the persistent shell.
+
+    Every left/right-column section is a direct child of `.pk-mp-body`
+    (not nested inside a left/right wrapper) so `_CSS`'s mobile media query
+    can give the Seat's projection its own `order`, ahead of the sections
+    that follow it in the two-column desktop reading order — README's
+    mobile spec ("record; then the Seat's projection; then the source
+    footer") is a strict sequence, not just the desktop column order
+    collapsed. `pk-mp-col-left`/`pk-mp-col-right` place each section in its
+    desktop column via `grid-column`; DOM order (unchanged from the
+    desktop reading order below) governs each column's own stacking there,
+    since nothing here sets `order` outside the mobile media query.
+    """
+    sections = (
+        _record_this_term(model)
+        + _voting_record(model)
+        + _bills_sponsored(model)
+        + _contact_card(model)
+        + _who_lives_here(model)
+        + _seat_projection_section(model)
+        + _source_footer()
     )
-    return (
-        f"<style>{_CSS}</style>"
-        f"{_identity_band(model)}"
-        f'<div class="pk-mp-body">'
-        f'<div class="pk-mp-body-left">{left}</div>'
-        f'<div class="pk-mp-body-right">{right}</div>'
-        f"</div>"
-    )
+    return f'<style>{_CSS}</style>{_identity_band(model)}<div class="pk-mp-body">{sections}</div>'
 
 
 def render_mp_profile(model: MPProfilePageModel, *, language: Language = Language.EN) -> str:
@@ -556,9 +558,26 @@ _CSS = """
   .pk-mp-mobile-actions { display: none; }
 
   .pk-mp-body { display: grid; grid-template-columns: 1.5fr 1fr; }
-  .pk-mp-body-left { background: var(--paper); padding: 30px; border-right: 1px solid var(--line); }
-  .pk-mp-body-right { background: var(--paper-alt); padding: 30px; }
-  .pk-mp-body-left > section, .pk-mp-body-right > .pk-mp-card { margin-bottom: 24px; }
+  /* Every section is a direct grid child (see `render_mp_profile_body`'s
+     docstring) rather than nested in a left/right wrapper, so the mobile
+     media query below can give `.pk-mp-projection` its own `order` ahead
+     of sections that sit after it in the desktop column. `grid-column`
+     places each in its desktop column; each section also gets an explicit
+     `grid-row` (not left to auto-placement) because the DOM groups every
+     left-column section before any right-column one — row-major auto
+     placement would otherwise push the whole right column down to
+     wherever the left column's cursor already is, rather than starting
+     both columns at row 1. The mobile query resets both to `auto` and
+     lets `order` govern the single-column sequence instead. */
+  .pk-mp-col-left { grid-column: 1; background: var(--paper); padding: 20px 30px; margin: 0; }
+  .pk-mp-col-right { grid-column: 2; background: var(--paper-alt); padding: 20px 30px; margin: 0; }
+  .pk-mp-record { grid-row: 1; }
+  .pk-mp-voting { grid-row: 2; }
+  .pk-mp-bills { grid-row: 3; }
+  .pk-mp-contact { grid-row: 1; }
+  .pk-mp-who-lives-here { grid-row: 2; }
+  .pk-mp-projection { grid-row: 3; }
+  .pk-mp-footer-note { grid-row: 4; }
   .pk-mp-record h3, .pk-mp-voting h3, .pk-mp-bills h3, .pk-mp-card h3 {
     font-family: var(--serif); font-weight: 500; font-size: 19px; color: var(--ink); margin: 0 0 12px;
   }
@@ -582,9 +601,15 @@ _CSS = """
     font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase;
     padding: 3px 8px; border-radius: var(--radius-sm); white-space: nowrap;
   }
-  .pk-vote-aye { background: var(--positive-bg); border: 1px solid var(--positive-border); color: var(--accent); }
-  .pk-vote-no { background: var(--caution-bg); border: 1px solid var(--caution-border); color: var(--caution-deep); }
-  .pk-vote-absent { background: var(--paper-alt); border: 1px solid var(--line); color: var(--muted); }
+  /* Vote-pill colours — README's own "Vote pills" table gives exact hex for
+     each, none of which reuse a Design Tokens value (NO's bg/border match
+     no named token at all; AYE and ABSENT's border/text happen to match
+     existing tokens but their backgrounds don't) — so these three are
+     literal, not `var(--...)`, to stay exactly on the spec rather than the
+     nearest named colour. */
+  .pk-vote-aye { background: #eef3f0; border: 1px solid #cfe0da; color: #1f5c58; }
+  .pk-vote-no { background: #f6f0e4; border: 1px solid #e6dcc4; color: #8a6a2f; }
+  .pk-vote-absent { background: #f1efea; border: 1px solid #dcd8cf; color: #8a9099; }
 
   .pk-mp-bill-card {
     background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-lg);
@@ -622,10 +647,21 @@ _CSS = """
     .pk-mp-identity-text h1 { font-size: 30px; }
     .pk-mp-stat-grid { grid-template-columns: repeat(2, 1fr); }
     .pk-mp-body { grid-template-columns: 1fr; }
-    .pk-mp-body-left { border-right: none; padding: 22px var(--gutter-mobile); }
-    .pk-mp-body-right { padding: 22px var(--gutter-mobile); }
+    .pk-mp-col-left, .pk-mp-col-right { grid-column: 1; padding: 18px var(--gutter-mobile); }
     .pk-mp-mobile-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
     .pk-mp-card .pk-mp-contact-actions { display: none; }
+
+    /* README's mobile spec is a strict sequence — "record; then the
+       Seat's projection; then the source footer" — not the desktop
+       column order collapsed. Only the sections whose position actually
+       moves need an explicit order; the rest keep DOM order (5). */
+    .pk-mp-record { order: 1; grid-row: auto; }
+    .pk-mp-projection { order: 2; grid-row: auto; }
+    .pk-mp-voting { order: 3; grid-row: auto; }
+    .pk-mp-bills { order: 4; grid-row: auto; }
+    .pk-mp-contact { order: 5; grid-row: auto; }
+    .pk-mp-who-lives-here { order: 6; grid-row: auto; }
+    .pk-mp-footer-note { order: 7; grid-row: auto; }
   }
 """
 
@@ -633,7 +669,7 @@ _CSS = """
 # ── I/O ───────────────────────────────────────────────────────────────────
 
 
-def build_mp_profile_page(engine: Engine, seat_code: str) -> tuple[str, object]:
+def build_mp_profile_page(engine: Engine, seat_code: str) -> tuple[str, date]:
     """Read Storage and render one Seat's MP profile page. The whole I/O half."""
     from lpa.config import (
         coalition_names,

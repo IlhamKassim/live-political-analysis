@@ -68,6 +68,7 @@ def test_a_held_seat_draws_winner_vs_runner_up():
     assert m.left_ink == _coalition_ink(PH)
     assert m.right_ink == _coalition_ink(PN)
     assert m.incumbent_share == approx(0.53)
+    assert m.opponent == PN
     assert m.opponent_share == approx(0.47)
     # The dot sits at the winner's (incumbent's) leading edge, no gap left.
     assert m.dot_x == approx(m.left_w)
@@ -79,6 +80,7 @@ def test_a_flipped_seat_draws_incumbent_vs_projected_winner():
     assert m.incumbent == PH
     assert m.coalition == PN
     assert m.incumbent_share == approx(0.56)
+    assert m.opponent == PN
     assert m.opponent_share == approx(0.44)
     # The winner is the flipper, so its ink is on the right and the dot is
     # beyond the gap.

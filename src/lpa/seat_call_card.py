@@ -127,6 +127,13 @@ class CardModel:
     """The Coalition that took the Seat at GE15 (from the Baseline)."""
     incumbent_share: float
     """GE15 vote share of the incumbent, as a fraction."""
+    opponent: Coalition
+    """The Coalition the call runs against: the runner-up when the incumbent
+    holds, the incumbent itself when the seat flips. Exposed as its own
+    field (not just folded into `opponent_share`) so a caller building a
+    different bar over the same contest — `politikku_mp_profile.py`'s Seat
+    projection section (#79) — can name this side without re-deriving which
+    Coalition it is."""
     opponent_share: float
     """GE15 vote share of the Coalition the call runs against: the runner-up
     when the incumbent holds, the incumbent itself when the seat flips."""
@@ -231,6 +238,7 @@ def card_model(call: SeatCall, seat: SeatBaseline, names: Mapping[Coalition, str
         tier=tier,
         incumbent=incumbent,
         incumbent_share=incumbent_share,
+        opponent=opponent,
         opponent_share=opponent_share,
         winner_ink=winner_ink,
         left_ink=left_ink,

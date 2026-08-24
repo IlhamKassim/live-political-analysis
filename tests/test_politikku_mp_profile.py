@@ -193,6 +193,25 @@ def test_an_abstain_vote_gets_its_own_label_with_no_invented_colour():
     assert "pk-vote-absent" in html  # falls back to the neutral pill style
 
 
+def test_vote_pill_colours_match_the_readme_table_exactly():
+    # README "Vote pills" table — AYE/NO/ABSENT hex, none of which reuse the
+    # NOT CALIBRATED tag's caution tokens (a real bug the first cut of this
+    # module shipped: NO borrowed --caution-bg/--caution-border instead).
+    html = render_mp_profile_body(_model())
+    assert "background: #eef3f0; border: 1px solid #cfe0da; color: #1f5c58;" in html
+    assert "background: #f6f0e4; border: 1px solid #e6dcc4; color: #8a6a2f;" in html
+    assert "background: #f1efea; border: 1px solid #dcd8cf; color: #8a9099;" in html
+
+
+def test_the_mobile_media_query_puts_the_projection_right_after_record():
+    # README's mobile spec is a strict sequence ("record; then the Seat's
+    # projection; then the source footer"), not the desktop column order
+    # collapsed — this pins the `order` values `_CSS` assigns.
+    html = render_mp_profile_body(_model())
+    assert ".pk-mp-record { order: 1;" in html
+    assert ".pk-mp-projection { order: 2;" in html
+
+
 def test_who_lives_here_states_the_ingestion_gap_not_fabricated_figures():
     html = render_mp_profile_body(_model())
     assert "Census profile not yet ingested" in html
