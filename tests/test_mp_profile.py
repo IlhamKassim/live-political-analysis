@@ -17,6 +17,7 @@ import re
 from datetime import date
 
 import pytest
+from build_mp_profiles import MAX_UNACCOUNTED
 
 from lpa.config import load_mp_profiles
 from lpa.mp_profile import (
@@ -39,6 +40,7 @@ GE15 = {
     "runner_up_coalition": "PN",
     "electors": 303430,
     "turnout": 0.8133506904393105,
+    "source_url": "https://raw.githubusercontent.com/Thevesh/analysis-election-msia/main/data/results_parlimen_ge15.csv",
 }
 
 DIVISION = {
@@ -184,7 +186,7 @@ def test_unexplained_fields_names_every_silent_blank():
     assert set(unexplained_fields(profile)) == set(missing_fields(profile)) - {"party"}
 
 
-SHIPPED = load_mp_profiles()
+SHIPPED_PROFILES = load_mp_profiles()
 
 # Anything that reads like a value someone meant to replace. The design mock
 # this data replaces used "03-8925 xxxx"; the rest are the usual suspects.
@@ -195,12 +197,12 @@ PLACEHOLDER = re.compile(
 
 
 def test_every_shipped_profile_explains_every_field_it_leaves_unset():
-    for seat_code, profile in SHIPPED.items():
+    for seat_code, profile in SHIPPED_PROFILES.items():
         assert unexplained_fields(profile) == (), seat_code
 
 
 def test_no_shipped_field_holds_a_placeholder_rather_than_a_value():
-    for seat_code, profile in SHIPPED.items():
+    for seat_code, profile in SHIPPED_PROFILES.items():
         strings = [
             profile.name,
             profile.coalition,
@@ -224,13 +226,13 @@ def test_no_shipped_field_holds_a_placeholder_rather_than_a_value():
 def test_every_shipped_reason_says_what_was_checked():
     # A reason that is a word or two is a shrug, and a shrug is how a blank
     # gets filled in later by someone who assumes nobody looked.
-    for seat_code, profile in SHIPPED.items():
+    for seat_code, profile in SHIPPED_PROFILES.items():
         for field, reason in profile.unverified.items():
             assert len(reason.split()) >= 10, f"{seat_code}.{field}"
 
 
 def test_every_shipped_ge15_result_reconciles_with_itself():
-    for seat_code, profile in SHIPPED.items():
+    for seat_code, profile in SHIPPED_PROFILES.items():
         ge15 = profile.ge15
         assert 0 < ge15.votes <= ge15.valid_votes, seat_code
         assert 0 < ge15.runner_up_votes < ge15.votes, seat_code
@@ -247,19 +249,21 @@ def test_every_shipped_ge15_result_reconciles_with_itself():
 
 
 def test_every_shipped_division_is_a_recorded_position_with_a_source():
-    for seat_code, profile in SHIPPED.items():
+    for seat_code, profile in SHIPPED_PROFILES.items():
         for division in profile.divisions:
             assert division.vote in VOTES, seat_code
             # Close to the whole House, and never more than it — see
             # `Division.members_accounted` for why "exactly" is wrong.
-            assert TOTAL_SEATS - 3 <= division.members_accounted <= TOTAL_SEATS, seat_code
+            assert TOTAL_SEATS - MAX_UNACCOUNTED <= division.members_accounted <= TOTAL_SEATS, (
+                seat_code
+            )
             assert division.hansard_url.endswith(division.sitting_date.isoformat()), seat_code
             assert division.hansard_url.startswith("https://hansard.parlimen.gov.my/"), seat_code
             assert division.sitting_date >= profile.term_start, seat_code
 
 
 def test_the_shipped_voting_record_runs_newest_first():
-    for seat_code, profile in SHIPPED.items():
+    for seat_code, profile in SHIPPED_PROFILES.items():
         dates = [d.sitting_date for d in profile.divisions]
         assert dates == sorted(dates, reverse=True), seat_code
 
@@ -273,4 +277,4 @@ def test_the_shipped_pilot_covers_the_seat_its_postcode_index_pilots():
         match.seat_code for matches in load_postcode_seat_index().values() for match in matches
     }
 
-    assert set(SHIPPED) <= indexed
+    assert set(SHIPPED_PROFILES) <= indexed

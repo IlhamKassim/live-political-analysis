@@ -62,6 +62,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import html
 import io
 import json
 import re
@@ -73,7 +74,9 @@ from typing import Any
 
 import httpx
 
-from lpa.mp_profile import TOTAL_SEATS
+from lpa.baseline_loader import coalition_of, split_seat_label
+from lpa.config import load_coalition_config, party_to_coalition
+from lpa.mp_profile import ABSENT, ABSTAIN, AYE, NO, TOTAL_SEATS
 
 OUTPUT_PATH = Path(__file__).resolve().parents[1] / "data" / "mp_profiles.json"
 
@@ -121,15 +124,15 @@ means a whole category was missed in transcription.
 # structured sections after each Division, and together they name all 222
 # Members, which is what makes a per-Member voting record possible at all.
 VOTE_SECTIONS = {
-    "ahli-ahli yang bersetuju:": "aye",
-    "ahli-ahli yang tidak bersetuju:": "no",
-    "ahli-ahli yang tidak mengundi:": "abstain",
-    "ahli-ahli yang tidak hadir:": "absent",
+    "ahli-ahli yang bersetuju:": AYE,
+    "ahli-ahli yang tidak bersetuju:": NO,
+    "ahli-ahli yang tidak mengundi:": ABSTAIN,
+    "ahli-ahli yang tidak hadir:": ABSENT,
 }
 
 # Position -> the `DECLARED_RESULTS` key holding its count, which is also the
 # field name on `lpa.mp_profile.Division`.
-TALLY_KEYS = {"aye": "ayes", "no": "noes", "abstain": "abstentions", "absent": "absent"}
+TALLY_KEYS = {AYE: "ayes", NO: "noes", ABSTAIN: "abstentions", ABSENT: "absent"}
 
 # (sitting date, Hansard heading) -> the Chair's declared result, transcribed
 # by hand from the sitting's Hansard. `ayes`/`noes`/`abstentions`/`absent`
@@ -278,7 +281,6 @@ UNVERIFIED: dict[str, str] = {
     ),
 }
 
-_SEAT_LABEL = re.compile(r"^(P\.\d+)\s+(.*)$")
 _LIST_ENTRY = re.compile(r"\d{1,3}\.\s+[^()]{5,120}\(([^()]{2,50})\)")
 
 
@@ -303,8 +305,14 @@ def _next_payload(client: httpx.Client, url: str) -> Any:
 
 def _next_data(client: httpx.Client, url: str) -> Any:
     """The page props behind a Digital Hansard page."""
-    payload: Any = _next_payload(client, url)["props"]["pageProps"]
-    return payload
+    payload = _next_payload(client, url)
+    try:
+        return payload["props"]["pageProps"]
+    except KeyError as error:
+        raise ValueError(
+            f"no props.pageProps in the Next.js payload at {url} — the portal's shape "
+            "may have changed"
+        ) from error
 
 
 def _get(client: httpx.Client, url: str, attempts: int = 4) -> httpx.Response:
@@ -360,9 +368,9 @@ def fetch_members(client: httpx.Client) -> dict[str, dict[str, str]]:
     else, including its own profile pages; normalised here so a caller never
     has to know which spelling it is holding.
     """
-    html = _get(client, MEMBERS_URL).text
+    body = _get(client, MEMBERS_URL).text
     members = {}
-    for block in re.findall(r"<li>.*?</li>", html, re.S):
+    for block in re.findall(r"<li>.*?</li>", body, re.S):
         href = re.search(r'href="(profile-ahli\.html\?[^"]+)"', block)
         name = re.search(r'<span class="first-name">([^<]+)</span>', block)
         seat = re.search(r'<div class="constituency">(P\d+)</div>', block)
@@ -370,8 +378,8 @@ def fetch_members(client: httpx.Client) -> dict[str, dict[str, str]]:
             continue
         code = f"P.{seat.group(1)[1:]}"
         members[code] = {
-            "name": name.group(1).strip(),
-            "profile_url": f"{PARLIMEN}/{href.group(1).replace('&amp;', '&')}",
+            "name": html.unescape(name.group(1)).strip(),
+            "profile_url": f"{PARLIMEN}/{html.unescape(href.group(1))}",
         }
     if not members:
         raise ValueError(f"no Members parsed from {MEMBERS_URL} — its markup may have changed")
@@ -382,13 +390,15 @@ def fetch_member_details(client: httpx.Client, profile_url: str) -> dict[str, st
     """The labelled fields on a Member's own page in Parliament's directory.
 
     Returned as the page's own Malay labels ("No. Telefon", "Alamat
-    Surat-menyurat"), lower-cased, so a label Parliament adds later shows up
-    rather than being silently dropped by a fixed field list. A field the
+    Surat-menyurat"), lower-cased. Restricted to a fixed set of known labels
+    deliberately: the extraction below is a naive zip of every text cell on
+    the page with the one after it, and without the filter it would pick up
+    nav links and page furniture as spurious label/value pairs. A field the
     page renders as "-" is omitted: that is the page saying it has none.
     """
-    html = _get(client, profile_url).text
-    body = re.sub(r"<(script|style)\b.*?</\1>", "", html, flags=re.S | re.I)
-    cells = [re.sub(r"\s+", " ", c).strip() for c in re.split(r"<[^>]+>", body)]
+    raw = _get(client, profile_url).text
+    body = re.sub(r"<(script|style)\b.*?</\1>", "", raw, flags=re.S | re.I)
+    cells = [html.unescape(re.sub(r"\s+", " ", c)).strip() for c in re.split(r"<[^>]+>", body)]
     cells = [c for c in cells if c]
     details = {}
     for label, value in zip(cells, cells[1:], strict=False):
@@ -412,6 +422,7 @@ def ge15_result(
     candidates: Sequence[Mapping[str, str]],
     results: Sequence[Mapping[str, str]],
     seat_code: str,
+    party_to_coalition_map: Mapping[str, str],
 ) -> tuple[dict[str, Any], str, str]:
     """The winning candidate's GE15 result for one Seat, and who won it.
 
@@ -423,10 +434,10 @@ def ge15_result(
     two has changed shape upstream and every figure derived from them is
     suspect, which is worth stopping for rather than publishing.
     """
-    rows = [c for c in candidates if _split_seat(c["parlimen"])[0] == seat_code]
+    rows = [c for c in candidates if split_seat_label(c["parlimen"])[0] == seat_code]
     if not rows:
         raise ValueError(f"no GE15 candidates for {seat_code}")
-    summary = next((r for r in results if _split_seat(r["parlimen"])[0] == seat_code), None)
+    summary = next((r for r in results if split_seat_label(r["parlimen"])[0] == seat_code), None)
     if summary is None:
         raise ValueError(f"no GE15 result row for {seat_code}")
 
@@ -455,33 +466,14 @@ def ge15_result(
             "vote_share": int(winner["votes"]) / valid_votes,
             "valid_votes": valid_votes,
             "runner_up_votes": int(runner_up["votes"]),
-            "runner_up_coalition": _ballot_coalition(runner_up["party"]),
+            "runner_up_coalition": coalition_of(runner_up["party"], party_to_coalition_map),
             "electors": int(summary["pengundi_jumlah"]),
             "turnout": float(summary["peratus_keluar"]) / 100.0,
+            "source_url": GE15_RESULTS_URL,
         },
         winner["name"],
         winner["party"],
     )
-
-
-def _ballot_coalition(party: str) -> str:
-    """The short code inside a ballot party name: "PERIKATAN NASIONAL (PN)" -> "PN".
-
-    The same reading `lpa.baseline_loader` gives these strings, so a profile
-    and its Seat's Baseline name a Coalition the same way.
-    """
-    match = re.search(r"\(([^)]+)\)\s*$", party.strip())
-    if not match:
-        raise ValueError(f"no short code in ballot party {party!r}")
-    return match.group(1)
-
-
-def _split_seat(label: str) -> tuple[str, str]:
-    """Split a "P.102 Bangi" dataset label into its code and its name."""
-    match = _SEAT_LABEL.match(label.strip())
-    if not match:
-        raise ValueError(f"unrecognised Seat label: {label!r}")
-    return match.group(1), match.group(2).strip()
 
 
 def sitting_dates(client: httpx.Client) -> list[str]:
@@ -491,7 +483,14 @@ def sitting_dates(client: httpx.Client) -> list[str]:
     in irregular blocks, and a range would either miss sittings or fetch
     hundreds of days that never happened.
     """
-    archive = _next_data(client, CATALOGUE_URL)["archive"][TERM]
+    catalogue = _next_data(client, CATALOGUE_URL)
+    try:
+        archive = catalogue["archive"][TERM]
+    except KeyError as error:
+        raise ValueError(
+            f"no archive for Parliament {TERM} at {CATALOGUE_URL} — the portal's shape "
+            "may have changed, or the term number needs updating"
+        ) from error
     dates = []
     for session in sorted((k for k in archive if k.isdigit()), key=int):
         meetings = archive[session]
@@ -533,6 +532,13 @@ def _divisions_in_sitting(page: Mapping[str, Any]) -> dict[str, dict[str, set[st
     the same question put to the same House minutes apart. `DECLARED_RESULTS`
     carries the result the Chair declared in full, and `LIST_TOLERANCE`
     absorbs the few Members who moved between the two.
+
+    A section heading is recorded even when it names nobody — a genuinely
+    empty position (nobody voted no) looks the same as a name-list format
+    this pipeline can no longer parse, and `_check_declared` is what tells
+    the two apart: it checks the declared count for the same position, so a
+    real 0 passes and a parse failure against a nonzero declared count does
+    not silently disappear here.
     """
     found: dict[str, dict[str, set[str]]] = {}
     for path, speech in _walk(page["speeches"]):
@@ -542,8 +548,6 @@ def _divisions_in_sitting(page: Mapping[str, Any]) -> dict[str, dict[str, set[st
         if position is None:
             continue
         seats = {m.strip() for m in _LIST_ENTRY.findall(speech.get("speech") or "")}
-        if not seats:
-            continue
         subject = " > ".join(path[:-1])
         found.setdefault(subject, {}).setdefault(position, set()).update(seats)
     return found
@@ -614,11 +618,12 @@ def _check_declared(
         )
     for position, expected in counts.items():
         listed = len(positions.get(position, set()))
-        if listed and abs(listed - expected) > LIST_TOLERANCE:
+        if abs(listed - expected) > LIST_TOLERANCE:
             raise ValueError(
                 f"{sitting} ({subject!r}): the Chair declared {expected} {position}, but "
                 f"Hansard lists {listed} names there — too far apart to be a "
-                "transcription artefact."
+                "transcription artefact. A declared 0 correctly needs 0 names listed, so "
+                "this also catches a list Hansard's markup changed too much to parse."
             )
 
 
@@ -630,12 +635,12 @@ def bill_sponsors(client: httpx.Client) -> set[str]:
     Menteri Kewangan"), so what it supports is "this name does not appear",
     which for a backbencher is the answer.
     """
-    html = _get(client, BILLS_URL).text
+    body = _get(client, BILLS_URL).text
     return {
-        re.sub(r"\s+", " ", name).strip()
+        re.sub(r"\s+", " ", html.unescape(name)).strip()
         for name in re.findall(
             r"Dibentang Oleh[^<]*</[^>]*>\s*<[^>]*>\s*:?\s*</[^>]*>\s*<[^>]*>([^<]{5,160})<",
-            html,
+            body,
         )
     }
 
@@ -649,6 +654,7 @@ def build_profile(
     dates: Sequence[str],
     sponsors: set[str],
     term_start: str,
+    party_to_coalition_map: Mapping[str, str],
 ) -> dict[str, Any]:
     """One Seat's profile, with every field traced to the source it came from."""
     if seat_code not in members:
@@ -656,9 +662,15 @@ def build_profile(
     member = members[seat_code]
     details = fetch_member_details(client, member["profile_url"])
 
-    ge15, winner_name, ballot_party = ge15_result(candidates, results, seat_code)
-    seat_name = _split_seat(
-        next(c["parlimen"] for c in candidates if _split_seat(c["parlimen"])[0] == seat_code)
+    ge15, winner_name, ballot_party = ge15_result(
+        candidates, results, seat_code, party_to_coalition_map
+    )
+    seat_name = split_seat_label(
+        next(
+            c["parlimen"]
+            for c in candidates
+            if split_seat_label(c["parlimen"])[0] == seat_code
+        )
     )[1]
 
     if _name_key(winner_name) != _name_key(member["name"]):
@@ -678,14 +690,28 @@ def build_profile(
         )
 
     unverified = dict(UNVERIFIED)
-    bills = sorted(s for s in sponsors if _name_key(member["name"]) in _name_key(s))
-    if not bills:
-        unverified["bills_sponsored"] = (
-            "Checked against Parliament's Bills register "
-            f"({BILLS_URL}), where every Bill of this term was tabled by a Minister or "
-            "Deputy Minister and this Member appears nowhere. Motions a Member files are "
-            "not published as a register at all, so a motion cannot be confirmed either way."
+    matched_tablers = sorted(s for s in sponsors if _name_key(member["name"]) in _name_key(s))
+    if matched_tablers:
+        # bill_sponsors() only confirms whether a name appears in the Bills
+        # register as a tabler — it does not capture the Bill's title, and
+        # MPProfile.bills_sponsored is documented as titles, not names. A
+        # Minister's Seat needs bill_sponsors() extended to record titles
+        # before it can be profiled; shipping the tabler string here would
+        # put a wrong-shaped value on a named person's record, which is
+        # exactly what this pipeline exists to refuse to do.
+        raise NotImplementedError(
+            f"{seat_code}: {member['name']!r} appears in Parliament's Bills register as a "
+            f"tabler ({matched_tablers!r}), but bill_sponsors() does not capture Bill "
+            "titles, only tabler names — extend it to record titles for a match before "
+            "profiling this Seat."
         )
+    bills: list[str] = []
+    unverified["bills_sponsored"] = (
+        "Checked against Parliament's Bills register "
+        f"({BILLS_URL}), where every Bill of this term was tabled by a Minister or "
+        "Deputy Minister and this Member appears nowhere. Motions a Member files are "
+        "not published as a register at all, so a motion cannot be confirmed either way."
+    )
 
     return {
         "name": member["name"],
@@ -742,6 +768,8 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    party_to_coalition_map = party_to_coalition(load_coalition_config())
+
     with httpx.Client(timeout=120.0, follow_redirects=True) as client:
         members = fetch_members(client)
         candidates = fetch_csv(client, GE15_CANDIDATES_URL)
@@ -751,7 +779,15 @@ def main() -> None:
         term_start = args.term_start or dates[0]
         profiles = {
             seat: build_profile(
-                client, seat, members, candidates, results, dates, sponsors, term_start
+                client,
+                seat,
+                members,
+                candidates,
+                results,
+                dates,
+                sponsors,
+                term_start,
+                party_to_coalition_map,
             )
             for seat in SEATS
         }

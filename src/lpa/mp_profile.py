@@ -20,7 +20,7 @@ values is not. See ADR 0009 for what was checked and what was found missing.
 A Division (*belah bahagian*) is a counted vote under Standing Order 46(4),
 and it is not how most Malaysian legislation passes — the ordinary case is a
 voice vote that records no individual position at all. The 15th Parliament
-held twelve across three and a half years. So `divisions` is the MP's
+held ten across three and a half years. So `divisions` is the MP's
 *complete* recorded voting record for the term, not a recent slice, and a
 short list means the Dewan Rakyat rarely divides, never that the ingestion
 missed something.
@@ -178,6 +178,24 @@ class GE15Result:
     `turnout` is taken against, and it moves between elections."""
     turnout: float
     """Ballots issued as a fraction of `electors`."""
+    source_url: str
+    """Where these figures were read, so a reader can check them directly."""
+
+    def __post_init__(self) -> None:
+        if self.majority != self.votes - self.runner_up_votes:
+            raise ValueError(
+                f"majority {self.majority} does not equal votes {self.votes} minus "
+                f"runner_up_votes {self.runner_up_votes} — this is exactly the check "
+                "runner_up_votes exists to make possible, see its docstring"
+            )
+        expected_share = self.votes / self.valid_votes
+        if abs(self.vote_share - expected_share) > 1e-9:
+            raise ValueError(
+                f"vote_share {self.vote_share} does not equal votes {self.votes} / "
+                f"valid_votes {self.valid_votes} ({expected_share})"
+            )
+        if not 0 <= self.turnout <= 1:
+            raise ValueError(f"turnout {self.turnout} is not a fraction between 0 and 1")
 
 
 @dataclass(frozen=True)

@@ -314,6 +314,7 @@ def _ge15_result(values: Mapping[str, Any]) -> GE15Result:
         runner_up_coalition=values["runner_up_coalition"],
         electors=values["electors"],
         turnout=values["turnout"],
+        source_url=values["source_url"],
     )
 
 

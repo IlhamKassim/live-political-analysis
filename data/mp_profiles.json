@@ -44,7 +44,8 @@
         "runner_up_votes": 71867,
         "runner_up_coalition": "PN",
         "electors": 303430,
-        "turnout": 0.8133506904393105
+        "turnout": 0.8133506904393105,
+        "source_url": "https://raw.githubusercontent.com/Thevesh/analysis-election-msia/main/data/results_parlimen_ge15.csv"
       },
       "contact": {
         "address": "67A, Tingkat 1, Taman Sri Reko, Jalan Reko, 43000 Kajang, Selangor",

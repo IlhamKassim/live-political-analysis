@@ -47,14 +47,16 @@ def build_seat_baselines(
     under; a party absent from the map keeps its own bracketed short code, so a
     minor party is never merged into a bloc it does not belong to.
     """
-    demographics_by_seat = {_split_seat(row["parlimen"])[0]: _demographics(row) for row in census}
+    demographics_by_seat = {
+        split_seat_label(row["parlimen"])[0]: _demographics(row) for row in census
+    }
 
     votes: dict[str, dict[Coalition, float]] = {}
     seats: dict[str, tuple[str, str]] = {}
     for row in candidates:
-        code, name = _split_seat(row["parlimen"])
+        code, name = split_seat_label(row["parlimen"])
         seats[code] = (name, row["state"])
-        coalition = _coalition_of(row["party"], party_to_coalition)
+        coalition = coalition_of(row["party"], party_to_coalition)
         tally = votes.setdefault(code, {})
         tally[coalition] = tally.get(coalition, 0.0) + float(row["votes"])
 
@@ -74,15 +76,26 @@ def build_seat_baselines(
     return baselines
 
 
-def _split_seat(parlimen: str) -> tuple[str, str]:
-    """Split a "P.001 Padang Besar" label into its code and its name."""
+def split_seat_label(parlimen: str) -> tuple[str, str]:
+    """Split a "P.001 Padang Besar" label into its code and its name.
+
+    Shared with `scripts/build_mp_profiles.py`, which reads the same Thevesh
+    Theva dataset for a different purpose — one parser for the label's shape,
+    so the two never drift apart on what counts as a valid one.
+    """
     match = _SEAT.match(parlimen.strip())
     if not match:
         raise ValueError(f"unrecognised Seat label: {parlimen!r}")
     return match.group(1), match.group(2).strip()
 
 
-def _coalition_of(party: str, party_to_coalition: Mapping[str, Coalition]) -> Coalition:
+def coalition_of(party: str, party_to_coalition: Mapping[str, Coalition]) -> Coalition:
+    """A ballot party's Coalition: the configured rollup, or its own short code.
+
+    Shared with `scripts/build_mp_profiles.py`'s runner-up lookup — the same
+    rollup a Seat's `SeatBaseline` uses, so a profile's `runner_up_coalition`
+    can never name a Coalition its own Seat's Baseline disagrees with.
+    """
     if party in party_to_coalition:
         return party_to_coalition[party]
     match = _SHORT_CODE.search(party.strip())
