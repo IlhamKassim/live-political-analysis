@@ -66,7 +66,9 @@ def test_the_language_toggle_marks_the_current_language_and_links_the_other():
 
     ms_page = render_header(active_nav="home", language=Language.MS, page_path="bills.html")
     assert 'href="/politikku/bills.html">EN</a>' in ms_page
-    assert 'class="lang-current" href="/politikku/ms/bills.html" aria-current="page">BM</a>' in ms_page
+    assert (
+        'class="lang-current" href="/politikku/ms/bills.html" aria-current="page">BM</a>' in ms_page
+    )
 
 
 def test_the_trust_strip_states_sources_singular_and_plural_correctly():
