@@ -375,6 +375,33 @@ _CSS = """
     --radius-sm: 3px;
     --radius-md: 4px;
     --radius-lg: 5px;
+
+    /* Spacing — README's "Spacing" section. Only the two constants this
+       ticket's own components actually need are promoted to tokens: the
+       horizontal gutter, held constant across every band regardless of
+       section (only the vertical padding varies 38–46px/22–28px per
+       section, which is a per-section design call, not a shared constant),
+       and the 4px base unit, named here for later pages to build multiples
+       of rather than inventing their own increment. */
+    --space-unit: 4px;
+    --gutter-desktop: 30px;
+    --gutter-mobile:  18px;
+
+    /* Typography — README's "Typography" role table. Only the two roles
+       given as an exact desktop/mobile pair are promoted (Landing hero,
+       Page h1) — #74/#75 will use these directly. The other roles (Section
+       h2, Card h3, Body, Caption) are given as ranges (e.g. 13.5–15px),
+       and this ticket's own header/trust-strip/footer sizes are drawn from
+       the id=1a inline styles, not from that range table, and don't map
+       onto it cleanly (the footer statement paragraph is 12.5px, smaller
+       than the Body role's own stated 13.5–15px floor) — turning an
+       inconsistent source into one false-precise token per role would
+       assert a system the handoff itself doesn't have, so those stay as
+       literal values at their point of use. */
+    --text-hero-desktop: 58px;
+    --text-hero-mobile:  38px;
+    --text-h1-desktop:   44px;
+    --text-h1-mobile:    34px;
   }
 
   * { box-sizing: border-box; }
@@ -394,7 +421,7 @@ _CSS = """
     background: var(--ink);
     color: var(--paper);
     height: 56px;
-    padding: 0 30px;
+    padding: 0 var(--gutter-desktop);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -433,7 +460,7 @@ _CSS = """
   .pk-trust-strip {
     background: var(--paper-alt);
     border-bottom: 1px solid var(--line);
-    padding: 9px 30px;
+    padding: 9px var(--gutter-desktop);
     display: flex;
     gap: 22px;
     align-items: center;
@@ -451,7 +478,7 @@ _CSS = """
   .pk-footer {
     background: var(--ink);
     color: var(--on-dark-body);
-    padding: 30px;
+    padding: var(--gutter-desktop);
     display: grid;
     grid-template-columns: 1.4fr 1fr 1fr;
     gap: 36px;
@@ -495,7 +522,7 @@ _CSS = """
   }
 
   @media (max-width: 900px) {
-    .pk-header { padding: 0 18px; height: 52px; }
+    .pk-header { padding: 0 var(--gutter-mobile); height: 52px; }
     .pk-header-left { gap: 12px; }
     .pk-nav { display: none; }
     .pk-nav-mobile { display: block; }
@@ -511,7 +538,7 @@ _CSS = """
     .pk-nav-mobile summary span { height: 1.5px; background: var(--paper); display: block; }
     .pk-nav-mobile nav {
       position: absolute;
-      right: 18px;
+      right: var(--gutter-mobile);
       top: 52px;
       background: var(--ink);
       border: 1px solid rgba(251, 250, 247, .18);
@@ -521,9 +548,9 @@ _CSS = """
       flex-direction: column;
       z-index: 10;
     }
-    .pk-nav-mobile nav a { padding: 10px 18px; font-size: 13px; }
+    .pk-nav-mobile nav a { padding: 10px var(--gutter-mobile); font-size: 13px; }
 
-    .pk-trust-strip { padding: 8px 18px; font-size: 10.5px; }
+    .pk-trust-strip { padding: 8px var(--gutter-mobile); font-size: 10.5px; }
     .pk-trust-full { display: none; }
     .pk-trust-condensed { display: inline; }
     .pk-trust-link { margin-left: auto; }
@@ -531,7 +558,7 @@ _CSS = """
     .pk-footer {
       grid-template-columns: 1fr;
       gap: 24px;
-      padding: 22px 18px;
+      padding: 22px var(--gutter-mobile);
     }
   }
 """
