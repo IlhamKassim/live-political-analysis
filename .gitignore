@@ -28,6 +28,25 @@ public/projection.csv
 # same reasoning again.
 public/cards/
 
+# PolitikKu's own pages (#74/#75/#79) and their generated data — same
+# reasoning as public/index.html above: rendered by `python -m
+# lpa.politikku_homepage`/`politikku_landing`/`politikku_mp_profile`, not
+# carried in the repo. Never had an explicit entry until #77 added
+# lookup.js/lookup-index.json alongside them, which is also when this gap
+# (the earlier three pages relying on nobody ever `git add -A`-ing them)
+# was noticed and closed.
+public/politikku/index.html
+public/politikku/landing.html
+public/politikku/mp/
+public/politikku/data/
+
+# ts/src/lookup.ts's compiled output (#77, `node build.mjs`) — generated,
+# not committed, the same call already made for the Python-rendered pages
+# above. ts/ itself (source, package.json, tests) is tracked normally.
+public/politikku/lookup.js
+public/politikku/lookup.js.map
+node_modules/
+
 # public/learn/ is different: hand-authored content pages (#26/#27/#28), not
 # generated. They are tracked so the daily Action's checkout has them to
 # publish alongside the freshly-rendered index.html — see daily.yml's

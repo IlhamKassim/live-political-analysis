@@ -12,6 +12,15 @@ The dashboard's party-colour tokens (`--ph`/`--pn`/`--bn`/`--gps`/`--grs`)
 have no equivalent here; the handoff is explicit that PolitikKu carries no
 party colours at all.
 
+`render_shell` also loads `/politikku/lookup.js` — the compiled output of
+`ts/src/` (issue #77), the one piece of PolitikKu with real client-side
+state (#70). It is a static module script, harmless on a page with no
+`[data-pk-lookup-form]` (`mountAllLookups()` is a no-op then), so it is
+loaded on every page rather than conditionally per template. Like every
+other PolitikKu page, `public/politikku/lookup.js` is generated, not
+committed — `ts/README.md` (or `ts/package.json`'s `build` script) is
+what produces it, run alongside the Python pages' own build step.
+
 Every value below is taken from `design_handoff_politikku/README.md`'s
 Design Tokens table and the inline styles in `PolitikKu Homepage.dc.html`
 (ids 1a/3a) — this module does not invent a palette. Two deliberate
@@ -314,6 +323,7 @@ def render_shell(
 {trust_strip}
 {body_html}
 {footer}
+<script type="module" src="/politikku/lookup.js"></script>
 </body>
 </html>
 """
@@ -545,6 +555,56 @@ _CSS = """
     border-radius: var(--radius-sm);
     padding: 2px 6px;
   }
+
+  /* The lookup's dynamic results states (#77) — ts/src/dom.ts populates
+     `[data-pk-lookup-results]` (built empty/hidden by #74/#75's own
+     markup) with exactly one of these per `LookupState`. Shared here
+     rather than duplicated per page, the same call already made for
+     `.pk-visually-hidden` above. */
+  .pk-lookup-results { margin-top: 14px; max-width: 490px; }
+  .pk-lookup-skeleton { display: flex; flex-direction: column; gap: 8px; }
+  .pk-lookup-skeleton-bars { display: flex; flex-direction: column; gap: 6px; }
+  .pk-lookup-skeleton-bar {
+    height: 14px; border-radius: var(--radius-sm);
+    background: #e2ded4;
+  }
+  .pk-lookup-skeleton-bar:nth-child(2) { background: #e8e4da; width: 80%; }
+  .pk-lookup-skeleton-bar:nth-child(3) { width: 60%; }
+  .pk-lookup-status { margin: 0; font-size: 12.5px; color: var(--muted); }
+
+  .pk-lookup-ambiguous-heading { margin: 0 0 8px; font-size: 13.5px; color: var(--ink-secondary); }
+  .pk-lookup-candidate-list { display: flex; flex-direction: column; gap: 8px; }
+  .pk-lookup-candidate {
+    display: flex; flex-direction: column; gap: 2px; padding: 10px 14px;
+    border: 1px solid var(--line); border-radius: var(--radius-md);
+    background: var(--white); text-decoration: none;
+  }
+  .pk-lookup-candidate:hover { border-color: var(--line-strong); }
+  .pk-lookup-candidate[aria-disabled="true"] { cursor: default; opacity: .75; }
+  .pk-lookup-candidate-code { font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+  .pk-lookup-candidate-name { font-size: 14px; color: var(--ink); }
+  .pk-lookup-candidate-mp { font-size: 12.5px; color: var(--ink-secondary); }
+  .pk-lookup-footnote { margin: 8px 0 0; font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+
+  .pk-lookup-not-found { padding: 12px 14px; border: 1px solid #c9a86a; border-radius: var(--radius-md); }
+  .pk-lookup-no-match-tag {
+    display: inline-block; font-family: var(--mono); font-size: 10px; letter-spacing: .07em;
+    text-transform: uppercase; color: var(--caution-deep); background: var(--caution-bg);
+    border: 1px solid var(--caution-border); border-radius: var(--radius-sm); padding: 2px 6px;
+  }
+  .pk-lookup-no-match-reason { margin: 8px 0; font-size: 13px; color: var(--ink-secondary); }
+  .pk-lookup-routes { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+  .pk-lookup-routes a { font-size: 13px; }
+
+  .pk-lookup-resolved-link { display: inline-block; font-size: 14.5px; color: var(--accent); }
+  .pk-lookup-resolved-no-profile { margin: 0; font-size: 13.5px; color: var(--ink-secondary); }
+
+  .pk-recent-chip {
+    font-family: var(--sans); font-size: 12.5px; color: var(--ink-secondary);
+    background: var(--white); border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+    padding: 5px 10px; cursor: pointer;
+  }
+  .pk-recent-chip:hover { border-color: var(--ink-secondary); }
 
   @media (max-width: 900px) {
     .pk-header { padding: 0 var(--gutter-mobile); height: 52px; }

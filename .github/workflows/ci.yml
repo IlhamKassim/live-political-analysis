@@ -59,6 +59,44 @@ jobs:
       - name: Test
         run: pytest
 
+  ts-check:
+    # The constituency lookup (#77, ts/) is this repo's one piece of real
+    # client-side tooling (#70) — its own gate, separate from the Python
+    # job above, so a failure in either surfaces on its own job rather than
+    # one masking the other.
+    name: TypeScript lint, type, test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ts
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: ts/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        # Not uploaded anywhere here (daily.yml's own build step does
+        # that) — this just confirms the bundler config itself still
+        # produces output, the same reason ci.yml's Python job runs the
+        # real pytest suite rather than only linting.
+        run: npm run build
+
   secret-scan:
     name: Secret scan
     runs-on: ubuntu-latest
