@@ -29,6 +29,10 @@ interface Refs {
   readonly recentList: HTMLElement | null;
 }
 
+function mpProfileUrl(code: string): string {
+  return `/politikku/mp/${encodeURIComponent(code)}.html`;
+}
+
 function findRefs(container: HTMLElement): Refs | null {
   const form = container.querySelector<HTMLFormElement>("[data-pk-lookup-form]");
   const input = container.querySelector<HTMLInputElement>("[data-pk-lookup-input]");
@@ -43,22 +47,17 @@ function findRefs(container: HTMLElement): Refs | null {
   };
 }
 
-/** Finds every lookup form on the page and mounts a controller for each,
- * sharing one fetch of the client index across all of them. */
+/** Finds every lookup form on the page and mounts a controller for each. */
 export function mountAllLookups(root: ParentNode = document): void {
   const containers = new Set<HTMLElement>();
   for (const form of root.querySelectorAll<HTMLFormElement>("[data-pk-lookup-form]")) {
     const container = form.closest<HTMLElement>("[data-pk-lookup-scope]") ?? form.parentElement;
     if (container) containers.add(container);
   }
-  if (containers.size === 0) return;
-
-  void loadClientIndex().then((index) => {
-    for (const container of containers) mountLookup(container, index);
-  });
+  for (const container of containers) mountLookup(container);
 }
 
-export function mountLookup(container: HTMLElement, index: ClientLookupIndex): void {
+export function mountLookup(container: HTMLElement): void {
   const maybeRefs = findRefs(container);
   if (!maybeRefs) return;
   const refs: Refs = maybeRefs;
@@ -67,16 +66,32 @@ export function mountLookup(container: HTMLElement, index: ClientLookupIndex): v
 
   function setModel(next: LookupModel): void {
     model = next;
-    render(refs, model, index);
+    render(refs, model, resetToIdle);
+  }
+
+  function resetToIdle(): void {
+    refs.input.value = "";
+    refs.input.focus();
+    setModel(transition(model, { type: "reset" }));
   }
 
   refs.form.addEventListener("submit", (event) => {
     event.preventDefault();
     const query = refs.input.value;
     setModel(transition(model, { type: "submitQuery", query }));
-    const result = resolveQuery(query, index);
-    if (result.kind === "resolved") recordRecentSeat({ code: result.seat.code, name: result.seat.name });
-    setModel(transition(model, { type: "resolved", result }));
+    // Awaited here, not before mounting: this is the module's one real
+    // network read, so the `searching` skeleton's status text ("Reading
+    // the boundary index in your browser") is only ever shown while this
+    // is genuinely still pending — usually never, once the index is
+    // cached from an earlier lookup on the page.
+    void loadClientIndex().then((index) => {
+      const result = resolveQuery(query, index);
+      if (result.kind === "resolved") {
+        recordRecentSeat({ code: result.seat.code, name: result.seat.name });
+      }
+      setModel(transition(model, { type: "resolved", result }));
+      if (result.kind === "resolved") renderRecentChips(refs, index);
+    });
   });
 
   refs.locateButton?.addEventListener("click", () => {
@@ -86,8 +101,7 @@ export function mountLookup(container: HTMLElement, index: ClientLookupIndex): v
     });
   });
 
-  renderRecentChips(refs, index);
-  render(refs, model, index);
+  void loadClientIndex().then((index) => renderRecentChips(refs, index));
 }
 
 function renderRecentChips(refs: Refs, index: ClientLookupIndex): void {
@@ -109,7 +123,16 @@ function renderRecentChips(refs: Refs, index: ClientLookupIndex): void {
   );
 }
 
-function render(refs: Refs, model: LookupModel, index: ClientLookupIndex): void {
+function render(refs: Refs, model: LookupModel, onSearchByName: () => void): void {
+  // README: "the input border turns #c9a86a" for a text-query no-match —
+  // the search field itself, not just the results area. Only for
+  // `not-in-index`: a geolocation reason didn't come from anything typed
+  // into this input, so it has nothing to flag.
+  refs.input.classList.toggle(
+    "pk-lookup-input-error",
+    model.state === "notFound" && model.result?.kind === "notFound" && model.result.reason === "not-in-index",
+  );
+
   if (!refs.results) return;
   refs.results.hidden = model.state === "idle";
   refs.results.replaceChildren();
@@ -129,13 +152,12 @@ function render(refs: Refs, model: LookupModel, index: ClientLookupIndex): void 
       return;
     case "notFound":
       if (model.result?.kind === "notFound") {
-        refs.results.append(notFoundView(model.result.reason));
+        refs.results.append(notFoundView(model.result.reason, onSearchByName));
       }
       return;
     case "resolved":
       if (model.result?.kind === "resolved") {
         refs.results.append(resolvedView(model.result.seat));
-        renderRecentChips(refs, index);
       }
       return;
   }
@@ -182,7 +204,7 @@ function ambiguousView(candidates: readonly LookupSeat[]): HTMLElement {
 function candidateRow(seat: LookupSeat): HTMLElement {
   const row = document.createElement("a");
   row.className = "pk-lookup-candidate";
-  row.href = seat.hasProfile ? `/politikku/mp/${encodeURIComponent(seat.code)}.html` : "#";
+  row.href = seat.hasProfile ? mpProfileUrl(seat.code) : "#";
   if (!seat.hasProfile) {
     row.setAttribute("aria-disabled", "true");
     row.addEventListener("click", (event) => event.preventDefault());
@@ -208,7 +230,18 @@ const NO_MATCH_COPY: Record<NoMatchReason, string> = {
     "Location was read, but this pilot has no boundary data yet to match it to a Seat — try a postcode or constituency name instead.",
 };
 
-function notFoundView(reason: NoMatchReason): HTMLElement {
+// README's "No match" state names four routes out — three named links plus
+// "a public corrections link" — and requires "search by name" to be a real
+// route, not decoration. There is no third-party corrections form to point
+// at (this pilot's postcode index is this project's own, open-source
+// data), so the corrections link goes to this repo's own issue tracker —
+// the same "fork it, disagree with it" openness the landing page already
+// states, applied to the one dataset a member of the public could
+// concretely find wrong.
+const CORRECTIONS_URL =
+  "https://github.com/IlhamKassim/live-political-analysis/issues/new?title=Postcode%20index%20correction";
+
+function notFoundView(reason: NoMatchReason, onSearchByName: () => void): HTMLElement {
   const el = document.createElement("div");
   el.className = "pk-lookup-not-found";
   const tag = document.createElement("span");
@@ -221,10 +254,22 @@ function notFoundView(reason: NoMatchReason): HTMLElement {
   if (reason === "not-in-index") {
     const routes = document.createElement("ul");
     routes.className = "pk-lookup-routes";
+
+    const searchByName = document.createElement("li");
+    const searchByNameLink = document.createElement("a");
+    searchByNameLink.href = "#";
+    searchByNameLink.textContent = "Search by name";
+    searchByNameLink.addEventListener("click", (event) => {
+      event.preventDefault();
+      onSearchByName();
+    });
+    searchByName.append(searchByNameLink);
+    routes.append(searchByName);
+
     for (const [label, href] of [
-      ["Search by name", "#"],
       ["Browse all 222 Seats", "/"],
       ["Check registration with SPR", "https://daftarj.spr.gov.my/"],
+      ["Report a mistake in this index", CORRECTIONS_URL],
     ] as const) {
       const li = document.createElement("li");
       const a = document.createElement("a");
@@ -244,7 +289,7 @@ function resolvedView(seat: LookupSeat): HTMLElement {
   if (seat.hasProfile) {
     const link = document.createElement("a");
     link.className = "pk-lookup-resolved-link";
-    link.href = `/politikku/mp/${encodeURIComponent(seat.code)}.html`;
+    link.href = mpProfileUrl(seat.code);
     link.textContent = `${seat.name} — see your MP →`;
     el.append(link);
   } else {

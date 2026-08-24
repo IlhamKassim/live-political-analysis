@@ -587,6 +587,11 @@ _CSS = """
   .pk-lookup-footnote { margin: 8px 0 0; font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
 
   .pk-lookup-not-found { padding: 12px 14px; border: 1px solid #c9a86a; border-radius: var(--radius-md); }
+  /* README: "the input border turns #c9a86a" for a text-query no-match —
+     the field itself, not just the results area below it. Higher
+     specificity than each page's own `.pk-lookup-form input` rule so the
+     colour wins regardless of source order. */
+  .pk-lookup-form input.pk-lookup-input-error { border-color: #c9a86a; }
   .pk-lookup-no-match-tag {
     display: inline-block; font-family: var(--mono); font-size: 10px; letter-spacing: .07em;
     text-transform: uppercase; color: var(--caution-deep); background: var(--caution-bg);
