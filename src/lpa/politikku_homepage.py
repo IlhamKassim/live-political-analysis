@@ -145,7 +145,7 @@ def homepage_model(
         updated_at=page.computed_at,
         sources_count=len(page.sources),
         status=page.status,
-        hemicycle=_hemicycle_counts(page),
+        hemicycle=hemicycle_counts(page),
         government_seats=page.government_seats,
         total_seats=page.total_seats,
         majority_threshold=page.majority_threshold,
@@ -159,7 +159,7 @@ def homepage_model(
     )
 
 
-def _hemicycle_counts(page: PageModel) -> HemicycleCounts:
+def hemicycle_counts(page: PageModel) -> HemicycleCounts:
     """The dashboard's per-Seat tiers, tallied into the hemicycle's
     Government clear / within model noise / Non-government clear split —
     the BM key-pair table's own wording for the three bands."""
@@ -382,10 +382,6 @@ def render_homepage(model: HomepageModel, *, language: Language = Language.EN) -
 
 
 _CSS = """
-  .pk-visually-hidden {
-    position: absolute; width: 1px; height: 1px; overflow: hidden;
-    clip: rect(0 0 0 0); white-space: nowrap;
-  }
   .pk-eyebrow {
     font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
     text-transform: uppercase; color: var(--ink-secondary);

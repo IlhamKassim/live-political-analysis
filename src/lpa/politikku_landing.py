@@ -57,7 +57,8 @@ from sqlalchemy.engine import Engine
 from lpa.bill_tracker import Bill
 from lpa.domain import Coalition, ElectionStatus
 from lpa.mp_profile import MPProfile
-from lpa.politikku_homepage import SentimentRow, sentiment_rows
+from lpa.politikku_hemicycle import HemicycleCounts, Palette, render_hemicycle
+from lpa.politikku_homepage import SentimentRow, hemicycle_counts, sentiment_rows
 from lpa.politikku_shell import LANDING_URL, Language, render_shell, short_date
 from lpa.public_page import PageModel
 from lpa.storage import SentimentSnapshot
@@ -103,6 +104,10 @@ class LandingModel:
     status: ElectionStatus
     total_seats: int
     government_seats: int
+    hemicycle: HemicycleCounts
+    """The hero's background texture (`politikku_hemicycle`'s `DARK_BAND`
+    palette, per #73's own documented reuse) — the same real tally
+    `politikku_homepage.hemicycle_counts` computes, not a second copy."""
     recent_articles: int
     recent_days: int
     """How many days `recent_articles` actually sums — may be fewer than
@@ -147,6 +152,7 @@ def landing_model(
         status=page.status,
         total_seats=page.total_seats,
         government_seats=page.government_seats,
+        hemicycle=hemicycle_counts(page),
         recent_articles=articles,
         recent_days=days,
         cards=(
@@ -324,10 +330,19 @@ def _where_the_line_is_drawn(model: LandingModel) -> str:
 """.strip()
 
 
-def _hero() -> str:
-    return """
+def _hero(model: LandingModel) -> str:
+    # Dark-band palette, no threshold line — #73's own documented reuse for
+    # exactly this ("dark-band variant... reused at opacity .14-.16 as hero
+    # texture on the landing page"), not a decorative shape invented here.
+    texture = render_hemicycle(
+        model.hemicycle,
+        palette=Palette.DARK_BAND,
+        show_threshold=False,
+        css_class="pk-landing-hero-texture",
+    )
+    return f"""
 <section class="pk-landing-hero">
-  <svg class="pk-landing-hero-texture" viewBox="0 0 400 214" aria-hidden="true"></svg>
+  {texture}
   <div class="pk-landing-hero-content">
     <div class="pk-eyebrow pk-eyebrow-on-dark">A public reference for Malaysian politics</div>
     <h1>Know your Seat.<br>Read the Dewan Rakyat.<br>See where GE16 stands.</h1>
@@ -364,7 +379,7 @@ def render_landing_body(model: LandingModel) -> str:
     """The landing page's `body_html`, without the persistent shell."""
     return (
         f"<style>{_CSS}</style>"
-        f"{_hero()}{_stat_strip(model)}{_what_is_inside()}"
+        f"{_hero(model)}{_stat_strip(model)}{_what_is_inside()}"
         f"{_where_the_line_is_drawn(model)}{_search_cta()}"
     )
 
@@ -391,7 +406,6 @@ _CSS = """
   }
   .pk-landing-hero-texture {
     position: absolute; right: -30px; top: 24px; width: 520px; opacity: .16;
-    fill: var(--paper);
   }
   .pk-landing-hero-content { position: relative; max-width: 640px; }
   .pk-landing-hero h1 {
@@ -478,9 +492,15 @@ _CSS = """
     .pk-landing-stats, .pk-landing-inside, .pk-landing-trust, .pk-landing-search-cta {
       padding: 24px var(--gutter-mobile);
     }
+    .pk-landing-stats-status { margin-left: 0; }
     .pk-landing-grid { grid-template-columns: 1fr; }
     .pk-landing-trust { grid-template-columns: 1fr; gap: 24px; }
-    .pk-landing-trust-cards .pk-trust-card:nth-child(n+3) { display: none; }
+    /* README §1: "cut from four rows to one of each" — cards are ordered
+       FACT, FACT, MODEL, MODEL, so the second of each kind (positions 2
+       and 4) is what drops, keeping one FACT + one MODEL, not just the
+       first two children. */
+    .pk-landing-trust-cards .pk-trust-card:nth-child(2),
+    .pk-landing-trust-cards .pk-trust-card:nth-child(4) { display: none; }
     .pk-landing-search-cta { flex-direction: column; align-items: stretch; }
   }
 """

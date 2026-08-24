@@ -525,6 +525,14 @@ _CSS = """
      reused in (this is just a sane block-level default, not a size). */
   .pk-hemicycle { display: block; width: 100%; height: auto; }
 
+  /* Screen-reader-only label text, shared by any page's lookup form —
+     kept here rather than redefined per page (a duplication #74's own
+     review already caught once for a different utility). */
+  .pk-visually-hidden {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
+
   /* NOT CALIBRATED tag, reused by any page built on this shell */
   .pk-tag-modelled {
     font-family: var(--mono);
