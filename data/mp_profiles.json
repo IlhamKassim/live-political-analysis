@@ -1,0 +1,178 @@
+{
+  "_comment": [
+    "One profile per Seat for PolitikKu's constituency lookup (issue #78).",
+    "Pilot slice: P.102 Bangi only — see scripts/build_mp_profiles.py, which",
+    "generated this file, and ADR 0009 for what each source does and does not",
+    "publish. Every optional field left null is named in that profile's",
+    "'unverified' block with the reason; lpa.config.load_mp_profiles refuses to",
+    "load a profile that leaves one unexplained, because an unexplained blank is",
+    "how an invented value gets in. A Division's subject is Hansard's own",
+    "heading, verbatim and in Malay, rather than a translation this pipeline",
+    "invented."
+  ],
+  "_source": {
+    "identity_and_contact": {
+      "name": "Parlimen Malaysia — Ahli Dewan Rakyat directory",
+      "url": "https://www.parlimen.gov.my/ahli-dewan.html?uweb=dr"
+    },
+    "ge15_result": {
+      "name": "Election Commission GE15 candidate and Seat results, via Thevesh Theva's Malaysian election dataset (the Baseline Loader's source)",
+      "candidates_url": "https://raw.githubusercontent.com/Thevesh/analysis-election-msia/main/data/candidates_ge15.csv",
+      "results_url": "https://raw.githubusercontent.com/Thevesh/analysis-election-msia/main/data/results_parlimen_ge15.csv"
+    },
+    "voting_record": {
+      "name": "Dewan Rakyat Hansard, 15th Parliament, via Digital Hansard",
+      "catalogue_url": "https://hansard.parlimen.gov.my/katalog/dewan-rakyat"
+    },
+    "bills": {
+      "name": "Parlimen Malaysia — Rang Undang-Undang register",
+      "url": "https://www.parlimen.gov.my/bills-dewan-rakyat.html?uweb=dr"
+    },
+    "retrieved": "2026-08-24",
+    "generated_by": "scripts/build_mp_profiles.py"
+  },
+  "profiles": {
+    "P.102": {
+      "name": "YB Tuan Syahredzan bin Johan",
+      "coalition": "PH",
+      "term_start": "2022-12-19",
+      "ge15": {
+        "votes": 141568,
+        "majority": 69701,
+        "vote_share": 0.5795055896451363,
+        "valid_votes": 244291,
+        "runner_up_votes": 71867,
+        "runner_up_coalition": "PN",
+        "electors": 303430,
+        "turnout": 0.8133506904393105
+      },
+      "contact": {
+        "address": "67A, Tingkat 1, Taman Sri Reko, Jalan Reko, 43000 Kajang, Selangor",
+        "phone": "03-87401108",
+        "email": "syahredzan.team@gmail.com",
+        "profile_url": "https://www.parlimen.gov.my/profile-ahli.html?uweb=dr&id=4141"
+      },
+      "divisions": [
+        {
+          "sitting_date": "2026-03-02",
+          "subject": "RANG UNDANG-UNDANG > RANG UNDANG-UNDANG PERLEMBAGAAN (PINDAAN) 2026 Bacaan Kali Yang Kedua",
+          "vote": "aye",
+          "hansard_url": "https://hansard.parlimen.gov.my/hansard/dewan-rakyat/2026-03-02",
+          "ayes": 146,
+          "noes": 0,
+          "abstentions": 44,
+          "absent": 32,
+          "outcome": "Kurang daripada dua pertiga majoriti; tidak diluluskan"
+        },
+        {
+          "sitting_date": "2025-11-04",
+          "subject": "RANG UNDANG-UNDANG > RANG UNDANG-UNDANG PERBEKALAN 2026 Bacaan Kali Yang Kedua DAN USUL ANGGARAN PEMBANGUNAN 2026",
+          "vote": "aye",
+          "hansard_url": "https://hansard.parlimen.gov.my/hansard/dewan-rakyat/2025-11-04",
+          "ayes": 120,
+          "noes": 67,
+          "abstentions": 0,
+          "absent": 35,
+          "outcome": "Dibacakan kali kedua"
+        },
+        {
+          "sitting_date": "2025-08-28",
+          "subject": "RANG INDANG-UNDANG > RANG UNDANG-UNDANG PEROLEHAN KERAJAAN 2025 Bacaan Kali Yang Kedua dan Ketiga",
+          "vote": "aye",
+          "hansard_url": "https://hansard.parlimen.gov.my/hansard/dewan-rakyat/2025-08-28",
+          "ayes": 125,
+          "noes": 63,
+          "abstentions": 1,
+          "absent": 32,
+          "outcome": "Dibacakan kali kedua"
+        },
+        {
+          "sitting_date": "2025-03-04",
+          "subject": "RANG UNDANG-UNDANG > RANG UNDANG-UNDANG PERLEMBAGAAN (PINDAAN) 2025 Bacaan Kali Yang Kedua dan Ketiga",
+          "vote": "aye",
+          "hansard_url": "https://hansard.parlimen.gov.my/hansard/dewan-rakyat/2025-03-04",
+          "ayes": 148,
+          "noes": 0,
+          "abstentions": 57,
+          "absent": 17,
+          "outcome": "Melepasi dua pertiga; dibacakan kali ketiga dan diluluskan"
+        },
+        {
+          "sitting_date": "2024-12-11",
+          "subject": "RANG UNDANG-UNDANG > RANG UNDANG-UNDANG KESELAMATAN DALAM TALIAN 2024 Bacaan Kali Yang Kedua dan Ketiga",
+          "vote": "aye",
+          "hansard_url": "https://hansard.parlimen.gov.my/hansard/dewan-rakyat/2024-12-11",
+          "ayes": 77,
+          "noes": 55,
+          "abstentions": 0,
+          "absent": 90,
+          "outcome": "Dibacakan kali kedua dan ketiga"
+        },
+        {
+          "sitting_date": "2024-12-09",
+          "subject": "RANG UNDANG-UNDANG > RANG UNDANG-UNDANG KOMUNIKASI DAN MULTIMEDIA (PINDAAN) 2024 Bacaan Kali Yang Kedua dan Ketiga",
+          "vote": "aye",
+          "hansard_url": "https://hansard.parlimen.gov.my/hansard/dewan-rakyat/2024-12-09",
+          "ayes": 59,
+          "noes": 40,
+          "abstentions": 1,
+          "absent": 122,
+          "outcome": "Dibacakan kali kedua dan ketiga"
+        },
+        {
+          "sitting_date": "2024-10-17",
+          "subject": "RANG UNDANG-UNDANG > RANG UNDANG-UNDANG PERLEMBAGAAN (PINDAAN) 2024 Bacaan Kali Yang Kedua dan Ketiga",
+          "vote": "aye",
+          "hansard_url": "https://hansard.parlimen.gov.my/hansard/dewan-rakyat/2024-10-17",
+          "ayes": 206,
+          "noes": 1,
+          "abstentions": 0,
+          "absent": 14,
+          "outcome": "Melepasi dua pertiga; dibacakan kali kedua dan ketiga"
+        },
+        {
+          "sitting_date": "2024-07-18",
+          "subject": "USUL USUL MENTERI DI JABATAN PERDANA MENTERI DI BAWAH P.M. 27(3) > Penggantungan YB Machang Daripada Perkhidmatan Majlis Mesyuarat dan Jawatankuasa Pilihan Selama Enam (6) Bulan",
+          "vote": "aye",
+          "hansard_url": "https://hansard.parlimen.gov.my/hansard/dewan-rakyat/2024-07-18",
+          "ayes": 110,
+          "noes": 63,
+          "abstentions": 3,
+          "absent": 46,
+          "outcome": "Usul dipersetujui"
+        },
+        {
+          "sitting_date": "2024-06-26",
+          "subject": "RANG UNDANG-UNDANG > RANG UNDANG-UNDANG SURUHANJAYA PENERBANGAN MALAYSIA (PEMBUBARAN) 2024 Bacaan Kali Yang Kedua dan Ketiga",
+          "vote": "aye",
+          "hansard_url": "https://hansard.parlimen.gov.my/hansard/dewan-rakyat/2024-06-26",
+          "ayes": 93,
+          "noes": 63,
+          "abstentions": 0,
+          "absent": 66,
+          "outcome": "Dibacakan kali kedua"
+        },
+        {
+          "sitting_date": "2023-05-25",
+          "subject": "USUL > WAKTU MESYUARAT DAN URUSAN DIBEBASKAN DARIPADA PERATURAN MESYUARAT",
+          "vote": "aye",
+          "hansard_url": "https://hansard.parlimen.gov.my/hansard/dewan-rakyat/2023-05-25",
+          "ayes": 83,
+          "noes": 52,
+          "abstentions": 1,
+          "absent": 86,
+          "outcome": "Usul dipersetujui"
+        }
+      ],
+      "bills_sponsored": [],
+      "attendance": null,
+      "party": null,
+      "unverified": {
+        "party": "No source consulted states the component party. Parliament's Members directory publishes the Coalition ('PH') in its Parti field, and the Election Commission's GE15 record gives the ballot line, which is also the Coalition — component parties contested GE15 under their Coalition's registered logo.",
+        "attendance": "Nobody publishes it. Parliament's Digital Hansard has a per-Member attendance page (hansard.parlimen.gov.my/kehadiran/dewan-rakyat) but it returns HTTP 500 and is absent from the site's own navigation, so the feature is built and not released. Hansard names who was absent from a Division, which is not the same thing and must not be presented as it.",
+        "contact.opening_hours": "Parliament publishes no service-centre hours for any Member; its profile page carries address, telephone, fax and email only.",
+        "bills_sponsored": "Checked against Parliament's Bills register (https://www.parlimen.gov.my/bills-dewan-rakyat.html?uweb=dr), where every Bill of this term was tabled by a Minister or Deputy Minister and this Member appears nowhere. Motions a Member files are not published as a register at all, so a motion cannot be confirmed either way."
+      }
+    }
+  }
+}

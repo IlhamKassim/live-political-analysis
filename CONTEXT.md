@@ -71,6 +71,14 @@ from `data/postcode_seat_index.json`; see ADR 0008 for how it is sourced and
 `scripts/build_postcode_seat_index.py` for how it is built.
 _Avoid_: treating a postcode as if it names exactly one Seat.
 
+**MP Profile**:
+The sitting Member for a Seat and their record this term — identity, Coalition, GE15 result, contact details, Divisions voted in, Bills sponsored (#78). Built in `lpa.mp_profile`/`lpa.config.load_mp_profiles` from `data/mp_profiles.json`; see ADR 0009 for what each official source does and does not publish. A field with no value must say why it has none: the profile carries an `unverified` block naming every unset field and the reason, and the loader rejects a profile that leaves one unexplained. The Member is identified by `seat_code` alone — name, state and demographics for the Seat live on its Baseline.
+_Avoid_: Politician, representative (use MP, or Member, matching Parliament's own usage); filling a blank with a plausible value rather than recording why it is blank.
+
+**Division**:
+A counted vote in the Dewan Rakyat (*belah bahagian*, Standing Order 46(4)), in which Hansard names every Member as agreeing, disagreeing, abstaining or absent. The only per-Member voting record that exists in Malaysia, and a rare event — most legislation passes on a voice vote that records no individual position at all, and the 15th Parliament held ten Divisions in three and a half years. A short voting record therefore reflects the House, not a gap in ingestion.
+_Avoid_: Vote (too broad — a voice vote is a vote and records nobody), roll call.
+
 **Audience**:
 Younger Malaysians who first encounter this project's content secondhand — a shared Seat Call card, a screenshot, a repost — rather than by navigating to the dashboard directly, and who are not already politically engaged. The target for #22 (site-literacy) and #23 (shareable cards). Distinct from an existing politically-engaged reader who would seek the dashboard out regardless.
 _Avoid_: Users, readers (both too generic — use Audience when the younger, secondhand-discovery reader is specifically meant)
