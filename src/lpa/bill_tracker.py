@@ -42,11 +42,14 @@ never typed twice where it could drift.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date
 
 from lpa.mp_profile import TOTAL_SEATS
+
+_CODE_YEAR = re.compile(r"^D\.R\.\s*\d+/(\d{4})$")
 
 
 @dataclass(frozen=True)
@@ -113,6 +116,18 @@ class Bill:
     `lpa.config.load_bills` the same way `lpa.mp_profile` checks a profile:
     an unset field with no reason is rejected rather than shipped.
     """
+
+    def __post_init__(self) -> None:
+        match = _CODE_YEAR.match(self.code)
+        if not match:
+            raise ValueError(f'{self.code!r} is not a Dewan Rakyat Bill reference ("D.R.N/YYYY")')
+        code_year = int(match.group(1))
+        if code_year != self.year:
+            raise ValueError(
+                f"{self.code} names year {code_year} but year={self.year} — `code` and "
+                "`year` are two copies of the same fact, and this pipeline exists to "
+                "catch exactly this kind of disagreement rather than pick one"
+            )
 
 
 OPTIONAL_FIELDS = ("division",)

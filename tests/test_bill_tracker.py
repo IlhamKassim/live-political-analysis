@@ -184,3 +184,43 @@ def test_the_shipped_bills_carry_at_least_one_with_a_division_and_one_without():
     has_division = [c for c, b in SHIPPED_BILLS.items() if b.division is not None]
     no_division = [c for c, b in SHIPPED_BILLS.items() if b.division is None]
     assert has_division and no_division
+
+
+def test_every_shipped_division_is_derived_from_mp_profiles_not_retyped():
+    # ADR 0010's central claim: a Bill's Division tally is read from
+    # data/mp_profiles.json, not re-transcribed by hand into bills.json. If
+    # the two ever drifted, this is the test that would catch it.
+    from lpa.config import load_mp_profiles
+
+    p102_divisions = {
+        (d.sitting_date, d.ayes, d.noes, d.abstentions, d.absent, d.outcome, d.hansard_url)
+        for d in load_mp_profiles()["P.102"].divisions
+    }
+    for code, bill in SHIPPED_BILLS.items():
+        if bill.division is None:
+            continue
+        key = (
+            bill.division.sitting_date,
+            bill.division.ayes,
+            bill.division.noes,
+            bill.division.abstentions,
+            bill.division.absent,
+            bill.division.outcome,
+            bill.division.hansard_url,
+        )
+        assert key in p102_divisions, f"{code}: division tally has no match in mp_profiles.json"
+
+
+def test_every_shipped_no_division_reason_matches_the_bills_own_stage():
+    # Regression: an earlier version of build_bill() applied one hard-coded
+    # "passed on a voice vote" reason to every division-less Bill regardless
+    # of stage, which was false for a Bill still in committee. A Bill that
+    # has not reached "Lulus" cannot correctly be said to have "passed".
+    for code, bill in SHIPPED_BILLS.items():
+        if bill.division is not None:
+            continue
+        reason = bill.unverified["division"].lower()
+        if bill.stage != "Lulus":
+            assert "passed" not in reason, (
+                f"{code}: stage is {bill.stage!r} but reason claims passage"
+            )

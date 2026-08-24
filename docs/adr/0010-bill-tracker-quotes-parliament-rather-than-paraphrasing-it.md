@@ -83,8 +83,8 @@ one of them still short of a second reading). Chosen to exercise both
 shapes of the schema rather than to be representative of the register's
 full size. Scaling to the whole register means repeating the parse against
 more of it (untested past the register's default two-year view) and,
-should a Bill's Division fall outside the fifteen the Parliament term has
-had recorded, transcribing a new one the way ADR 0009's `DECLARED_RESULTS`
+should a Bill's Division fall outside the ten the Parliament term has had
+recorded, transcribing a new one the way ADR 0009's `DECLARED_RESULTS`
 does — neither is free, and both are follow-up work under #80.
 
 **Trade-off accepted**: `pypdf` is a new dependency, added under a `bills`

@@ -8,14 +8,14 @@ register offers no feed to poll for a diff.
 
 1. **Title, year, stage and stage date** — Parliament's own Bills register
    (`www.parlimen.gov.my/bills-dewan-rakyat.html?uweb=dr`), the same page
-   `lpa.mp_profile`'s `bill_sponsors()` reads for a different purpose. Parsed
-   by splitting on each `<tr class="maintable">` row rather than by
-   flattening the page to text first: the register embeds every row's detail
-   popup inline as a sibling `<div>`, and flattening scrambles which popup
-   belongs to which row — this pipeline got that wrong once during
-   development (two different Bills' tabling ministers swapped) before
-   switching to a row-scoped parse. `_parse_register` is checked against
-   this failure mode by `tests/test_bill_tracker.py`.
+   `scripts/build_mp_profiles.py`'s `bill_sponsors()` reads for a different
+   purpose. Parsed by splitting on each `<tr class="maintable">` row rather
+   than by flattening the page to text first: the register embeds every
+   row's detail popup inline as a sibling `<div>`, and flattening scrambles
+   which popup belongs to which row — this pipeline got that wrong once
+   during development (two different Bills' tabling ministers swapped)
+   before switching to a row-scoped parse. `parse_register` is checked
+   against this failure mode by `tests/test_bill_tracker.py`.
 2. **The plain-language summary** — a verbatim excerpt of each Bill's own
    "HURAIAN" (Explanation) section, read from the Bill's own PDF (linked
    from the register). See `lpa.bill_tracker`'s module docstring for why
@@ -45,6 +45,7 @@ import re
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -100,7 +101,20 @@ def parse_register(html: str) -> dict[str, dict[str, Any]]:
     rows = re.split(r'<tr class="maintable">', html)[1:]
     if not rows:
         raise ValueError("no Bill rows parsed from the register — its markup may have changed")
-    return {row["code"]: row for row in (_parse_row(r) for r in rows) if row["code"]}
+    parsed = [_parse_row(r) for r in rows]
+    bills = {row["code"]: row for row in parsed if row["code"]}
+    for code, row in bills.items():
+        missing = [
+            field
+            for field in ("year", "title", "status", "pdf_path")
+            if row[field] is None
+        ]
+        if missing:
+            raise ValueError(
+                f"{code}: could not parse {', '.join(missing)} from its register row — "
+                "the markup may have changed"
+            )
+    return bills
 
 
 def _parse_row(row: str) -> dict[str, Any]:
@@ -116,7 +130,9 @@ def _parse_row(row: str) -> dict[str, Any]:
     year = re.search(r'<td align="center" class="maintd">\s*(\d{4})\s*</td>', row)
     title = re.search(r'<td class="maintd">\s*([^<]+?)\s*(?:<|$)', row)
     status = re.search(r'class="parent ruustatus\d+" id="row\d+">([^<]+)<', row)
-    pdf = re.search(r"loadResult\('([^']+\.pdf)'", row)
+    # Case-insensitive: at least one row on the live register links a ".PDF"
+    # (a Windows 8.3 short filename, "RUULAN~1.PDF") rather than ".pdf".
+    pdf = re.search(r"loadResult\('([^']+\.pdf)'", row, re.IGNORECASE)
 
     return {
         "code": _clean(code.group(1)) if code else None,
@@ -144,7 +160,16 @@ def _parse_date(raw: str | None) -> date | None:
 
 
 def stage_date(row: dict[str, Any]) -> date:
-    """The date of a Bill's current stage: its most recent milestone."""
+    """The date of a Bill's current stage.
+
+    Takes the first of (passed, referred to JKPK, second reading, first
+    reading) that has a date — a fixed priority order, not a computed
+    maximum. The two agree for every ordinary path a Bill takes, where each
+    milestone strictly follows the last; they could disagree for a Bill
+    referred to a Special Select Committee *after* a second reading, a path
+    this pilot's four Bills do not exercise and this function does not
+    claim to handle correctly.
+    """
     for key in ("passed", "referred_jkpk", "second_reading", "first_reading"):
         parsed = _parse_date(row[key])
         if parsed is not None:
@@ -178,7 +203,7 @@ def fetch_summary(client: httpx.Client, pdf_path: str) -> tuple[str, str]:
     """
     import pypdf
 
-    url = f"{PARLIMEN}{pdf_path}"
+    url = f"{PARLIMEN}{quote(pdf_path)}"
     response = client.get(url)
     response.raise_for_status()
     reader = pypdf.PdfReader(io.BytesIO(response.content))
@@ -197,19 +222,23 @@ def fetch_summary(client: httpx.Client, pdf_path: str) -> tuple[str, str]:
     )
 
 
-def load_division_tallies(seat_code: str = "P.102") -> dict[str, dict[str, Any]]:
-    """Every Division already shipped for `seat_code`, keyed by its subject.
+def load_division_tallies() -> dict[str, dict[str, Any]]:
+    """Every Division already shipped for P.102, keyed by its subject.
 
-    Reads the already-verified `data/mp_profiles.json` (#78) rather than
-    Hansard directly — see the module docstring for why re-deriving these
-    tallies here would risk the same fact disagreeing with itself in two
-    files.
+    P.102 Bangi because that is the only Seat #78's pilot populated — reads
+    the already-verified `data/mp_profiles.json` rather than Hansard
+    directly, since re-deriving these tallies here would risk the same fact
+    disagreeing with itself in two files (see the module docstring). A
+    second populated Seat would need this to take a Seat code; there is no
+    second one yet, so it does not.
     """
     config = json.loads(MP_PROFILES_PATH.read_text())
-    return {d["subject"]: d for d in config["profiles"][seat_code]["divisions"]}
+    return {d["subject"]: d for d in config["profiles"]["P.102"]["divisions"]}
 
 
-def build_bill(row: dict[str, Any], summary: str, summary_url: str, division: dict[str, Any] | None) -> dict[str, Any]:
+def build_bill(
+    row: dict[str, Any], summary: str, summary_url: str, division: dict[str, Any] | None
+) -> dict[str, Any]:
     entry: dict[str, Any] = {
         "title": row["title"],
         "year": row["year"],
@@ -231,15 +260,32 @@ def build_bill(row: dict[str, Any], summary: str, summary_url: str, division: di
         entry["unverified"] = {}
     else:
         entry["division"] = None
-        entry["unverified"] = {
-            "division": (
-                "Not among the 15th Parliament's ten recorded Divisions (see "
-                "data/mp_profiles.json and ADR 0009) — this Bill passed on a voice "
-                "vote, which Hansard records as a decision with no individual "
-                "position taken."
-            )
-        }
+        entry["unverified"] = {"division": _no_division_reason(row)}
     return entry
+
+
+def _no_division_reason(row: dict[str, Any]) -> str:
+    """Why this Bill has no Division — checked against its actual stage.
+
+    A Bill only reaches a vote once it is read a second time, so "passed on
+    a voice vote" is true only when it has, in fact, passed; a Bill still
+    awaiting a second reading or sitting with a Special Select Committee
+    (JKPK) has not reached a point where a Division could have happened at
+    all, and saying otherwise would be exactly the false-blank failure this
+    pipeline's `unverified` discipline exists to prevent.
+    """
+    if row["status"] == "Lulus":
+        return (
+            "Not among the 15th Parliament's ten recorded Divisions (see "
+            "data/mp_profiles.json and ADR 0009) — this Bill passed on a voice "
+            "vote, which Hansard records as a decision with no individual "
+            "position taken."
+        )
+    return (
+        f'Still at the "{row["status"]}" stage per the Bills register — no vote has '
+        "been put to the House on this Bill yet, so there is no Division to have "
+        "or not have."
+    )
 
 
 def main() -> None:
@@ -262,7 +308,7 @@ def main() -> None:
             if code not in register:
                 raise ValueError(f"{code} is not on the register's default view")
             row = register[code]
-            pdf_url = f"{PARLIMEN}{row['pdf_path']}"
+            pdf_url = f"{PARLIMEN}{quote(row['pdf_path'])}"
             if not robots.is_allowed(pdf_url):
                 raise SystemExit(f"robots.txt disallows {pdf_url}: {robots.refusal_reason(pdf_url)}")
             limiter.wait_turn(pdf_url, robots.crawl_delay(pdf_url))
