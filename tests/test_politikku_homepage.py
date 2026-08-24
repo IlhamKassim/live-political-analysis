@@ -27,6 +27,8 @@ from lpa.politikku_homepage import (
     _stage_label,
     _top_bills,
     homepage_model,
+    render_homepage,
+    render_homepage_body,
 )
 from lpa.politikku_shell import NAV_LINKS, Language, render_header
 from lpa.public_page import PageModel, Tier, page_model
@@ -308,6 +310,74 @@ def test_the_full_page_wraps_the_body_in_the_shell_with_home_active():
     assert f'href="{home.href}" aria-current="page"' in page
     assert 'class="pk-footer"' in page  # the persistent methodology footer
     assert 'class="pk-hero"' in page  # the homepage's own body content
+
+
+# ── #81: bilingual copy ──────────────────────────────────────────────────
+
+
+def test_bm_headline_number_translates_the_of_separator_too():
+    # A real gap the first cut of #81 shipped: only the surrounding copy was
+    # translated, leaving the headline's own "146 of 222" in English.
+    model = _rendered_model()
+    ms = render_homepage_body(model, Language.MS)
+    assert f"{model.government_seats} daripada {model.total_seats}" in ms
+    assert f"{model.government_seats} of {model.total_seats}" not in ms
+    assert f"{model.clear_seat_calls} daripada {model.total_seats}" in ms
+
+
+def test_bm_rendering_differs_from_english_and_carries_the_settled_pairs():
+    model = _rendered_model()
+    en = render_homepage_body(model)
+    ms = render_homepage_body(model, Language.MS)
+
+    assert en != ms
+    for pair in (
+        "Cari Ahli Parlimen anda",  # Find your MP
+        "Poskod atau nama kawasan",  # Postcode or constituency
+        "Guna lokasi saya",  # Use my location
+        "CARIAN KAWASAN",  # Constituency lookup (eyebrow, uppercased)
+        "UNJURAN KERUSI PRU16",  # GE16 Seat Projection (eyebrow, uppercased)
+        "Kerajaan jelas",  # Government clear
+        "Dalam ralat model",  # Within model noise
+        "Bukan kerajaan jelas",  # Non-government clear
+        "Dewan Rakyat minggu ini",  # Dewan Rakyat this week
+    ):
+        assert pair in ms
+        assert pair not in en
+
+
+def test_the_not_calibrated_tag_stays_inline_beside_the_number_in_bm_not_a_banner():
+    model = _rendered_model()
+    ms = render_homepage_body(model, Language.MS)
+
+    assert "BELUM DITENTUKUR" in ms
+    assert '<span class="pk-tag-modelled">NOT CALIBRATED</span>' not in ms
+    # Inline beside the headline number, not hoisted to a page-level banner:
+    # the tag sits inside the same projection headline block as the number.
+    headline_start = ms.index('class="pk-projection-headline"')
+    headline_end = ms.index("</div>", ms.index("BELUM DITENTUKUR"))
+    assert headline_start < ms.index("BELUM DITENTUKUR") < headline_end
+
+
+def test_bm_bill_stage_shows_parliaments_own_word_not_an_invented_translation():
+    bills = {
+        "D.R.1/2026": _bill("D.R.1/2026", 2026, "Lulus", date(2026, 8, 1)),
+        "D.R.2/2026": _bill("D.R.2/2026", 2026, "Dirujuk ke JKPK", date(2026, 7, 1)),
+    }
+    model = homepage_model(_page_model(), [], NAMES, bills)
+    ms = render_homepage_body(model, Language.MS)
+    en = render_homepage_body(model, Language.EN)
+
+    assert "Lulus" in ms
+    assert "Dirujuk ke JKPK" in ms
+    assert "Passed" in en
+    assert "Referred to Special Select Committee" in en
+
+
+def test_the_full_bm_page_wraps_in_the_shell_with_the_bm_lang_attribute():
+    page = render_homepage(_rendered_model(), language=Language.MS)
+    assert '<html lang="ms">' in page
+    assert "Cari Ahli Parlimen anda" in page
 
 
 def test_a_bill_title_carrying_markup_cannot_break_out_of_the_card():

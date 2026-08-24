@@ -99,7 +99,7 @@ def test_the_footer_carries_both_source_columns_and_the_not_calibrated_span():
 def test_a_source_name_carrying_markup_cannot_break_out_of_the_footer():
     from lpa.politikku_shell import SourceGroup
 
-    hostile = SourceGroup("Factual data", ("</div><script>alert(1)</script>",))
+    hostile = SourceGroup("Factual data", "Data faktual", ("</div><script>alert(1)</script>",))
     footer = render_methodology_footer(factual=hostile)
 
     assert "<script>" not in footer
@@ -135,3 +135,60 @@ def test_the_shell_sets_the_bahasa_malaysia_lang_attribute():
         body_html="",
     )
     assert '<html lang="ms">' in page
+
+
+# ── #81: bilingual copy ──────────────────────────────────────────────────
+
+
+def test_t_picks_english_for_en_and_bm_for_ms():
+    from lpa.politikku_shell import t
+
+    assert t(Language.EN, "Home", "Utama") == "Home"
+    assert t(Language.MS, "Home", "Utama") == "Utama"
+
+
+def test_the_nav_labels_translate_in_bm_and_stay_english_by_default():
+    en_header = render_header(active_nav="bills", language=Language.EN, page_path="")
+    ms_header = render_header(active_nav="bills", language=Language.MS, page_path="")
+
+    assert ">Bills</a>" in en_header
+    assert ">Rang Undang-Undang</a>" in ms_header
+    assert ">Bills</a>" not in ms_header
+
+
+def test_the_trust_strip_translates_the_updated_word_and_status_sentence():
+    ms_strip = render_trust_strip(
+        updated_at=date(2026, 8, 23), sources_count=9, status=NOT_CALLED, language=Language.MS
+    )
+    assert "Dikemas kini 23 Aug 2026, MYT" in ms_strip
+    assert "PRU16 belum diisytiharkan" in ms_strip
+    assert "sumber berita dibaca" in ms_strip
+    assert "Cara ini berfungsi" in ms_strip
+    # English words the BM strip must not carry over verbatim.
+    assert "Updated 23 Aug 2026" not in ms_strip
+    assert "GE16 not yet called" not in ms_strip
+
+
+def test_the_footer_heading_is_the_settled_bm_pair():
+    footer = render_methodology_footer(language=Language.MS)
+    assert "Metodologi &amp; sumber" in footer
+    assert "Baca metodologi penuh" in footer
+    # Source citations stay untranslated in both languages.
+    assert "Election Commission (SPR)" in footer
+
+
+def test_the_full_shell_in_bm_carries_no_leftover_english_chrome_copy():
+    page = render_shell(
+        title="Halaman ujian",
+        active_nav="home",
+        language=Language.MS,
+        page_path="",
+        updated_at=date(2026, 8, 23),
+        sources_count=9,
+        status=NOT_CALLED,
+        body_html="<main>isi</main>",
+    )
+    assert ">Utama</a>" in page  # translated "Home" nav item
+    assert "Metodologi &amp; sumber" in page
+    for english_only in ("Home", "How this works", "Read the full methodology"):
+        assert english_only not in page

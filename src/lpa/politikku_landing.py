@@ -59,7 +59,15 @@ from lpa.domain import Coalition, ElectionStatus
 from lpa.mp_profile import MPProfile
 from lpa.politikku_hemicycle import HemicycleCounts, Palette, render_hemicycle
 from lpa.politikku_homepage import SentimentRow, hemicycle_counts, sentiment_rows
-from lpa.politikku_shell import LANDING_URL, Language, render_shell, short_date
+from lpa.politikku_i18n import (
+    FIND_YOUR_MP_EN,
+    FIND_YOUR_MP_MS,
+    GE16_SEAT_PROJECTION_EN,
+    GE16_SEAT_PROJECTION_MS,
+    POSTCODE_OR_CONSTITUENCY_MS,
+    not_calibrated_tag,
+)
+from lpa.politikku_shell import LANDING_URL, Language, render_shell, short_date, t
 from lpa.public_page import PageModel
 from lpa.storage import SentimentSnapshot
 
@@ -88,19 +96,34 @@ class CardKind(StrEnum):
 
 @dataclass(frozen=True)
 class TrustCard:
-    """One row of the landing page's FACT/MODEL panel."""
+    """One row of the landing page's FACT/MODEL panel.
+
+    `claim`/`source` carry interpolated numbers (a majority, a Division
+    tally, a seat count) computed once here — #81 needs both languages'
+    version of the same sentence, so this dataclass carries a full sentence
+    per language rather than a template plus a language switch at render
+    time, keeping the one place that does the interpolation arithmetic the
+    same as before (`landing_model`/its private card builders), not
+    duplicated into `_trust_card` as well.
+    """
 
     kind: CardKind
-    claim: str
-    source: str
+    claim_en: str
+    claim_ms: str
+    """`claim_en`'s BM sentence. Where `claim_en` states a real MP/Bill fact
+    (cards 1–2), only the connecting words are translated — the sourced
+    figures and proper nouns are identical in both, so there is no fact here
+    an English-only reader could see that a BM-only reader cannot."""
+    source_en: str
+    source_ms: str
     modelled_number: bool = False
-    """Whether `claim` states a modelled number that needs the inline NOT
-    CALIBRATED tag beside it — trust rule 1 (non-negotiable): "appears
-    inline beside every modelled number... Never on factual data." `False`
-    for every FACT card and for a MODEL card stating no number at all (the
-    "not enough history yet" fallback has nothing for a tag to travel
-    beside). A plain `bool` rather than deriving it from `kind` alone,
-    since not every MODEL card states a number."""
+    """Whether `claim_en`/`claim_ms` state a modelled number that needs the
+    inline NOT CALIBRATED tag beside it — trust rule 1 (non-negotiable):
+    "appears inline beside every modelled number... Never on factual data."
+    `False` for every FACT card and for a MODEL card stating no number at
+    all (the "not enough history yet" fallback has nothing for a tag to
+    travel beside). A plain `bool` rather than deriving it from `kind`
+    alone, since not every MODEL card states a number."""
 
 
 @dataclass(frozen=True)
@@ -166,17 +189,24 @@ def landing_model(
         cards=(
             TrustCard(
                 kind=CardKind.FACT,
-                claim=(f"{bangi.name} won {seat.name} with a majority of {bangi.ge15.majority:,}"),
-                source="Election Commission, GE15 official result",
+                claim_en=f"{bangi.name} won {seat.name} with a majority of {bangi.ge15.majority:,}",
+                claim_ms=f"{bangi.name} menang {seat.name} dengan majoriti {bangi.ge15.majority:,}",
+                source_en="Election Commission, GE15 official result",
+                source_ms="Suruhanjaya Pilihan Raya, keputusan rasmi PRU15",
             ),
             _bill_fact_card(featured_bill),
             TrustCard(
                 kind=CardKind.MODEL,
-                claim=(
+                claim_en=(
                     f"{page.government_seats} of {page.total_seats} Seats projected "
                     "to the Government Coalition"
                 ),
-                source="Swing Model against the GE15 Baseline · not calibrated",
+                claim_ms=(
+                    f"{page.government_seats} daripada {page.total_seats} Kerusi diunjurkan "
+                    "kepada Gabungan Kerajaan"
+                ),
+                source_en="Swing Model against the GE15 Baseline · not calibrated",
+                source_ms="Model Peralihan berbanding Asas PRU15 · belum ditentukur",
                 modelled_number=True,
             ),
             _sentiment_mover_card(sentiment_history, names),
@@ -187,10 +217,13 @@ def landing_model(
 def _bill_fact_card(bill: Bill) -> TrustCard:
     d = bill.division
     assert d is not None  # checked by the caller before this is reached
+    sitting = short_date(d.sitting_date)
     return TrustCard(
         kind=CardKind.FACT,
-        claim=f"{bill.title} passed second reading, {d.ayes}–{d.noes}",
-        source=f"Dewan Rakyat Hansard, {short_date(d.sitting_date)}",
+        claim_en=f"{bill.title} passed second reading, {d.ayes}–{d.noes}",
+        claim_ms=f"{bill.title} diluluskan bacaan kedua, {d.ayes}–{d.noes}",
+        source_en=f"Dewan Rakyat Hansard, {sitting}",
+        source_ms=f"Hansard Dewan Rakyat, {sitting}",
     )
 
 
@@ -209,19 +242,24 @@ def _sentiment_mover_card(
     if not movers:
         return TrustCard(
             kind=CardKind.MODEL,
-            claim="Not enough Sentiment history yet to state a week-over-week move",
-            source="Open multilingual sentiment model",
+            claim_en="Not enough Sentiment history yet to state a week-over-week move",
+            claim_ms="Sejarah Sentimen belum mencukupi untuk menyatakan pergerakan minggu-ke-minggu",
+            source_en="Open multilingual sentiment model",
+            source_ms="Model sentimen berbilang bahasa sumber terbuka",
         )
     biggest, delta = max(movers, key=lambda pair: abs(pair[1]))
-    direction = "rose" if delta > 0 else "fell"
+    direction_en = "rose" if delta > 0 else "fell"
+    direction_ms = "meningkat" if delta > 0 else "menurun"
     points = abs(delta) * 100
     recent_articles = sum(
         snap.sentiment.total_articles for snap in history[-RECENT_ARTICLE_WINDOW_DAYS:]
     )
     return TrustCard(
         kind=CardKind.MODEL,
-        claim=f"Coverage of {biggest.name} {direction} {points:.1f} points this week",
-        source=f"Open multilingual sentiment model, {recent_articles:,} articles",
+        claim_en=f"Coverage of {biggest.name} {direction_en} {points:.1f} points this week",
+        claim_ms=f"Liputan {biggest.name} {direction_ms} {points:.1f} mata minggu ini",
+        source_en=f"Open multilingual sentiment model, {recent_articles:,} articles",
+        source_ms=f"Model sentimen berbilang bahasa sumber terbuka, {recent_articles:,} artikel",
         modelled_number=True,
     )
 
@@ -238,111 +276,165 @@ def _recent_articles(history: Sequence[SentimentSnapshot]) -> tuple[int, int]:
 # ── rendering ─────────────────────────────────────────────────────────────
 
 
-def _stat_strip(model: LandingModel) -> str:
-    days_word = "day" if model.recent_days == 1 else "days"
+def _stat_strip(model: LandingModel, language: Language) -> str:
     status_text = (
-        f"GE16 not yet called · deadline {short_date(model.status.constitutional_deadline)}"
+        t(
+            language,
+            f"GE16 not yet called · deadline {short_date(model.status.constitutional_deadline)}",
+            f"PRU16 belum diisytiharkan · tarikh akhir {short_date(model.status.constitutional_deadline)}",
+        )
         if not model.status.called
-        else "GE16 called"
+        else t(language, "GE16 called", "PRU16 diisytiharkan")
+    )
+    seats_tracked = t(language, "Seats tracked", "Kerusi dijejaki")
+    outlets_read = t(language, "outlets read in EN and BM", "portal berita dibaca dalam BI dan BM")
+    days_word_en = "day" if model.recent_days == 1 else "days"
+    articles_clause = t(
+        language,
+        f"articles scored, past {model.recent_days} {days_word_en}",
+        f"artikel dinilai, {model.recent_days} hari lepas",
     )
     return f"""
 <div class="pk-landing-stats">
-  <span><strong>{model.total_seats}</strong> Seats tracked</span>
-  <span><strong>{model.sources_count}</strong> outlets read in EN and BM</span>
-  <span><strong>{model.recent_articles:,}</strong> articles scored, past {model.recent_days} {days_word}</span>
+  <span><strong>{model.total_seats}</strong> {seats_tracked}</span>
+  <span><strong>{model.sources_count}</strong> {outlets_read}</span>
+  <span><strong>{model.recent_articles:,}</strong> {articles_clause}</span>
   <span class="pk-landing-stats-status">{html.escape(status_text)}</span>
 </div>
 """.strip()
 
 
-def _what_is_inside() -> str:
+def _what_is_inside(language: Language) -> str:
     items = (
         (
             "01",
             "Your MP",
-            ("Enter a postcode and get your Seat, your MP, their attendance and how they voted."),
+            "Ahli Parlimen anda",
+            "Enter a postcode and get your Seat, your MP, their attendance and how they voted.",
+            (
+                "Masukkan poskod dan dapatkan kerusi, Ahli Parlimen, kehadiran mereka dan cara "
+                "mereka mengundi."
+            ),
             "Factual · SPR, Hansard",
+            "Fakta · SPR, Hansard",
         ),
         (
             "02",
             "Bills in plain language",
-            (
-                "Every Bill before the Dewan Rakyat, what stage "
-                "it has reached and how the vote fell."
-            ),
+            "Rang undang-undang dalam bahasa mudah",
+            "Every Bill before the Dewan Rakyat, what stage it has reached and how the vote fell.",
+            "Setiap rang undang-undang di Dewan Rakyat, peringkat yang dicapai dan keputusan undian.",
             "Factual · parlimen.gov.my",
+            "Fakta · parlimen.gov.my",
         ),
         (
             "03",
-            "GE16 Seat Projection",
+            GE16_SEAT_PROJECTION_EN,
+            GE16_SEAT_PROJECTION_MS,
             (
-                "GE15 results plus a uniform-within-state Swing, "
-                "published per Seat with its margin — arithmetic, openly shown."
+                "GE15 results plus a uniform-within-state Swing, published per Seat with its "
+                "margin — arithmetic, openly shown."
+            ),
+            (
+                "Keputusan PRU15 ditambah Peralihan seragam dalam setiap negeri, diterbitkan bagi "
+                "setiap kerusi berserta majoritinya — pengiraan yang dipaparkan secara terbuka."
             ),
             "Modelled · not calibrated",
+            "Model · belum ditentukur",
         ),
         (
             "04",
             "News sentiment",
+            "Sentimen berita",
+            "The tone of coverage about each Coalition. Coverage tone is not support, and not a poll.",
             (
-                "The tone of coverage about each Coalition. Coverage "
-                "tone is not support, and not a poll."
+                "Nada liputan tentang setiap Gabungan. Nada liputan bukan sokongan, dan bukan "
+                "tinjauan pendapat."
             ),
             "Modelled · not calibrated",
+            "Model · belum ditentukur",
         ),
     )
     cells = "".join(
         f'<div class="pk-landing-cell"><span class="pk-landing-cell-n">{n}</span>'
-        f"<h3>{html.escape(title)}</h3><p>{html.escape(body)}</p>"
-        f'<span class="pk-landing-cell-tag">{html.escape(tag)}</span></div>'
-        for n, title, body, tag in items
+        f"<h3>{html.escape(t(language, title_en, title_ms))}</h3>"
+        f"<p>{html.escape(t(language, body_en, body_ms))}</p>"
+        f'<span class="pk-landing-cell-tag">{html.escape(t(language, tag_en, tag_ms))}</span></div>'
+        for n, title_en, title_ms, body_en, body_ms, tag_en, tag_ms in items
     )
+    eyebrow = t(language, "What is inside", "Apa yang ada")
     return f"""
 <section class="pk-landing-inside">
-  <div class="pk-eyebrow">What is inside</div>
+  <div class="pk-eyebrow">{eyebrow}</div>
   <div class="pk-landing-grid">{cells}</div>
 </section>
 """.strip()
 
 
-def _trust_card(card: TrustCard) -> str:
+def _trust_card(card: TrustCard, language: Language) -> str:
     cls = "pk-trust-card-fact" if card.kind is CardKind.FACT else "pk-trust-card-model"
     pill_cls = "pk-pill-fact" if card.kind is CardKind.FACT else "pk-pill-model"
+    pill_label = t(language, "FACT", "FAKTA") if card.kind is CardKind.FACT else "MODEL"
     # Trust rule 1 (non-negotiable): the tag travels beside the number
     # itself, not just named in the source line — a repeat of the exact
     # gap #74's own code review caught for the homepage's sentiment
     # deltas, fixed the same way here.
-    tag = ' <span class="pk-tag-modelled">NOT CALIBRATED</span>' if card.modelled_number else ""
+    tag = f" {not_calibrated_tag(language)}" if card.modelled_number else ""
+    claim = html.escape(t(language, card.claim_en, card.claim_ms))
+    source = html.escape(t(language, card.source_en, card.source_ms))
     return f"""
 <div class="pk-trust-card {cls}">
-  <span class="{pill_cls}">{card.kind.value.upper()}</span>
-  <div><div class="pk-trust-claim">{html.escape(card.claim)}{tag}</div>
-  <div class="pk-trust-source">{html.escape(card.source)}</div></div>
+  <span class="{pill_cls}">{pill_label}</span>
+  <div><div class="pk-trust-claim">{claim}{tag}</div>
+  <div class="pk-trust-source">{source}</div></div>
 </div>
 """.strip()
 
 
-def _where_the_line_is_drawn(model: LandingModel) -> str:
-    cards = "".join(_trust_card(c) for c in model.cards)
+def _where_the_line_is_drawn(model: LandingModel, language: Language) -> str:
+    cards = "".join(_trust_card(c, language) for c in model.cards)
+    eyebrow = t(language, "Where the line is drawn", "Di mana garisan dilukis")
+    heading = t(
+        language,
+        "Facts are labelled as facts. Estimates are labelled as estimates.",
+        "Fakta dilabel sebagai fakta. Anggaran dilabel sebagai anggaran.",
+    )
+    p1 = t(
+        language,
+        "An MP's name, a GE15 majority, a recorded vote — these are matters of record, and "
+        "we cite where each came from. A projected Seat Call is the output of a model that has "
+        "never been calibrated against survey data, and it carries a tag saying so everywhere "
+        "it appears.",
+        "Nama Ahli Parlimen, majoriti PRU15, undian yang direkodkan — ini adalah fakta rasmi, "
+        "dan kami menyatakan sumber setiap satu. Keputusan Kerusi yang diunjurkan adalah output "
+        "model yang tidak pernah ditentukur terhadap data tinjauan, dan ia membawa tag yang "
+        "menyatakan ini di mana sahaja ia muncul.",
+    )
+    p2 = t(
+        language,
+        "The code, the data and the model are public. Disagree with the Swing assumptions "
+        "and you can read them, or fork them.",
+        "Kod, data dan model adalah terbuka kepada umum. Tidak bersetuju dengan andaian "
+        "Peralihan? Anda boleh membacanya, atau fork ia.",
+    )
+    link = t(
+        language, "Full methodology and source list →", "Metodologi penuh dan senarai sumber →"
+    )
     return f"""
 <section class="pk-landing-trust">
   <div class="pk-landing-trust-prose">
-    <div class="pk-eyebrow">Where the line is drawn</div>
-    <h2>Facts are labelled as facts. Estimates are labelled as estimates.</h2>
-    <p>An MP's name, a GE15 majority, a recorded vote — these are matters of record, and
-    we cite where each came from. A projected Seat Call is the output of a model that has
-    never been calibrated against survey data, and it carries a tag saying so everywhere
-    it appears.</p>
-    <p>The code, the data and the model are public. Disagree with the Swing assumptions
-    and you can read them, or fork them.</p>
-    <a href="/politikku/methodology.html" class="pk-landing-methodology-link">Full methodology and source list →</a>
+    <div class="pk-eyebrow">{eyebrow}</div>
+    <h2>{heading}</h2>
+    <p>{p1}</p>
+    <p>{p2}</p>
+    <a href="/politikku/methodology.html" class="pk-landing-methodology-link">{link}</a>
   </div>
   <div class="pk-landing-trust-cards">{cards}</div>
 </section>
 """.strip()
 
 
-def _hero(model: LandingModel) -> str:
+def _hero(model: LandingModel, language: Language) -> str:
     # Dark-band palette, no threshold line — #73's own documented reuse for
     # exactly this ("dark-band variant... reused at opacity .14-.16 as hero
     # texture on the landing page"), not a decorative shape invented here.
@@ -352,61 +444,91 @@ def _hero(model: LandingModel) -> str:
         show_threshold=False,
         css_class="pk-landing-hero-texture",
     )
+    eyebrow = t(
+        language, "A public reference for Malaysian politics", "Rujukan awam untuk politik Malaysia"
+    )
+    h1 = t(
+        language,
+        "Know your Seat.<br>Read the Dewan Rakyat.<br>See where GE16 stands.",
+        "Kenali kerusi anda.<br>Baca Dewan Rakyat.<br>Lihat kedudukan PRU16.",
+    )
+    lede = t(
+        language,
+        "PolitikKu puts your Member of Parliament, the bills before "
+        "Parliament, and an open seat projection for GE16 in one place. No party affiliation, "
+        "no advertising, no account.",
+        "PolitikKu meletakkan Ahli Parlimen anda, rang undang-undang yang dibentangkan di "
+        "Parlimen, dan unjuran kerusi terbuka untuk PRU16 di satu tempat. Tiada pertalian "
+        "parti, tiada iklan, tiada akaun.",
+    )
+    find_your_mp = t(language, FIND_YOUR_MP_EN, FIND_YOUR_MP_MS)
+    read_methodology = t(language, "Read the methodology", "Baca metodologi")
     return f"""
 <section class="pk-landing-hero">
   {texture}
   <div class="pk-landing-hero-content">
-    <div class="pk-eyebrow pk-eyebrow-on-dark">A public reference for Malaysian politics</div>
-    <h1>Know your Seat.<br>Read the Dewan Rakyat.<br>See where GE16 stands.</h1>
-    <p class="pk-lede-on-dark">PolitikKu puts your Member of Parliament, the bills before
-    Parliament, and an open seat projection for GE16 in one place. No party affiliation,
-    no advertising, no account.</p>
+    <div class="pk-eyebrow pk-eyebrow-on-dark">{eyebrow}</div>
+    <h1>{h1}</h1>
+    <p class="pk-lede-on-dark">{lede}</p>
     <div class="pk-landing-hero-actions">
-      <a class="pk-landing-cta-primary" href="/politikku/">Find your MP</a>
-      <a class="pk-landing-cta-secondary" href="/politikku/methodology.html">Read the methodology</a>
+      <a class="pk-landing-cta-primary" href="/politikku/">{find_your_mp}</a>
+      <a class="pk-landing-cta-secondary" href="/politikku/methodology.html">{read_methodology}</a>
     </div>
   </div>
 </section>
 """.strip()
 
 
-def _search_cta() -> str:
-    return """
+def _search_cta(language: Language) -> str:
+    heading = t(language, "Start with where you live", "Mula dengan tempat tinggal anda")
+    lede = t(
+        language,
+        "Everything else on this site follows from your Seat.",
+        "Semua yang lain di laman ini bermula daripada kerusi anda.",
+    )
+    placeholder = t(language, "Postcode or constituency name", POSTCODE_OR_CONSTITUENCY_MS)
+    search = t(language, "Search", "Cari")
+    return f"""
 <section class="pk-landing-search-cta">
   <div>
-    <h2>Start with where you live</h2>
-    <p>Everything else on this site follows from your Seat.</p>
+    <h2>{heading}</h2>
+    <p>{lede}</p>
   </div>
   <form class="pk-lookup-form" data-pk-lookup-form>
-    <label class="pk-visually-hidden" for="pk-landing-lookup-input">Postcode or constituency name</label>
+    <label class="pk-visually-hidden" for="pk-landing-lookup-input">{placeholder}</label>
     <input id="pk-landing-lookup-input" name="q" type="text" autocomplete="off"
-           placeholder="Postcode or constituency name" data-pk-lookup-input>
-    <button type="submit" class="pk-search-btn" data-pk-lookup-submit>Search</button>
+           placeholder="{placeholder}" data-pk-lookup-input>
+    <button type="submit" class="pk-search-btn" data-pk-lookup-submit>{search}</button>
   </form>
 </section>
 """.strip()
 
 
-def render_landing_body(model: LandingModel) -> str:
+def render_landing_body(model: LandingModel, language: Language = Language.EN) -> str:
     """The landing page's `body_html`, without the persistent shell."""
     return (
         f"<style>{_CSS}</style>"
-        f"{_hero(model)}{_stat_strip(model)}{_what_is_inside()}"
-        f"{_where_the_line_is_drawn(model)}{_search_cta()}"
+        f"{_hero(model, language)}{_stat_strip(model, language)}{_what_is_inside(language)}"
+        f"{_where_the_line_is_drawn(model, language)}{_search_cta(language)}"
     )
 
 
 def render_landing(model: LandingModel, *, language: Language = Language.EN) -> str:
     """The landing page as one full HTML document, shell included."""
+    title = t(
+        language,
+        "PolitikKu — a public reference for Malaysian politics",
+        "PolitikKu — rujukan awam untuk politik Malaysia",
+    )
     return render_shell(
-        title="PolitikKu — a public reference for Malaysian politics",
+        title=title,
         active_nav="landing",
         language=language,
         page_path="landing.html",
         updated_at=model.updated_at,
         sources_count=model.sources_count,
         status=model.status,
-        body_html=render_landing_body(model),
+        body_html=render_landing_body(model, language),
     )
 
 
@@ -526,7 +648,7 @@ _CSS = """
 """
 
 
-def build_landing(engine: Engine) -> tuple[str, date]:
+def build_landing(engine: Engine, *, language: Language = Language.EN) -> tuple[str, date]:
     """Read Storage and render the landing page. The whole I/O half."""
     from lpa.config import (
         coalition_names,
@@ -570,11 +692,19 @@ def build_landing(engine: Engine) -> tuple[str, date]:
     bangi = load_mp_profiles()[BANGI_SEAT_CODE]
     featured_bill = load_bills_config()[FEATURED_BILL_CODE]
     model = landing_model(page, snapshots, names, bangi, featured_bill)
-    return render_landing(model), model.updated_at
+    return render_landing(model, language=language), model.updated_at
+
+
+def build_all_landing_languages(engine: Engine) -> list[tuple[Language, str, date]]:
+    """`build_landing`, once per `Language` — matching `politikku_homepage.
+    build_all_homepage_languages`'s own naming, which itself follows
+    `politikku_mp_profile.build_all_mp_profile_pages`'s "build every variant
+    this page has" precedent."""
+    return [(language, *build_landing(engine, language=language)) for language in Language]
 
 
 def main() -> None:
-    """Render the landing page from Storage and write it to disk."""
+    """Render the landing page from Storage and write both languages to disk."""
     import argparse
     from pathlib import Path
 
@@ -585,14 +715,19 @@ def main() -> None:
         "--output",
         type=Path,
         default=Path("public") / LANDING_URL.removeprefix("/"),
-        help="where to write the page",
+        help="where to write the English page; the BM variant is written alongside it at "
+        "<output-dir>/ms/<output-name>, matching `politikku_shell._ms_route`'s own path convention",
     )
     args = parser.parse_args()
 
-    page, computed_at = build_landing(connect())
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(page, encoding="utf-8")
-    print(f"Wrote {args.output} ({len(page):,} bytes), computed {computed_at}")
+    engine = connect()
+    for language, page, computed_at in build_all_landing_languages(engine):
+        target = (
+            args.output if language is Language.EN else args.output.parent / "ms" / args.output.name
+        )
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(page, encoding="utf-8")
+        print(f"Wrote {target} ({len(page):,} bytes), computed {computed_at}")
 
 
 if __name__ == "__main__":
