@@ -43,7 +43,7 @@ from lpa.bill_tracker import Bill
 from lpa.domain import Coalition, ElectionStatus
 from lpa.politikku_hemicycle import HemicycleCounts, Palette, render_hemicycle
 from lpa.politikku_shell import DASHBOARD_URL, Language, render_shell, short_date
-from lpa.public_page import PageModel, Tier
+from lpa.public_page import PageModel, Tier, format_signed
 from lpa.storage import SentimentSnapshot
 
 BILLS_SHOWN = 3
@@ -210,13 +210,6 @@ def _top_bills(bills: Mapping[str, Bill], limit: int = BILLS_SHOWN) -> tuple[Bil
 # ── rendering ─────────────────────────────────────────────────────────────
 
 
-def _signed(n: int) -> str:
-    """A signed seat count — `public_page._swing_value`'s own minus glyph
-    (`−`, not the ASCII hyphen), so a signed number reads the same way
-    across both PolitikKu and the dashboard."""
-    return f"+{n}" if n > 0 else f"−{abs(n)}" if n < 0 else "±0"
-
-
 def _hero(model: HomepageModel) -> str:
     tag = '<span class="pk-tag-modelled">NOT CALIBRATED</span>'
     return f"""
@@ -256,7 +249,7 @@ def _hero(model: HomepageModel) -> str:
       <li><span class="pk-swatch pk-swatch-nongov"></span>Non-government clear</li>
     </ul>
     <div class="pk-stat-grid">
-      <div><dt>Margin over majority</dt><dd>{_signed(model.margin_over_majority)} seats</dd></div>
+      <div><dt>Margin over majority</dt><dd>{format_signed(model.margin_over_majority)} seats</dd></div>
       <div><dt>Clear Seat Calls</dt><dd>{model.clear_seat_calls} of {model.total_seats}</dd></div>
     </div>
     <p class="pk-caveat">Seat Calls are model-driven and not calibrated against survey

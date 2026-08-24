@@ -795,17 +795,25 @@ def _hemicycle(model: PageModel) -> str:
     )
 
 
+def format_signed(n: int) -> str:
+    """`n` formatted with a sign — "+3", "−2" (Unicode minus, not ASCII
+    hyphen), or "±0" for zero. Shared by every place on the site that states
+    a signed seat count, so the glyph is never independently reinvented."""
+    if n > 0:
+        return f"+{n}"
+    if n < 0:
+        return f"−{abs(n)}"
+    return "±0"
+
+
 def _swing_value(swing: int) -> tuple[str, str]:
     """A change against GE15, signed — the CSS class and the text together.
 
     Shared by the wide table's `<td>` and the narrow ledger's `<dd>`, so the
     two layouts cannot state a different swing for the same Coalition.
     """
-    if swing > 0:
-        return "swing-pos", f"+{swing}"
-    if swing < 0:
-        return "swing-neg", f"−{abs(swing)}"
-    return "swing-nil", "±0"
+    cls = "swing-pos" if swing > 0 else "swing-neg" if swing < 0 else "swing-nil"
+    return cls, format_signed(swing)
 
 
 def _swing_cell(swing: int) -> str:
