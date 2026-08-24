@@ -26,12 +26,18 @@ _POSTCODE = re.compile(r"^\d{5}$")
 
 @dataclass(frozen=True)
 class SeatMatch:
-    """One candidate Seat for a postcode."""
+    """One candidate Seat for a postcode.
+
+    Identified by `seat_code` alone, the way `SeatCall` is identified by
+    `code` alone: `SeatBaseline` already holds a Seat's name and state for
+    all 222 Seats, and a caller resolving a match wants those anyway.
+    Copying them here would make a Seat's identity two facts that can
+    disagree — `data/postcode_seat_index.json`'s `_seats` block carries them
+    once, for the file's own readability, not as a second source of truth.
+    """
 
     seat_code: str
     """The Seat's official code, e.g. "P.102"."""
-    seat_name: str
-    state: str
 
 
 def lookup_postcode(postcode: str, index: Mapping[str, Sequence[SeatMatch]]) -> Sequence[SeatMatch]:

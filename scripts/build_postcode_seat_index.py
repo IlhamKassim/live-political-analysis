@@ -119,19 +119,25 @@ def build_index(
     town_localities: dict[str, list[str]],
     town_postcodes: dict[str, list[str]],
     daerah_to_parlimen: dict[str, tuple[str, str]],
-    state: str,
-) -> dict[str, list[dict[str, str]]]:
+) -> tuple[dict[str, list[str]], dict[str, str]]:
     """Join curated town->locality data against the live SPR lookup.
+
+    Returns `(postcode -> sorted Seat codes, Seat code -> Seat name)`. Seat
+    name is returned once per code, not per postcode: a postcode's own entry
+    only needs `seat_code` (see `lpa.postcode_index.SeatMatch`), the same way
+    `SeatCall` carries a Seat's `code` alone rather than copying its name
+    everywhere it appears.
 
     Raises if a curated locality string is no longer in the SPR data, or a
     curated town is no longer in the postcode data — both mean
     `TOWN_LOCALITIES` is stale, not that the postcode has no Seat.
     """
-    index: dict[str, dict[str, dict[str, str]]] = {}
+    postcode_seats: dict[str, set[str]] = {}
+    seat_names: dict[str, str] = {}
     for town, localities in town_localities.items():
         if town not in town_postcodes:
             raise ValueError(f"{town!r} is not a town in the fetched postcode data")
-        seats: dict[str, dict[str, str]] = {}
+        codes: set[str] = set()
         for locality in localities:
             if locality not in daerah_to_parlimen:
                 raise ValueError(
@@ -139,32 +145,34 @@ def build_index(
                     f"in the fetched SPR data — TOWN_LOCALITIES may be stale"
                 )
             code, name = daerah_to_parlimen[locality]
-            seats[code] = {"seat_code": code, "seat_name": name, "state": state}
+            codes.add(code)
+            seat_names[code] = name
         for postcode in town_postcodes[town]:
-            index.setdefault(postcode, {}).update(seats)
+            postcode_seats.setdefault(postcode, set()).update(codes)
 
-    return {
-        postcode: sorted(seats.values(), key=lambda s: s["seat_code"])
-        for postcode, seats in index.items()
-    }
+    index = {postcode: sorted(codes) for postcode, codes in postcode_seats.items()}
+    return index, seat_names
 
 
 def main() -> None:
+    state = "Selangor"
     with httpx.Client(timeout=30.0) as client:
-        daerah_to_parlimen = fetch_daerah_to_parlimen(client, state="SELANGOR")
+        daerah_to_parlimen = fetch_daerah_to_parlimen(client, state=state.upper())
         town_postcodes = fetch_town_postcodes(client, POSTCODE_SOURCE_URL)
 
-    index = build_index(TOWN_LOCALITIES, town_postcodes, daerah_to_parlimen, state="Selangor")
+    index, seat_names = build_index(TOWN_LOCALITIES, town_postcodes, daerah_to_parlimen)
 
     output = {
         "_comment": [
-            "Postcode -> candidate Seat(s), for the constituency lookup (issue #76).",
-            "Pilot slice: Selangor P.101 Hulu Langat and P.102 Bangi only — see",
-            "scripts/build_postcode_seat_index.py, which generated this file, for",
-            "the method and TOWN_LOCALITIES for exactly which sources justify each",
-            "entry. A postcode with more than one Seat is genuinely ambiguous:",
-            "Malaysian postcodes were not drawn against electoral boundaries, so a",
-            "single postcode can serve localities that fall in different Seats.",
+            "Postcode -> candidate Seat code(s), for the constituency lookup",
+            "(issue #76). Pilot slice: Selangor P.101 Hulu Langat and P.102 Bangi",
+            "only — see scripts/build_postcode_seat_index.py, which generated this",
+            "file, for the method and TOWN_LOCALITIES for exactly which sources",
+            "justify each entry. A postcode with more than one Seat is genuinely",
+            "ambiguous: Malaysian postcodes were not drawn against electoral",
+            "boundaries, so a single postcode can serve localities that fall in",
+            "different Seats. `_seats` names each code once; a postcode entry",
+            "carries the code alone so the two cannot disagree.",
         ],
         "_source": {
             "delimitation": {
@@ -183,11 +191,14 @@ def main() -> None:
             "retrieved": date.today().isoformat(),
             "generated_by": "scripts/build_postcode_seat_index.py",
         },
+        "_seats": {
+            code: {"name": name, "state": state} for code, name in sorted(seat_names.items())
+        },
         "postcodes": dict(sorted(index.items())),
     }
 
     OUTPUT_PATH.write_text(json.dumps(output, indent=2, ensure_ascii=False) + "\n")
-    print(f"wrote {len(index)} postcodes to {OUTPUT_PATH}")
+    print(f"wrote {len(index)} postcodes across {len(seat_names)} Seats to {OUTPUT_PATH}")
 
 
 if __name__ == "__main__":

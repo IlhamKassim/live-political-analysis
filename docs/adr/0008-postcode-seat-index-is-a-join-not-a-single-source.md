@@ -47,15 +47,18 @@ repeating the curation step, locality by locality, against the full 7,748-row
 Election Commission dataset; it does not scale by search-and-replace, and is
 tracked as follow-up work under #76 rather than done here.
 
-**Shipping shape**: the pilot slice serializes to about 1.4 KB
-(`data/postcode_seat_index.json`). Malaysia has on the order of a few
-thousand postcodes total against 222 Seats, so a full index is expected to
-land well under 500 KB uncompressed — confirming the design handoff's
-assumption that this can ship as a static file to the client for client-side
-resolution (the geolocation privacy promise in the design handoff depends on
-this: "Location is read in your browser and never sent to us"), with no
-server endpoint and no logging. This estimate should be revisited once the
-index actually scales past a handful of Seats.
+**Shipping shape**: `data/postcode_seat_index.json` (comments and source
+metadata included, for the file's own auditability) is 1,996 bytes for the
+pilot's 12 postcodes; the part a client would actually ship — the
+`postcodes` object alone, postcode to a short list of Seat codes — is 258
+bytes. Malaysia has on the order of a few thousand postcodes total against
+222 Seats, so extrapolating the client payload (roughly 22 bytes/postcode)
+puts a full index at well under 100 KB uncompressed — confirming the design
+handoff's assumption that this can ship as a static file to the client for
+client-side resolution (the geolocation privacy promise in the design
+handoff depends on this: "Location is read in your browser and never sent
+to us"), with no server endpoint and no logging. This estimate should be
+revisited once the index actually scales past a handful of Seats.
 
 Trade-off accepted: this is secondary-source geocoding by locality name, not
 primary-source geometry (point-in-polygon against the Election Commission's

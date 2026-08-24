@@ -15,8 +15,8 @@ import pytest
 from lpa.config import load_postcode_seat_index
 from lpa.postcode_index import SeatMatch, lookup_postcode
 
-BANGI = SeatMatch(seat_code="P.102", seat_name="Bangi", state="Selangor")
-HULU_LANGAT = SeatMatch(seat_code="P.101", seat_name="Hulu Langat", state="Selangor")
+BANGI = SeatMatch(seat_code="P.102")
+HULU_LANGAT = SeatMatch(seat_code="P.101")
 
 
 def write_index(tmp_path, postcodes):
@@ -50,11 +50,7 @@ def test_lookup_rejects_anything_that_is_not_a_five_digit_postcode(bad):
 
 
 def test_the_loader_reads_a_postcode_with_one_seat(tmp_path):
-    index = load_postcode_seat_index(
-        write_index(
-            tmp_path, {"43650": [{"seat_code": "P.102", "seat_name": "Bangi", "state": "Selangor"}]}
-        )
-    )
+    index = load_postcode_seat_index(write_index(tmp_path, {"43650": ["P.102"]}))
 
     assert index["43650"] == (BANGI,)
 
