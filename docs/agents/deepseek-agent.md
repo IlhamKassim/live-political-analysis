@@ -191,6 +191,28 @@ quality) anything needing a toolchain outside `run_command`'s allowlist
 task like `#77`'s constituency lookup module can't self-verify here at
 all).
 
+**A third failure mode, found on a third run: it can still invent a wrong
+shape even with the right one pasted verbatim in front of it.** Session
+3's `#75` test-writing task pasted a real, working `SentimentSnapshot`/
+`AggregatedSentiment`-building helper in full (the exact code, not a
+description of it) and asked for it to be reused. The run instead wrote a
+different helper with invented field names (`target_date`, `mean`, `std`,
+`positive`/`negative`/`neutral`) that don't exist on either real
+dataclass, then — after its own `pytest` run failed on exactly that — spent
+the rest of its turn budget re-reading source files without ever calling
+`edit_file` to fix it, and hit the cap having fixed nothing. Two separate
+lessons, not one: (a) "the correct code is right there in the prompt" is
+not a guarantee it gets used, so a reviewer must actually run the tests
+and read them, not just confirm the file exists and `pytest` says pass —
+a superficially plausible test can still be built on invented fixtures
+that don't match the real types; (b) when a task depends on more than one
+real data type interacting (here: a Coalition's *score* needing to vary
+across snapshots for a "which one moved most" test to mean anything, not
+just its article *count*), that's a second axis of correctness a
+task file has to spell out explicitly and verify by hand afterward — the
+mechanical/judgement line drawn earlier in this doc still holds, but
+"mechanical" doesn't mean "safe to skip actually reading the result."
+
 ## ADR 0002 cross-reference
 
 This reaches DeepSeek's metered API directly, exactly like the experimental
