@@ -1,0 +1,121 @@
+{
+  "_comment": [
+    "Postcode -> candidate Seat(s), for the constituency lookup (issue #76).",
+    "Pilot slice: Selangor P.101 Hulu Langat and P.102 Bangi only — see",
+    "scripts/build_postcode_seat_index.py, which generated this file, for",
+    "the method and TOWN_LOCALITIES for exactly which sources justify each",
+    "entry. A postcode with more than one Seat is genuinely ambiguous:",
+    "Malaysian postcodes were not drawn against electoral boundaries, so a",
+    "single postcode can serve localities that fall in different Seats."
+  ],
+  "_source": {
+    "delimitation": {
+      "name": "Suruhanjaya Pilihan Raya (SPR) — Senarai Bahagian Pilihan Raya (BPR), 2018 delimitation review",
+      "portal_url": "https://opendata.spr.gov.my/katalog?bahagian=persempadanan",
+      "dataset_url": "https://opendata.spr.gov.my/data/senarai-bpr.json"
+    },
+    "postcode_locality": {
+      "name": "AsyrafHussin/malaysia-postcodes (MIT)",
+      "url": "https://github.com/AsyrafHussin/malaysia-postcodes",
+      "dataset_url": "https://raw.githubusercontent.com/AsyrafHussin/malaysia-postcodes/master/selangor.json"
+    },
+    "retrieved": "2026-08-24",
+    "generated_by": "scripts/build_postcode_seat_index.py"
+  },
+  "postcodes": {
+    "43000": [
+      {
+        "seat_code": "P.102",
+        "seat_name": "Bangi",
+        "state": "Selangor"
+      }
+    ],
+    "43007": [
+      {
+        "seat_code": "P.102",
+        "seat_name": "Bangi",
+        "state": "Selangor"
+      }
+    ],
+    "43009": [
+      {
+        "seat_code": "P.102",
+        "seat_name": "Bangi",
+        "state": "Selangor"
+      }
+    ],
+    "43100": [
+      {
+        "seat_code": "P.101",
+        "seat_name": "Hulu Langat",
+        "state": "Selangor"
+      }
+    ],
+    "43200": [
+      {
+        "seat_code": "P.101",
+        "seat_name": "Hulu Langat",
+        "state": "Selangor"
+      },
+      {
+        "seat_code": "P.102",
+        "seat_name": "Bangi",
+        "state": "Selangor"
+      }
+    ],
+    "43207": [
+      {
+        "seat_code": "P.101",
+        "seat_name": "Hulu Langat",
+        "state": "Selangor"
+      },
+      {
+        "seat_code": "P.102",
+        "seat_name": "Bangi",
+        "state": "Selangor"
+      }
+    ],
+    "43500": [
+      {
+        "seat_code": "P.101",
+        "seat_name": "Hulu Langat",
+        "state": "Selangor"
+      }
+    ],
+    "43558": [
+      {
+        "seat_code": "P.102",
+        "seat_name": "Bangi",
+        "state": "Selangor"
+      }
+    ],
+    "43600": [
+      {
+        "seat_code": "P.102",
+        "seat_name": "Bangi",
+        "state": "Selangor"
+      }
+    ],
+    "43650": [
+      {
+        "seat_code": "P.102",
+        "seat_name": "Bangi",
+        "state": "Selangor"
+      }
+    ],
+    "43700": [
+      {
+        "seat_code": "P.101",
+        "seat_name": "Hulu Langat",
+        "state": "Selangor"
+      }
+    ],
+    "43701": [
+      {
+        "seat_code": "P.101",
+        "seat_name": "Hulu Langat",
+        "state": "Selangor"
+      }
+    ]
+  }
+}

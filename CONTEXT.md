@@ -60,6 +60,17 @@ The Coalition each of the 222 Seats is projected to fall to, with the projected 
 One Seat's entry in the Seat-Level Projection: the Coalition projected to take it and the projected margin over the runner-up. Named in code as `SeatCall`.
 _Avoid_: Prediction, forecast (both imply a precision ADR 0003 says this model does not have)
 
+**Postcode → Seat Index**:
+The lookup table behind PolitikKu's constituency lookup (#76): a Malaysian
+postcode mapped to every Seat it could fall in. Postcodes are a Pos Malaysia
+delivery construct, not an Election Commission unit, so the mapping is
+many-to-one and sometimes ambiguous — a postcode can genuinely straddle two
+Seats, and the index represents that as multiple candidates rather than
+guessing one. Built in `lpa.postcode_index`/`lpa.config.load_postcode_seat_index`
+from `data/postcode_seat_index.json`; see ADR 0008 for how it is sourced and
+`scripts/build_postcode_seat_index.py` for how it is built.
+_Avoid_: treating a postcode as if it names exactly one Seat.
+
 **Audience**:
 Younger Malaysians who first encounter this project's content secondhand — a shared Seat Call card, a screenshot, a repost — rather than by navigating to the dashboard directly, and who are not already politically engaged. The target for #22 (site-literacy) and #23 (shareable cards). Distinct from an existing politically-engaged reader who would seek the dashboard out regardless.
 _Avoid_: Users, readers (both too generic — use Audience when the younger, secondhand-discovery reader is specifically meant)

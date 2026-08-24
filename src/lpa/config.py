@@ -20,6 +20,7 @@ from lpa.domain import (
     SwingModelConfig,
 )
 from lpa.poll_calibration import LeaderRating, PollCalibration
+from lpa.postcode_index import SeatMatch
 
 
 def data_file(name: str) -> Path:
@@ -197,6 +198,26 @@ def load_election_status(path: Path | None = None) -> ElectionStatus:
         nomination_date=nomination_date,
         polling_date=polling_date,
     )
+
+
+DEFAULT_POSTCODE_SEAT_INDEX_PATH = data_file("postcode_seat_index.json")
+
+
+def load_postcode_seat_index(path: Path | None = None) -> Mapping[str, tuple[SeatMatch, ...]]:
+    """Postcode -> candidate Seat(s), from `data/postcode_seat_index.json`.
+
+    A pilot slice, not all 222 Seats — see the module docstring on
+    `lpa.postcode_index` and ADR 0008. Every entry names at least one Seat;
+    an empty tuple for a postcode not in the returned mapping is the caller's
+    job (`lpa.postcode_index.lookup_postcode` does this), not this loader's.
+    """
+    config = json.loads((path or DEFAULT_POSTCODE_SEAT_INDEX_PATH).read_text())
+    index = {}
+    for postcode, seats in config["postcodes"].items():
+        if not seats:
+            raise ValueError(f"postcode {postcode!r} lists no Seats")
+        index[postcode] = tuple(SeatMatch(**seat) for seat in seats)
+    return index
 
 
 def _optional_date(raw: str | None) -> date | None:
