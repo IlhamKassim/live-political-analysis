@@ -229,6 +229,45 @@ def test_the_mover_card_states_no_movement_when_history_is_empty():
     assert card.claim == "Not enough Sentiment history yet to state a week-over-week move"
 
 
+def test_every_card_stating_a_modelled_number_is_flagged_for_the_trust_tag():
+    """Trust rule 1 (non-negotiable): NOT CALIBRATED travels beside every
+    modelled number, never on factual data. Both FACT cards state real,
+    sourced facts; the Seat-projection MODEL card and a real mover both
+    state a modelled number and must be flagged."""
+    history = [
+        _snapshot(SEVEN_DAYS_BACK, {PH: 0.02}, {PH: 4}),
+        _snapshot(LATEST_DAY, {PH: 0.10}, {PH: 8}),
+    ]
+    model = landing_model(_page_model(), history, NAMES, BANGI, FEATURED_BILL)
+
+    fact_1, fact_2, model_seats, model_mover = model.cards
+    assert fact_1.modelled_number is False
+    assert fact_2.modelled_number is False
+    assert model_seats.modelled_number is True
+    assert model_mover.modelled_number is True
+
+
+def test_the_no_movement_fallback_card_states_no_number_so_carries_no_tag():
+    # Nothing for the tag to travel beside — see TrustCard.modelled_number's
+    # own docstring.
+    card = _sentiment_mover_card([], NAMES)
+    assert card.modelled_number is False
+
+
+def test_the_tag_renders_inline_beside_modelled_claims_and_never_on_fact_claims():
+    # A real 7-days-apart pair, so the mover card states an actual delta
+    # (not the no-history fallback, which carries no tag — see above).
+    history = [
+        _snapshot(SEVEN_DAYS_BACK, {PH: 0.02}, {PH: 4}),
+        _snapshot(LATEST_DAY, {PH: 0.10}, {PH: 8}),
+    ]
+    model = landing_model(_page_model(), history, NAMES, BANGI, FEATURED_BILL)
+    body = render_landing_body(model)
+
+    tag = '<span class="pk-tag-modelled">NOT CALIBRATED</span>'
+    assert body.count(tag) == 2  # exactly the two number-stating MODEL cards
+
+
 def test_landing_model_with_no_sentiment_history_reports_no_movement_too():
     model = landing_model(_page_model(), [], NAMES, BANGI, FEATURED_BILL)
     assert model.cards[3].claim == "Not enough Sentiment history yet to state a week-over-week move"

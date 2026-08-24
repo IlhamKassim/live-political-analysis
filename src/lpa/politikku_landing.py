@@ -93,6 +93,14 @@ class TrustCard:
     kind: CardKind
     claim: str
     source: str
+    modelled_number: bool = False
+    """Whether `claim` states a modelled number that needs the inline NOT
+    CALIBRATED tag beside it — trust rule 1 (non-negotiable): "appears
+    inline beside every modelled number... Never on factual data." `False`
+    for every FACT card and for a MODEL card stating no number at all (the
+    "not enough history yet" fallback has nothing for a tag to travel
+    beside). A plain `bool` rather than deriving it from `kind` alone,
+    since not every MODEL card states a number."""
 
 
 @dataclass(frozen=True)
@@ -169,6 +177,7 @@ def landing_model(
                     "to the Government Coalition"
                 ),
                 source="Swing Model against the GE15 Baseline · not calibrated",
+                modelled_number=True,
             ),
             _sentiment_mover_card(sentiment_history, names),
         ),
@@ -213,6 +222,7 @@ def _sentiment_mover_card(
         kind=CardKind.MODEL,
         claim=f"Coverage of {biggest.name} {direction} {points:.1f} points this week",
         source=f"Open multilingual sentiment model, {recent_articles:,} articles",
+        modelled_number=True,
     )
 
 
@@ -250,10 +260,7 @@ def _what_is_inside() -> str:
         (
             "01",
             "Your MP",
-            (
-                "Enter a postcode and get your Seat, your representative, "
-                "their attendance and how they voted."
-            ),
+            ("Enter a postcode and get your Seat, your MP, their attendance and how they voted."),
             "Factual · SPR, Hansard",
         ),
         (
@@ -301,10 +308,15 @@ def _what_is_inside() -> str:
 def _trust_card(card: TrustCard) -> str:
     cls = "pk-trust-card-fact" if card.kind is CardKind.FACT else "pk-trust-card-model"
     pill_cls = "pk-pill-fact" if card.kind is CardKind.FACT else "pk-pill-model"
+    # Trust rule 1 (non-negotiable): the tag travels beside the number
+    # itself, not just named in the source line — a repeat of the exact
+    # gap #74's own code review caught for the homepage's sentiment
+    # deltas, fixed the same way here.
+    tag = ' <span class="pk-tag-modelled">NOT CALIBRATED</span>' if card.modelled_number else ""
     return f"""
 <div class="pk-trust-card {cls}">
   <span class="{pill_cls}">{card.kind.value.upper()}</span>
-  <div><div class="pk-trust-claim">{html.escape(card.claim)}</div>
+  <div><div class="pk-trust-claim">{html.escape(card.claim)}{tag}</div>
   <div class="pk-trust-source">{html.escape(card.source)}</div></div>
 </div>
 """.strip()
@@ -494,6 +506,14 @@ _CSS = """
     }
     .pk-landing-stats-status { margin-left: 0; }
     .pk-landing-grid { grid-template-columns: 1fr; }
+    /* README §1 mobile spec: "moves the Factual/Modelled tag up beside
+       each heading" — desktop pins it to the card's bottom edge
+       (`margin-top: auto` above); reorder the flex column so it sits
+       right after the heading instead, on the stacked mobile layout only. */
+    .pk-landing-cell-n { order: 1; }
+    .pk-landing-cell h3 { order: 2; }
+    .pk-landing-cell-tag { order: 3; margin-top: 0; padding-top: 0; }
+    .pk-landing-cell p { order: 4; }
     .pk-landing-trust { grid-template-columns: 1fr; gap: 24px; }
     /* README §1: "cut from four rows to one of each" — cards are ordered
        FACT, FACT, MODEL, MODEL, so the second of each kind (positions 2
