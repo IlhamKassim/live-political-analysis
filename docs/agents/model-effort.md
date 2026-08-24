@@ -96,6 +96,41 @@ tend to be exactly the cases worth double-checking), but the two are
 conceptually separate: model is *capability*, effort is *how much the prompt
 asks the agent to verify its own work*.
 
+## Review depth scales with the diff's risk, not a flat default
+
+**Amendment, 2026-08-24 (session 3).** The 2026-08-24 amendment above
+settled *which model* reviews a diff. It left *how much review* unsettled,
+and session 3 found the gap costs real budget: `#74`'s full two-agent
+parallel `/code-review` (Standards + Spec, each a subagent reading the whole
+diff plus surrounding source) cost roughly 170k tokens for one ticket —
+more than building the ticket itself — and surfaced three judgement-call
+Standards findings plus two Spec gaps. Useful, but not obviously worth that
+weight for every diff regardless of size, and the same session later showed
+the contrast directly: a 3-file, behaviour-preserving extraction
+(`format_signed`) needed nothing beyond running the existing test suite to
+confirm nothing changed.
+
+Same shape as the model trigger list above, applied to review *depth*
+instead of tier. Before dispatching a review, ask: **could a test have
+caught everything in this diff, instead of a reader?**
+
+- **If yes for the whole diff** — a refactor/extraction where the test
+  suite already proves behaviour is unchanged, a mechanical rename, anything
+  whose correctness is checkable by `ruff`/`mypy`/`pytest` alone — skip the
+  review or run a single light pass. Full two-axis parallel review is
+  overhead here, not diligence.
+- **If no for any of it** — new modules, ticket-driven feature work,
+  anything that could hit one of the four triggers above (a trust-rule
+  claim, a design judgement, sourced-data handling) — keep the full
+  two-axis parallel review. This is where it earns its cost: `#74`'s review
+  caught a non-negotiable trust-rule gap (`NOT CALIBRATED` missing from the
+  Sentiment digest's deltas) that no test could have caught, because
+  nothing enforces that rule mechanically.
+
+A diff can be mixed — most of it mechanical, one piece genuinely new. Scope
+the review to the part a test can't vouch for, rather than reviewing
+everything at the same depth because part of it needed it.
+
 ## Where this gets applied
 
 - **`to-tickets`**, run in this repo, states a model/effort line per this
