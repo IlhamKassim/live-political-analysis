@@ -1,0 +1,77 @@
+{
+  "_comment": [
+    "Postcode -> candidate Seat code(s), for the constituency lookup",
+    "(issue #76). Pilot slice: Selangor P.101 Hulu Langat and P.102 Bangi",
+    "only — see scripts/build_postcode_seat_index.py, which generated this",
+    "file, for the method and TOWN_LOCALITIES for exactly which sources",
+    "justify each entry. A postcode with more than one Seat is genuinely",
+    "ambiguous: Malaysian postcodes were not drawn against electoral",
+    "boundaries, so a single postcode can serve localities that fall in",
+    "different Seats. `_seats` names each code once; a postcode entry",
+    "carries the code alone so the two cannot disagree."
+  ],
+  "_source": {
+    "delimitation": {
+      "name": "Suruhanjaya Pilihan Raya (SPR) — Senarai Bahagian Pilihan Raya (BPR), 2018 delimitation review",
+      "portal_url": "https://opendata.spr.gov.my/katalog?bahagian=persempadanan",
+      "dataset_url": "https://opendata.spr.gov.my/data/senarai-bpr.json"
+    },
+    "postcode_locality": {
+      "name": "AsyrafHussin/malaysia-postcodes (MIT)",
+      "url": "https://github.com/AsyrafHussin/malaysia-postcodes",
+      "dataset_url": "https://raw.githubusercontent.com/AsyrafHussin/malaysia-postcodes/master/selangor.json"
+    },
+    "retrieved": "2026-08-24",
+    "generated_by": "scripts/build_postcode_seat_index.py"
+  },
+  "_seats": {
+    "P.101": {
+      "name": "Hulu Langat",
+      "state": "Selangor"
+    },
+    "P.102": {
+      "name": "Bangi",
+      "state": "Selangor"
+    }
+  },
+  "postcodes": {
+    "43000": [
+      "P.102"
+    ],
+    "43007": [
+      "P.102"
+    ],
+    "43009": [
+      "P.102"
+    ],
+    "43100": [
+      "P.101"
+    ],
+    "43200": [
+      "P.101",
+      "P.102"
+    ],
+    "43207": [
+      "P.101",
+      "P.102"
+    ],
+    "43500": [
+      "P.101"
+    ],
+    "43558": [
+      "P.102"
+    ],
+    "43600": [
+      "P.102"
+    ],
+    "43650": [
+      "P.102"
+    ],
+    "43700": [
+      "P.101"
+    ],
+    "43701": [
+      "P.101"
+    ]
+  }
+}
