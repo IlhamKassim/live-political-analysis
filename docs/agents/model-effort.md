@@ -131,6 +131,65 @@ A diff can be mixed — most of it mechanical, one piece genuinely new. Scope
 the review to the part a test can't vouch for, rather than reviewing
 everything at the same depth because part of it needed it.
 
+## A third executor: DeepSeek, for pinned mechanical work
+
+**Amendment, 2026-08-24 (session 3).** Sonnet/Opus above answers "which
+model does this judgement-requiring work." It doesn't answer a question
+session 3 ran into directly: most of what a ticket costs isn't judgement at
+all, once the judgement part is actually done. DeepSeek
+(`scripts/deepseek_agent.py`, see `docs/agents/deepseek-agent.md`) is a
+third executor for exactly that remainder — additive to this tier list, not
+a third model tier on it. Sonnet/Opus stay the only two choices for
+judgement-requiring work; DeepSeek is for the work left over once judgement
+is already spent.
+
+**A ticket splits into spec-pinning and code-writing, and only one of those
+delegates.** Session 3 built two PolitikKu pages (`#74`, `#75`) and both
+decomposed the same way: first read the design handoff and cross-reference
+every mockup number/claim against this repo's real data (`#75` alone found
+a fabricated Bill title, a wrong outlet count, and a missing non-negotiable
+trust tag this way); only then write the actual render/model code against
+what that pass settled. The first half is where this project's real bugs
+keep hiding, and it's exactly the judgement DeepSeek's own doc says it's
+weak at — never delegate it. The second half, once the spec is fully
+pinned (real data sources named, exact signatures decided, exact copy
+decided), is mechanical translation — proven DeepSeek-suitable by session
+3's own trial 2 (the `format_signed` extraction: correct, tested, 17 turns,
+effectively free on Claude's own usage budget).
+
+**The default, going forward:**
+
+- Spec-pinning (research, sourcing, architecture decisions) is never
+  delegated — stays Claude, exactly as `#74`/`#75` did it.
+- Once a ticket's spec is pinned, its code-writing step **defaults to a
+  DeepSeek dispatch**, using `docs/agents/deepseek-agent.md`'s task-file
+  house style (front-load the deliverable, paste referenced code/data
+  verbatim, name the first tool call, give a mechanically verifiable
+  success condition) — **unless the ticket hits one of the four escalation
+  triggers above**, in which case it stays with Claude (Sonnet or Opus per
+  the existing rule). The triggers already name exactly the cases DeepSeek
+  is unreliable at (visual/design judgement, editorial judgement,
+  security/correctness-critical engineering, irreversible decisions), so
+  no second trigger list is needed — the same four gate both escalations.
+- Test-writing for an already-finished module defaults to a DeepSeek
+  dispatch too, pointed at the sibling test file whose idiom to mirror —
+  same reasoning, same trigger list.
+- Visual verification, and diagnosing what a screenshot shows, stays
+  Claude's job unconditionally — a hard tool-capability constraint (the
+  harness has no browser), not a judgement call to re-litigate per ticket.
+- A DeepSeek-authored diff still always gets its actual git state
+  independently verified (`git status`/`git log` in the real worktree)
+  before anything is copied out of it, regardless of what `finish_task`
+  claims — already the rule in `docs/agents/deepseek-agent.md`; restated
+  here so the executor-choice policy and the safety doc can't drift apart.
+- **This trades Claude usage for DeepSeek's metered API cost, not for
+  free** — a real cost shift to stay aware of, not a discount.
+
+`#77` (the constituency lookup's TypeScript module) stays off DeepSeek
+regardless of triggers — `run_command`'s allowlist has no `npm`/`tsc`, so
+it cannot verify TypeScript it writes, independent of whether the task
+would otherwise qualify.
+
 ## Where this gets applied
 
 - **`to-tickets`**, run in this repo, states a model/effort line per this
