@@ -98,7 +98,7 @@ def _ms_route(page_path: str) -> str:
     return f"/politikku/ms/{page_path}"
 
 
-def _short_date(day: date) -> str:
+def short_date(day: date) -> str:
     """`23 Aug 2026` — the trust strip's date format, abbreviated month."""
     return f"{day.day} {day.strftime('%b %Y')}"
 
@@ -111,10 +111,10 @@ def trust_strip_status_text(status: ElectionStatus) -> str:
     words wide. Same discipline: never guesses a date that is not set.
     """
     if not status.called:
-        return f"GE16 not yet called — constitutional deadline {_short_date(status.constitutional_deadline)}"
+        return f"GE16 not yet called — constitutional deadline {short_date(status.constitutional_deadline)}"
     if status.polling_date is None:
-        return f"GE16 called, dissolved {_short_date(status.dissolved_on)} — polling day not yet announced"  # type: ignore[arg-type]
-    return f"GE16 called — polling {_short_date(status.polling_date)}"
+        return f"GE16 called, dissolved {short_date(status.dissolved_on)} — polling day not yet announced"  # type: ignore[arg-type]
+    return f"GE16 called — polling {short_date(status.polling_date)}"
 
 
 _ARIA_CURRENT_PAGE = ' aria-current="page"'
@@ -191,7 +191,7 @@ def render_trust_strip(
     it to just the date and a "Sources" link, per the handoff's mobile trust
     strip ("Updated 06:00 MYT today" + "Sources").
     """
-    updated = html.escape(_short_date(updated_at))
+    updated = html.escape(short_date(updated_at))
     sources_word = "source" if sources_count == 1 else "sources"
     status_text = html.escape(trust_strip_status_text(status))
     methodology = html.escape(methodology_href)

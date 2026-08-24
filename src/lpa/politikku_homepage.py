@@ -42,7 +42,7 @@ from sqlalchemy.engine import Engine
 from lpa.bill_tracker import Bill
 from lpa.domain import Coalition, ElectionStatus
 from lpa.politikku_hemicycle import HemicycleCounts, Palette, render_hemicycle
-from lpa.politikku_shell import DASHBOARD_URL, Language, render_shell
+from lpa.politikku_shell import DASHBOARD_URL, Language, render_shell, short_date
 from lpa.public_page import PageModel, Tier
 from lpa.storage import SentimentSnapshot
 
@@ -99,12 +99,28 @@ class HomepageModel:
     Seat Calls" stat."""
     sentiment_rows: tuple[SentimentRow, ...]
     sentiment_total_articles: int
+    """The latest stored day's article count — the handoff's own sample
+    footer ("1,284 articles · 17–23 Aug 2026") states a week's total and a
+    week's date range, but `AggregatedSentiment` is a one-day snapshot
+    (`pipeline.py`'s "one snapshot a day") and nothing here sums a week of
+    them. Stating today's real count, with no date range, is honest about
+    what the number covers; stating a week's worth without doing that sum
+    would be the trust-strip's "invented clock time" problem again
+    (`politikku_shell`'s own docstring) — a figure the page cannot verify."""
     bills: tuple[Bill, ...]
     """Up to `BILLS_SHOWN`, most recently updated first."""
 
     @property
     def margin_over_majority(self) -> int:
-        """Seats clear of a Majority — negative means short of one."""
+        """Seats clear of a Majority — negative means short of one.
+
+        Same formula as `public_page.PageModel.buffer`, restated here on
+        this page's own two fields rather than kept on the source
+        `PageModel` — `homepage_model()` builds both from the same
+        `page.government_seats`/`page.majority_threshold`, so the two can
+        never disagree, only ever be computed from the same two numbers
+        twice.
+        """
         return self.government_seats - self.majority_threshold
 
 
@@ -194,12 +210,11 @@ def _top_bills(bills: Mapping[str, Bill], limit: int = BILLS_SHOWN) -> tuple[Bil
 # ── rendering ─────────────────────────────────────────────────────────────
 
 
-def _short_date(day: date) -> str:
-    return f"{day.day} {day.strftime('%b %Y')}"
-
-
 def _signed(n: int) -> str:
-    return f"+{n}" if n > 0 else str(n)
+    """A signed seat count — `public_page._swing_value`'s own minus glyph
+    (`−`, not the ASCII hyphen), so a signed number reads the same way
+    across both PolitikKu and the dashboard."""
+    return f"+{n}" if n > 0 else f"−{abs(n)}" if n < 0 else "±0"
 
 
 def _hero(model: HomepageModel) -> str:
@@ -267,7 +282,7 @@ def _bill_card(bill: Bill) -> str:
   <p class="pk-bill-summary" lang="ms">{html.escape(bill.summary)}</p>
   <div class="pk-bill-note">Parliament's own text, Bahasa Malaysia — untranslated.</div>
   <div class="pk-bill-footer">
-    <span>{html.escape(_short_date(bill.stage_date))}</span>
+    <span>{html.escape(short_date(bill.stage_date))}</span>
     <span>{html.escape(footer)}</span>
   </div>
 </article>
@@ -298,12 +313,20 @@ def _sentiment_bar(score: float) -> str:
     )
 
 
+_MODELLED_TAG = '<span class="pk-tag-modelled">NOT CALIBRATED</span>'
+"""The handoff's trust rule 1 names this inline, travelling with the
+number, as non-negotiable for "the sentiment deltas" by name — the
+homepage mockup's own screenshot omits it there, which is a gap in the
+mockup, not a narrower reading of the rule text (see the design handoff's
+"Trust rules" section, resolved 24 Aug 2026)."""
+
+
 def _sentiment_delta(delta: float | None) -> str:
     if delta is None:
         return '<span class="pk-delta-none">—</span>'
     arrow = "↑" if delta > 0 else "↓" if delta < 0 else "→"
     cls = "pk-delta-up" if delta > 0 else "pk-delta-down" if delta < 0 else "pk-delta-flat"
-    return f'<span class="{cls}">{arrow} {abs(delta):.2f}</span>'
+    return f'<span class="{cls}">{arrow} {abs(delta):.2f}</span> {_MODELLED_TAG}'
 
 
 def _sentiment_row(row: SentimentRow) -> str:
@@ -493,6 +516,13 @@ _CSS = """
     .pk-bill-grid { grid-template-columns: 1fr; }
     .pk-bill-grid .pk-bill-card:nth-child(n+3) { display: none; }
     .pk-sentiment { grid-template-columns: 1fr; gap: 20px; }
+    /* Condensed rows (README §2's mobile order): drop the Tone bar — its
+       exact score is still in the bar's own aria-label, never lost, only
+       hidden from a narrow layout that has no room for a fourth column —
+       and let the row scroll horizontally rather than clip if it still
+       doesn't fit (the NOT CALIBRATED tag beside each delta adds width). */
+    .pk-sentiment-table-wrap { overflow-x: auto; }
+    .pk-sentiment-table th:nth-child(3), .pk-sentiment-table td:nth-child(3) { display: none; }
   }
 """
 
