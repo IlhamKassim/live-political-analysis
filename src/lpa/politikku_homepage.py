@@ -151,7 +151,7 @@ def homepage_model(
         majority_threshold=page.majority_threshold,
         government_majority=page.government_majority,
         clear_seat_calls=sum(1 for seat in page.seats if seat.tier != Tier.TIGHT),
-        sentiment_rows=_sentiment_rows(sentiment_history, names),
+        sentiment_rows=sentiment_rows(sentiment_history, names),
         sentiment_total_articles=sentiment_history[-1].sentiment.total_articles
         if sentiment_history
         else 0,
@@ -171,11 +171,14 @@ def _hemicycle_counts(page: PageModel) -> HemicycleCounts:
     )
 
 
-def _sentiment_rows(
+def sentiment_rows(
     history: Sequence[SentimentSnapshot], names: Mapping[Coalition, str]
 ) -> tuple[SentimentRow, ...]:
     """One row per Coalition the latest snapshot named, most-covered first —
-    the same ordering `public_page._article_counts` already uses."""
+    the same ordering `public_page._article_counts` already uses. Public
+    (not `_`-prefixed) because `politikku_landing`'s MODEL card reuses this
+    exact computation for its own "biggest mover" figure — one place this
+    delta is computed, not a second copy."""
     if not history:
         return ()
     latest = history[-1].sentiment
