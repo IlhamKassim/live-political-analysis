@@ -12,6 +12,8 @@ from datetime import date
 from pathlib import Path
 from typing import Any, cast
 
+from lpa.bill_tracker import Bill, DivisionResult
+from lpa.bill_tracker import unexplained_fields as unexplained_bill_fields
 from lpa.domain import (
     Coalition,
     ElectionStatus,
@@ -333,6 +335,53 @@ def _division(values: Mapping[str, Any]) -> Division:
         sitting_date=date.fromisoformat(values["sitting_date"]),
         subject=values["subject"],
         vote=values["vote"],
+        ayes=values["ayes"],
+        noes=values["noes"],
+        abstentions=values["abstentions"],
+        absent=values["absent"],
+        outcome=values["outcome"],
+        hansard_url=values["hansard_url"],
+    )
+
+
+DEFAULT_BILLS_PATH = data_file("bills.json")
+
+
+def load_bills(path: Path | None = None) -> Mapping[str, Bill]:
+    """Bill code -> its tracked record, from `data/bills.json`.
+
+    A pilot slice, not the full register — see `lpa.bill_tracker` and ADR
+    0010. Rejects a Bill that leaves `division` unset with no reason, the
+    same discipline `load_mp_profiles` applies to a profile.
+    """
+    config = json.loads((path or DEFAULT_BILLS_PATH).read_text())
+    bills = {}
+    for code, entry in config["bills"].items():
+        bill = Bill(
+            code=code,
+            title=entry["title"],
+            year=entry["year"],
+            stage=entry["stage"],
+            stage_date=date.fromisoformat(entry["stage_date"]),
+            summary=entry["summary"],
+            summary_source_url=entry["summary_source_url"],
+            division=_division_result(entry["division"]) if entry.get("division") else None,
+            unverified=entry.get("unverified", {}),
+        )
+        unexplained = unexplained_bill_fields(bill)
+        if unexplained:
+            raise ValueError(
+                f"{code} leaves {', '.join(unexplained)} unset without an entry in "
+                "'unverified' saying why. An unexplained blank is how an invented "
+                "value gets in — record what was checked and what it did not have."
+            )
+        bills[code] = bill
+    return bills
+
+
+def _division_result(values: Mapping[str, Any]) -> DivisionResult:
+    return DivisionResult(
+        sitting_date=date.fromisoformat(values["sitting_date"]),
         ayes=values["ayes"],
         noes=values["noes"],
         abstentions=values["abstentions"],

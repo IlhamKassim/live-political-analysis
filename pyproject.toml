@@ -14,6 +14,7 @@ sentiment = ["transformers>=4.40", "torch>=2.0", "sentencepiece>=0.2", "protobuf
 dashboard = ["streamlit>=1.37", "pandas>=2.0", "altair>=5.0"]
 postgres = ["psycopg[binary]>=3.1"]
 telegram = ["Pillow>=10.0"]
+bills = ["pypdf>=5.0"]
 
 [build-system]
 requires = ["hatchling"]
@@ -30,6 +31,7 @@ packages = ["src/lpa"]
 "data/election_status.json" = "lpa/data/election_status.json"
 "data/postcode_seat_index.json" = "lpa/data/postcode_seat_index.json"
 "data/mp_profiles.json" = "lpa/data/mp_profiles.json"
+"data/bills.json" = "lpa/data/bills.json"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
