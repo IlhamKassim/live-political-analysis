@@ -145,13 +145,13 @@ def homepage_model(
         updated_at=page.computed_at,
         sources_count=len(page.sources),
         status=page.status,
-        hemicycle=_hemicycle_counts(page),
+        hemicycle=hemicycle_counts(page),
         government_seats=page.government_seats,
         total_seats=page.total_seats,
         majority_threshold=page.majority_threshold,
         government_majority=page.government_majority,
         clear_seat_calls=sum(1 for seat in page.seats if seat.tier != Tier.TIGHT),
-        sentiment_rows=_sentiment_rows(sentiment_history, names),
+        sentiment_rows=sentiment_rows(sentiment_history, names),
         sentiment_total_articles=sentiment_history[-1].sentiment.total_articles
         if sentiment_history
         else 0,
@@ -159,7 +159,7 @@ def homepage_model(
     )
 
 
-def _hemicycle_counts(page: PageModel) -> HemicycleCounts:
+def hemicycle_counts(page: PageModel) -> HemicycleCounts:
     """The dashboard's per-Seat tiers, tallied into the hemicycle's
     Government clear / within model noise / Non-government clear split —
     the BM key-pair table's own wording for the three bands."""
@@ -171,11 +171,14 @@ def _hemicycle_counts(page: PageModel) -> HemicycleCounts:
     )
 
 
-def _sentiment_rows(
+def sentiment_rows(
     history: Sequence[SentimentSnapshot], names: Mapping[Coalition, str]
 ) -> tuple[SentimentRow, ...]:
     """One row per Coalition the latest snapshot named, most-covered first —
-    the same ordering `public_page._article_counts` already uses."""
+    the same ordering `public_page._article_counts` already uses. Public
+    (not `_`-prefixed) because `politikku_landing`'s MODEL card reuses this
+    exact computation for its own "biggest mover" figure — one place this
+    delta is computed, not a second copy."""
     if not history:
         return ()
     latest = history[-1].sentiment
@@ -379,10 +382,6 @@ def render_homepage(model: HomepageModel, *, language: Language = Language.EN) -
 
 
 _CSS = """
-  .pk-visually-hidden {
-    position: absolute; width: 1px; height: 1px; overflow: hidden;
-    clip: rect(0 0 0 0); white-space: nowrap;
-  }
   .pk-eyebrow {
     font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
     text-transform: uppercase; color: var(--ink-secondary);

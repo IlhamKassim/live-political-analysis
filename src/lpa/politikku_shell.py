@@ -57,6 +57,15 @@ DASHBOARD_URL = "/"
 """The existing chamber dashboard (`public_page.py`) — unmoved by this
 initiative. See #70's "stand alongside" resolution."""
 
+LANDING_URL = "/politikku/landing.html"
+"""`politikku_landing.py`'s own page (#75) — not in `NAV_LINKS` (it's a
+first-visit door, not a nav destination), so it needs a link from
+somewhere. The persistent footer's own "way back to it" link is that
+somewhere, per #75's own routing note. Defined here, not on
+`politikku_landing`, so both directions of the reference (footer -> landing,
+landing -> its own path) read from the one constant rather than two copies
+of the same string."""
+
 
 class Language(StrEnum):
     """The two languages a PolitikKu page can be served in.
@@ -243,6 +252,7 @@ def render_methodology_footer(
     factual_items = "".join(f"<span>{html.escape(s)}</span>" for s in factual.sources)
     modelled_items = "".join(f"<span>{html.escape(s)}</span>" for s in modelled.sources)
     href = html.escape(methodology_href)
+    landing_href = html.escape(LANDING_URL)
     return f"""
 <footer class="pk-footer">
   <div class="pk-footer-statement">
@@ -251,6 +261,7 @@ def render_methodology_footer(
     against survey data. MP records, GE15 results and bill status are factual and sourced
     below. Everything here is open source.</p>
     <a class="pk-footer-link" href="{href}">Read the full methodology →</a>
+    <a class="pk-footer-link" href="{landing_href}">What is PolitikKu? →</a>
   </div>
   <div class="pk-footer-col">
     <div class="pk-footer-label">{html.escape(factual.heading)}</div>
@@ -494,6 +505,7 @@ _CSS = """
   .pk-footer-link {
     display: inline-block;
     margin-top: 12px;
+    margin-right: 18px;
     font-size: 12.5px;
     color: var(--accent-on-dark);
     border-bottom: 1px solid rgba(169, 205, 201, .4);
@@ -512,6 +524,14 @@ _CSS = """
      max-width/position/opacity for whichever of the three contexts it's
      reused in (this is just a sane block-level default, not a size). */
   .pk-hemicycle { display: block; width: 100%; height: auto; }
+
+  /* Screen-reader-only label text, shared by any page's lookup form —
+     kept here rather than redefined per page (a duplication #74's own
+     review already caught once for a different utility). */
+  .pk-visually-hidden {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
 
   /* NOT CALIBRATED tag, reused by any page built on this shell */
   .pk-tag-modelled {
