@@ -508,6 +508,11 @@ _CSS = """
   }
   .pk-footer-list { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; }
 
+  /* Hemicycle (#73) — scale-free by its own viewBox; a page sets its own
+     max-width/position/opacity for whichever of the three contexts it's
+     reused in (this is just a sane block-level default, not a size). */
+  .pk-hemicycle { display: block; width: 100%; height: auto; }
+
   /* NOT CALIBRATED tag, reused by any page built on this shell */
   .pk-tag-modelled {
     font-family: var(--mono);
