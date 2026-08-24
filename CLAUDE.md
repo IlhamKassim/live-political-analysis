@@ -22,8 +22,8 @@ than requiring a human per-claim gate. See `docs/agents/citation-check.md`.
 ### Model and effort policy
 
 Cheap model by default (Sonnet), escalate to the strong model (Opus) only on
-one of five triggers: visual/design judgment, editorial judgment on sensitive
-content, code review, security/correctness-critical engineering, or an
+one of four triggers: visual/design judgment, editorial judgment on sensitive
+content, security/correctness-critical engineering, or an
 irreversible/hard-to-reverse decision. `to-tickets` runs in this repo state a
 model/effort line per ticket; any agent dispatch here should too. See
 `docs/agents/model-effort.md`.

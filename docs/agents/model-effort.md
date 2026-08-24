@@ -8,7 +8,7 @@ ad hoc judgment re-derived each time.
 ## The rule: cheap by default, escalate on trigger
 
 Default to the cheapest capable model. Escalate to the strong model only when
-the task hits one of the five triggers below. A fixed lookup table of task
+the task hits one of the four triggers below. A fixed lookup table of task
 categories was considered and rejected — this project's work doesn't repeat
 cleanly enough for a table to stay accurate, and a trigger rule travels to
 task types that don't exist yet.
@@ -28,7 +28,7 @@ fully-specified rename, a one-file lookup-and-report), nothing stops using it
 then — this policy just doesn't reserve a tier for a case that hasn't
 happened.
 
-## The five escalation triggers
+## The four escalation triggers
 
 Any one of these justifies Opus. None of them present → Sonnet.
 
@@ -44,12 +44,7 @@ Any one of these justifies Opus. None of them present → Sonnet.
    only, no motive-narration, cite rather than assert) needs judgment to
    apply correctly, not just mechanical compliance.
 
-3. **Code review** — any `/code-review` pass, either axis (Standards or
-   Spec), every time. The whole point of a review pass is catching what a
-   cheaper pass would miss; running it on the cheap model defeats its
-   purpose.
-
-4. **Security- or correctness-critical engineering** — not "any code," but
+3. **Security- or correctness-critical engineering** — not "any code," but
    code where a subtle mistake defeats the thing's actual purpose. Worked
    example, and a real miss: issue #24's citation-check tool went out on
    Sonnet for its initial build, and a `/code-review` pass later found an
@@ -58,7 +53,7 @@ Any one of these justifies Opus. None of them present → Sonnet.
    trust/verification mechanism like this should hit this trigger from the
    start, not only get caught at review time.
 
-5. **Irreversible or hard-to-reverse decisions** — anything a mistake in is
+4. **Irreversible or hard-to-reverse decisions** — anything a mistake in is
    expensive to undo (matches the general safety framing already applied to
    destructive git operations, force-pushes, merges, deletions).
 
@@ -67,7 +62,18 @@ wiring/integration, routine tooling, procedural content — defaults to Sonnet.
 Worked examples from #22's children: the core-terms glossary page (#26,
 translating `CONTEXT.md`'s existing definitions), the GE16 process page (#28,
 procedural, low editorial risk), and the final wiring/integration ticket (#29,
-apart from its own `/code-review` step, which hits trigger 3).
+low-risk mechanical work with nothing here to trigger on).
+
+**Amendment, 2026-08-24: "code review, always Opus" removed as its own
+trigger.** It used to be listed separately — every `/code-review` pass
+escalated regardless of what it was reviewing. Dropped because it was
+redundant with trigger 3 in the one case that actually mattered (reviewing
+security/correctness-critical work, e.g. the DeepSeek agent loop — see
+`docs/agents/deepseek-agent.md`) and pure overhead in every other case (a
+review of routine, already-Sonnet-appropriate work doesn't need Opus just
+because it's a review). A `/code-review` dispatch now picks its model the
+same way any other dispatch does: by what's actually being reviewed, not by
+the fact that it's a review.
 
 ## "Effort" — what the label actually means
 

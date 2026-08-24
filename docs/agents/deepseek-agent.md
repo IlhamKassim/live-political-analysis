@@ -148,11 +148,16 @@ without first revisiting that ADR's zero-recurring-cost constraint.
 ## model-effort.md cross-reference
 
 Building or modifying this tool is a clean instance of `model-effort.md`'s
-trigger #4 (security/correctness-critical engineering) — it grants a model
-shell, file, and local-git access. A mandatory `/code-review` pass (the
-strong model) is required before it's trusted for a real task, on the same
-reasoning that doc cites as precedent: `citation_check.py` shipped a real
-prompt-injection gap on its first pass that only a later review caught.
+trigger #3 (security/correctness-critical engineering) — it grants a model
+shell, file, and local-git access. A mandatory `/code-review` pass is
+required before it's trusted for a real task; that pass runs on the strong
+model *because* it's reviewing correctness-critical work (trigger 3 applies
+to the review itself, same as it applies to building the tool — "code
+review" was removed as its own automatic-Opus trigger, see `model-effort.md`'s
+2026-08-24 amendment), not because every review is Opus by default. Same
+reasoning `model-effort.md` cites as precedent either way: `citation_check.py`
+shipped a real prompt-injection gap on its first pass that only a later
+review caught.
 
 ## Known operational gotchas
 
@@ -196,6 +201,6 @@ Nothing else under `scripts/` has test coverage — `preview_public_page.py`
 and `seed_dev_snapshots.py` have a blast radius bounded by "your own browser"
 or "your own local dev database." This tool executes shell commands and git
 commits chosen by a third-party model with real commit authority, which is
-exactly the class of risk `model-effort.md`'s trigger #4 names. Breaking the
+exactly the class of risk `model-effort.md`'s trigger #3 names. Breaking the
 pattern here is deliberate, not a precedent for every future `scripts/`
 addition to follow.
