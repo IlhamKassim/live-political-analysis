@@ -83,7 +83,14 @@ named follow-up, not solved here.
 The CLI's final JSON computes `files_changed`/`commits` from real
 `git diff --stat`/`git log`, not from what the model says it did — the diff
 and transcript are the actual signal, always worth checking even when
-`finish_task` reported `success`.
+`finish_task` reported `success`. **Not hypothetical**: session 3's `#74`
+follow-up task (extracting a shared `format_signed` helper) finished with
+`status: "finished"`, a self-reported summary stating "committing the three
+files," and `"commits": []` — it wrote and self-verified the change
+correctly but never called `git_add`/`git_commit` at all. The edits were
+real and correct; only the claim of having committed them was false. Always
+check `git_status`/`git_log` in the actual worktree yourself before copying
+anything out of it, regardless of how confident the summary reads.
 
 ## Invocation
 
@@ -135,6 +142,54 @@ git -C <repo_root> diff <base-ref>..<branch>
 Both work with no fetch step, since the worktree shares the main checkout's
 `.git`. `docs/agents/deepseek-agent-demo-transcript.json` is a captured real
 run, produced with the task in this doc's worked example.
+
+## Writing the task file
+
+**A "read these files first" list is the single biggest failure mode found
+so far, and it's a prompt-shape problem, not a capability problem.** Session
+3 ran the same kind of task twice. The first attempt opened with a
+numbered "read first, in this order" list of seven files before any
+instruction to write something — DeepSeek spent its entire 40-turn cap
+reading and grepping that list and never called `write_file` once
+(`status: "turn_cap_reached"`, empty diff, real API cost, nothing to show
+for it). The second attempt, reshaped, succeeded in 17 turns and produced a
+correct, well-tested change. The reshape was not "try harder" — it was
+structural:
+
+1. **State the exact deliverable in the first paragraph.** Function
+   signature, file(s) to touch, expected behaviour — before any reading
+   list, not after.
+2. **Paste referenced code verbatim instead of pointing at it.** If the task
+   is "change these two functions," include both functions' current full
+   bodies in the task file itself. This isn't just convenience — it removes
+   the exploration step that ate the whole budget on the failed attempt.
+3. **Say explicitly which tool call should come first**, and name it: "Your
+   first tool call should be `edit_file`, not `read_file`." Cap what reading
+   is genuinely required to 2-3 named files, and say reading anything else
+   is a fallback for a specific unanswered question, not a default first
+   step.
+4. **Give it a way to verify success mechanically** (existing tests must
+   still pass, a new small test proves the new behaviour) rather than a task
+   that needs a judgement call about whether it "looks right" — that
+   judgement is exactly what this model has shown it's weak at (see "What it
+   is and isn't" above), so a task shaped to need it is a bad fit for this
+   tool regardless of prompt quality.
+5. **Tell it to verify its own git actions before claiming success**, not
+   just its code — see the `finish_task` warning above. A task file that
+   says "confirm via `git_status`/`git_log`, don't just remember what you
+   did" is cheap to write and directly targets the one thing session 3's
+   successful run still got wrong.
+
+This makes DeepSeek a reasonable fit for **mechanical, fully-specifiable-in-
+the-prompt work**: a refactor/extraction where correctness is checkable by
+a test suite, a straightforward mechanical translation of an
+already-settled design into code. It's a poor fit for anything requiring
+the reading itself to be the point — broad unscoped exploration, a task
+whose "correct" depends on a judgement call, or (regardless of prompt
+quality) anything needing a toolchain outside `run_command`'s allowlist
+(`pytest`/`ruff`/`mypy`/`python`, no `npm`/`tsc`/browser — a TypeScript
+task like `#77`'s constituency lookup module can't self-verify here at
+all).
 
 ## ADR 0002 cross-reference
 
