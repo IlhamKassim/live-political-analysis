@@ -46,6 +46,7 @@ from lpa.domain import (
     SwingModelConfig,
     government_seat_total,
 )
+from lpa.politikku_shell import Language, t
 from lpa.swing_model import swing_model
 
 SITE_URL = "https://politikku.my/"
@@ -140,6 +141,28 @@ TIER_LABEL: Mapping[Tier, str] = {
 reader-facing copy — putting it in front of a reader leaning on the seat
 table because they cannot see the legend would defeat the table's purpose.
 """
+
+TIER_LABEL_MS: Mapping[Tier, str] = {
+    Tier.SAFE: "Selamat",
+    Tier.LIKELY: "Berkemungkinan",
+    Tier.TIGHT: "Terlalu rapat",
+}
+"""`TIER_LABEL`'s BM counterpart — the three words HANDOFF settled 9 Aug 2026
+(defect 6), reused here rather than retyped a second time (#43). The EN page
+already carries these as the bilingual `Safe · Selamat` key; the BM page
+states the BM word alone, never `Safe · Selamat` together — a `·`-joined
+pair is the EN page's own bilingual-label device, not a translation, and
+repeating it on a page that is itself the BM translation would be the exact
+mixed-language failure this ticket exists to avoid.
+"""
+
+
+def _tier_label(tier: Tier, language: Language) -> str:
+    """`TIER_LABEL`/`TIER_LABEL_MS` for whichever language — the seat table's
+    Certainty column and `_search_blob`'s search index must read from the
+    same mapping, or a BM reader typing "selamat" would find nothing while
+    the visible column says "Selamat"."""
+    return TIER_LABEL[tier] if language is Language.EN else TIER_LABEL_MS[tier]
 
 
 @dataclass(frozen=True)
@@ -803,7 +826,28 @@ def _plural(n: int, one: str, many: str) -> str:
     return one if n == 1 else many
 
 
-def _long_date(day: date) -> str:
+_MONTHS_MS: tuple[str, ...] = (
+    "Januari",
+    "Februari",
+    "Mac",
+    "April",
+    "Mei",
+    "Jun",
+    "Julai",
+    "Ogos",
+    "September",
+    "Oktober",
+    "November",
+    "Disember",
+)
+"""BM month names, for `_long_date`'s BM form — `strftime('%B')` gives the
+English name regardless of locale (the render host has no Malay locale
+installed), so the substitution is done here rather than left to libc."""
+
+
+def _long_date(day: date, language: Language = Language.EN) -> str:
+    if language is Language.MS:
+        return f"{day.day} {_MONTHS_MS[day.month - 1]} {day.year}"
     return f"{day.day} {day.strftime('%B %Y')}"
 
 
@@ -812,67 +856,118 @@ def _points(margin: float) -> str:
     return f"{margin * 100:.1f}"
 
 
-def status_sentence(status: ElectionStatus) -> str:
+def status_sentence(status: ElectionStatus, language: Language = Language.EN) -> str:
     """The Election Status in a sentence, for all three states it can be in.
 
     Never guesses. `data/election_status.json` is maintained by hand and a
     dissolution with no polling day yet is a real state, not a half-filled
     record — so it gets its own sentence rather than being smoothed over.
+
+    The BM sentences reuse `politikku_shell.trust_strip_status_text`'s
+    settled `PRU16 (belum) diisytiharkan`/`dibubarkan`/`tarikh mengundi`
+    vocabulary (#43) rather than inventing a second phrasing for the same
+    three states — that function states the same status as a strip item a
+    few words wide, this states it as the colophon's full sentence.
     """
     if not status.called:
-        return (
+        return t(
+            language,
             "GE16 has not been called. The Dewan Rakyat is sitting, and the "
             f"election must be held by {_long_date(status.constitutional_deadline)} "
-            "at the latest."
+            "at the latest.",
+            "PRU16 belum diisytiharkan. Dewan Rakyat masih bersidang, dan pilihan "
+            "raya mesti diadakan selewat-lewatnya "
+            f"{_long_date(status.constitutional_deadline, Language.MS)}.",
         )
     dissolved = _long_date(status.dissolved_on)  # type: ignore[arg-type]
+    dissolved_ms = _long_date(status.dissolved_on, Language.MS)  # type: ignore[arg-type]
     if status.polling_date is None:
-        return (
+        return t(
+            language,
             f"GE16 has been called. The Dewan Rakyat was dissolved on {dissolved}. "
-            "The Election Commission has not yet announced a polling day."
+            "The Election Commission has not yet announced a polling day.",
+            f"PRU16 telah diisytiharkan. Dewan Rakyat telah dibubarkan pada {dissolved_ms}. "
+            "Suruhanjaya Pilihan Raya belum mengumumkan tarikh mengundi.",
         )
-    return (
+    return t(
+        language,
         f"GE16 has been called. The Dewan Rakyat was dissolved on {dissolved}, "
-        f"and polling is on {_long_date(status.polling_date)}."
+        f"and polling is on {_long_date(status.polling_date)}.",
+        f"PRU16 telah diisytiharkan. Dewan Rakyat telah dibubarkan pada {dissolved_ms}, "
+        f"dan tarikh mengundi ialah {_long_date(status.polling_date, Language.MS)}.",
     )
 
 
-def lede(model: PageModel) -> str:
+def lede(model: PageModel, language: Language = Language.EN) -> str:
     """The standfirst: the buffer, then what the close Seats do to it.
 
     Both sentences are arithmetic. The mockup's version named Johor and
     Malacca and a seat cost that no data supports — Malacca has not voted —
     so nothing here is written by hand about a particular contest.
+
+    The BM sentence is written whole per branch, not assembled by routing
+    `_plural`'s English inflection through `t()` word by word (#43) — BM
+    does not inflect "kerusi" for number and has no copula in "is/are
+    inside," so a literal word-for-word substitution would read as broken
+    BM even though every individual word is correct.
     """
     clear = abs(model.buffer)
     if model.government_majority:
-        first = (
-            f"The Government Coalition is projected <b>{clear} "
-            f"{_plural(clear, 'seat', 'seats')} clear</b> of a Majority."
-            if clear
-            else "The Government Coalition is projected <b>exactly to a Majority</b>."
-        )
+        if clear:
+            first = t(
+                language,
+                f"The Government Coalition is projected <b>{clear} "
+                f"{_plural(clear, 'seat', 'seats')} clear</b> of a Majority.",
+                f"Gabungan Kerajaan diunjurkan <b>{clear} kerusi jelas</b> daripada majoriti.",
+            )
+        else:
+            first = t(
+                language,
+                "The Government Coalition is projected <b>exactly to a Majority</b>.",
+                "Gabungan Kerajaan diunjurkan <b>tepat pada majoriti</b>.",
+            )
     else:
-        first = (
+        first = t(
+            language,
             f"The Government Coalition is projected <b>{clear} "
-            f"{_plural(clear, 'seat', 'seats')} short</b> of a Majority."
+            f"{_plural(clear, 'seat', 'seats')} short</b> of a Majority.",
+            f"Gabungan Kerajaan diunjurkan <b>kurang {clear} kerusi</b> daripada majoriti.",
         )
 
     tight = model.government_too_close
     if not tight:
-        return f"{first} Not one of the Seats it holds is inside six points."
+        return t(
+            language,
+            f"{first} Not one of the Seats it holds is inside six points.",
+            f"{first} Tiada satu pun kerusi yang dipegangnya berada dalam lingkungan enam mata.",
+        )
 
     gap = model.if_every_marginal_fell - model.majority_threshold
     if gap > 0:
-        outcome = f"would still hold a Majority, leaving it {gap} clear"
+        outcome = t(
+            language,
+            f"would still hold a Majority, leaving it {gap} clear",
+            f"masih mengekalkan majoriti, dengan lebihan {gap} kerusi",
+        )
     elif gap == 0:
-        outcome = "would leave it exactly at the line"
+        outcome = t(
+            language,
+            "would leave it exactly at the line",
+            "membawanya tepat ke garis majoriti",
+        )
     else:
-        outcome = f"would take it {-gap} below the line"
-    return (
+        outcome = t(
+            language,
+            f"would take it {-gap} below the line",
+            f"membawanya {-gap} kerusi di bawah garis majoriti",
+        )
+    return t(
+        language,
         f'{first} <span class="buffer">{tight}</span> of the Seats it holds '
         f"{_plural(tight, 'is', 'are')} inside six points; losing every one "
-        f"{outcome}."
+        f"{outcome}.",
+        f'{first} <span class="buffer">{tight}</span> daripada kerusi yang dipegangnya berada '
+        f"dalam lingkungan enam mata; kehilangan kesemuanya {outcome}.",
     )
 
 
@@ -891,7 +986,7 @@ def _swatch(coalition: Coalition) -> str:
     return f"var(--{token}, var(--ink-soft))"
 
 
-def _hemicycle(model: PageModel) -> str:
+def _hemicycle(model: PageModel, language: Language = Language.EN) -> str:
     """The chamber, as SVG computed here rather than drawn by a script."""
     total = len(model.seats)
     slots = _slots(total)
@@ -903,12 +998,20 @@ def _hemicycle(model: PageModel) -> str:
         t_angle = (slots[threshold - 1][0] + slots[threshold][0]) / 2
         ax, ay = _point(t_angle, R_INNER - 34)
         bx, by = _point(t_angle, R_OUTER + 26)
+        # The EN page keeps its existing bilingual "Majority · Majoriti"
+        # label unchanged (#43 does not touch it — see HANDOFF's own
+        # settled bilingual-labels defect). The BM page states the BM word
+        # alone: a `·`-joined pair is the EN page's bilingual-label device,
+        # not what a page that is itself the translation should carry.
+        threshold_label = t(
+            language, f"{threshold} — Majority · Majoriti", f"{threshold} — Majoriti"
+        )
         parts.append(
             f'<line x1="{ax:.1f}" y1="{ay:.1f}" x2="{bx:.1f}" y2="{by:.1f}" '
             'class="thresh-line"/>'
             f'<circle cx="{bx:.1f}" cy="{by:.1f}" r="3" class="thresh-cap"/>'
             f'<text x="{bx + 10:.1f}" y="{by + 4:.1f}" class="thresh-label">'
-            f"{threshold} — Majority · Majoriti</text>"
+            f"{threshold_label}</text>"
         )
 
         # The brace spans the Majority line to the Government block's edge, so
@@ -926,15 +1029,23 @@ def _hemicycle(model: PageModel) -> str:
             )
             mx, my = _point((t_angle + e_angle) / 2, BRACE_LABEL_RADIUS)
             spare = abs(model.buffer)
-            word = "to spare" if model.government_majority else "short"
+            buffer_text = t(
+                language,
+                f"{spare} {_plural(spare, 'seat', 'seats')} "
+                f"{'to spare' if model.government_majority else 'short'}",
+                f"{spare} kerusi {'lebihan' if model.government_majority else 'kurang'}",
+            )
             parts.append(
                 f'<text x="{mx:.1f}" y="{my:.1f}" class="buffer-text" '
-                f'text-anchor="middle">{spare} {_plural(spare, "seat", "seats")} '
-                f"{word}</text>"
+                f'text-anchor="middle">{buffer_text}</text>'
             )
 
-    parts.append('<text x="6" y="534" class="side-label">Government</text>')
-    parts.append('<text x="994" y="534" class="side-label" text-anchor="end">Non-government</text>')
+    gov_label = t(language, "Government", "Kerajaan")
+    non_gov_label = t(language, "Non-government", "Bukan kerajaan")
+    parts.append(f'<text x="6" y="534" class="side-label">{gov_label}</text>')
+    parts.append(
+        f'<text x="994" y="534" class="side-label" text-anchor="end">{non_gov_label}</text>'
+    )
 
     for seat, (angle, radius) in zip(model.seats, slots):
         x, y = _point(angle, radius)
@@ -944,9 +1055,15 @@ def _hemicycle(model: PageModel) -> str:
         else:
             opacity = "1" if seat.tier == Tier.SAFE else "0.42"
             paint = f'fill="{ink}" fill-opacity="{opacity}"'
-        close = " — too close to call" if seat.tier == Tier.TIGHT else ""
-        tip = (
-            f"{seat.name} ({seat.state}) — {seat.coalition} by {_points(seat.margin)} points{close}"
+        close = (
+            t(language, " — too close to call", " — terlalu rapat untuk ditentukan")
+            if seat.tier == Tier.TIGHT
+            else ""
+        )
+        tip = t(
+            language,
+            f"{seat.name} ({seat.state}) — {seat.coalition} by {_points(seat.margin)} points{close}",
+            f"{seat.name} ({seat.state}) — {seat.coalition} unggul {_points(seat.margin)} mata{close}",
         )
         parts.append(
             f'<circle data-seat="{html.escape(seat.code)}" cx="{x:.1f}" cy="{y:.1f}" '
@@ -954,11 +1071,14 @@ def _hemicycle(model: PageModel) -> str:
             f"{paint}><title>{html.escape(tip)}</title></circle>"
         )
 
-    held = "holds" if model.government_majority else "is projected"
-    summary = (
+    summary = t(
+        language,
         f"Hemicycle of {total} projected Dewan Rakyat Seats. The Government "
-        f"Coalition {held} {model.government_seats}, against a "
-        f"{threshold}-seat Majority."
+        f"Coalition {'holds' if model.government_majority else 'is projected'} "
+        f"{model.government_seats}, against a {threshold}-seat Majority.",
+        f"Hemisiklus {total} Kerusi Dewan Rakyat yang diunjurkan. Gabungan Kerajaan "
+        f"{'memegang' if model.government_majority else 'diunjurkan mendapat'} "
+        f"{model.government_seats} kerusi, berbanding majoriti {threshold} kerusi.",
     )
     return (
         f'<svg class="hemicycle" viewBox="0 {-HEADROOM} 1000 {560 + HEADROOM}" '
@@ -999,10 +1119,17 @@ _GOV_TOTAL_GE15_NOTE = (
 so the two layouts cannot state the caveat differently.
 """
 
+_GOV_TOTAL_GE15_NOTE_MS = (
+    "Gabungan Kerajaan terbentuk selepas PRU15, melalui persetujuan. Ia tiada jumlah PRU15."
+)
+
 
 def _coalition_label(row: LedgerRow) -> str:
     """A Coalition's name and code together — the wide table's and the narrow
-    ledger's row both open with this, so it is built once."""
+    ledger's row both open with this, so it is built once. `row.name` is a
+    Coalition's own name, sourced from `data/coalitions.json` and left
+    untranslated in both languages (`politikku_shell.SourceGroup.sources`'
+    docstring sets the same precedent for proper-name data)."""
     return (
         f'<span class="coalition">{html.escape(row.name)} '
         f"<small>{html.escape(row.coalition)}</small></span>"
@@ -1020,7 +1147,7 @@ def _ledger_row(row: LedgerRow) -> str:
     )
 
 
-def _ledger_table(model: PageModel) -> str:
+def _ledger_table(model: PageModel, language: Language = Language.EN) -> str:
     """The ledger, with the Government total ruled in under its members.
 
     `model.ledger` is already Government-first, so the total goes after that
@@ -1033,11 +1160,13 @@ def _ledger_table(model: PageModel) -> str:
     # and a Swing against it would read as this bloc having gained Seats it
     # was never in a position to win. Each member Coalition's own GE15 result
     # is on its own row above, which is the true part of what that cell said.
+    gov_total_label = t(language, "Government total", "Jumlah Kerajaan")
+    note = t(language, _GOV_TOTAL_GE15_NOTE, _GOV_TOTAL_GE15_NOTE_MS)
     total_row = (
         '<tr class="gov-row">'
-        '<td><span class="coalition">Government total</span></td>'
+        f'<td><span class="coalition">{gov_total_label}</span></td>'
         f'<td class="seats-cell">{model.government_seats}</td>'
-        f'<td class="not-applicable" title="{_GOV_TOTAL_GE15_NOTE}">—</td>'
+        f'<td class="not-applicable" title="{note}">—</td>'
         '<td class="not-applicable">—</td>'
         f"<td>{model.government_too_close}</td></tr>"
     )
@@ -1046,30 +1175,38 @@ def _ledger_table(model: PageModel) -> str:
         + [total_row]
         + [_ledger_row(row) for row in model.ledger if not row.government]
     )
+    coalition_h = t(language, "Coalition", "Gabungan")
+    projected_h = t(language, "Projected", "Diunjurkan")
+    ge15_h = t(language, "GE15", "PRU15")
+    swing_h = t(language, "Swing", "Peralihan")
+    too_close_h = t(language, "Too close", "Terlalu rapat")
     return (
         '<table class="ledger-table"><thead><tr>'
-        '<th scope="col">Coalition</th><th scope="col">Projected</th>'
-        '<th scope="col">GE15</th><th scope="col">Swing</th>'
-        '<th scope="col">Too close</th>'
+        f'<th scope="col">{coalition_h}</th><th scope="col">{projected_h}</th>'
+        f'<th scope="col">{ge15_h}</th><th scope="col">{swing_h}</th>'
+        f'<th scope="col">{too_close_h}</th>'
         "</tr></thead><tbody>" + "".join(body) + "</tbody></table>"
     )
 
 
-def _ledger_stack_row(row: LedgerRow) -> str:
+def _ledger_stack_row(row: LedgerRow, language: Language = Language.EN) -> str:
     cls, swing_text = _swing_value(row.swing)
+    ge15_h = t(language, "GE15", "PRU15")
+    swing_h = t(language, "Swing", "Peralihan")
+    too_close_h = t(language, "Too close", "Terlalu rapat")
     return (
         f'<div class="ledger-stack-row" style="--swatch: {_swatch(row.coalition)}">'
         f'<div class="ledger-stack-head">{_coalition_label(row)}'
         f'<span class="seats-cell">{row.projected}</span></div>'
         '<dl class="ledger-stack-stats">'
-        f"<div><dt>GE15</dt><dd>{row.baseline}</dd></div>"
-        f'<div><dt>Swing</dt><dd class="{cls}">{swing_text}</dd></div>'
-        f"<div><dt>Too close</dt><dd>{row.too_close}</dd></div>"
+        f"<div><dt>{ge15_h}</dt><dd>{row.baseline}</dd></div>"
+        f'<div><dt>{swing_h}</dt><dd class="{cls}">{swing_text}</dd></div>'
+        f"<div><dt>{too_close_h}</dt><dd>{row.too_close}</dd></div>"
         "</dl></div>"
     )
 
 
-def _ledger_narrow(model: PageModel) -> str:
+def _ledger_narrow(model: PageModel, language: Language = Language.EN) -> str:
     """The ledger restacked as one run per Coalition, for sub-600px screens.
 
     Same figures as `_ledger_table`, laid out so nothing needs a sideways
@@ -1079,25 +1216,30 @@ def _ledger_narrow(model: PageModel) -> str:
     information on the page at all.
     """
     government = [row for row in model.ledger if row.government]
+    gov_total_label = t(language, "Government total", "Jumlah Kerajaan")
+    ge15_h = t(language, "GE15", "PRU15")
+    swing_h = t(language, "Swing", "Peralihan")
+    too_close_h = t(language, "Too close", "Terlalu rapat")
+    note = t(language, _GOV_TOTAL_GE15_NOTE, _GOV_TOTAL_GE15_NOTE_MS)
     total_row = (
         '<div class="ledger-stack-row gov-row">'
-        '<div class="ledger-stack-head"><span class="coalition">Government total</span>'
+        f'<div class="ledger-stack-head"><span class="coalition">{gov_total_label}</span>'
         f'<span class="seats-cell">{model.government_seats}</span></div>'
         '<dl class="ledger-stack-stats">'
-        f'<div><dt>GE15</dt><dd class="not-applicable" title="{_GOV_TOTAL_GE15_NOTE}">—</dd></div>'
-        '<div><dt>Swing</dt><dd class="not-applicable">—</dd></div>'
-        f"<div><dt>Too close</dt><dd>{model.government_too_close}</dd></div>"
+        f'<div><dt>{ge15_h}</dt><dd class="not-applicable" title="{note}">—</dd></div>'
+        f'<div><dt>{swing_h}</dt><dd class="not-applicable">—</dd></div>'
+        f"<div><dt>{too_close_h}</dt><dd>{model.government_too_close}</dd></div>"
         "</dl></div>"
     )
     rows = (
-        [_ledger_stack_row(row) for row in government]
+        [_ledger_stack_row(row, language) for row in government]
         + [total_row]
-        + [_ledger_stack_row(row) for row in model.ledger if not row.government]
+        + [_ledger_stack_row(row, language) for row in model.ledger if not row.government]
     )
     return f'<div class="ledger-narrow">{"".join(rows)}</div>'
 
 
-def _seat_bar(model: PageModel) -> str:
+def _seat_bar(model: PageModel, language: Language = Language.EN) -> str:
     """The chamber's sub-600px fallback: one bar, stacked and bloc-ordered.
 
     Decided 9 Aug 2026 (HANDOFF defect 4). It reuses `model.ledger`'s own
@@ -1114,17 +1256,30 @@ def _seat_bar(model: PageModel) -> str:
     """
     total = model.total_seats
     threshold_pct = 100 * model.majority_threshold / total if total else 0.0
+    seats_word = t(language, "seats", "kerusi")
     segments = "".join(
         f'<div class="bar-seg" style="width:{100 * row.projected / total:.3f}%; '
         f'background:{_swatch(row.coalition)}" '
-        f'title="{html.escape(row.name)} — {row.projected} seats"></div>'
+        f'title="{html.escape(row.name)} — {row.projected} {seats_word}"></div>'
         for row in model.ledger
         if row.projected and total
     )
-    summary = (
+    summary = t(
+        language,
         "Seat totals by Coalition, Government Coalitions first: "
         + ", ".join(f"{row.name} {row.projected}" for row in model.ledger if row.projected)
-        + f". Majority needs {model.majority_threshold} of {total}."
+        + f". Majority needs {model.majority_threshold} of {total}.",
+        "Jumlah kerusi mengikut Gabungan, Gabungan Kerajaan dahulu: "
+        + ", ".join(f"{row.name} {row.projected}" for row in model.ledger if row.projected)
+        + f". Majoriti memerlukan {model.majority_threshold} daripada {total}.",
+    )
+    # The EN page keeps its existing bilingual "Majority · Majoriti" label
+    # unchanged; the BM page states the BM word alone — see `_hemicycle`'s
+    # own comment on the same device.
+    threshold_label = t(
+        language,
+        f"{model.majority_threshold} — Majority · Majoriti",
+        f"{model.majority_threshold} — Majoriti",
     )
     return (
         '<div class="seat-bar-wrap">'
@@ -1132,18 +1287,23 @@ def _seat_bar(model: PageModel) -> str:
         f"{segments}"
         f'<div class="seat-bar-tick" style="left:{threshold_pct:.3f}%"></div>'
         "</div>"
-        '<div class="seat-bar-key">'
-        f"{model.majority_threshold} — Majority · Majoriti"
-        "</div></div>"
+        f'<div class="seat-bar-key">{threshold_label}</div></div>'
     )
 
 
-def _search_blob(seat: ChamberSeat, coalition_names: Mapping[Coalition, str]) -> str:
+def _search_blob(
+    seat: ChamberSeat, coalition_names: Mapping[Coalition, str], language: Language = Language.EN
+) -> str:
     """The text `_SEAT_FILTER_SCRIPT` (#47) matches a query against.
 
     Name, code, state, Coalition (both the short code and its full name, so
     "PH" and "Pakatan Harapan" both find the same Seats), and the certainty
     tier's prose label — the fields #47 asks a reader be able to search by.
+
+    `language` picks the tier label from the same `_tier_label` the visible
+    Certainty column uses (#43) — a BM reader typing "selamat" must find the
+    same rows the column labelled "Selamat", not fall through to the EN word
+    silently indexed underneath a BM-labelled column.
     """
     fields = (
         seat.name,
@@ -1151,12 +1311,12 @@ def _search_blob(seat: ChamberSeat, coalition_names: Mapping[Coalition, str]) ->
         seat.state,
         seat.coalition,
         coalition_names.get(seat.coalition, seat.coalition),
-        TIER_LABEL[seat.tier],
+        _tier_label(seat.tier, language),
     )
     return " ".join(fields).lower()
 
 
-def _seat_table(model: PageModel) -> str:
+def _seat_table(model: PageModel, language: Language = Language.EN) -> str:
     """Every Seat as a row, reachable without a mouse.
 
     The chamber's dots carry their detail in a hover `<title>` only, which
@@ -1199,67 +1359,106 @@ def _seat_table(model: PageModel) -> str:
     coalition_names = {row.coalition: row.name for row in model.ledger}
     rows = "".join(
         f'<tr id="seat-{html.escape(seat.code)}" data-seat="{html.escape(seat.code)}" '
-        f'data-search="{html.escape(_search_blob(seat, coalition_names))}">'
+        f'data-search="{html.escape(_search_blob(seat, coalition_names, language))}">'
         f"<td>{html.escape(seat.name)}</td>"
         f"<td>{html.escape(seat.state)}</td>"
         f"<td>{html.escape(seat.coalition)}</td>"
         f"<td>{_points(seat.margin)}</td>"
-        f"<td>{TIER_LABEL[seat.tier]}</td>"
+        f"<td>{_tier_label(seat.tier, language)}</td>"
         "</tr>"
         for seat in model.seats
     )
+    caption = t(
+        language,
+        "All 222 projected Seats, safest Government to safest Non-government",
+        "Semua 222 Kerusi yang diunjurkan, daripada Kerusi Kerajaan paling selamat "
+        "kepada Kerusi Bukan Kerajaan paling selamat",
+    )
+    seat_h = t(language, "Seat", "Kerusi")
+    state_h = t(language, "State", "Negeri")
+    coalition_h = t(language, "Coalition", "Gabungan")
+    margin_h = t(language, "Margin (points)", "Majoriti (mata)")
+    certainty_h = t(language, "Certainty", "Kepastian")
     return (
         '<table class="visually-hidden seat-table">'
-        "<caption>All 222 projected Seats, safest Government to safest "
-        "Non-government</caption>"
+        f"<caption>{caption}</caption>"
         "<thead><tr>"
-        '<th scope="col">Seat</th><th scope="col">State</th>'
-        '<th scope="col">Coalition</th><th scope="col">Margin (points)</th>'
-        '<th scope="col">Certainty</th>'
+        f'<th scope="col">{seat_h}</th><th scope="col">{state_h}</th>'
+        f'<th scope="col">{coalition_h}</th><th scope="col">{margin_h}</th>'
+        f'<th scope="col">{certainty_h}</th>'
         "</tr></thead>"
         f"<tbody>{rows}</tbody></table>"
     )
 
 
-def _against_the_line(seats: int, threshold: int) -> str:
+def _against_the_line(seats: int, threshold: int, language: Language = Language.EN) -> str:
     """Where a hypothetical total leaves the Government against the Majority."""
     if seats > threshold:
-        return f"still {seats - threshold} clear of the Majority line"
+        return t(
+            language,
+            f"still {seats - threshold} clear of the Majority line",
+            f"masih {seats - threshold} kerusi jelas daripada garis majoriti",
+        )
     if seats == threshold:
-        return "exactly on the Majority line"
-    return f"{threshold - seats} below the Majority line"
+        return t(language, "exactly on the Majority line", "tepat pada garis majoriti")
+    return t(
+        language,
+        f"{threshold - seats} below the Majority line",
+        f"{threshold - seats} kerusi di bawah garis majoriti",
+    )
 
 
-def _stress(model: PageModel) -> str:
-    signals = ", ".join(f"{state} ({seats})" for state, seats in model.state_signals) or "None yet"
+def _stress(model: PageModel, language: Language = Language.EN) -> str:
+    signals = ", ".join(f"{state} ({seats})" for state, seats in model.state_signals) or t(
+        language, "None yet", "Belum ada"
+    )
     cells = [
         (
-            "If every marginal fell",
+            t(language, "If every marginal fell", "Jika setiap kerusi genting tumbang"),
             model.if_every_marginal_fell,
-            (
+            t(
+                language,
                 f"All {model.government_too_close} Government Seats inside six "
-                f"points lost, and {_against_the_line(model.if_every_marginal_fell, model.majority_threshold)}."
+                "points lost, and "
+                f"{_against_the_line(model.if_every_marginal_fell, model.majority_threshold)}.",
+                f"Kesemua {model.government_too_close} Kerusi Kerajaan dalam lingkungan enam "
+                "mata tewas, dan "
+                f"{_against_the_line(model.if_every_marginal_fell, model.majority_threshold, Language.MS)}.",
             ),
         ),
         (
-            "If every marginal held",
+            t(language, "If every marginal held", "Jika setiap kerusi genting bertahan"),
             model.if_every_marginal_held,
-            (
+            t(
+                language,
                 f"The {model.opposition_too_close} Seats inside six points on the "
-                "other side fall to the Government Coalition instead."
+                "other side fall to the Government Coalition instead.",
+                f"{model.opposition_too_close} Kerusi dalam lingkungan enam mata di pihak "
+                "sebelah pula jatuh kepada Gabungan Kerajaan.",
             ),
         ),
         (
-            "Seats that must move",
+            t(language, "Seats that must move", "Kerusi yang perlu berpindah"),
             model.seats_that_must_move,
-            ("Government Seats that would have to change hands before the Majority goes."),
+            t(
+                language,
+                "Government Seats that would have to change hands before the Majority goes.",
+                "Kerusi Kerajaan yang perlu bertukar tangan sebelum majoriti hilang.",
+            ),
         ),
         (
-            "State swing, applied locally",
+            t(
+                language,
+                "State swing, applied locally",
+                "Peralihan negeri, digunakan secara setempat",
+            ),
             model.state_signal_seats,
-            (
-                f"Seats moved by a state election result rather than by Sentiment "
-                f"alone — {signals}. Every other state is untouched by it."
+            t(
+                language,
+                "Seats moved by a state election result rather than by Sentiment "
+                f"alone — {signals}. Every other state is untouched by it.",
+                "Kerusi yang beralih akibat keputusan pilihan raya negeri, bukan Sentimen "
+                f"semata-mata — {signals}. Setiap negeri lain tidak terjejas olehnya.",
             ),
         ),
     ]
@@ -1311,7 +1510,7 @@ def _trend_marks(model: PageModel) -> list[tuple[float, float]]:
     return marks
 
 
-def _trend_plot(model: PageModel) -> str:
+def _trend_plot(model: PageModel, language: Language = Language.EN) -> str:
     """The readings as marks, joined only across consecutive days (#45).
 
     Three things are drawn and nothing else: a dashed hairline at the Majority
@@ -1347,24 +1546,46 @@ def _trend_plot(model: PageModel) -> str:
                 f'x2="{x2:.1f}" y2="{y2:.1f}"/>'
             )
     for reading, (x, y) in zip(model.trend, marks):
+        title = t(
+            language,
+            f"{_long_date(reading.day)} — {format_signed(reading.margin)} against the Majority line",
+            f"{_long_date(reading.day, Language.MS)} — {format_signed(reading.margin)} "
+            "berbanding garis majoriti",
+        )
         parts.append(
             f'<circle class="trend-mark" cx="{x:.1f}" cy="{y:.1f}" r="4">'
-            f"<title>{html.escape(_long_date(reading.day))} — "
-            f"{format_signed(reading.margin)} against the Majority line</title></circle>"
+            f"<title>{html.escape(title)}</title></circle>"
         )
-    joined = (
+    joined = t(
+        language,
         "joined where the runs are on consecutive days"
         if model.trend_is_joined
-        else "plotted as separate marks, not joined up"
+        else "plotted as separate marks, not joined up",
+        "disambungkan apabila larian berlaku pada hari berturutan"
+        if model.trend_is_joined
+        else "diplot sebagai tanda berasingan, tidak disambungkan",
     )
-    summary = (
-        f"{len(model.trend)} daily model runs, {_long_date(model.trend[0].day)} to "
-        f"{_long_date(model.trend[-1].day)}, {joined}. The Government Coalition's "
+    date_first_en = _long_date(model.trend[0].day)
+    date_last_en = _long_date(model.trend[-1].day)
+    date_first_ms = _long_date(model.trend[0].day, Language.MS)
+    date_last_ms = _long_date(model.trend[-1].day, Language.MS)
+    summary = t(
+        language,
+        f"{len(model.trend)} daily model runs, {date_first_en} to "
+        f"{date_last_en}, {joined}. The Government Coalition's "
         f"margin over the {model.majority_threshold}-seat Majority runs from "
         f"{format_signed(min(r.margin for r in model.trend))} to "
         f"{format_signed(max(r.margin for r in model.trend))} across them. "
-        "Every reading is also in the table below."
+        "Every reading is also in the table below.",
+        f"{len(model.trend)} larian model harian, {date_first_ms} hingga "
+        f"{date_last_ms}, {joined}. Majoriti Gabungan Kerajaan berbanding "
+        f"ambang {model.majority_threshold} kerusi berjulat daripada "
+        f"{format_signed(min(r.margin for r in model.trend))} hingga "
+        f"{format_signed(max(r.margin for r in model.trend))} sepanjang tempoh ini. "
+        "Setiap bacaan turut disenaraikan dalam jadual di bawah.",
     )
+    date_first = date_first_en if language is Language.EN else date_first_ms
+    date_last = date_last_en if language is Language.EN else date_last_ms
     return (
         '<div class="trend-plot">'
         f'<div class="trend-scale"><span>{format_signed(high)}</span>'
@@ -1375,14 +1596,14 @@ def _trend_plot(model: PageModel) -> str:
         # line up with the ends of the axis they label and not with the edge
         # of the column the scale gutter also sits in.
         '<div class="trend-dates">'
-        f"<span>{html.escape(_long_date(model.trend[0].day))}</span>"
-        f"<span>{html.escape(_long_date(model.trend[-1].day))}</span>"
+        f"<span>{html.escape(date_first)}</span>"
+        f"<span>{html.escape(date_last)}</span>"
         "</div>"
         "</div>"
     )
 
 
-def _trend_table(model: PageModel) -> str:
+def _trend_table(model: PageModel, language: Language = Language.EN) -> str:
     """Every reading as a row, reachable without a mouse (#45).
 
     The marks carry their date and value in a hover `<title>` only, which is
@@ -1394,23 +1615,31 @@ def _trend_table(model: PageModel) -> str:
     cannot use the picture is not handed a shorter, vaguer version of it.
     """
     rows = "".join(
-        f"<tr><td>{html.escape(_long_date(reading.day))}</td>"
+        f"<tr><td>{html.escape(_long_date(reading.day, language))}</td>"
         f"<td>{reading.government_seats}</td>"
         f"<td>{format_signed(reading.margin)}</td></tr>"
         for reading in model.trend
     )
+    caption = t(
+        language,
+        "The Government Coalition's Seat total on each stored model run, oldest first",
+        "Jumlah Kerusi Gabungan Kerajaan pada setiap larian model yang disimpan, "
+        "paling lama dahulu",
+    )
+    model_run_h = t(language, "Model run", "Larian model")
+    gov_seats_h = t(language, "Government Coalition seats", "Kerusi Gabungan Kerajaan")
+    against_line_h = t(language, "Against the Majority line", "Berbanding garis majoriti")
     return (
         '<table class="visually-hidden trend-table">'
-        "<caption>The Government Coalition's Seat total on each stored model "
-        "run, oldest first</caption>"
-        '<thead><tr><th scope="col">Model run</th>'
-        '<th scope="col">Government Coalition seats</th>'
-        '<th scope="col">Against the Majority line</th></tr></thead>'
+        f"<caption>{caption}</caption>"
+        f'<thead><tr><th scope="col">{model_run_h}</th>'
+        f'<th scope="col">{gov_seats_h}</th>'
+        f'<th scope="col">{against_line_h}</th></tr></thead>'
         f"<tbody>{rows}</tbody></table>"
     )
 
 
-def _majority_trend_section(model: PageModel) -> str:
+def _majority_trend_section(model: PageModel, language: Language = Language.EN) -> str:
     """How the Majority margin has moved across the stored runs (#45).
 
     Three states, and which one shows is decided by how many runs are stored,
@@ -1436,59 +1665,100 @@ def _majority_trend_section(model: PageModel) -> str:
     implying which direction is the real one).
     """
     readings = len(model.trend)
-    header = (
+    header = t(
+        language,
         '<div class="strip"><div class="eyebrow">Majority margin · Majoriti '
-        "— across the stored model runs</div></div>"
+        "— across the stored model runs</div></div>",
+        '<div class="strip"><div class="eyebrow">Majoriti '
+        "— merentasi larian model yang disimpan</div></div>",
     )
-    basis = (
-        f"Each reading is one daily run of the same model against the same "
-        f"GE15 Baseline: the Government Coalition's Seats, above or below the "
+    basis = t(
+        language,
+        "Each reading is one daily run of the same model against the same "
+        "GE15 Baseline: the Government Coalition's Seats, above or below the "
         f"{model.majority_threshold} a Majority needs. Both Swing Model "
         "constants are judgement rather than fitted (ADR 0003), so a move "
         "here is this model reacting to News Sentiment, not a measurement of "
-        "opinion changing."
+        "opinion changing.",
+        "Setiap bacaan ialah satu larian harian model yang sama berbanding Asas "
+        "PRU15 yang sama: Kerusi Gabungan Kerajaan, sama ada melebihi atau kurang "
+        f"daripada {model.majority_threshold} yang diperlukan untuk majoriti. Kedua-dua "
+        "pemalar Model Peralihan adalah pertimbangan, bukan disuaipadan (ADR 0003), jadi "
+        "sebarang pergerakan di sini adalah model ini bertindak balas kepada Sentimen "
+        "berita, bukan ukuran perubahan pendapat sebenar.",
     )
     if not model.trend_is_plotted:
         only = model.trend[0]
+        note = t(
+            language,
+            f"One run is stored, {_long_date(only.day)}: {only.government_seats} Seats, "
+            f"{format_signed(only.margin)} against the Majority line. There is "
+            "nothing yet to compare it against, so nothing is plotted — a single "
+            "mark on an axis would read as a flat line.",
+            f"Satu larian disimpan, {_long_date(only.day, Language.MS)}: "
+            f"{only.government_seats} Kerusi, {format_signed(only.margin)} berbanding "
+            "garis majoriti. Belum ada apa-apa untuk dibandingkan lagi, jadi tiada "
+            "carta diplot — satu tanda sahaja pada paksi akan kelihatan seperti garis "
+            "mendatar.",
+        )
         return (
             f'<div class="trend">{header}'
             f'<p class="sensitivity-note">{basis}</p>'
-            f'<p class="sensitivity-note">One run is stored, '
-            f"{html.escape(_long_date(only.day))}: {only.government_seats} Seats, "
-            f"{format_signed(only.margin)} against the Majority line. There is "
-            "nothing yet to compare it against, so nothing is plotted — a single "
-            "mark on an axis would read as a flat line.</p>"
-            f"{_trend_table(model)}</div>"
+            f'<p class="sensitivity-note">{html.escape(note)}</p>'
+            f"{_trend_table(model, language)}</div>"
         )
+    date_first = _long_date(model.trend[0].day, language)
+    date_last = _long_date(model.trend[-1].day, language)
     if model.trend_is_joined:
-        note = (
-            f"{readings} runs are stored, {html.escape(_long_date(model.trend[0].day))} "
-            f"to {html.escape(_long_date(model.trend[-1].day))}. Marks are joined only "
+        note = t(
+            language,
+            f"{readings} runs are stored, {date_first} "
+            f"to {date_last}. Marks are joined only "
             "where two runs are on consecutive days; a gap in the line is a day the "
-            "pipeline did not run, never a value between two readings."
+            "pipeline did not run, never a value between two readings.",
+            f"{readings} larian disimpan, {date_first} "
+            f"hingga {date_last}. Tanda disambungkan hanya "
+            "apabila dua larian berada pada hari berturutan; jurang dalam garis adalah "
+            "hari saluran paip tidak berjalan, bukan sekali-kali nilai antara dua bacaan.",
         )
     else:
-        note = (
-            f"{readings} runs are stored, {html.escape(_long_date(model.trend[0].day))} "
-            f"to {html.escape(_long_date(model.trend[-1].day))} — plotted as separate "
-            f"readings and deliberately not joined up. This page draws a line between "
+        note = t(
+            language,
+            f"{readings} runs are stored, {date_first} "
+            f"to {date_last} — plotted as separate "
+            "readings and deliberately not joined up. This page draws a line between "
             f"them at {MIN_TREND_READINGS} runs; below that, the distance between two "
-            "marks is as much the model's own noise as it is movement."
+            "marks is as much the model's own noise as it is movement.",
+            f"{readings} larian disimpan, {date_first} "
+            f"hingga {date_last} — diplot sebagai bacaan "
+            "berasingan dan sengaja tidak disambungkan. Halaman ini melukis garis "
+            f"antara bacaan hanya pada {MIN_TREND_READINGS} larian; di bawah itu, jarak "
+            "antara dua tanda adalah sebanyak ralat model itu sendiri seperti mana ia "
+            "adalah pergerakan sebenar.",
         )
     low, high = model.trend_span
+    seats_word = t(language, "Seats", "Kerusi")
+    reading_word = t(language, _plural(readings, "reading", "readings"), "bacaan")
+    key_line = t(
+        language,
+        f"Scale {format_signed(low)} to {format_signed(high)} "
+        f"{seats_word} · the dashed rule is the Majority line, {model.majority_threshold} "
+        f"{seats_word} · {readings} {reading_word}",
+        f"Skala {format_signed(low)} hingga {format_signed(high)} "
+        f"{seats_word} · garis putus-putus ialah garis majoriti, {model.majority_threshold} "
+        f"{seats_word} · {readings} {reading_word}",
+    )
     return (
         f'<div class="trend">{header}'
         f'<p class="sensitivity-note">{basis}</p>'
         f'<p class="sensitivity-note">{note}</p>'
-        f"{_trend_plot(model)}"
-        f'<p class="trend-key">Scale {format_signed(low)} to {format_signed(high)} '
-        f"Seats · the dashed rule is the Majority line, {model.majority_threshold} "
-        f"Seats · {readings} {_plural(readings, 'reading', 'readings')}</p>"
-        f"{_trend_table(model)}</div>"
+        f"{_trend_plot(model, language)}"
+        f'<p class="trend-key">{key_line}</p>'
+        f"{_trend_table(model, language)}</div>"
     )
 
 
-def _ge15_delta(model: PageModel) -> str:
+def _ge15_delta(model: PageModel, language: Language = Language.EN) -> str:
     """A plain "X seats at GE15 → Y projected" line per Coalition (#44).
 
     Reuses `model.ledger` rather than recomputing — `_ledger`'s own
@@ -1506,21 +1776,27 @@ def _ge15_delta(model: PageModel) -> str:
     """
     if not model.ledger:
         return ""
+    seats_at_ge15 = t(language, "seats at GE15", "kerusi pada PRU15")
+    projected_word = t(language, "projected", "diunjurkan")
     items = "".join(
-        f"<li>{html.escape(row.name)}: {row.baseline} seats at GE15 → {row.projected} projected</li>"
+        f"<li>{html.escape(row.name)}: {row.baseline} {seats_at_ge15} → "
+        f"{row.projected} {projected_word}</li>"
         for row in model.ledger
     )
     note = ""
     if len(model.government_coalitions) > 1:
-        note = (
-            '<li class="ge15-delta-note">The Government Coalition itself has '
-            "no GE15 total to compare — it formed after GE15, by "
-            "agreement.</li>"
+        note_text = t(
+            language,
+            "The Government Coalition itself has no GE15 total to compare "
+            "— it formed after GE15, by agreement.",
+            "Gabungan Kerajaan itu sendiri tiada jumlah PRU15 untuk "
+            "dibandingkan — ia terbentuk selepas PRU15, melalui persetujuan.",
         )
+        note = f'<li class="ge15-delta-note">{note_text}</li>'
     return f'<ul class="ge15-delta">{items}{note}</ul>'
 
 
-def _tipping_point(model: PageModel) -> str:
+def _tipping_point(model: PageModel, language: Language = Language.EN) -> str:
     """Where the count crosses the Majority line today, and by how much (#50).
 
     Wording is the framing decision settled on the issue itself (Phase 0, 20
@@ -1528,33 +1804,51 @@ def _tipping_point(model: PageModel) -> str:
     drifting into the bellwether language ADR 0005 forbids. The `None`
     guard mirrors `_hemicycle`'s own: a threshold outside the chamber draws
     no line there, so this states nothing about one either.
+
+    The BM sentence preserves the same "position in a sort, not a claim
+    about the Seat" caveat ADR 0005 requires — a translation that dropped
+    or softened it would let the BM page imply a bellwether claim the EN
+    page is deliberately built not to make.
     """
     seat = model.threshold_seat
     swing = model.threshold_swing
     if seat is None or swing is None:
         return ""
     name = html.escape(seat.name)
+    state = html.escape(seat.state)
+    points = _points(swing)
+    body = t(
+        language,
+        f"Today, the count crosses {model.majority_threshold} at "
+        f"<b>{name}</b> ({state}). A uniform swing of "
+        f"<b>{points} points</b> would move the Majority line to "
+        "the other side of it.",
+        f"Pada hari ini, kiraan melepasi {model.majority_threshold} di "
+        f"<b>{name}</b> ({state}). Peralihan seragam sebanyak "
+        f"<b>{points} mata</b> akan menggerakkan garis majoriti ke "
+        "sebelah lain kerusi ini.",
+    )
+    caveat = t(
+        language,
+        f"This states a position in a sort, not a claim about {name} itself "
+        "— the same arithmetic applied to any Seat at this position in the "
+        "ordering.",
+        f"Ini menyatakan kedudukan dalam satu susunan, bukan dakwaan tentang "
+        f"{name} itu sendiri — pengiraan yang sama terpakai kepada mana-mana "
+        "Kerusi pada kedudukan ini dalam susunan tersebut.",
+    )
     return (
         # One <div>, not two bare <p>s, because .strip is a flex row with
         # justify-content: space-between — two direct flex children land at
         # opposite ends of the row instead of stacking together.
         '<div class="tipping-point-wrap">'
-        '<p class="tipping-point">'
-        f"Today, the count crosses {model.majority_threshold} at "
-        f"<b>{name}</b> ({html.escape(seat.state)}). A uniform swing of "
-        f"<b>{_points(swing)} points</b> would move the Majority line to "
-        "the other side of it."
-        "</p>"
-        '<p class="tipping-point-caveat">'
-        f"This states a position in a sort, not a claim about {name} itself "
-        "— the same arithmetic applied to any Seat at this position in the "
-        "ordering."
-        "</p>"
+        f'<p class="tipping-point">{body}</p>'
+        f'<p class="tipping-point-caveat">{caveat}</p>'
         "</div>"
     )
 
 
-def _too_close_table(model: PageModel) -> str:
+def _too_close_table(model: PageModel, language: Language = Language.EN) -> str:
     """The Seats already in the `Tier.TIGHT` band, listed by margin (#48).
 
     A secondary module, in the same print register as the ledger and the
@@ -1595,17 +1889,23 @@ def _too_close_table(model: PageModel) -> str:
     chamber.
     """
     seats = model.too_close_seats
-    header = (
+    # The EN page keeps its existing bilingual "Too close · Terlalu rapat"
+    # eyebrow unchanged; the BM page states the BM word alone — see
+    # `_hemicycle`'s own comment on the same device.
+    header = t(
+        language,
         '<div class="strip"><div class="eyebrow">Too close · Terlalu rapat '
-        "— Seats inside six points, by margin</div></div>"
+        "— Seats inside six points, by margin</div></div>",
+        '<div class="strip"><div class="eyebrow">Terlalu rapat '
+        "— Kerusi dalam lingkungan enam mata, mengikut majoriti</div></div>",
     )
     if not seats:
-        return (
-            '<div class="too-close">'
-            f"{header}"
-            '<p class="sensitivity-note">No Seat is projected inside six '
-            "points.</p></div>"
+        empty_note = t(
+            language,
+            "No Seat is projected inside six points.",
+            "Tiada Kerusi diunjurkan dalam lingkungan enam mata.",
         )
+        return f'<div class="too-close">{header}<p class="sensitivity-note">{empty_note}</p></div>'
     rows = "".join(
         f'<tr data-seat="{html.escape(seat.code)}">'
         f'<td>{html.escape(seat.name)} <small class="seat-code">'
@@ -1616,50 +1916,82 @@ def _too_close_table(model: PageModel) -> str:
         "</tr>"
         for seat in seats
     )
-    return (
-        '<div class="too-close">'
-        f"{header}"
-        # Only the verb inflects — `lede` states the same count the same
-        # way. Keying the noun to the numerator instead reads "1 of 222 Seat
-        # is", and one Seat inside the band is an ordinary day here.
-        f'<p class="sensitivity-note">{len(seats)} of {model.total_seats} Seats '
+    # Only the verb inflects in EN — `lede` states the same count the same
+    # way. BM has no such inflection and no copula to drop, so the whole
+    # sentence is written once per language rather than assembled from an
+    # English pluraliser (#43).
+    note = t(
+        language,
+        f"{len(seats)} of {model.total_seats} Seats "
         f"{_plural(len(seats), 'is', 'are')} projected inside six "
         "points — the same Seats the rest of the page marks Too close, "
         "smallest margin first. A Seat is "
         "listed here because of the size of its margin and nothing else: the "
         "Swing is uniform within a state, so this is arithmetic against GE15, "
-        "not a claim about any of these Seats.</p>"
+        "not a claim about any of these Seats.",
+        f"{len(seats)} daripada {model.total_seats} Kerusi "
+        "diunjurkan dalam lingkungan enam mata — Kerusi yang sama yang "
+        "ditandakan Terlalu rapat di tempat lain pada halaman ini, majoriti "
+        "terkecil dahulu. Sesuatu Kerusi disenaraikan di sini semata-mata "
+        "kerana saiz majoritinya: Peralihan adalah seragam dalam sesebuah "
+        "negeri, jadi ini adalah pengiraan berbanding PRU15, bukan dakwaan "
+        "tentang mana-mana Kerusi ini.",
+    )
+    seat_h = t(language, "Seat", "Kerusi")
+    state_h = t(language, "State", "Negeri")
+    coalition_h = t(language, "Coalition", "Gabungan")
+    margin_h = t(language, "Margin (points)", "Majoriti (mata)")
+    return (
+        '<div class="too-close">'
+        f"{header}"
+        f'<p class="sensitivity-note">{note}</p>'
         '<div class="too-close-scroll"><table class="too-close-table">'
         "<thead><tr>"
-        '<th scope="col">Seat</th><th scope="col">State</th>'
-        '<th scope="col">Coalition</th><th scope="col">Margin (points)</th>'
+        f'<th scope="col">{seat_h}</th><th scope="col">{state_h}</th>'
+        f'<th scope="col">{coalition_h}</th><th scope="col">{margin_h}</th>'
         "</tr></thead>"
         f"<tbody>{rows}</tbody></table></div>"
         "</div>"
     )
 
 
-def _sensitivity_table(model: PageModel) -> str:
+def _sensitivity_table(model: PageModel, language: Language = Language.EN) -> str:
     """The Government Coalition total at each of `SENSITIVITY_ROWS` (#51).
 
     Row label is "Government Coalition total," never "confidence," and the
     caption states plainly this is sensitivity to a judgement call, not a
     range of likely outcomes — both settled on the issue itself (triage, 20
     Aug 2026), reused verbatim rather than reworded here. A fixed table, not
-    a slider (ADR 0006; HANDOFF's "templated dashboard" failure mode).
+    a slider (ADR 0006; HANDOFF's "templated dashboard" failure mode). The
+    BM copy carries the same "not a range of likely outcomes" caveat, for
+    the same reason `_tipping_point`'s BM sentence keeps its own caveat
+    (#43): dropping it would let the BM table read as a confidence interval
+    the EN table is deliberately built not to imply.
     """
     rows = "".join(
         f"<tr><td>{value:.2f}</td><td>{total}</td></tr>" for value, total in model.sensitivity_table
     )
+    eyebrow = t(
+        language,
+        "Sensitivity to the unfitted constant",
+        "Kepekaan terhadap pemalar yang tidak disuaipadan",
+    )
+    note = t(
+        language,
+        "The same Projection, recomputed at other values of an unfitted "
+        "model constant — not a range of likely outcomes.",
+        "Unjuran yang sama, dikira semula pada nilai lain bagi satu pemalar "
+        "model yang tidak disuaipadan — bukan julat kemungkinan hasil.",
+    )
+    sensitivity_h = t(language, "Sentiment sensitivity", "Kepekaan sentimen")
+    total_h = t(language, "Government Coalition total", "Jumlah Gabungan Kerajaan")
     return (
         '<div class="sensitivity">'
-        '<div class="strip"><div class="eyebrow">Sensitivity to the unfitted constant</div></div>'
-        '<p class="sensitivity-note">The same Projection, recomputed at '
-        "other values of an unfitted model constant — not a range of "
-        "likely outcomes.</p>"
+        f'<div class="strip"><div class="eyebrow">{eyebrow}</div></div>'
+        f'<p class="sensitivity-note">{note}</p>'
         '<div class="ledger-scroll"><table class="sensitivity-table">'
-        "<thead><tr><th>Sentiment sensitivity</th>"
-        "<th>Government Coalition total</th></tr></thead>"
+        f"<thead><tr><th>{sensitivity_h}</th>"
+        f"<th>{total_h}</th></tr></thead>"
         f"<tbody>{rows}</tbody></table></div>"
         "</div>"
     )
@@ -1687,7 +2019,7 @@ def _coalition_swings(swing: Sequence[tuple[Coalition, float]]) -> str:
     return " · ".join(parts)
 
 
-def _state_rollup_table(model: PageModel) -> str:
+def _state_rollup_table(model: PageModel, language: Language = Language.EN) -> str:
     """The per-state rollup (#53): one row per state, register-a ruled table.
 
     Never a map (HANDOFF's settled decisions) — Sarawak's land area would
@@ -1695,6 +2027,7 @@ def _state_rollup_table(model: PageModel) -> str:
     weight. A rollup one level coarser than the per-Seat calls already on
     the page, so it adds no new per-Seat claim ADR 0005 would object to.
     """
+    signal_word = t(language, "State result", "Keputusan negeri")
     rows = "".join(
         "<tr>"
         f"<td>{html.escape(row.state)}</td>"
@@ -1702,29 +2035,49 @@ def _state_rollup_table(model: PageModel) -> str:
         f"<td>{html.escape(_coalition_counts(row.baseline_totals))}</td>"
         f"<td>{html.escape(_coalition_counts(row.projected_totals))}</td>"
         f"<td>{html.escape(_coalition_swings(row.swing))}</td>"
-        f"<td>{'State result' if row.signal_active else '—'}</td>"
+        f"<td>{signal_word if row.signal_active else '—'}</td>"
         "</tr>"
         for row in model.state_rollup
     )
-    return (
-        '<div class="state-rollup">'
-        '<div class="strip"><div class="eyebrow">Per-state rollup — the Swing Model\'s own unit</div></div>'
-        '<p class="sensitivity-note">The Swing Model moves each state uniformly '
+    eyebrow = t(
+        language,
+        "Per-state rollup — the Swing Model's own unit",
+        "Rumusan setiap negeri — unit Model Peralihan itu sendiri",
+    )
+    note = t(
+        language,
+        "The Swing Model moves each state uniformly "
         "(ADR 0001/0003) — this is that structure, not a claim about any one "
         "Seat, and never drawn as a map (a choropleth would let a state's "
-        "land area dominate its actual seat weight).</p>"
+        "land area dominate its actual seat weight).",
+        "Model Peralihan menggerakkan setiap negeri secara seragam "
+        "(ADR 0001/0003) — ini adalah struktur tersebut, bukan dakwaan "
+        "tentang mana-mana satu Kerusi, dan tidak sekali-kali dilukis "
+        "sebagai peta (peta koroplet akan membiarkan luas tanah sesebuah "
+        "negeri mengatasi berat kerusi sebenarnya).",
+    )
+    state_h = t(language, "State", "Negeri")
+    seats_h = t(language, "Seats", "Kerusi")
+    ge15_h = t(language, "GE15", "PRU15")
+    projected_h = t(language, "Projected", "Diunjurkan")
+    swing_h = t(language, "Swing", "Peralihan")
+    signal_h = t(language, "Signal", "Isyarat")
+    return (
+        '<div class="state-rollup">'
+        f'<div class="strip"><div class="eyebrow">{eyebrow}</div></div>'
+        f'<p class="sensitivity-note">{note}</p>'
         '<div class="ledger-scroll"><table class="state-rollup-table">'
         "<thead><tr>"
-        '<th scope="col">State</th><th scope="col">Seats</th>'
-        '<th scope="col">GE15</th><th scope="col">Projected</th>'
-        '<th scope="col">Swing</th><th scope="col">Signal</th>'
+        f'<th scope="col">{state_h}</th><th scope="col">{seats_h}</th>'
+        f'<th scope="col">{ge15_h}</th><th scope="col">{projected_h}</th>'
+        f'<th scope="col">{swing_h}</th><th scope="col">{signal_h}</th>'
         "</tr></thead>"
         f"<tbody>{rows}</tbody></table></div>"
         "</div>"
     )
 
 
-def _article_counts_line(model: PageModel) -> str:
+def _article_counts_line(model: PageModel, language: Language = Language.EN) -> str:
     """The colophon's per-Coalition article-count sentence (#52).
 
     Counts only, appended to the existing site-wide total sentence rather
@@ -1734,7 +2087,7 @@ def _article_counts_line(model: PageModel) -> str:
     if not model.article_counts:
         return ""
     parts = " · ".join(f"{html.escape(name)} {count}" for name, count in model.article_counts)
-    return f" By Coalition: {parts}."
+    return t(language, f" By Coalition: {parts}.", f" Mengikut Gabungan: {parts}.")
 
 
 def _permalink_path(computed_at: date) -> str:
@@ -1747,7 +2100,7 @@ def _permalink_path(computed_at: date) -> str:
     return f"{computed_at:%Y}/{computed_at:%m}/{computed_at:%d}.html"
 
 
-def _cite_this(model: PageModel) -> str:
+def _cite_this(model: PageModel, language: Language = Language.EN) -> str:
     """The colophon's provenance block (#55): what to cite, and against
     exactly which constants and sources.
 
@@ -1756,15 +2109,43 @@ def _cite_this(model: PageModel) -> str:
     the two Swing Model constants actually in force (ADR 0003's "provisional"
     made concrete, not just named), which outlets fed News Sentiment, and a
     dated permalink stable against that overwrite.
+
+    The permalink itself must stay in the same language as the page stating
+    it (#43): a BM page citing the EN dated copy would be a claim-changing
+    defect, not a cosmetic one, since the two pages are not guaranteed to
+    read identically once #43's translated prose is edited independently of
+    the EN original in the future. `_ms_route`-style prefixing —
+    `SITE_URL + "ms/" + _permalink_path(...)` — mirrors `main`'s own file
+    write, which puts the BM dated copy at `public/ms/{permalink}`.
     """
-    read_from = ", ".join(html.escape(s) for s in model.sources) or "no outlets read"
-    return (
-        f"<p>Model run {html.escape(_long_date(model.computed_at))}. Swing Model: "
-        f"sentiment sensitivity {model.sentiment_sensitivity:.2f}, state signal "
-        f"weight {model.state_signal_weight:.2f}. Read from: {read_from}.</p>"
-        f'<p><a href="{SITE_URL}{_permalink_path(model.computed_at)}">A dated copy '
-        "of this exact run</a>, unaffected by tomorrow's overwrite.</p>"
+    read_from = ", ".join(html.escape(s) for s in model.sources) or t(
+        language, "no outlets read", "tiada portal berita dibaca"
     )
+    run_date = _long_date(model.computed_at, language)
+    permalink = _permalink_path(model.computed_at)
+    permalink_url = (
+        f"{SITE_URL}{permalink}" if language is Language.EN else f"{SITE_URL}ms/{permalink}"
+    )
+    body = t(
+        language,
+        f"Model run {html.escape(run_date)}. Swing Model: "
+        f"sentiment sensitivity {model.sentiment_sensitivity:.2f}, state signal "
+        f"weight {model.state_signal_weight:.2f}. Read from: {read_from}.",
+        f"Larian model {html.escape(run_date)}. Model Peralihan: "
+        f"kepekaan sentimen {model.sentiment_sensitivity:.2f}, pemberat isyarat "
+        f"negeri {model.state_signal_weight:.2f}. Dibaca daripada: {read_from}.",
+    )
+    link_text = t(
+        language,
+        "A dated copy of this exact run",
+        "Salinan bertarikh larian ini",
+    )
+    trailer = t(
+        language,
+        ", unaffected by tomorrow's overwrite.",
+        ", tidak terjejas oleh penulisan ganti esok.",
+    )
+    return f'<p>{body}</p><p><a href="{permalink_url}">{link_text}</a>{trailer}</p>'
 
 
 _CSS = """
@@ -2486,7 +2867,7 @@ body, so a returning reader's stored theme applies before anything renders
 rather than flashing the system default and then swapping.
 """
 
-_THEME_SCRIPT = """
+_THEME_SCRIPT_TEMPLATE = """
 (function () {
   var btn = document.getElementById("themeBtn");
   function dark() {
@@ -2494,7 +2875,7 @@ _THEME_SCRIPT = """
     return set ? set === "dark"
       : window.matchMedia("(prefers-color-scheme: dark)").matches;
   }
-  function label() { btn.textContent = dark() ? "Light" : "Dark"; }
+  function label() { btn.textContent = dark() ? "__LIGHT__" : "__DARK__"; }
   btn.addEventListener("click", function () {
     var next = dark() ? "light" : "dark";
     document.documentElement.setAttribute("data-theme", next);
@@ -2505,7 +2886,19 @@ _THEME_SCRIPT = """
 })();
 """
 
-_SEAT_FILTER_SCRIPT = """
+
+def _theme_script(language: Language = Language.EN) -> str:
+    """`_THEME_SCRIPT_TEMPLATE` with the button's own two states in whichever
+    language (#43) — a `.replace` substitution rather than an f-string, since
+    the template is brace-dense JS and every literal `{`/`}` in it would
+    otherwise need doubling.
+    """
+    dark_label = t(language, "Dark", "Gelap")
+    light_label = t(language, "Light", "Terang")
+    return _THEME_SCRIPT_TEMPLATE.replace("__DARK__", dark_label).replace("__LIGHT__", light_label)
+
+
+_SEAT_FILTER_SCRIPT_TEMPLATE = """
 (function () {
   var input = document.getElementById("seatFilter");
   var count = document.getElementById("seatFilterCount");
@@ -2526,7 +2919,7 @@ _SEAT_FILTER_SCRIPT = """
       var dot = dotFor(row.dataset.seat);
       if (dot) dot.classList.toggle("seat-dot--filtered-out", !isMatch);
     });
-    count.textContent = query ? matched + " of " + total + " Seats match" : "";
+    count.textContent = query ? __MATCH_TEXT__ : "";
   }
 
   input.addEventListener("input", apply);
@@ -2542,7 +2935,40 @@ input is the same code path as any other query, not a special case.
 """
 
 
-def render_html(model: PageModel) -> str:
+def _seat_filter_script(language: Language = Language.EN) -> str:
+    """`_SEAT_FILTER_SCRIPT_TEMPLATE` with the live match-count text in
+    whichever language (#43) — a `data-search` mismatch would leave a BM
+    reader's live region announcing an English sentence while every other
+    word on the page is BM, so this is threaded the same as every other
+    on-page string, not left as the one script exempt from translation.
+    """
+    match_text = t(
+        language,
+        'matched + " of " + total + " Seats match"',
+        'matched + " daripada " + total + " Kerusi sepadan"',
+    )
+    return _SEAT_FILTER_SCRIPT_TEMPLATE.replace("__MATCH_TEXT__", match_text)
+
+
+_MONTHS_MS_ABBR: tuple[str, ...] = (
+    "JAN",
+    "FEB",
+    "MAC",
+    "APR",
+    "MEI",
+    "JUN",
+    "JUL",
+    "OGO",
+    "SEP",
+    "OKT",
+    "NOV",
+    "DIS",
+)
+"""BM abbreviated month names, uppercase to match the masthead's "MODEL RUN"
+stamp — same reasoning as `_MONTHS_MS`: `strftime` has no Malay locale here."""
+
+
+def render_html(model: PageModel, language: Language = Language.EN) -> str:
     """The whole page as one self-contained document.
 
     Decides nothing. Every figure here comes from `model`, so a claim on the
@@ -2550,15 +2976,169 @@ def render_html(model: PageModel) -> str:
     the theme toggle, and the Seat filter (#47) — the page reads correctly
     without either; a script-disabled reader keeps a fully populated,
     unfiltered table and chamber, never a broken or empty one.
+
+    `language` picks the whole page's copy (#43) — the settled architecture
+    is a separate `/ms/` static page, not a runtime toggle, so this function
+    still renders one document per call; `build_all_page_languages` below
+    calls it once per `Language` the way `politikku_homepage.
+    build_all_homepage_languages` does for that page.
+
+    The `learn/*.html` links are root-relative (`/learn/...`), not
+    `public/index.html`'s original page-relative `learn/...` — `public/CNAME`
+    (`politikku.my`) serves the whole site from one domain, so a page-relative
+    link resolves against the *page's own* path, and `/ms/index.html` would
+    otherwise look for `/ms/learn/glossary.html`, which does not exist (those
+    glossary/Coalitions/GE16-process pages are EN-only by design, per #22's
+    own scope — the BM page's link labels are translated, the destinations
+    are not). This is a real fix for the EN page too, not only a BM-page
+    accommodation: it was silently correct before only because the EN page
+    happens to be served from the site root.
     """
-    read_from = " · ".join(html.escape(s) for s in model.sources) or "No outlets read"
-    title = "GE16 Projection — the Dewan Rakyat, projected"
-    description = html.escape(
-        f"Projection of the {model.total_seats} Seats of the Dewan Rakyat at GE16, "
-        f"computed {_long_date(model.computed_at)}. Model-driven and not calibrated."
+    read_from = " · ".join(html.escape(s) for s in model.sources) or t(
+        language, "No outlets read", "Tiada portal berita dibaca"
     )
+    title = t(
+        language,
+        "GE16 Projection — the Dewan Rakyat, projected",
+        "Unjuran PRU16 — Dewan Rakyat, diunjurkan",
+    )
+    description = html.escape(
+        t(
+            language,
+            f"Projection of the {model.total_seats} Seats of the Dewan Rakyat at GE16, "
+            f"computed {_long_date(model.computed_at)}. Model-driven and not calibrated.",
+            f"Unjuran {model.total_seats} Kerusi Dewan Rakyat pada PRU16, dikira "
+            f"{_long_date(model.computed_at, Language.MS)}. Dijana oleh model dan "
+            "belum ditentukur.",
+        )
+    )
+    lang_attr = "ms" if language is Language.MS else "en"
+    og_url = SITE_URL if language is Language.EN else f"{SITE_URL}ms/"
+    # The EN masthead keeps its existing "Projeksi Kerusi GE16" wording
+    # untouched — HANDOFF forbids touching it (a first pass half-swapping it
+    # to "Unjuran Kerusi GE16" was reverted as the exact mixed-language
+    # defect #43 exists to fix). The BM masthead states
+    # `politikku_i18n.GE16_SEAT_PROJECTION_MS`'s already-settled "Unjuran
+    # kerusi PRU16" verbatim — that settled pair is what makes translating
+    # this phrase legitimate now where HANDOFF said it was not: "Kerusi" was
+    # unvetted at the time, and PolitikKu's own settled table has since
+    # vetted it (plus "GE16" itself) as one whole phrase.
+    wordmark = t(
+        language,
+        "Live Political Analysis <em>— Projeksi Kerusi GE16</em>",
+        "Live Political Analysis <em>— Unjuran kerusi PRU16</em>",
+    )
+    model_run_stamp = (
+        model.computed_at.strftime("%d %b %Y").upper()
+        if language is Language.EN
+        else f"{model.computed_at.day:02d} {_MONTHS_MS_ABBR[model.computed_at.month - 1]} "
+        f"{model.computed_at.year}"
+    )
+    model_run_label = t(language, "MODEL RUN", "LARIAN MODEL")
+    glossary_label = t(language, "Glossary", "Glosari")
+    coalitions_label = t(language, "Coalitions", "Gabungan")
+    ge16_process_label = t(language, "GE16 Process", "Proses PRU16")
+    # The reachability half of the settled `/ms/` architecture (#43's own
+    # comment: "mirroring PolitikKu's ... pattern"): a pair of real links
+    # between the two language routes, not a JS-only control, matching
+    # `politikku_shell._lang_toggle`'s own "a pair of links... not a JS-only
+    # control" requirement even though this page renders its own masthead
+    # rather than importing that widget wholesale (its `.lang-toggle` CSS
+    # belongs to PolitikKu's separate visual identity, not this page's print
+    # register). This is the one deliberate addition to the EN page's
+    # otherwise-unchanged output; see `test_the_en_page_only_differs_from_
+    # its_pre_43_baseline_by_the_language_switch_link`.
+    lang_switch = (
+        '<a class="nav-link lang-switch" href="/ms/">BM</a>'
+        if language is Language.EN
+        else '<a class="nav-link lang-switch" href="/">EN</a>'
+    )
+    gov_coalition_label = t(language, "Government Coalition", "Gabungan Kerajaan")
+    of_seats = t(
+        language,
+        f"of {model.total_seats} seats — {model.majority_threshold} needed",
+        f"daripada {model.total_seats} kerusi — {model.majority_threshold} diperlukan",
+    )
+    chamber_eyebrow = t(
+        language,
+        'The Dewan Rakyat, projected <span class="eyebrow-bm">— Unjuran Dewan Rakyat</span>',
+        "Dewan Rakyat, diunjurkan",
+    )
+    chamber_caption_wide = t(
+        language,
+        "Seats run from the safest Government Seat at the left to the safest "
+        "Non-government Seat at the right. Hollow rings are Seats inside six "
+        "points — too close to call. Each is where a uniform Swing puts that "
+        "Seat against its GE15 result, not a judgement about the constituency.",
+        "Kerusi disusun daripada Kerusi Kerajaan paling selamat di sebelah kiri "
+        "kepada Kerusi Bukan Kerajaan paling selamat di sebelah kanan. Gelang "
+        "kosong adalah Kerusi dalam lingkungan enam mata — terlalu rapat untuk "
+        "ditentukan. Setiap satu adalah kedudukan Peralihan seragam meletakkan "
+        "Kerusi itu berbanding keputusan PRU15-nya, bukan pertimbangan tentang "
+        "kawasan itu sendiri.",
+    )
+    chamber_caption_narrow = t(
+        language,
+        "Seats stacked by Coalition, Government Coalitions first. The line "
+        f"marks the {model.majority_threshold} needed for a Majority — which "
+        "Seats are too close to call is in the ledger below.",
+        "Kerusi disusun mengikut Gabungan, Gabungan Kerajaan dahulu. Garis itu "
+        f"menandakan {model.majority_threshold} yang diperlukan untuk majoriti "
+        "— Kerusi mana yang terlalu rapat untuk ditentukan ada dalam lejar di "
+        "bawah.",
+    )
+    find_a_seat = t(language, "Find a Seat", "Cari Kerusi")
+    seat_filter_placeholder = t(
+        language,
+        "Name, state, coalition, or certainty",
+        "Nama, negeri, gabungan, atau tahap kepastian",
+    )
+    seat_key = t(
+        language,
+        "<span><i></i> Safe · Selamat — over 12 points</span>"
+        '<span><i class="mid"></i> Likely · Berkemungkinan — 6 to 12 points</span>'
+        '<span><i class="hollow"></i> Too close · Terlalu rapat — under 6 points</span>',
+        "<span><i></i> Selamat — melebihi 12 mata</span>"
+        '<span><i class="mid"></i> Berkemungkinan — 6 hingga 12 mata</span>'
+        '<span><i class="hollow"></i> Terlalu rapat — kurang daripada 6 mata</span>',
+    )
+    ledger_eyebrow = t(
+        language,
+        "Seat ledger — against the GE15 Baseline",
+        "Lejar Kerusi — berbanding Asas PRU15",
+    )
+    method_heading = t(language, "Method", "Kaedah")
+    method_body = t(
+        language,
+        "A Swing from each Seat's GE15 result, moved by daily News Sentiment "
+        "and blended, state by state, with any state election held since. The "
+        "Swing is uniform within a state, so a Seat's call is arithmetic against "
+        "GE15.",
+        "Peralihan daripada keputusan PRU15 setiap Kerusi, digerakkan oleh "
+        "Sentimen berita harian dan digabungkan, negeri demi negeri, dengan "
+        "mana-mana pilihan raya negeri yang diadakan sejak itu. Peralihan "
+        "adalah seragam dalam sesebuah negeri, jadi keputusan sesuatu Kerusi "
+        "adalah pengiraan berbanding PRU15.",
+    )
+    read_from_heading = t(language, "Read from", "Dibaca daripada")
+    articles_in_latest = t(
+        language,
+        f"{model.article_count} articles in the latest run.",
+        f"{model.article_count} artikel dalam larian terkini.",
+    )
+    election_status_heading = t(language, "Election status", "Status pilihan raya")
+    not_calibrated_heading = t(language, "Not calibrated", "Belum ditentukur")
+    not_calibrated_body = t(
+        language,
+        "Two constants in the Swing Model were set by judgement, not fitted to "
+        "data. Treat every figure here as a direction, not a forecast.",
+        "Dua pemalar dalam Model Peralihan ditetapkan melalui pertimbangan, "
+        "bukan disuaipadan kepada data. Anggap setiap angka di sini sebagai "
+        "arah, bukan ramalan.",
+    )
+    cite_this_heading = t(language, "Cite this", "Petik ini")
     return f"""<!doctype html>
-<html lang="en">
+<html lang="{lang_attr}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -2566,7 +3146,7 @@ def render_html(model: PageModel) -> str:
 <meta name="description" content="{description}">
 <meta property="og:title" content="{title}">
 <meta property="og:description" content="{description}">
-<meta property="og:url" content="{SITE_URL}">
+<meta property="og:url" content="{og_url}">
 <meta property="og:type" content="website">
 <meta property="og:image" content="{SITE_URL}og-image.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -2580,111 +3160,99 @@ def render_html(model: PageModel) -> str:
 <div class="sheet">
 
   <header class="masthead">
-    <div class="wordmark">Live Political Analysis <em>— Projeksi Kerusi GE16</em></div>
+    <div class="wordmark">{wordmark}</div>
     <div class="stamp">
-      <span>MODEL RUN {model.computed_at.strftime("%d %b %Y").upper()}</span>
-      <a class="nav-link" href="learn/glossary.html">Glossary</a>
-      <a class="nav-link" href="learn/coalitions.html">Coalitions</a>
-      <a class="nav-link" href="learn/ge16-process.html">GE16 Process</a>
-      <button class="theme-btn" id="themeBtn" type="button">Dark</button>
+      <span>{model_run_label} {model_run_stamp}</span>
+      <a class="nav-link" href="/learn/glossary.html">{glossary_label}</a>
+      <a class="nav-link" href="/learn/coalitions.html">{coalitions_label}</a>
+      <a class="nav-link" href="/learn/ge16-process.html">{ge16_process_label}</a>
+      {lang_switch}
+      <button class="theme-btn" id="themeBtn" type="button">{t(language, "Dark", "Gelap")}</button>
     </div>
   </header>
 
   <section class="verdict">
     <div class="tally">
-      <div class="tally-eyebrow">Government Coalition<br>{
+      <div class="tally-eyebrow">{gov_coalition_label}<br>{
         " · ".join(html.escape(c) for c in model.government_coalitions)
     }</div>
       <span class="tally-figure">{model.government_seats}</span>
-      <span class="tally-of">of {model.total_seats} seats — {model.majority_threshold} needed</span>
+      <span class="tally-of">{of_seats}</span>
     </div>
-    <p class="lede">{lede(model)}</p>
-    {_ge15_delta(model)}
+    <p class="lede">{lede(model, language)}</p>
+    {_ge15_delta(model, language)}
   </section>
 
   <section class="chamber">
     <div class="strip">
-      <div class="eyebrow">The Dewan Rakyat, projected <span class="eyebrow-bm">— Unjuran Dewan Rakyat</span></div>
+      <div class="eyebrow">{chamber_eyebrow}</div>
       <p class="chamber-caption-wide">
-        Seats run from the safest Government Seat at the left to the safest
-        Non-government Seat at the right. Hollow rings are Seats inside six
-        points — too close to call. Each is where a uniform Swing puts that
-        Seat against its GE15 result, not a judgement about the constituency.
+        {chamber_caption_wide}
       </p>
       <p class="chamber-caption-narrow">
-        Seats stacked by Coalition, Government Coalitions first. The line
-        marks the {model.majority_threshold} needed for a Majority — which
-        Seats are too close to call is in the ledger below.
+        {chamber_caption_narrow}
       </p>
-      {_tipping_point(model)}
+      {_tipping_point(model, language)}
     </div>
 
     <div class="seat-filter">
-      <label for="seatFilter">Find a Seat</label>
+      <label for="seatFilter">{find_a_seat}</label>
       <input type="search" id="seatFilter" autocomplete="off" spellcheck="false"
-        placeholder="Name, state, coalition, or certainty">
+        placeholder="{seat_filter_placeholder}">
       <p class="seat-filter-count" id="seatFilterCount" aria-live="polite"></p>
     </div>
 
-    <div class="hemicycle-wrap">{_hemicycle(model)}</div>
-    {_seat_bar(model)}
-    {_seat_table(model)}
+    <div class="hemicycle-wrap">{_hemicycle(model, language)}</div>
+    {_seat_bar(model, language)}
+    {_seat_table(model, language)}
 
     <div class="key">
-      <span><i></i> Safe · Selamat — over 12 points</span>
-      <span><i class="mid"></i> Likely · Berkemungkinan — 6 to 12 points</span>
-      <span><i class="hollow"></i> Too close · Terlalu rapat — under 6 points</span>
+      {seat_key}
     </div>
   </section>
 
   <section class="ledger">
-    <div class="strip"><div class="eyebrow">Seat ledger — against the GE15 Baseline</div></div>
-    <div class="ledger-scroll">{_ledger_table(model)}</div>
-    {_ledger_narrow(model)}
-    <dl class="stress">{_stress(model)}</dl>
-    {_majority_trend_section(model)}
-    {_too_close_table(model)}
-    {_sensitivity_table(model)}
-    {_state_rollup_table(model)}
+    <div class="strip"><div class="eyebrow">{ledger_eyebrow}</div></div>
+    <div class="ledger-scroll">{_ledger_table(model, language)}</div>
+    {_ledger_narrow(model, language)}
+    <dl class="stress">{_stress(model, language)}</dl>
+    {_majority_trend_section(model, language)}
+    {_too_close_table(model, language)}
+    {_sensitivity_table(model, language)}
+    {_state_rollup_table(model, language)}
   </section>
 
   <footer class="colophon">
     <div>
-      <h3>Method</h3>
-      <p>A Swing from each Seat's GE15 result, moved by daily News Sentiment
-      and blended, state by state, with any state election held since. The
-      Swing is uniform within a state, so a Seat's call is arithmetic against
-      GE15.</p>
+      <h3>{method_heading}</h3>
+      <p>{method_body}</p>
     </div>
     <div>
-      <h3>Read from</h3>
-      <p>{read_from}. {model.article_count} articles in the latest run.{
-        _article_counts_line(model)
-    }</p>
+      <h3>{read_from_heading}</h3>
+      <p>{read_from}. {articles_in_latest}{_article_counts_line(model, language)}</p>
     </div>
     <div>
-      <h3>Election status</h3>
-      <p>{html.escape(status_sentence(model.status))}</p>
+      <h3>{election_status_heading}</h3>
+      <p>{html.escape(status_sentence(model.status, language))}</p>
     </div>
     <div class="caveat">
-      <h3>Not calibrated</h3>
-      <p>Two constants in the Swing Model were set by judgement, not fitted to
-      data. Treat every figure here as a direction, not a forecast.</p>
+      <h3>{not_calibrated_heading}</h3>
+      <p>{not_calibrated_body}</p>
     </div>
     <div>
-      <h3>Cite this</h3>
-      {_cite_this(model)}
+      <h3>{cite_this_heading}</h3>
+      {_cite_this(model, language)}
     </div>
   </footer>
 </div>
-<script>{_THEME_SCRIPT}</script>
-<script>{_SEAT_FILTER_SCRIPT}</script>
+<script>{_theme_script(language)}</script>
+<script>{_seat_filter_script(language)}</script>
 </body>
 </html>
 """
 
 
-def build_page(engine: Engine) -> tuple[str, date]:
+def build_page(engine: Engine, *, language: Language = Language.EN) -> tuple[str, date]:
     """Read Storage and render the page. The whole I/O half, in one place.
 
     Separate from `main` so the preview server in `scripts/` can render
@@ -2735,16 +3303,33 @@ def build_page(engine: Engine) -> tuple[str, date]:
         # states.
         history=projections,
     )
-    return render_html(model), model.computed_at
+    return render_html(model, language), model.computed_at
+
+
+def build_all_page_languages(engine: Engine) -> list[tuple[Language, str, date]]:
+    """`build_page`, once per `Language` — the EN and BM variants #43's
+    separate `/ms/` route needs. Naming matches `politikku_homepage.
+    build_all_homepage_languages`'s own "build every variant this page has"
+    precedent, which itself follows `politikku_mp_profile.
+    build_all_mp_profile_pages`."""
+    return [(language, *build_page(engine, language=language)) for language in Language]
 
 
 def main() -> None:
-    """Render the public page from Storage and write it to disk.
+    """Render the public page from Storage and write both languages to disk.
 
-    Also writes a dated as-of copy alongside it (#55) — `index.html` is
+    Also writes a dated as-of copy alongside each (#55) — `index.html` is
     overwritten every day, so a figure quoted from it today is otherwise
-    unverifiable tomorrow. Same content, one extra static-file write at
-    this page's current size (ADR 0002).
+    unverifiable tomorrow. Same content, one extra static-file write per
+    language at this page's current size (ADR 0002).
+
+    The BM variant is written at `<output-dir>/ms/<output-name>` — matching
+    `politikku_shell._ms_route`'s own path convention and `politikku_homepage
+    .main`'s own "the BM variant is written alongside it at .../ms/..."
+    precedent — with its own dated permalink at `<output-dir>/ms/{Y}/{m}/
+    {d}.html`, not the EN dated copy: `_cite_this` links each page's own
+    dated permalink (#43), so the file that link names must actually exist
+    at that path in that language.
     """
     import argparse
     from pathlib import Path
@@ -2756,22 +3341,28 @@ def main() -> None:
         "--output",
         type=Path,
         default=Path("public/index.html"),
-        help="where to write the page (default: public/index.html)",
+        help="where to write the English page (default: public/index.html); "
+        "the BM variant is written alongside it at <output-dir>/ms/<output-name>, "
+        "matching `politikku_shell._ms_route`'s own path convention",
     )
     args = parser.parse_args()
 
-    page, computed_at = build_page(connect())
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(page, encoding="utf-8")
-    print(f"Wrote {args.output} ({len(page):,} bytes)")
+    engine = connect()
+    for language, page, computed_at in build_all_page_languages(engine):
+        target = (
+            args.output if language is Language.EN else args.output.parent / "ms" / args.output.name
+        )
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(page, encoding="utf-8")
+        print(f"Wrote {target} ({len(page):,} bytes)")
 
-    # The exact day rendered into `page`, not a second Storage read — a
-    # fresh read here could race a concurrent write and name this file
-    # after a different day than the one actually inside it.
-    dated_path = args.output.parent / _permalink_path(computed_at)
-    dated_path.parent.mkdir(parents=True, exist_ok=True)
-    dated_path.write_text(page, encoding="utf-8")
-    print(f"Wrote {dated_path} ({len(page):,} bytes)")
+        # The exact day rendered into `page`, not a second Storage read — a
+        # fresh read here could race a concurrent write and name this file
+        # after a different day than the one actually inside it.
+        dated_path = target.parent / _permalink_path(computed_at)
+        dated_path.parent.mkdir(parents=True, exist_ok=True)
+        dated_path.write_text(page, encoding="utf-8")
+        print(f"Wrote {dated_path} ({len(page):,} bytes)")
 
 
 if __name__ == "__main__":
