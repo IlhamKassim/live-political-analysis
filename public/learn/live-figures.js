@@ -15,6 +15,7 @@
    glossary; Majority is the one case the issue names as genuinely live. */
 
 var GOVERNMENT_COALITIONS = ["PH", "BN", "GPS", "GRS"];
+var MAJORITY_THRESHOLD = 112;
 
 function initLiveMajority() {
   var el = document.querySelector("[data-live-majority]");
@@ -31,11 +32,28 @@ function initLiveMajority() {
       GOVERNMENT_COALITIONS.forEach(function (code) {
         if (typeof totals[code] === "number") seats += totals[code];
       });
+      /* MAJORITY_THRESHOLD, GOVERNMENT_COALITIONS above, and Dewan
+         Rakyat's 222 Seats are the same facts the glossary text around
+         this hook already states and cites — not new claims, just the
+         arithmetic those facts support.
+
+         Cross-check against the export's own `government_majority` bool
+         rather than trusting GOVERNMENT_COALITIONS blindly: that list is
+         hand-maintained here because the export doesn't carry the
+         pipeline's `government_coalitions` config, so if the two ever
+         disagree, the safer failure is to say nothing (the same
+         no-JS/fetch-failure degrade this file already guarantees) rather
+         than publish a seat count that may not match the pipeline's own
+         Majority call. */
+      var overMajority = seats >= MAJORITY_THRESHOLD;
+      if (overMajority !== !!data.government_majority) return;
+
       /* Phrasing matches public_page.py's lede()/_stress(): "The
          Government Coalition is projected ... seats ..." — arithmetic
-         framing, never "will win" or "wins". */
+         framing, never "will win" or "wins". A sentence, not a dash
+         fragment glued onto the claim span's own full stop. */
       el.textContent =
-        " — today, the Government Coalition is projected at " +
+        " Today, the Government Coalition is projected at " +
         seats +
         " seats.";
     })
