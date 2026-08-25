@@ -31,7 +31,7 @@ import html
 import math
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
-from datetime import date
+from datetime import date, timedelta
 from enum import StrEnum
 
 from sqlalchemy.engine import Engine
@@ -73,6 +73,41 @@ three, with the shipped 0.10 in the middle so the table reads as "today's
 number, and the same model half and double as sensitive." Never a fourth
 column varying `state_signal_weight` too — two constants moving at once
 makes the table's meaning ambiguous.
+"""
+
+MIN_TREND_READINGS = 14
+"""Stored daily runs before the Majority margin is drawn as a joined line (#45).
+
+#45's own triage note (20 Aug 2026) is the reasoning, not a number picked
+here: "a trend line drawn from 3-4 points doesn't yet do the honest job this
+ticket describes — it would read as more of a trend than it is," and it asks
+for "a few weeks, not a few days." Fourteen runs is that, stated as a count
+rather than a span of calendar days because the pipeline can miss a day and a
+fortnight holding four readings is still four readings.
+
+Below this the readings are still plotted — as separate marks, never joined.
+`dashboard.py`'s `MINIMUM_TREND_DAYS` makes the same call for the internal
+Sentiment chart ("thin history is stated, not drawn"); the bar is higher here
+because this page is the public one and a line on it is quotable.
+"""
+
+TREND_WINDOW_DAYS = 90
+"""How far back the Majority-margin plot reaches from the latest run (#45).
+
+A quarter — long enough to hold a campaign, short enough that a pipeline
+running daily until GE16 does not eventually squash five hundred readings
+into six hundred pixels. Readings older than this are still in Storage and
+still on the dated permalinks; they are simply not in this plot.
+"""
+
+TREND_MIN_SPAN = 12
+"""Fewest seats the Majority-margin plot's vertical scale may cover (#45).
+
+The honesty guard on the plot. Scaled to the data alone, a fortnight of runs
+wandering between +8 and +10 fills the whole box top to bottom and reads as a
+dramatic swing; two seats of movement should look like two seats. The scale
+also always contains the Majority line itself, so a reading is always shown
+against the thing it is a margin over.
 """
 
 
@@ -163,6 +198,26 @@ class StateRollupRow:
 
 
 @dataclass(frozen=True)
+class TrendReading:
+    """One stored day's Majority margin (#45).
+
+    A whole Projection reduced to the two figures the plot states, so the
+    section renders from plain numbers rather than re-deriving a Government
+    total from a stored day's `coalition_seat_totals` at render time. The
+    Seat Calls those older Projections do not carry (ADR 0005 keeps per-Seat
+    rows for the latest two days only) are not needed here and not missed:
+    this is a Coalition-level figure by construction.
+    """
+
+    day: date
+    government_seats: int
+    margin: int
+    """Seats clear of the Majority threshold on that day. Negative is short of
+    one — the same quantity `PageModel.buffer` states for today, so the
+    right-hand end of the plot and the figure in the lede cannot disagree."""
+
+
+@dataclass(frozen=True)
 class PageModel:
     """Every number the page states, and nothing about how it looks."""
 
@@ -191,6 +246,11 @@ class PageModel:
     state_rollup: tuple[StateRollupRow, ...]
     """One row per state (#53), alphabetical — the model's actual unit of
     variation (ADR 0001/0003) made legible as a rollup, never a map."""
+    trend: tuple[TrendReading, ...]
+    """The Majority margin on each stored day inside `TREND_WINDOW_DAYS`,
+    oldest first (#45) — never empty, since today's own Projection is one
+    reading. One entry is the ordinary state of a young pipeline, not a
+    failure to read anything."""
     sentiment_sensitivity: float
     state_signal_weight: float
     """The two Swing Model constants in force this run (ADR 0003) — stated
@@ -287,6 +347,41 @@ class PageModel:
         return self.government_seats + self.opposition_too_close
 
     @property
+    def trend_is_plotted(self) -> bool:
+        """Whether the Majority margin gets a plot at all (#45).
+
+        One reading is a reading, not a trend: there is nothing to compare it
+        against, and a single mark alone on an axis invites the eye to read a
+        flat line through it. That day gets a sentence instead.
+        """
+        return len(self.trend) >= 2
+
+    @property
+    def trend_is_joined(self) -> bool:
+        """Whether the marks are joined up (#45) — see `MIN_TREND_READINGS`."""
+        return len(self.trend) >= MIN_TREND_READINGS
+
+    @property
+    def trend_span(self) -> tuple[int, int]:
+        """The plot's vertical scale, in seats against the Majority line (#45).
+
+        Always contains the Majority line itself (a margin of zero) and is
+        never narrower than `TREND_MIN_SPAN`, so a fortnight of two-seat
+        wobble is drawn as two seats of wobble rather than expanded to fill
+        the box. Returned from the model rather than computed inside the SVG
+        writer because it is a claim about what the picture means, and this
+        is where the page's claims are testable.
+        """
+        margins = [reading.margin for reading in self.trend]
+        low = min(margins + [0])
+        high = max(margins + [0])
+        short = TREND_MIN_SPAN - (high - low)
+        if short > 0:
+            low -= short // 2
+            high += short - short // 2
+        return low, high
+
+    @property
     def seats_that_must_move(self) -> int:
         """How many Government Seats would have to change hands to end the Majority.
 
@@ -315,6 +410,7 @@ def page_model(
     state_election_signals: Sequence[StateElectionSignal],
     total_seats: int,
     state_swing: Mapping[str, Mapping[Coalition, float]],
+    history: Sequence[Projection] = (),
 ) -> PageModel:
     """Work out everything the page says, from one day's Projection.
 
@@ -325,6 +421,12 @@ def page_model(
     database can be. `state_swing` (#53a) is empty rather than `None` for a
     day stored before that plumbing existed — a state simply states no
     Swing figure rather than the whole render failing.
+
+    `history` is every stored Projection oldest first, exactly as
+    `load_projections` hands them back (#45), and defaults to empty for the
+    callers that render one day and no trend — `projection` alone then stands
+    as the single reading, so `trend` is never empty and "one day of history"
+    and "no history read" never come out looking the same on the page.
 
     Raises `ValueError` on a Projection with no Seat Calls. The chamber is the
     page, and rendering 222 blanks would look like a result rather than like a
@@ -368,6 +470,7 @@ def page_model(
             baseline, sentiment, state_election_signals, config, projection.computed_at
         ),
         state_rollup=_state_rollup(baseline, seats, state_swing, signal_states),
+        trend=_majority_trend(history or (projection,), config),
         sentiment_sensitivity=config.sentiment_sensitivity,
         state_signal_weight=config.state_signal_weight,
     )
@@ -556,6 +659,49 @@ def _state_rollup(
         )
         for state in sorted(baseline_by_state)
     )
+
+
+def _majority_trend(
+    history: Sequence[Projection],
+    config: SwingModelConfig,
+) -> tuple[TrendReading, ...]:
+    """The Majority margin on each stored day in the window, oldest first (#45).
+
+    Reads only `coalition_seat_totals` off each stored Projection, which
+    Storage keeps for every day — the per-Seat calls it keeps for the latest
+    two days alone (ADR 0005) are not wanted here, so no day in the run is a
+    partial reading.
+
+    The margin is recomputed with `government_seat_total` under *today's*
+    config rather than read from the stored `Projection.government_majority`
+    flag. Two reasons, and both are about the plot meaning one thing end to
+    end: that flag is a bool, so it cannot give a margin at all; and which
+    Coalitions form the government is config that can change under a stored
+    day, so re-deriving is what keeps every mark on the plot counting the
+    same Coalitions as the figure in the lede above it.
+
+    Days are deduplicated on `computed_at`, last write winning, because a
+    re-run stores a second row for a day it has already written and two marks
+    on one date would draw a vertical jump that never happened.
+    """
+    if not history:
+        return ()
+    by_day: dict[date, Projection] = {p.computed_at: p for p in history}
+    latest = max(by_day)
+    earliest_shown = latest - timedelta(days=TREND_WINDOW_DAYS)
+    readings = []
+    for day in sorted(by_day):
+        if day < earliest_shown:
+            continue
+        seats = government_seat_total(by_day[day].coalition_seat_totals, config)
+        readings.append(
+            TrendReading(
+                day=day,
+                government_seats=seats,
+                margin=seats - config.majority_threshold,
+            )
+        )
+    return tuple(readings)
 
 
 # ── the chamber's geometry ────────────────────────────────────────────────
@@ -1121,6 +1267,224 @@ def _stress(model: PageModel) -> str:
         f'<div class="cell"><dt>{html.escape(title)}</dt><dd>{value}</dd>'
         f"<p>{html.escape(note)}</p></div>"
         for title, value, note in cells
+    )
+
+
+# ── the Majority-margin plot (#45) ────────────────────────────────────────
+#
+# Small enough to render at its own natural size rather than scaled up to the
+# column: 600×150 user units are 600×150 CSS pixels on a wide screen, so the
+# hairlines are hairlines and the marks are marks. No type inside the SVG —
+# unlike the hemicycle, which buys legible labels with a 460px min-width and a
+# sideways scroll, this scales all the way down to a phone, and text scaled to
+# 0.56× with it would be unreadable. Every label is HTML around the plot.
+
+TREND_VIEW_W, TREND_VIEW_H = 600.0, 150.0
+TREND_PAD_X, TREND_PAD_Y = 12.0, 16.0
+
+
+def _trend_marks(model: PageModel) -> list[tuple[float, float]]:
+    """Each reading's position in the plot, in the SVG's own user units (#45).
+
+    The horizontal axis is the *date*, not the reading's index. That is the
+    whole difference between a plot that can be read honestly and one that
+    cannot: spacing readings evenly would close up a week the pipeline missed
+    and present eight days apart as one day apart.
+    """
+    low, high = model.trend_span
+    span = high - low
+    days = (model.trend[-1].day - model.trend[0].day).days
+    width = TREND_VIEW_W - 2 * TREND_PAD_X
+    height = TREND_VIEW_H - 2 * TREND_PAD_Y
+    marks = []
+    for reading in model.trend:
+        # Neither divisor can be zero as this is reached — `_majority_trend`
+        # deduplicates on the day, so two readings are never one day, and
+        # `trend_span` never returns a span under `TREND_MIN_SPAN`. Both
+        # guards are here anyway because a quiet run of days, every reading
+        # on the same margin, is the ordinary shape of this data, and a
+        # division that only holds because of a constant elsewhere in the
+        # file is one edit away from not holding.
+        across = 0.5 if days == 0 else (reading.day - model.trend[0].day).days / days
+        up = 0.5 if span == 0 else (reading.margin - low) / span
+        marks.append((TREND_PAD_X + across * width, TREND_PAD_Y + (1 - up) * height))
+    return marks
+
+
+def _trend_plot(model: PageModel) -> str:
+    """The readings as marks, joined only across consecutive days (#45).
+
+    Three things are drawn and nothing else: a dashed hairline at the Majority
+    line (the same dash the chamber's own threshold line uses, because it is
+    the same line), one dot per stored run, and — only once there are
+    `MIN_TREND_READINGS` of them — straight segments between runs that are on
+    consecutive days.
+
+    Straight, and only between adjacent days. No curve, no spline, no
+    smoothing: a curve through daily model output invents intermediate values
+    the model never produced and turns noise into momentum, which is exactly
+    the misreading #45 was opened worrying about. A gap in the line is a day
+    the pipeline did not run, and leaving it as a gap is the honest answer —
+    a segment drawn across it would state a value for a day that has none.
+    """
+    low, high = model.trend_span
+    marks = _trend_marks(model)
+    span = high - low
+    zero_y = TREND_PAD_Y + (1 - (0 - low) / span) * (TREND_VIEW_H - 2 * TREND_PAD_Y)
+    parts = [
+        (
+            f'<line class="trend-majority" x1="0" y1="{zero_y:.1f}" '
+            f'x2="{TREND_VIEW_W:.0f}" y2="{zero_y:.1f}"/>'
+        )
+    ]
+    if model.trend_is_joined:
+        for i in range(1, len(model.trend)):
+            if (model.trend[i].day - model.trend[i - 1].day).days != 1:
+                continue
+            (x1, y1), (x2, y2) = marks[i - 1], marks[i]
+            parts.append(
+                f'<line class="trend-step" x1="{x1:.1f}" y1="{y1:.1f}" '
+                f'x2="{x2:.1f}" y2="{y2:.1f}"/>'
+            )
+    for reading, (x, y) in zip(model.trend, marks):
+        parts.append(
+            f'<circle class="trend-mark" cx="{x:.1f}" cy="{y:.1f}" r="4">'
+            f"<title>{html.escape(_long_date(reading.day))} — "
+            f"{format_signed(reading.margin)} against the Majority line</title></circle>"
+        )
+    joined = (
+        "joined where the runs are on consecutive days"
+        if model.trend_is_joined
+        else "plotted as separate marks, not joined up"
+    )
+    summary = (
+        f"{len(model.trend)} daily model runs, {_long_date(model.trend[0].day)} to "
+        f"{_long_date(model.trend[-1].day)}, {joined}. The Government Coalition's "
+        f"margin over the {model.majority_threshold}-seat Majority runs from "
+        f"{format_signed(min(r.margin for r in model.trend))} to "
+        f"{format_signed(max(r.margin for r in model.trend))} across them. "
+        "Every reading is also in the table below."
+    )
+    return (
+        '<div class="trend-plot">'
+        f'<div class="trend-scale"><span>{format_signed(high)}</span>'
+        f"<span>{format_signed(low)}</span></div>"
+        f'<svg class="trend-svg" viewBox="0 0 {TREND_VIEW_W:.0f} {TREND_VIEW_H:.0f}" '
+        f'role="img" aria-label="{html.escape(summary)}">{"".join(parts)}</svg>'
+        # Inside the plot's own grid rather than under it, so the two dates
+        # line up with the ends of the axis they label and not with the edge
+        # of the column the scale gutter also sits in.
+        '<div class="trend-dates">'
+        f"<span>{html.escape(_long_date(model.trend[0].day))}</span>"
+        f"<span>{html.escape(_long_date(model.trend[-1].day))}</span>"
+        "</div>"
+        "</div>"
+    )
+
+
+def _trend_table(model: PageModel) -> str:
+    """Every reading as a row, reachable without a mouse (#45).
+
+    The marks carry their date and value in a hover `<title>` only, which is
+    the same keyboard-and-touch dead end HANDOFF defect 5 found on the
+    chamber's dots — so the same answer: `visually-hidden`, never
+    `display: none`, which would take it out of the accessibility tree too.
+
+    It is the plot's numbers rather than a summary of them, so a reader who
+    cannot use the picture is not handed a shorter, vaguer version of it.
+    """
+    rows = "".join(
+        f"<tr><td>{html.escape(_long_date(reading.day))}</td>"
+        f"<td>{reading.government_seats}</td>"
+        f"<td>{format_signed(reading.margin)}</td></tr>"
+        for reading in model.trend
+    )
+    return (
+        '<table class="visually-hidden trend-table">'
+        "<caption>The Government Coalition's Seat total on each stored model "
+        "run, oldest first</caption>"
+        '<thead><tr><th scope="col">Model run</th>'
+        '<th scope="col">Government Coalition seats</th>'
+        '<th scope="col">Against the Majority line</th></tr></thead>'
+        f"<tbody>{rows}</tbody></table>"
+    )
+
+
+def _majority_trend_section(model: PageModel) -> str:
+    """How the Majority margin has moved across the stored runs (#45).
+
+    Three states, and which one shows is decided by how many runs are stored,
+    never by how the result looks:
+
+    - **One run.** No plot. A single mark on an axis reads as a flat line
+      through it, and there is nothing to compare it against anyway, so the
+      day gets a sentence and the count.
+    - **Two to `MIN_TREND_READINGS`.** The readings are plotted, as separate
+      marks with nothing drawn between them. Deliberately sparse rather than
+      polished: on this many runs the movement between two marks is as much
+      the model's noise as anything about Malaysia, and joining them would
+      say otherwise.
+    - **`MIN_TREND_READINGS` or more.** The same marks, joined by straight
+      segments between consecutive days only — see `_trend_plot`.
+
+    The count of readings is in the copy in all three, so the plot can never
+    be read without knowing how thin it is. In the same print register as the
+    ledger and the sensitivity table either side of it: hairlines, a dashed
+    Majority line, mono labels, no card, no fill under the marks, no arrow, no
+    percentage change, no colour that would sort the movement into good and
+    bad (ADR 0003 — the constants are not fitted, so the page has no business
+    implying which direction is the real one).
+    """
+    readings = len(model.trend)
+    header = (
+        '<div class="strip"><div class="eyebrow">Majority margin · Majoriti '
+        "— across the stored model runs</div></div>"
+    )
+    basis = (
+        f"Each reading is one daily run of the same model against the same "
+        f"GE15 Baseline: the Government Coalition's Seats, above or below the "
+        f"{model.majority_threshold} a Majority needs. Both Swing Model "
+        "constants are judgement rather than fitted (ADR 0003), so a move "
+        "here is this model reacting to News Sentiment, not a measurement of "
+        "opinion changing."
+    )
+    if not model.trend_is_plotted:
+        only = model.trend[0]
+        return (
+            f'<div class="trend">{header}'
+            f'<p class="sensitivity-note">{basis}</p>'
+            f'<p class="sensitivity-note">One run is stored, '
+            f"{html.escape(_long_date(only.day))}: {only.government_seats} Seats, "
+            f"{format_signed(only.margin)} against the Majority line. There is "
+            "nothing yet to compare it against, so nothing is plotted — a single "
+            "mark on an axis would read as a flat line.</p>"
+            f"{_trend_table(model)}</div>"
+        )
+    if model.trend_is_joined:
+        note = (
+            f"{readings} runs are stored, {html.escape(_long_date(model.trend[0].day))} "
+            f"to {html.escape(_long_date(model.trend[-1].day))}. Marks are joined only "
+            "where two runs are on consecutive days; a gap in the line is a day the "
+            "pipeline did not run, never a value between two readings."
+        )
+    else:
+        note = (
+            f"{readings} runs are stored, {html.escape(_long_date(model.trend[0].day))} "
+            f"to {html.escape(_long_date(model.trend[-1].day))} — plotted as separate "
+            f"readings and deliberately not joined up. This page draws a line between "
+            f"them at {MIN_TREND_READINGS} runs; below that, the distance between two "
+            "marks is as much the model's own noise as it is movement."
+        )
+    low, high = model.trend_span
+    return (
+        f'<div class="trend">{header}'
+        f'<p class="sensitivity-note">{basis}</p>'
+        f'<p class="sensitivity-note">{note}</p>'
+        f"{_trend_plot(model)}"
+        f'<p class="trend-key">Scale {format_signed(low)} to {format_signed(high)} '
+        f"Seats · the dashed rule is the Majority line, {model.majority_threshold} "
+        f"Seats · {readings} {_plural(readings, 'reading', 'readings')}</p>"
+        f"{_trend_table(model)}</div>"
     )
 
 
@@ -1919,6 +2283,65 @@ _CSS = """
 
   .state-rollup { margin: clamp(46px, 7vw, 78px) 0 0; }
 
+  /* #45. Same spacing and the same secondary-section register as the ledger
+     and the sensitivity table either side of it — hairlines and mono labels,
+     no card, no fill under the marks, no colour sorting the movement into
+     good and bad. */
+  .trend { margin: clamp(46px, 7vw, 78px) 0 0; }
+  .trend-plot {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: stretch;
+    gap: 7px 12px;
+    max-width: 660px;
+  }
+  .trend-scale {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .06em;
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+    /* Roughly TREND_PAD_Y, so each label sits level with the end of the scale
+       it names rather than with the edge of the box. Exact at the plot's
+       natural 600-unit width and a pixel or two out below it — this is a
+       label's position, not a datum's. */
+    padding: 15px 0;
+  }
+  .trend-svg {
+    /* Explicit, like svg.hemicycle's own. A grid item that is a replaced
+       element with an intrinsic aspect ratio does not stretch to its track
+       under normal alignment, so without this the plot renders at its
+       600-unit intrinsic width and stops tracking the column. */
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    display: block;
+    border-bottom: 1px solid var(--rule);
+  }
+  /* The chamber's Majority line, same dash — it is the same line. */
+  .trend-majority { stroke: var(--ink); stroke-width: 1.2; stroke-dasharray: 3 3.5; }
+  .trend-step { stroke: var(--ink-soft); stroke-width: 1.4; }
+  .trend-mark { fill: var(--ink); }
+  .trend-dates {
+    grid-column: 2;
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .06em;
+    color: var(--ink-faint);
+  }
+  .trend-key {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .06em;
+    color: var(--ink-faint);
+    margin: 14px 0 0;
+  }
+
   /* #48. Same spacing and the same ruled-table register as the two
      secondary sections either side of it — no card, no new treatment. */
   .too-close { margin: clamp(46px, 7vw, 78px) 0 0; }
@@ -2033,7 +2456,8 @@ _CSS = """
     .theme-btn { display: none; }
     .seat-filter { display: none; }
     .sheet { max-width: none; padding: 0 var(--gutter) 24px; }
-    .verdict, .ledger-table, .stress, .colophon, .sensitivity, .state-rollup { break-inside: avoid; }
+    .verdict, .ledger-table, .stress, .colophon, .sensitivity, .state-rollup,
+    .trend { break-inside: avoid; }
     tr { break-inside: avoid; }
     /* The hidden accessibility table (.seat-table, 222 rows — see
        _seat_table's docstring) stays hidden here too, via its existing
@@ -2218,6 +2642,7 @@ def render_html(model: PageModel) -> str:
     <div class="ledger-scroll">{_ledger_table(model)}</div>
     {_ledger_narrow(model)}
     <dl class="stress">{_stress(model)}</dl>
+    {_majority_trend_section(model)}
     {_too_close_table(model)}
     {_sensitivity_table(model)}
     {_state_rollup_table(model)}
@@ -2304,6 +2729,11 @@ def build_page(engine: Engine) -> tuple[str, date]:
         state_election_signals=load_state_election_signals(),
         total_seats=config["total_seats"],
         state_swing=load_state_swing(engine, projections[-1].computed_at),
+        # The same read the latest Projection came out of (#45), not a second
+        # one: re-reading here could pick up a day written in between and
+        # plot a right-hand end that is not the day the rest of the page
+        # states.
+        history=projections,
     )
     return render_html(model), model.computed_at
 
