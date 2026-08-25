@@ -1239,7 +1239,9 @@ def test_a_scale_always_contains_the_majority_line_it_is_measured_from():
 
 def test_every_reading_on_one_margin_renders_flat_rather_than_failing():
     # The likeliest shape a young pipeline actually produces: nothing moved.
-    # The value span goes to zero, and it may not divide.
+    # It renders as a flat row of marks because the margins are equal — not
+    # because a zero span was survived; TREND_MIN_SPAN keeps the scale wide
+    # enough that the division in _trend_marks never sees one.
     model = model_for(history=stored_runs([3] * 5))
     marks = _trend_marks(model)
     block = trend_block(render_html(model))

@@ -1298,9 +1298,13 @@ def _trend_marks(model: PageModel) -> list[tuple[float, float]]:
     height = TREND_VIEW_H - 2 * TREND_PAD_Y
     marks = []
     for reading in model.trend:
-        # A run of readings all on one day cannot happen (`_majority_trend`
-        # deduplicates on the day), but a zero span can — every reading on
-        # the same margin is the ordinary quiet week, not an error.
+        # Neither divisor can be zero as this is reached — `_majority_trend`
+        # deduplicates on the day, so two readings are never one day, and
+        # `trend_span` never returns a span under `TREND_MIN_SPAN`. Both
+        # guards are here anyway because a quiet run of days, every reading
+        # on the same margin, is the ordinary shape of this data, and a
+        # division that only holds because of a constant elsewhere in the
+        # file is one edit away from not holding.
         across = 0.5 if days == 0 else (reading.day - model.trend[0].day).days / days
         up = 0.5 if span == 0 else (reading.margin - low) / span
         marks.append((TREND_PAD_X + across * width, TREND_PAD_Y + (1 - up) * height))
@@ -2307,7 +2311,11 @@ _CSS = """
     padding: 15px 0;
   }
   .trend-svg {
-    flex: 1 1 auto;
+    /* Explicit, like svg.hemicycle's own. A grid item that is a replaced
+       element with an intrinsic aspect ratio does not stretch to its track
+       under normal alignment, so without this the plot renders at its
+       600-unit intrinsic width and stops tracking the column. */
+    width: 100%;
     min-width: 0;
     height: auto;
     display: block;
