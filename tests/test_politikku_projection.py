@@ -453,8 +453,12 @@ def test_main_writes_both_pages_in_both_languages_with_dated_copies(tmp_path, mo
     # the file that answers it are built from the same `_permalink_path`, so
     # this asserts the files actually land where `_permalink_url` says.
     model = _projection_model()
+    reads = []
     monkeypatch.setattr("lpa.storage.connect", lambda *a, **k: object())
-    monkeypatch.setattr("lpa.politikku_projection._projection_page_model", lambda engine: model)
+    monkeypatch.setattr(
+        "lpa.politikku_projection._projection_page_model",
+        lambda engine: (reads.append(engine), model)[1],
+    )
     projection_out = tmp_path / "projection" / PROJECTION_PAGE
     methodology_out = tmp_path / "politikku" / METHODOLOGY_PAGE
     monkeypatch.setattr(
@@ -482,6 +486,11 @@ def test_main_writes_both_pages_in_both_languages_with_dated_copies(tmp_path, mo
     assert (projection_out.parent / permalink).read_text(encoding="utf-8") == (
         projection_out.read_text(encoding="utf-8")
     )
+    # And all four pages come from one Storage read. A second read that
+    # picked up a day written in between would leave the methodology page
+    # citing a dated permalink whose file this run never wrote.
+    assert len(reads) == 1
+    assert permalink in methodology_out.read_text(encoding="utf-8")
 
 
 def test_one_storage_read_stands_behind_both_languages(monkeypatch):

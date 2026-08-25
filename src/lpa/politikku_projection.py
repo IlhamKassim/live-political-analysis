@@ -1573,11 +1573,17 @@ def build_all_methodology_languages(engine: Engine) -> list[tuple[Language, str,
 def main() -> None:
     """Render both pages from Storage, in both languages, and write them.
 
-    Four pages plus two dated copies per language (#55): `index.html` is
+    Four pages plus one dated copy per language (#55): `index.html` is
     overwritten every day, so a figure quoted from the projection page today
     is otherwise unverifiable tomorrow. The dated copy is written under this
     page's own route, which is the path `_permalink_url` states on the page
     itself — the link and the file it names cannot disagree.
+
+    Renders from one `PageModel` directly rather than through
+    `build_all_projection_languages`/`build_all_methodology_languages`: those
+    are the two-line API #104's `daily.yml` wiring will call for one page at
+    a time, and using both here would put two Storage reads behind four
+    pages that all cite one model run.
     """
     import argparse
     from pathlib import Path
@@ -1604,27 +1610,33 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    engine = connect()
+    # One Storage read behind all four pages, not one per page: the
+    # methodology page's own "cite this" block links the projection page's
+    # dated permalink, and that file is written by the loop below from *this*
+    # run's `computed_at`. A second read that picked up a day written in
+    # between would have the methodology page printing a citation link to a
+    # dated file nothing ever wrote — a 404 citation, which `_permalink_url`
+    # rightly calls worse than no citation link at all.
+    model = _projection_page_model(connect())
+    computed_at = model.computed_at
 
     def _target(output: Path, language: Language) -> Path:
         return output if language is Language.EN else output.parent / "ms" / output.name
 
-    for language, page, computed_at in build_all_projection_languages(engine):
+    def _write(target: Path, page: str) -> None:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(page, encoding="utf-8")
+        print(f"Wrote {target} ({len(page):,} bytes), computed {computed_at}")
+
+    for language in Language:
+        page = render_projection(model, language=language)
         target = _target(args.output, language)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(page, encoding="utf-8")
-        print(f"Wrote {target} ({len(page):,} bytes), computed {computed_at}")
+        _write(target, page)
+        _write(target.parent / _permalink_path(computed_at), page)
 
-        dated_path = target.parent / _permalink_path(computed_at)
-        dated_path.parent.mkdir(parents=True, exist_ok=True)
-        dated_path.write_text(page, encoding="utf-8")
-        print(f"Wrote {dated_path} ({len(page):,} bytes)")
-
-    for language, page, computed_at in build_all_methodology_languages(engine):
-        target = _target(args.methodology_output, language)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(page, encoding="utf-8")
-        print(f"Wrote {target} ({len(page):,} bytes), computed {computed_at}")
+        _write(
+            _target(args.methodology_output, language), render_methodology(model, language=language)
+        )
 
 
 if __name__ == "__main__":
