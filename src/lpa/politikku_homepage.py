@@ -67,7 +67,14 @@ from lpa.politikku_i18n import (
     WITHIN_MODEL_NOISE_MS,
     not_calibrated_tag,
 )
-from lpa.politikku_shell import DASHBOARD_URL, Language, render_shell, short_date, t
+from lpa.politikku_shell import (
+    Language,
+    methodology_url,
+    projection_url,
+    render_shell,
+    short_date,
+    t,
+)
 from lpa.public_page import PageModel, Tier, format_signed
 from lpa.storage import SentimentSnapshot
 
@@ -276,12 +283,17 @@ def _hero(model: HomepageModel, language: Language) -> str:
     seats_word = t(language, "seats", "kerusi")
     clear_seat_calls = t(language, "Clear Seat Calls", "Keputusan Kerusi jelas")
     of_word = t(language, "of", "daripada")
+    # Both hrefs route through `methodology_url` (#102) rather than a
+    # hardcoded `/politikku/methodology.html`: the BM page previously linked
+    # the English methodology page, invisible only because that page did not
+    # exist in either language yet.
+    methodology = html.escape(methodology_url(language))
     caveat = t(
         language,
         "Seat Calls are model-driven and not calibrated against survey "
-        'data — see <a href="/politikku/methodology.html">how this works</a>.',
+        f'data — see <a href="{methodology}">how this works</a>.',
         "Keputusan Kerusi dijana oleh model dan belum ditentukur terhadap data "
-        'tinjauan — lihat <a href="/politikku/methodology.html">cara ini berfungsi</a>.',
+        f'tinjauan — lihat <a href="{methodology}">cara ini berfungsi</a>.',
     )
     return f"""
 <section class="pk-hero">
@@ -306,7 +318,7 @@ def _hero(model: HomepageModel, language: Language) -> str:
   <div class="pk-hero-projection">
     <div class="pk-eyebrow-row">
       <div class="pk-eyebrow">{eyebrow_projection}</div>
-      <a href="{html.escape(DASHBOARD_URL)}">{full_projection}</a>
+      <a href="{html.escape(projection_url(language))}">{full_projection}</a>
     </div>
     <div class="pk-projection-headline">
       <span class="pk-headline-number">{model.government_seats} {of_word} {model.total_seats}</span>

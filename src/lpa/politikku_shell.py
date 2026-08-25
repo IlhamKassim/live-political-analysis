@@ -44,12 +44,17 @@ link to real routes, not what they are — so this is a scoped, reversible
 call rather than a mechanical translation of a given value): new pages live
 under `/politikku/`, English at `/politikku/<page>` and Bahasa Malaysia at
 `/politikku/ms/<page>`, all root-relative (the whole site now serves from
-one domain per `public/CNAME`). `public/index.html` — the existing chamber
-dashboard — is left untouched at `/`; "Seat Projection" in the nav links
-there since that page already *is* the full seat-level projection the
-handoff's own "Full projection →" link means. Bills/Sentiment/Methodology
-point at pages later tickets have not built yet, same as the handoff itself
-asks for ("wired to routes that don't need to exist yet").
+one domain per `public/CNAME`). Bills/Sentiment point at pages later tickets
+have not built yet, same as the handoff itself asks for ("wired to routes
+that don't need to exist yet").
+
+Two of those routes stopped being placeholders in #102 (ADR 0011), which is
+also why the routing helpers below take a `prefix` rather than hardcoding
+`/politikku/`: "Seat Projection" now points at `politikku_projection.py`'s
+own page at `/projection/` (and `/projection/ms/`) instead of at the old
+chamber dashboard at `/`, and "Methodology" now has a real page behind it.
+`public/index.html` — the existing chamber dashboard — is still untouched at
+`/` until #104's cutover; nothing here links to it any more.
 """
 
 from __future__ import annotations
@@ -62,9 +67,25 @@ from enum import StrEnum
 
 from lpa.domain import ElectionStatus
 
-DASHBOARD_URL = "/"
-"""The existing chamber dashboard (`public_page.py`) — unmoved by this
-initiative. See #70's "stand alongside" resolution."""
+POLITIKKU_PREFIX = "/politikku/"
+"""Where PolitikKu's own pages are served from. Every route below is built
+from a prefix plus a page path, so a page living outside `/politikku/` (see
+`PROJECTION_PREFIX`) still gets the same EN/`ms/` pairing rather than a
+second, hand-written routing scheme."""
+
+PROJECTION_PREFIX = "/projection/"
+"""The ported projection detail page (#102, ADR 0011) — the old dashboard's
+analytical depth redrawn in PolitikKu's register. It sits at its own
+top-level route rather than under `/politikku/` because ADR 0011 has
+PolitikKu becoming the site itself: `/politikku/` is a staging prefix that
+#104's cutover collapses, and `/projection/` is the address this content is
+meant to keep afterwards."""
+
+METHODOLOGY_PAGE = "methodology.html"
+"""The page path (under `POLITIKKU_PREFIX`) the header nav, the trust strip
+and the footer all link "how this works" at. Built by
+`politikku_projection.build_methodology`; before #102 this link target did
+not exist anywhere — see that module's docstring."""
 
 LANDING_URL = "/politikku/landing.html"
 """`politikku_landing.py`'s own page (#75) — not in `NAV_LINKS` (it's a
@@ -109,35 +130,62 @@ class NavLink:
     table covers homepage copy, not shell nav) — plain, low-risk cognates/
     translations, listed in #81's PR description for a native-BM check."""
     href: str
-    """For a `localized` link, the page-path fragment `_en_route`/`_ms_route`
-    take (e.g. `"bills.html"`, `""` for the homepage) — routed through
-    whichever language the current page is in, so clicking a nav item from
-    a BM page stays in BM (#81's own "persisted... drives /ms/ routes"
-    requirement extends to in-site navigation, not just the toggle itself).
-    For a non-localized link (`DASHBOARD_URL`: the pre-existing chamber
-    dashboard, #70, which has no BM build at all), the real absolute href,
-    used exactly as given."""
+    """The page-path fragment `_en_route`/`_ms_route` take (e.g.
+    `"bills.html"`, `""` for a directory index) — routed through whichever
+    language the current page is in, so clicking a nav item from a BM page
+    stays in BM (#81's own "persisted... drives /ms/ routes" requirement
+    extends to in-site navigation, not just the toggle itself)."""
     key: str
     """Identifies this link for the `active_nav` comparison — stable even if
     `label`/`label_ms` change."""
-    localized: bool = True
+    prefix: str = POLITIKKU_PREFIX
+    """Which route family this link's `href` hangs off. Every link was
+    `POLITIKKU_PREFIX` until #102 gave "Seat Projection" a real page of its
+    own at `PROJECTION_PREFIX`. It replaces the old `localized: bool` flag,
+    which existed solely so that one item could point at the un-translated
+    chamber dashboard at `/` — that page now has a BM sibling
+    (`/projection/ms/`), so there is no longer any nav item that has to opt
+    out of language routing."""
 
 
 NAV_LINKS: tuple[NavLink, ...] = (
     NavLink("Home", "Utama", "", "home"),
-    NavLink("Seat Projection", "Unjuran Kerusi", DASHBOARD_URL, "projection", localized=False),
+    NavLink("Seat Projection", "Unjuran Kerusi", "", "projection", prefix=PROJECTION_PREFIX),
     NavLink("Bills", "Rang Undang-Undang", "bills.html", "bills"),
     NavLink("Sentiment", "Sentimen", "sentiment.html", "sentiment"),
-    NavLink("Methodology", "Metodologi", "methodology.html", "methodology"),
+    NavLink("Methodology", "Metodologi", METHODOLOGY_PAGE, "methodology"),
 )
 
 
-def _en_route(page_path: str) -> str:
-    return f"/politikku/{page_path}"
+def _en_route(page_path: str, prefix: str = POLITIKKU_PREFIX) -> str:
+    return f"{prefix}{page_path}"
 
 
-def _ms_route(page_path: str) -> str:
-    return f"/politikku/ms/{page_path}"
+def _ms_route(page_path: str, prefix: str = POLITIKKU_PREFIX) -> str:
+    return f"{prefix}ms/{page_path}"
+
+
+def route(language: Language, page_path: str, prefix: str = POLITIKKU_PREFIX) -> str:
+    """`page_path` under `prefix`, in whichever language — the one place a
+    caller outside this module turns "which page, which language" into a
+    real href, rather than each page reassembling `/politikku/ms/…` itself."""
+    return (
+        _en_route(page_path, prefix)
+        if language is Language.EN
+        else _ms_route(page_path, prefix)
+    )
+
+
+def methodology_url(language: Language = Language.EN) -> str:
+    """Where "how this works" points. Language-aware since #102: the BM
+    footer previously linked the English methodology page, a leak nobody
+    could see while the target did not exist at all."""
+    return route(language, METHODOLOGY_PAGE)
+
+
+def projection_url(language: Language = Language.EN) -> str:
+    """Where "Seat Projection"/"Full projection →" point (#102)."""
+    return route(language, "", PROJECTION_PREFIX)
 
 
 def short_date(day: date) -> str:
@@ -193,9 +241,9 @@ def _link(*, href: str, label: str, css_class: str, current: bool, extra: str = 
     return f'<a{cls} href="{html.escape(href)}"{aria}{extra_attr}>{html.escape(label)}</a>'
 
 
-def _lang_toggle(language: Language, page_path: str) -> str:
-    en_href = _en_route(page_path)
-    ms_href = _ms_route(page_path)
+def _lang_toggle(language: Language, page_path: str, prefix: str = POLITIKKU_PREFIX) -> str:
+    en_href = _en_route(page_path, prefix)
+    ms_href = _ms_route(page_path, prefix)
     en_current = language is Language.EN
     ms_current = language is Language.MS
     # `data-pk-set-lang` (via `_link`'s `extra` param) is read by
@@ -220,18 +268,18 @@ def _lang_toggle(language: Language, page_path: str) -> str:
     return f'<div class="lang-toggle" role="group" aria-label="Language">{en_link}{ms_link}</div>'
 
 
-_LANGUAGE_PERSISTENCE_SCRIPT = """
+_LANGUAGE_PERSISTENCE_SCRIPT_TEMPLATE = """
 <script>
 (function () {
   try {
     var stored = window.localStorage.getItem('pk-language');
     if (stored === 'en' || stored === 'ms') {
       var path = location.pathname;
-      var current = path.indexOf('/politikku/ms/') === 0 ? 'ms' : 'en';
+      var current = path.indexOf('__PREFIX__ms/') === 0 ? 'ms' : 'en';
       if (stored !== current) {
         var target = stored === 'ms'
-          ? path.replace('/politikku/', '/politikku/ms/')
-          : path.replace('/politikku/ms/', '/politikku/');
+          ? path.replace('__PREFIX__', '__PREFIX__ms/')
+          : path.replace('__PREFIX__ms/', '__PREFIX__');
         if (target !== path) { location.replace(target); return; }
       }
     }
@@ -251,10 +299,24 @@ progressive-enhancement shape #77's "Recently looked up" chips already use
 (a real link/feature works with no script; this only remembers the choice
 for next time). Placed early in `<head>` (see `render_shell`) so a stored
 preference redirects before the wrong-language page paints, rather than
-flashing it first."""
+flashing it first.
+
+`__PREFIX__` is substituted per page (#102) rather than hardcoded to
+`/politikku/`: a page served from `PROJECTION_PREFIX` has to compare its own
+route family, or a stored BM preference would silently no-op there while
+working everywhere else."""
 
 
-def render_header(*, active_nav: str, language: Language, page_path: str) -> str:
+def _language_persistence_script(prefix: str = POLITIKKU_PREFIX) -> str:
+    """`_LANGUAGE_PERSISTENCE_SCRIPT_TEMPLATE` bound to one route family — a
+    `.replace` substitution rather than an f-string, since the template is
+    brace-dense JS (the same call `public_page._theme_script` makes)."""
+    return _LANGUAGE_PERSISTENCE_SCRIPT_TEMPLATE.replace("__PREFIX__", prefix)
+
+
+def render_header(
+    *, active_nav: str, language: Language, page_path: str, prefix: str = POLITIKKU_PREFIX
+) -> str:
     """The 56px navy header: wordmark, nav, EN/BM toggle.
 
     `active_nav` is a `NavLink.key` (e.g. `"home"`) — the current page's nav
@@ -265,9 +327,7 @@ def render_header(*, active_nav: str, language: Language, page_path: str) -> str
     """
 
     def _nav_href(link: NavLink) -> str:
-        if not link.localized:
-            return link.href
-        return _en_route(link.href) if language is Language.EN else _ms_route(link.href)
+        return route(language, link.href, link.prefix)
 
     links_html = "".join(
         _link(
@@ -281,7 +341,7 @@ def render_header(*, active_nav: str, language: Language, page_path: str) -> str
     menu_label = t(language, "Menu", "Menu")  # "menu" is standard BM too
     primary_label = t(language, "Primary", "Utama")
     primary_mobile_label = t(language, "Primary (mobile)", "Utama (mudah alih)")
-    home_href = _en_route("") if language is Language.EN else _ms_route("")
+    home_href = route(language, "")
     return f"""
 <header class="pk-header">
   <div class="pk-header-left">
@@ -294,7 +354,7 @@ def render_header(*, active_nav: str, language: Language, page_path: str) -> str
     </summary>
     <nav aria-label="{primary_mobile_label}">{links_html}</nav>
   </details>
-  {_lang_toggle(language, page_path)}
+  {_lang_toggle(language, page_path, prefix)}
 </header>
 """.strip()
 
@@ -305,7 +365,7 @@ def render_trust_strip(
     sources_count: int,
     status: ElectionStatus,
     language: Language = Language.EN,
-    methodology_href: str = "/politikku/methodology.html",
+    methodology_href: str | None = None,
 ) -> str:
     """The persistent trust strip — appears on every PolitikKu page.
 
@@ -327,7 +387,7 @@ def render_trust_strip(
         f"{sources_count} sumber berita dibaca",
     )
     status_text = html.escape(trust_strip_status_text(status, language))
-    methodology = html.escape(methodology_href)
+    methodology = html.escape(methodology_href or methodology_url(language))
     how_it_works = t(language, "How this works", "Cara ini berfungsi")
     return f"""
 <div class="pk-trust-strip">
@@ -375,7 +435,7 @@ dropped from `data/outlets.json` would itself be a trust-rule violation."""
 def render_methodology_footer(
     *,
     language: Language = Language.EN,
-    methodology_href: str = "/politikku/methodology.html",
+    methodology_href: str | None = None,
     factual: SourceGroup = FACTUAL_SOURCES,
     modelled: SourceGroup = MODELLED_SOURCES,
 ) -> str:
@@ -390,7 +450,7 @@ def render_methodology_footer(
     """
     factual_items = "".join(f"<span>{html.escape(s)}</span>" for s in factual.sources)
     modelled_items = "".join(f"<span>{html.escape(s)}</span>" for s in modelled.sources)
-    href = html.escape(methodology_href)
+    href = html.escape(methodology_href or methodology_url(language))
     landing_href = html.escape(LANDING_URL)
     heading = t(language, "Methodology &amp; sources", "Metodologi &amp; sumber")
     statement = t(
@@ -437,6 +497,7 @@ def render_shell(
     sources_count: int,
     status: ElectionStatus,
     body_html: str,
+    prefix: str = POLITIKKU_PREFIX,
 ) -> str:
     """Wrap `body_html` in the full PolitikKu page: head, header, trust
     strip, `body_html` untouched, methodology footer.
@@ -444,8 +505,15 @@ def render_shell(
     `body_html` is the one thing this function does not decide — #74/#75/#79
     each render their own body and pass it straight through, per #72's
     "not in scope: actual page content."
+
+    `prefix` is the route family this particular page is served from, and
+    only the EN/BM toggle and the language-persistence script read it (the
+    nav's own links each carry their own `NavLink.prefix`). It defaults to
+    `POLITIKKU_PREFIX`, so every page that existed before #102 is unchanged.
     """
-    header = render_header(active_nav=active_nav, language=language, page_path=page_path)
+    header = render_header(
+        active_nav=active_nav, language=language, page_path=page_path, prefix=prefix
+    )
     trust_strip = render_trust_strip(
         updated_at=updated_at, sources_count=sources_count, status=status, language=language
     )
@@ -455,7 +523,7 @@ def render_shell(
 <html lang="{lang_attr}">
 <head>
 <meta charset="utf-8">
-{_LANGUAGE_PERSISTENCE_SCRIPT}
+{_language_persistence_script(prefix)}
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{html.escape(title)}</title>
 <link rel="preload" href="/politikku/fonts/newsreader-variable.woff2" as="font" type="font/woff2" crossorigin>

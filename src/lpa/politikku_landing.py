@@ -69,7 +69,14 @@ from lpa.politikku_i18n import (
     POSTCODE_OR_CONSTITUENCY_MS,
     not_calibrated_tag,
 )
-from lpa.politikku_shell import LANDING_URL, Language, render_shell, short_date, t
+from lpa.politikku_shell import (
+    LANDING_URL,
+    Language,
+    methodology_url,
+    render_shell,
+    short_date,
+    t,
+)
 from lpa.public_page import PageModel
 from lpa.storage import SentimentSnapshot
 
@@ -429,7 +436,7 @@ def _where_the_line_is_drawn(model: LandingModel, language: Language) -> str:
     <h2>{heading}</h2>
     <p>{p1}</p>
     <p>{p2}</p>
-    <a href="/politikku/methodology.html" class="pk-landing-methodology-link">{link}</a>
+    <a href="{html.escape(methodology_url(language))}" class="pk-landing-methodology-link">{link}</a>
   </div>
   <div class="pk-landing-trust-cards">{cards}</div>
 </section>
@@ -474,7 +481,7 @@ def _hero(model: LandingModel, language: Language) -> str:
     <p class="pk-lede-on-dark">{lede}</p>
     <div class="pk-landing-hero-actions">
       <a class="pk-landing-cta-primary" href="/politikku/">{find_your_mp}</a>
-      <a class="pk-landing-cta-secondary" href="/politikku/methodology.html">{read_methodology}</a>
+      <a class="pk-landing-cta-secondary" href="{html.escape(methodology_url(language))}">{read_methodology}</a>
     </div>
   </div>
 </section>
