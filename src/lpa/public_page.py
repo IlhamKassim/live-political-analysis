@@ -1195,9 +1195,15 @@ def _too_close_table(model: PageModel) -> str:
 
     A secondary module, in the same print register as the ledger and the
     stress-test row above it — a ruled table, not a card. It states which
-    Seats sit inside the band the page already draws as hollow rings and
-    counts in the ledger's "Too close" column, so a reader does not have to
-    scan the whole chamber to find them.
+    Seats sit inside the band the page already marks Too close, so a reader
+    does not have to scan the whole chamber to find them.
+
+    The note points at that tier rather than at the chamber's hollow rings
+    specifically: below 600px the hemicycle and its key are both replaced by
+    the stacked bar (HANDOFF defect 4), so a sentence naming the rings would
+    be false on a phone — the same class of defect as defect 1's caption
+    contradicting the sort. "The rest of the page marks Too close" is true in
+    both layouts, via the ledger's own column either way.
 
     Nothing here is a selection. `model.too_close_seats` filters on the tier
     `tier_for` already assigned, so this module introduces no threshold, no
@@ -1251,8 +1257,8 @@ def _too_close_table(model: PageModel) -> str:
         f"{header}"
         f'<p class="sensitivity-note">{len(seats)} of {model.total_seats} '
         f"{_plural(len(seats), 'Seat is', 'Seats are')} projected inside six "
-        "points — the same Seats the chamber draws as hollow rings and the "
-        "ledger counts under Too close, smallest margin first. A Seat is "
+        "points — the same Seats the rest of the page marks Too close, "
+        "smallest margin first. A Seat is "
         "listed here because of the size of its margin and nothing else: the "
         "Swing is uniform within a state, so this is arithmetic against GE15, "
         "not a claim about any of these Seats.</p>"
