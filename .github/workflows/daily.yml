@@ -56,6 +56,16 @@ jobs:
         with:
           python-version: "3.11"
 
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        # PolitikKu's constituency lookup (#77, ts/) needs Node to build here
+        # for the first time — ci.yml's ts-check job already proves this
+        # config typechecks/lints/tests/builds; this is the same pin so a
+        # build that passes there can't silently differ here.
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: ts/package-lock.json
+
       - name: Cache the sentiment model
         # Weights are a few hundred MB and never change for a pinned model
         # name. Without this every run re-downloads them from the Hub, which
@@ -85,6 +95,15 @@ jobs:
         # rendering — cheap, no system deps beyond the fonts above.
         run: pip install -e ".[sentiment,postgres,telegram]"
 
+      - name: Build the PolitikKu lookup bundle
+        # #77/#103: the only client-side build in this pipeline. Independent
+        # of Storage and of every step below, so it can run any time after
+        # setup-node; placed here, ahead of the pipeline run, so a broken
+        # bundle fails fast before the (much slower) pipeline/render steps
+        # spend the run's time budget.
+        working-directory: ts
+        run: npm ci && npm run build
+
       - name: Run the pipeline
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -94,6 +113,38 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m lpa.public_page
+
+      - name: Render the PolitikKu homepage
+        # #103: first time any of the PolitikKu pages actually ship. Each
+        # module's main() writes both EN and BM in one invocation (the BM
+        # variant alongside the EN one, under ms/) and reads Storage the
+        # same way public_page does above, so it needs the same
+        # DATABASE_URL. Independent of the other three PolitikKu steps
+        # below — none of these modules import from one another's CLI or
+        # read another's output — so their order relative to each other
+        # doesn't matter; grouped together here for readability.
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m lpa.politikku_homepage
+
+      - name: Render the PolitikKu landing page
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m lpa.politikku_landing
+
+      - name: Render the PolitikKu MP profile pages
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m lpa.politikku_mp_profile
+
+      - name: Render the PolitikKu lookup index
+        # Writes public/politikku/data/lookup-index.json, the client-side
+        # data the ts/ bundle built above fetches at runtime in the
+        # browser — not read by any step in this workflow, so it has no
+        # ordering dependency on the bundle build either.
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m lpa.politikku_lookup_index
 
       - name: Archive the dated permalink
         # #55: deploy-pages replaces the live site wholesale each run rather
