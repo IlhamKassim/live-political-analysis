@@ -112,7 +112,7 @@ jobs:
         continue-on-error: true
         run: |
           shopt -s nullglob
-          files=(public/[0-9]*/*/*.html)
+          files=(public/[0-9]*/*/*.html public/ms/[0-9]*/*/*.html)
           if [ ${#files[@]} -eq 0 ]; then
             echo "No dated permalink to archive."
             exit 0

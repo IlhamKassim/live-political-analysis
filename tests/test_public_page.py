@@ -24,6 +24,7 @@ from pytest import approx, raises
 
 from lpa.aggregate import AggregatedSentiment
 from lpa.domain import ElectionStatus, Projection, SeatBaseline, SeatCall, StateElectionSignal
+from lpa.politikku_shell import Language
 from lpa.public_page import (
     MIN_TREND_READINGS,
     SITE_URL,
@@ -1324,3 +1325,238 @@ def test_the_readings_are_reachable_without_a_mouse():
     assert block.count("<tr>") == 3  # a header row and one per reading
     assert "6 August 2026" in block
     assert "+5" in block
+
+
+# ── Bahasa Malaysia translation (#43) ─────────────────────────────────────
+#
+# Separate `/ms/` static pages, mirroring PolitikKu's already-shipped
+# `politikku_shell.Language`/`t()` pattern — the settled architecture,
+# decided on the issue 25 Aug 2026. The known failure mode (HANDOFF's own
+# defect, #43's issue body) is a *half*-translated page: one English
+# sentence left inside otherwise-BM prose. These tests are built to catch
+# exactly that, not just "some BM text appears somewhere."
+
+
+def _visible_text(page: str) -> str:
+    """`page` with `<style>`/`<script>` blocks and every tag stripped, for
+    scanning the text a reader actually sees — not CSS comments, not
+    `data-*`/`class`/`href` attribute values, which legitimately carry
+    English tokens (class names, asset paths) in both languages.
+
+    `aria-label`/`title`/`placeholder` values ARE kept (appended back in as
+    plain text): they are the one place a full English sentence could hide
+    from a tag-stripping scan while still being exactly what a screen-reader
+    user hears — the hemicycle's and trend plot's `aria-label`, the ledger's
+    not-applicable `title`, the seat filter's `placeholder`. A scan that
+    only looked at element text and missed these would not actually cover
+    "everything a reader of this page encounters."
+    """
+    without_style = re.sub(r"<style[^>]*>.*?</style>", " ", page, flags=re.DOTALL)
+    without_script = re.sub(r"<script[^>]*>.*?</script>", " ", without_style, flags=re.DOTALL)
+    accessible_attrs = " ".join(
+        re.findall(r'(?:aria-label|title|placeholder)="([^"]*)"', without_script)
+    )
+    return re.sub(r"<[^>]+>", " ", without_script) + " " + accessible_attrs
+
+
+_ENGLISH_FUNCTION_WORDS = frozenset(
+    {
+        "the",
+        "of",
+        "and",
+        "not",
+        "would",
+        "against",
+        "inside",
+        "still",
+        "is",
+        "are",
+        "this",
+        "that",
+        "with",
+        "from",
+        "than",
+        "were",
+        "was",
+        "has",
+        "have",
+        "been",
+        "which",
+        "where",
+        "before",
+        "after",
+        "its",
+        "their",
+    }
+)
+"""Function words, not nouns — a proper noun (a Coalition's name, a Seat
+name, an outlet) legitimately stays English on the BM page (`politikku_shell
+.SourceGroup.sources`' own precedent), so scanning for those would false-
+positive on exactly the content this ticket says to leave alone. A stray
+function word has no such excuse: nothing English-grammatical is meant to
+survive translation, and unlike a hand-picked list of English phrases, this
+catches a section nobody thought to write an assertion for."""
+
+
+def test_the_bm_page_carries_no_leftover_english_prose():
+    # The ticket's own "known failure mode": a whole section missed in
+    # translation reads as ordinary English prose, which a hand-picked list
+    # of expected English strings would not catch (it only catches what
+    # someone remembered to write an assertion for). Scanning for English
+    # function words does, because ordinary English sentences are full of
+    # them and BM sentences never produce one by chance.
+    page = render_html(model_for(history=stored_runs([0, 1] * 7)), language=Language.MS)
+
+    text = _visible_text(page)
+    words = re.findall(r"[A-Za-z']+", text)
+    hits = [w for w in words if w.lower() in _ENGLISH_FUNCTION_WORDS]
+    assert hits == []
+
+
+def test_the_bm_seat_filter_scripts_live_match_text_is_translated_too():
+    # `_visible_text` strips <script> blocks entirely (JS keywords like
+    # "function"/"var"/"return" would swamp the function-word scan above),
+    # so the one piece of reader-facing text inside the seat-filter script —
+    # the aria-live match count a screen reader announces on every
+    # keystroke — needs its own direct check.
+    page = render_html(model_for(), language=Language.MS)
+
+    assert '" daripada " + total + " Kerusi sepadan"' in page
+    assert '" of " + total + " Seats match"' not in page
+
+
+def test_the_bm_page_states_its_own_language_and_canonical_url():
+    model = model_for()
+    en_page = render_html(model, language=Language.EN)
+    ms_page = render_html(model, language=Language.MS)
+
+    assert '<html lang="en">' in en_page
+    assert '<html lang="ms">' in ms_page
+    assert 'property="og:url" content="https://ilhamkassim.github.io/live-political-analysis/"' in (
+        en_page
+    )
+    assert (
+        'property="og:url" content="https://ilhamkassim.github.io/live-political-analysis/ms/"'
+        in ms_page
+    )
+
+
+def test_the_bm_page_links_back_to_the_en_page_and_vice_versa():
+    # The settled architecture is a pair of real links between the two
+    # language routes (mirroring `politikku_shell._lang_toggle`'s own "a
+    # pair of links... not a JS-only control"), not a page nobody can reach
+    # from the other.
+    model = model_for()
+    en_page = render_html(model, language=Language.EN)
+    ms_page = render_html(model, language=Language.MS)
+
+    assert '<a class="nav-link lang-switch" href="/ms/">BM</a>' in en_page
+    assert '<a class="nav-link lang-switch" href="/">EN</a>' in ms_page
+
+
+def test_the_learn_links_are_root_relative_so_the_bm_page_can_reach_them():
+    # public/CNAME serves the whole site from one domain (politikku.my), so
+    # a root-relative link resolves the same from / and from /ms/ — a
+    # page-relative "learn/..." link on /ms/index.html would instead look
+    # for the non-existent /ms/learn/glossary.html. Real for the EN page
+    # too: it was silently correct before only because the EN page happens
+    # to be served from the site root.
+    model = model_for()
+    en_page = render_html(model, language=Language.EN)
+    ms_page = render_html(model, language=Language.MS)
+
+    for page in (en_page, ms_page):
+        assert 'href="/learn/glossary.html"' in page
+        assert 'href="/learn/coalitions.html"' in page
+        assert 'href="/learn/ge16-process.html"' in page
+        assert 'href="learn/' not in page
+
+
+def test_the_cite_this_permalink_stays_in_the_same_language_as_the_page():
+    # A BM page citing the EN dated copy is a claim-changing defect (#43):
+    # the two pages are not guaranteed to read identically once #43's
+    # translated prose is edited independently of the EN original in the
+    # future.
+    model = model_for()
+    en_page = render_html(model, language=Language.EN)
+    ms_page = render_html(model, language=Language.MS)
+
+    assert "https://ilhamkassim.github.io/live-political-analysis/2026/08/06.html" in en_page
+    assert "https://ilhamkassim.github.io/live-political-analysis/ms/2026/08/06.html" in ms_page
+    assert "/ms/2026/08/06.html" not in en_page
+    assert 'href="https://ilhamkassim.github.io/live-political-analysis/2026/08/06.html"' not in (
+        ms_page
+    )
+
+
+def test_the_bm_seat_table_certainty_column_agrees_with_the_search_index():
+    # `_search_blob` must read the tier label from the same mapping the
+    # visible Certainty column uses (#43) — otherwise a BM reader typing
+    # "selamat" finds nothing while the column says "Selamat".
+    model = model_for()
+    page = render_html(model, language=Language.MS)
+
+    # P001 is the safest PH Seat in `two_coalition_seats()` (20 points clear)
+    # — Selamat in both the visible column and the search index.
+    row = re.search(r'<tr id="seat-P001"[^>]*data-search="([^"]*)"[^>]*>.*?</tr>', page).group(0)
+    assert "<td>Selamat</td>" in row
+    assert "selamat" in re.search(r'data-search="([^"]*)"', row).group(1)
+
+
+def test_the_en_and_bm_pages_state_genuinely_different_text_in_every_major_section():
+    # Not just "the BM page contains some BM word somewhere" — each of the
+    # page's own named sections must actually differ between languages, or
+    # a section could have been silently left untranslated while some other
+    # part of the page carries enough BM to pass a looser check.
+    model = model_for(baseline=staggered_marginals(), history=stored_runs([0, 1] * 7))
+    en_page = render_html(model, language=Language.EN)
+    ms_page = render_html(model, language=Language.MS)
+
+    single_sections = [
+        ("<title>", "</title>"),
+        ('<p class="lede">', "</p>"),
+    ]
+    for start, end in single_sections:
+        en_i = en_page.index(start) + len(start)
+        ms_i = ms_page.index(start) + len(start)
+        en_fragment = en_page[en_i : en_page.index(end, en_i)]
+        ms_fragment = ms_page[ms_i : ms_page.index(end, ms_i)]
+        assert en_fragment != ms_fragment, f"identical text after {start!r}: {en_fragment!r}"
+
+    # Repeated tags: every occurrence, not just the first — a section past
+    # the first `<div class="eyebrow">` left untranslated would pass a
+    # single `.index()` check while still shipping mixed-language copy.
+    repeated_patterns = [
+        r'<div class="eyebrow">(.*?)</div>',  # all six section eyebrows
+        r"<h3>(.*?)</h3>",  # all five colophon headings
+        r"<dt>(.*?)</dt>",  # all four stress-test cell titles
+    ]
+    for pattern in repeated_patterns:
+        en_matches = re.findall(pattern, en_page)
+        ms_matches = re.findall(pattern, ms_page)
+        assert len(en_matches) == len(ms_matches) and len(en_matches) > 1
+        for en_text, ms_text in zip(en_matches, ms_matches):
+            assert en_text != ms_text, f"identical text for {pattern!r}: {en_text!r}"
+
+
+def test_the_en_page_is_unchanged_apart_from_the_ms_wiring():
+    # Proves the EN default output is untouched by #43 wherever possible.
+    # The two deliberate, necessary deviations are the language-switch link
+    # (the settled architecture requires a real link between the two
+    # routes) and the learn/* links becoming root-relative (a correctness
+    # fix `/ms/` exposed, not a translation change) — every other line is
+    # identical to the pre-#43 render, which the full suite above (every
+    # test written before #43 still passing unmodified) already proves for
+    # the copy itself. This test pins the two markup deviations by name so
+    # a future change cannot silently add a third one.
+    model = model_for()
+    page = render_html(model, language=Language.EN)
+
+    assert page.count('<a class="nav-link lang-switch"') == 1
+    assert page.count('href="/learn/') == 3
+    assert 'href="learn/' not in page
+    # Nothing else in the masthead's stamp changed shape: still exactly one
+    # theme button, still the three learn links plus the language switch.
+    stamp = page.split('<div class="stamp">')[1].split("</div>\n  </header>")[0]
+    assert stamp.count("<a ") == 4
+    assert stamp.count("<button") == 1
