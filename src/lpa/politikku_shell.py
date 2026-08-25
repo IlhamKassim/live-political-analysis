@@ -100,17 +100,26 @@ class NavLink:
     table covers homepage copy, not shell nav) — plain, low-risk cognates/
     translations, listed in #81's PR description for a native-BM check."""
     href: str
+    """For a `localized` link, the page-path fragment `_en_route`/`_ms_route`
+    take (e.g. `"bills.html"`, `""` for the homepage) — routed through
+    whichever language the current page is in, so clicking a nav item from
+    a BM page stays in BM (#81's own "persisted... drives /ms/ routes"
+    requirement extends to in-site navigation, not just the toggle itself).
+    For a non-localized link (`DASHBOARD_URL`: the pre-existing chamber
+    dashboard, #70, which has no BM build at all), the real absolute href,
+    used exactly as given."""
     key: str
     """Identifies this link for the `active_nav` comparison — stable even if
     `label`/`label_ms` change."""
+    localized: bool = True
 
 
 NAV_LINKS: tuple[NavLink, ...] = (
-    NavLink("Home", "Utama", "/politikku/", "home"),
-    NavLink("Seat Projection", "Unjuran Kerusi", DASHBOARD_URL, "projection"),
-    NavLink("Bills", "Rang Undang-Undang", "/politikku/bills.html", "bills"),
-    NavLink("Sentiment", "Sentimen", "/politikku/sentiment.html", "sentiment"),
-    NavLink("Methodology", "Metodologi", "/politikku/methodology.html", "methodology"),
+    NavLink("Home", "Utama", "", "home"),
+    NavLink("Seat Projection", "Unjuran Kerusi", DASHBOARD_URL, "projection", localized=False),
+    NavLink("Bills", "Rang Undang-Undang", "bills.html", "bills"),
+    NavLink("Sentiment", "Sentimen", "sentiment.html", "sentiment"),
+    NavLink("Methodology", "Metodologi", "methodology.html", "methodology"),
 )
 
 
@@ -161,13 +170,18 @@ def trust_strip_status_text(status: ElectionStatus, language: Language = Languag
 _ARIA_CURRENT_PAGE = ' aria-current="page"'
 
 
-def _link(*, href: str, label: str, css_class: str, current: bool) -> str:
+def _link(*, href: str, label: str, css_class: str, current: bool, extra: str = "") -> str:
     """One `<a>` tag, escaped, with `aria-current="page"` when it's the
     current page — factored out because pre-3.12 f-strings cannot contain a
-    backslash-escaped quote inside a `{}` expression."""
+    backslash-escaped quote inside a `{}` expression.
+
+    `extra`, when set, adds `data-pk-set-lang="{extra}"` — read by
+    `_LANGUAGE_PERSISTENCE_SCRIPT`'s click listener, not a navigation
+    handler, so the link stays a real `<a href>` either way."""
     aria = _ARIA_CURRENT_PAGE if current else ""
     cls = f' class="{css_class}"' if css_class else ""
-    return f'<a{cls} href="{html.escape(href)}"{aria}>{html.escape(label)}</a>'
+    extra_attr = f' data-pk-set-lang="{extra}"' if extra else ""
+    return f'<a{cls} href="{html.escape(href)}"{aria}{extra_attr}>{html.escape(label)}</a>'
 
 
 def _lang_toggle(language: Language, page_path: str) -> str:
@@ -175,13 +189,60 @@ def _lang_toggle(language: Language, page_path: str) -> str:
     ms_href = _ms_route(page_path)
     en_current = language is Language.EN
     ms_current = language is Language.MS
+    # `data-pk-set-lang` (via `_link`'s `extra` param) is read by
+    # `_LANGUAGE_PERSISTENCE_SCRIPT` below, not a click handler that
+    # intercepts navigation — the link's own `href` is what actually moves
+    # the visitor, matching this ticket's "a pair of links to the localised
+    # routes, not a JS-only control" requirement.
     en_link = _link(
-        href=en_href, label="EN", css_class="lang-current" if en_current else "", current=en_current
+        href=en_href,
+        label="EN",
+        css_class="lang-current" if en_current else "",
+        current=en_current,
+        extra="en",
     )
     ms_link = _link(
-        href=ms_href, label="BM", css_class="lang-current" if ms_current else "", current=ms_current
+        href=ms_href,
+        label="BM",
+        css_class="lang-current" if ms_current else "",
+        current=ms_current,
+        extra="ms",
     )
     return f'<div class="lang-toggle" role="group" aria-label="Language">{en_link}{ms_link}</div>'
+
+
+_LANGUAGE_PERSISTENCE_SCRIPT = """
+<script>
+(function () {
+  try {
+    var stored = window.localStorage.getItem('pk-language');
+    if (stored === 'en' || stored === 'ms') {
+      var path = location.pathname;
+      var current = path.indexOf('/politikku/ms/') === 0 ? 'ms' : 'en';
+      if (stored !== current) {
+        var target = stored === 'ms'
+          ? path.replace('/politikku/', '/politikku/ms/')
+          : path.replace('/politikku/ms/', '/politikku/');
+        if (target !== path) { location.replace(target); return; }
+      }
+    }
+  } catch (e) {}
+  document.addEventListener('click', function (event) {
+    var el = event.target.closest && event.target.closest('[data-pk-set-lang]');
+    if (!el) return;
+    try { window.localStorage.setItem('pk-language', el.getAttribute('data-pk-set-lang')); } catch (e) {}
+  });
+})();
+</script>
+"""
+"""#81's own requirement: `language` "persisted (cookie or localStorage),
+drives /ms/ routes" — a static site with no server has nowhere but the
+browser to keep that, so this is unavoidably a small script, the same
+progressive-enhancement shape #77's "Recently looked up" chips already use
+(a real link/feature works with no script; this only remembers the choice
+for next time). Placed early in `<head>` (see `render_shell`) so a stored
+preference redirects before the wrong-language page paints, rather than
+flashing it first."""
 
 
 def render_header(*, active_nav: str, language: Language, page_path: str) -> str:
@@ -193,9 +254,15 @@ def render_header(*, active_nav: str, language: Language, page_path: str) -> str
     links stay real and reachable with no script, matching this ticket's
     EN/BM-toggle accessibility requirement extended to the rest of the nav.
     """
+
+    def _nav_href(link: NavLink) -> str:
+        if not link.localized:
+            return link.href
+        return _en_route(link.href) if language is Language.EN else _ms_route(link.href)
+
     links_html = "".join(
         _link(
-            href=link.href,
+            href=_nav_href(link),
             label=t(language, link.label, link.label_ms),
             css_class="active" if link.key == active_nav else "",
             current=link.key == active_nav,
@@ -205,10 +272,11 @@ def render_header(*, active_nav: str, language: Language, page_path: str) -> str
     menu_label = t(language, "Menu", "Menu")  # "menu" is standard BM too
     primary_label = t(language, "Primary", "Utama")
     primary_mobile_label = t(language, "Primary (mobile)", "Utama (mudah alih)")
+    home_href = _en_route("") if language is Language.EN else _ms_route("")
     return f"""
 <header class="pk-header">
   <div class="pk-header-left">
-    <a class="wordmark" href="/politikku/">PolitikKu</a>
+    <a class="wordmark" href="{html.escape(home_href)}">PolitikKu</a>
     <nav class="pk-nav" aria-label="{primary_label}">{links_html}</nav>
   </div>
   <details class="pk-nav-mobile">
@@ -378,6 +446,7 @@ def render_shell(
 <html lang="{lang_attr}">
 <head>
 <meta charset="utf-8">
+{_LANGUAGE_PERSISTENCE_SCRIPT}
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{html.escape(title)}</title>
 <link rel="preload" href="/politikku/fonts/newsreader-variable.woff2" as="font" type="font/woff2" crossorigin>

@@ -30,7 +30,7 @@ from lpa.politikku_homepage import (
     render_homepage,
     render_homepage_body,
 )
-from lpa.politikku_shell import NAV_LINKS, Language, render_header
+from lpa.politikku_shell import Language, render_header
 from lpa.public_page import PageModel, Tier, page_model
 from lpa.storage import SentimentSnapshot
 from lpa.swing_model import swing_model
@@ -304,10 +304,12 @@ def test_the_full_page_wraps_the_body_in_the_shell_with_home_active():
 
     page = render_homepage(_rendered_model(), language=Language.EN)
 
-    home = next(link for link in NAV_LINKS if link.key == "home")
+    # NavLink.href for a localized link (home included) is a page-path
+    # fragment routed through the current language, not the literal
+    # rendered href — see politikku_shell.NavLink's own docstring (#81).
     header = render_header(active_nav="home", language=Language.EN, page_path="")
-    assert f'href="{home.href}" aria-current="page"' in header
-    assert f'href="{home.href}" aria-current="page"' in page
+    assert 'href="/politikku/" aria-current="page"' in header
+    assert 'href="/politikku/" aria-current="page"' in page
     assert 'class="pk-footer"' in page  # the persistent methodology footer
     assert 'class="pk-hero"' in page  # the homepage's own body content
 

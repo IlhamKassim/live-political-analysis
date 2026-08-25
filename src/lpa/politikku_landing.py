@@ -64,6 +64,8 @@ from lpa.politikku_i18n import (
     FIND_YOUR_MP_MS,
     GE16_SEAT_PROJECTION_EN,
     GE16_SEAT_PROJECTION_MS,
+    GOVERNMENT_COALITION_EN,
+    GOVERNMENT_COALITION_MS,
     POSTCODE_OR_CONSTITUENCY_MS,
     not_calibrated_tag,
 )
@@ -199,11 +201,11 @@ def landing_model(
                 kind=CardKind.MODEL,
                 claim_en=(
                     f"{page.government_seats} of {page.total_seats} Seats projected "
-                    "to the Government Coalition"
+                    f"to the {GOVERNMENT_COALITION_EN}"
                 ),
                 claim_ms=(
                     f"{page.government_seats} daripada {page.total_seats} Kerusi diunjurkan "
-                    "kepada Gabungan Kerajaan"
+                    f"kepada {GOVERNMENT_COALITION_MS}"
                 ),
                 source_en="Swing Model against the GE15 Baseline · not calibrated",
                 source_ms="Model Peralihan berbanding Asas PRU15 · belum ditentukur",

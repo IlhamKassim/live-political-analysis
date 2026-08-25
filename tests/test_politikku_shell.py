@@ -47,9 +47,10 @@ def test_the_active_nav_link_is_the_only_one_marked_current():
     # twice, plus once more for the current EN toggle link.
     assert header.count('aria-current="page"') == 3
     assert '<a class="active" href="/politikku/bills.html" aria-current="page">Bills</a>' in header
-    for link in NAV_LINKS:
-        if link.key != "bills":
-            assert f'class="active" href="{link.href}"' not in header
+    # The nav renders twice (desktop + mobile disclosure); "active" must
+    # land on Bills in both renderings and nowhere else.
+    assert header.count('class="active"') == 2
+    assert len(NAV_LINKS) > 1  # otherwise the count above would be trivially true
 
 
 def test_the_projection_nav_item_points_at_the_existing_dashboard_not_a_new_page():
@@ -57,18 +58,64 @@ def test_the_projection_nav_item_points_at_the_existing_dashboard_not_a_new_page
     # it, and the dashboard already is the full seat-level projection page.
     projection_link = next(link for link in NAV_LINKS if link.key == "projection")
     assert projection_link.href == "/"
+    assert projection_link.localized is False
+
+
+def test_a_localized_nav_link_stays_in_bm_not_just_the_toggle():
+    # #81's own requirement ("persisted... drives /ms/ routes") extends to
+    # in-site navigation: a BM page's Bills nav item must stay in BM, not
+    # silently drop back to the EN route.
+    header = render_header(active_nav="home", language=Language.MS, page_path="")
+    # Nav renders twice (desktop + mobile) — the Bills nav link (not the
+    # toggle) must be the /ms/ route in both, and the plain EN route must
+    # appear nowhere except the toggle's own EN link.
+    assert header.count('">Rang Undang-Undang</a>') == 2
+    assert 'href="/politikku/ms/bills.html">Rang Undang-Undang</a>' in header
+    assert 'href="/politikku/bills.html">Rang Undang-Undang</a>' not in header
+
+
+def test_the_non_localized_dashboard_link_is_never_routed_through_ms():
+    header = render_header(active_nav="home", language=Language.MS, page_path="")
+    assert 'href="/"' in header
+
+
+def test_the_wordmark_stays_in_the_current_language():
+    en_header = render_header(active_nav="home", language=Language.EN, page_path="")
+    ms_header = render_header(active_nav="home", language=Language.MS, page_path="")
+    assert '<a class="wordmark" href="/politikku/">PolitikKu</a>' in en_header
+    assert '<a class="wordmark" href="/politikku/ms/">PolitikKu</a>' in ms_header
+
+
+def test_the_language_persistence_script_is_present_and_reads_localstorage():
+    header = render_shell(
+        title="x",
+        active_nav="home",
+        language=Language.EN,
+        page_path="",
+        updated_at=date(2026, 8, 23),
+        sources_count=1,
+        status=NOT_CALLED,
+        body_html="<p>body</p>",
+    )
+    assert "pk-language" in header
+    assert "localStorage" in header
+    assert "data-pk-set-lang" in header
 
 
 def test_the_language_toggle_marks_the_current_language_and_links_the_other():
+    # The toggle links also carry `data-pk-set-lang` (#81's persistence
+    # script reads it on click) between `aria-current` and the label — so
+    # these check substrings that survive that addition, not the exact
+    # historical tag text.
     en_page = render_header(active_nav="home", language=Language.EN, page_path="bills.html")
-    assert 'class="lang-current" href="/politikku/bills.html" aria-current="page">EN</a>' in en_page
-    assert 'href="/politikku/ms/bills.html">BM</a>' in en_page
+    assert 'class="lang-current" href="/politikku/bills.html" aria-current="page"' in en_page
+    assert 'data-pk-set-lang="en"' in en_page
+    assert 'href="/politikku/ms/bills.html" data-pk-set-lang="ms">BM</a>' in en_page
 
     ms_page = render_header(active_nav="home", language=Language.MS, page_path="bills.html")
-    assert 'href="/politikku/bills.html">EN</a>' in ms_page
-    assert (
-        'class="lang-current" href="/politikku/ms/bills.html" aria-current="page">BM</a>' in ms_page
-    )
+    assert 'href="/politikku/bills.html" data-pk-set-lang="en">EN</a>' in ms_page
+    assert 'class="lang-current" href="/politikku/ms/bills.html" aria-current="page"' in ms_page
+    assert 'data-pk-set-lang="ms"' in ms_page
 
 
 def test_the_trust_strip_states_sources_singular_and_plural_correctly():
