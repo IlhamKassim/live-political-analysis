@@ -230,6 +230,7 @@ def _hero(model: HomepageModel) -> str:
     </form>
     <button type="button" class="pk-locate-btn" data-pk-locate>Use my location</button>
     <p class="pk-privacy-note">Location is read in your browser and never sent to us.</p>
+    <div class="pk-lookup-results" data-pk-lookup-results hidden></div>
     <div class="pk-recent-chips" data-pk-recent-chips hidden>
       <div class="pk-recent-label">Recently looked up</div>
       <div class="pk-recent-list" data-pk-recent-list></div>

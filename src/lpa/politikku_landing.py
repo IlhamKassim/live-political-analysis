@@ -383,6 +383,7 @@ def _search_cta() -> str:
            placeholder="Postcode or constituency name" data-pk-lookup-input>
     <button type="submit" class="pk-search-btn" data-pk-lookup-submit>Search</button>
   </form>
+  <div class="pk-lookup-results" data-pk-lookup-results hidden></div>
 </section>
 """.strip()
 

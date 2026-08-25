@@ -1,0 +1,22 @@
+{
+  "name": "politikku-lookup",
+  "private": true,
+  "version": "0.0.0",
+  "description": "PolitikKu's constituency lookup (issue #77) — the one genuinely stateful piece of the initiative (#70). A typed state machine that mounts into the Python-rendered homepage/landing lookup markup and resolves a postcode or geolocation fix to a Seat entirely client-side.",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint src"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "esbuild": "^0.24.0",
+    "eslint": "^9.16.0",
+    "jsdom": "^25.0.1",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
