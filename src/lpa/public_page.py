@@ -1255,8 +1255,11 @@ def _too_close_table(model: PageModel) -> str:
     return (
         '<div class="too-close">'
         f"{header}"
-        f'<p class="sensitivity-note">{len(seats)} of {model.total_seats} '
-        f"{_plural(len(seats), 'Seat is', 'Seats are')} projected inside six "
+        # Only the verb inflects — `lede` states the same count the same
+        # way. Keying the noun to the numerator instead reads "1 of 222 Seat
+        # is", and one Seat inside the band is an ordinary day here.
+        f'<p class="sensitivity-note">{len(seats)} of {model.total_seats} Seats '
+        f"{_plural(len(seats), 'is', 'are')} projected inside six "
         "points — the same Seats the rest of the page marks Too close, "
         "smallest margin first. A Seat is "
         "listed here because of the size of its margin and nothing else: the "

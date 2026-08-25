@@ -1021,6 +1021,19 @@ def test_the_too_close_module_states_why_a_seat_is_listed_and_nothing_more():
     assert "2 of 4 Seats are projected inside six points" in block
 
 
+def test_the_count_line_inflects_the_verb_and_not_the_seats_it_counts():
+    # "1 of 222 Seat is" would be the plural keyed to the numerator while
+    # sitting after the denominator. One Seat inside the band is an ordinary
+    # day, not an edge case: two_coalition_seats() has exactly one (P004, at
+    # four points), the same count test_the_stress_numbers_are_the_buffer_
+    # worked_both_ways hand-checks. lede() states it the same way.
+    model = model_for()
+    block = too_close_block(render_html(model))
+
+    assert len(model.too_close_seats) == 1
+    assert "1 of 6 Seats is projected inside six points" in block
+
+
 def test_the_too_close_module_reuses_the_tiers_own_settled_label():
     # TIER_LABEL[Tier.TIGHT] and HANDOFF's confirmed BM word for it, not a
     # new name for the same band. Section eyebrows carry BM (HANDOFF defect
