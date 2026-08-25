@@ -22,6 +22,8 @@
 // "still undrawn" in BM) are new copy and want a native-BM check, the same
 // caveat #81 shipped under.
 
+import type { NoMatchReason } from "./types";
+
 export type Language = "en" | "ms";
 
 /** The language the server already chose, read off `<html lang>`. */
@@ -36,12 +38,10 @@ export interface RouteCopy {
   readonly reportMistake: string;
 }
 
-export interface NoMatchCopy {
-  readonly "not-in-index": string;
-  readonly "geolocation-unsupported": string;
-  readonly "geolocation-denied": string;
-  readonly "geolocation-unresolvable": string;
-}
+/** Keyed off `NoMatchReason` itself, so a fifth reason fails to compile
+ * here — at the table that is actually missing a string — rather than at
+ * `dom.ts`'s lookup of it. */
+export type NoMatchCopy = Readonly<Record<NoMatchReason, string>>;
 
 export interface LookupCopy {
   readonly searching: string;
