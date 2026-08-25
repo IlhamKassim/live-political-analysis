@@ -352,7 +352,8 @@ DEFAULT_BILLS_PATH = data_file("bills.json")
 def load_bills(path: Path | None = None) -> Mapping[str, Bill]:
     """Bill code -> its tracked record, from `data/bills.json`.
 
-    A pilot slice, not the full register — see `lpa.bill_tracker` and ADR
+    The Bills register's full default view as of the last ingestion run, not
+    every Bill Parliament has ever tabled — see `lpa.bill_tracker` and ADR
     0010. Rejects a Bill that leaves `division` unset with no reason, the
     same discipline `load_mp_profiles` applies to a profile.
     """

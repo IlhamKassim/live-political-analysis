@@ -77,15 +77,40 @@ field if the parser regressed to the naive approach.
 
 ## Consequences
 
-**Scope shipped now**: four Bills — two with a real, already-verified
+**Scope shipped at #80**: four Bills — two with a real, already-verified
 Division (D.R.28/2025, D.R. 5/2025), two without (D.R.8/2026, D.R.20/2026,
 one of them still short of a second reading). Chosen to exercise both
 shapes of the schema rather than to be representative of the register's
-full size. Scaling to the whole register means repeating the parse against
-more of it (untested past the register's default two-year view) and,
-should a Bill's Division fall outside the ten the Parliament term has had
-recorded, transcribing a new one the way ADR 0009's `DECLARED_RESULTS`
-does — neither is free, and both are follow-up work under #80.
+full size.
+
+**Scope extended at #106**: every Bill on the register's default view —
+untested past that view, same caveat as before. Two more real findings this
+turned up, both handled the same "quote, don't invent" way rather than by
+guessing: D.R.4/2026 (*RUU Perlembagaan (Pindaan) 2026*) failed its second
+reading's 2/3 majority vote outright — the register's own status label says
+so, and its Division is now attached the same way the other two are, from
+`data/mp_profiles.json`. D.R.30/2025 (*RUU Perbekalan 2026*) has a real,
+unambiguous title match to one of P.102's ten recorded Divisions, but the
+register's own "Bacaan Kedua Pada" date does not agree with that Division's
+sitting date — `AMBIGUOUS_DIVISIONS` in `scripts/build_bill_tracker.py`
+records the disagreement in `unverified["division"]` rather than either
+attaching a Division whose date this pipeline cannot confirm, or falling
+back to "passed on a voice vote," which the real Division record shows is
+false. Should a Bill's Division fall outside the ten the Parliament term
+has had recorded, that still means transcribing a new one the way ADR
+0009's `DECLARED_RESULTS` does — not free, and still follow-up work, now
+under #106 rather than #80.
+
+**Cadence, considered and left alone**: #106 asked whether this should move
+off "one-off, run by hand" onto a repeatable schedule now that it covers
+production content rather than a four-Bill pilot. Decision: no, not yet.
+The register has no feed to diff against, each run needs a human glance at
+its skip list (a Bill whose PDF stopped parsing cleanly, or a new title
+collision with a recorded Division) before the file ships, and nothing
+about scaling the *count* of Bills changed that risk profile. Automating
+this is real design work — retry policy, alerting on a skip, deciding
+whether a partial scrape should ever auto-publish — and squarely follow-up,
+not part of #106's mechanical extension.
 
 **Trade-off accepted**: `pypdf` is a new dependency, added under a `bills`
 extra (`pip install -e ".[bills]"`) rather than the package's core
