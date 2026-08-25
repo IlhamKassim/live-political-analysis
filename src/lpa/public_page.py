@@ -1377,7 +1377,7 @@ def _seat_table(model: PageModel, language: Language = Language.EN) -> str:
     seat_h = t(language, "Seat", "Kerusi")
     state_h = t(language, "State", "Negeri")
     coalition_h = t(language, "Coalition", "Gabungan")
-    margin_h = t(language, "Margin (points)", "Jidar (mata)")
+    margin_h = t(language, "Margin (points)", "Majoriti (mata)")
     certainty_h = t(language, "Certainty", "Kepastian")
     return (
         '<table class="visually-hidden seat-table">'
@@ -1578,8 +1578,8 @@ def _trend_plot(model: PageModel, language: Language = Language.EN) -> str:
         f"{format_signed(max(r.margin for r in model.trend))} across them. "
         "Every reading is also in the table below.",
         f"{len(model.trend)} larian model harian, {date_first_ms} hingga "
-        f"{date_last_ms}, {joined}. Jidar Gabungan Kerajaan berbanding "
-        f"majoriti {model.majority_threshold} kerusi berjulat daripada "
+        f"{date_last_ms}, {joined}. Majoriti Gabungan Kerajaan berbanding "
+        f"ambang {model.majority_threshold} kerusi berjulat daripada "
         f"{format_signed(min(r.margin for r in model.trend))} hingga "
         f"{format_signed(max(r.margin for r in model.trend))} sepanjang tempoh ini. "
         "Setiap bacaan turut disenaraikan dalam jadual di bawah.",
@@ -1669,7 +1669,7 @@ def _majority_trend_section(model: PageModel, language: Language = Language.EN) 
         language,
         '<div class="strip"><div class="eyebrow">Majority margin · Majoriti '
         "— across the stored model runs</div></div>",
-        '<div class="strip"><div class="eyebrow">Jidar majoriti '
+        '<div class="strip"><div class="eyebrow">Majoriti '
         "— merentasi larian model yang disimpan</div></div>",
     )
     basis = t(
@@ -1897,7 +1897,7 @@ def _too_close_table(model: PageModel, language: Language = Language.EN) -> str:
         '<div class="strip"><div class="eyebrow">Too close · Terlalu rapat '
         "— Seats inside six points, by margin</div></div>",
         '<div class="strip"><div class="eyebrow">Terlalu rapat '
-        "— Kerusi dalam lingkungan enam mata, mengikut jidar</div></div>",
+        "— Kerusi dalam lingkungan enam mata, mengikut majoriti</div></div>",
     )
     if not seats:
         empty_note = t(
@@ -1931,16 +1931,16 @@ def _too_close_table(model: PageModel, language: Language = Language.EN) -> str:
         "not a claim about any of these Seats.",
         f"{len(seats)} daripada {model.total_seats} Kerusi "
         "diunjurkan dalam lingkungan enam mata — Kerusi yang sama yang "
-        "ditandakan Terlalu rapat di tempat lain pada halaman ini, jidar "
+        "ditandakan Terlalu rapat di tempat lain pada halaman ini, majoriti "
         "terkecil dahulu. Sesuatu Kerusi disenaraikan di sini semata-mata "
-        "kerana saiz jidarnya: Peralihan adalah seragam dalam sesebuah "
+        "kerana saiz majoritinya: Peralihan adalah seragam dalam sesebuah "
         "negeri, jadi ini adalah pengiraan berbanding PRU15, bukan dakwaan "
         "tentang mana-mana Kerusi ini.",
     )
     seat_h = t(language, "Seat", "Kerusi")
     state_h = t(language, "State", "Negeri")
     coalition_h = t(language, "Coalition", "Gabungan")
-    margin_h = t(language, "Margin (points)", "Jidar (mata)")
+    margin_h = t(language, "Margin (points)", "Majoriti (mata)")
     return (
         '<div class="too-close">'
         f"{header}"

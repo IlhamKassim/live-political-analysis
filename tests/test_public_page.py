@@ -1424,13 +1424,8 @@ def test_the_bm_page_states_its_own_language_and_canonical_url():
 
     assert '<html lang="en">' in en_page
     assert '<html lang="ms">' in ms_page
-    assert 'property="og:url" content="https://ilhamkassim.github.io/live-political-analysis/"' in (
-        en_page
-    )
-    assert (
-        'property="og:url" content="https://ilhamkassim.github.io/live-political-analysis/ms/"'
-        in ms_page
-    )
+    assert 'property="og:url" content="https://politikku.my/"' in (en_page)
+    assert 'property="og:url" content="https://politikku.my/ms/"' in ms_page
 
 
 def test_the_bm_page_links_back_to_the_en_page_and_vice_versa():
@@ -1473,12 +1468,10 @@ def test_the_cite_this_permalink_stays_in_the_same_language_as_the_page():
     en_page = render_html(model, language=Language.EN)
     ms_page = render_html(model, language=Language.MS)
 
-    assert "https://ilhamkassim.github.io/live-political-analysis/2026/08/06.html" in en_page
-    assert "https://ilhamkassim.github.io/live-political-analysis/ms/2026/08/06.html" in ms_page
+    assert "https://politikku.my/2026/08/06.html" in en_page
+    assert "https://politikku.my/ms/2026/08/06.html" in ms_page
     assert "/ms/2026/08/06.html" not in en_page
-    assert 'href="https://ilhamkassim.github.io/live-political-analysis/2026/08/06.html"' not in (
-        ms_page
-    )
+    assert 'href="https://politikku.my/2026/08/06.html"' not in (ms_page)
 
 
 def test_the_bm_seat_table_certainty_column_agrees_with_the_search_index():
