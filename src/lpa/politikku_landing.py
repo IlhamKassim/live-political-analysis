@@ -502,6 +502,7 @@ def _search_cta(language: Language) -> str:
            placeholder="{placeholder}" data-pk-lookup-input>
     <button type="submit" class="pk-search-btn" data-pk-lookup-submit>{search}</button>
   </form>
+  <div class="pk-lookup-results" data-pk-lookup-results hidden></div>
 </section>
 """.strip()
 

@@ -297,6 +297,7 @@ def _hero(model: HomepageModel, language: Language) -> str:
     </form>
     <button type="button" class="pk-locate-btn" data-pk-locate>{use_my_location}</button>
     <p class="pk-privacy-note">{privacy_note}</p>
+    <div class="pk-lookup-results" data-pk-lookup-results hidden></div>
     <div class="pk-recent-chips" data-pk-recent-chips hidden>
       <div class="pk-recent-label">{recently_looked_up}</div>
       <div class="pk-recent-list" data-pk-recent-list></div>
