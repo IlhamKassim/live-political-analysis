@@ -19,9 +19,10 @@ just wrong numbers — decided with the user rather than guessed:
   per-Seat census data has been ingested for any Seat. The section heading
   is kept with an honest one-line note explaining the gap, rather than
   fabricated ethnicity/age/income figures or a silently dropped section.
-- **Portrait**: no photo field exists anywhere in `MPProfile` (the licensing
-  question is #71, still open) — every profile renders the no-photo
-  fallback; there is no per-profile branch to take here yet.
+- **Portrait**: no photo field exists anywhere in `MPProfile` — #71 confirmed
+  official Dewan Rakyat portraits aren't usable without written permission
+  this project doesn't have, so the no-photo fallback is permanent, not a
+  placeholder; every profile renders it, with no per-profile branch to take.
 - **The header's "matched location" pill** (the mock's "43650 Bandar Baru
   Bangi") is a live search result from the interactive lookup — #77's job,
   not built yet, and this page is generated statically at build time with no
