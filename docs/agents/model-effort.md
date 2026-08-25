@@ -96,6 +96,29 @@ tend to be exactly the cases worth double-checking), but the two are
 conceptually separate: model is *capability*, effort is *how much the prompt
 asks the agent to verify its own work*.
 
+**Amendment, 2026-08-25: trigger 1 (visual/design judgment) defaults to
+medium effort, not high.** The other three triggers earn high effort because
+the failure mode they guard against — a subtle error, or one too costly to
+risk — isn't fixed by raising model capability: a model focused on solving
+the task doesn't naturally turn adversarial on its own output, and a small
+residual error probability still isn't acceptable when the mistake is
+expensive or hard to undo (worked example: issue #24's citation-check went
+out on Sonnet and its prompt-injection gap was caught by a *later*
+`/code-review`, not the build itself — the fix there was escalating the
+trigger, not adding agent-side verification that a stronger model would have
+skipped anyway). Trigger 1 is structurally different: this repo already
+requires a **human** visual check before merge for design-judgment work
+(established practice, e.g. issue #82's "get a human visual check before
+merging... this is exactly the kind of output `model-effort.md` flags as
+worth extra scrutiny precisely because there's no given answer to verify
+against"). That human gate happens regardless of what the agent's own prompt
+asks it to verify, so the additional self-verification loop high effort buys
+is largely redundant for this trigger specifically. Medium effort — "build
+it, run what's checkable, report the result" — plus the existing human
+visual check is the actual verification path for trigger-1 work; stacking a
+second, agent-side high-effort pass on top of it spends budget without
+adding a check that wasn't already going to happen.
+
 ## Review depth scales with the diff's risk, not a flat default
 
 **Amendment, 2026-08-24 (session 3).** The 2026-08-24 amendment above
