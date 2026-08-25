@@ -7,7 +7,7 @@ disagrees with the model it came from.
 """
 
 import re
-from datetime import date
+from datetime import date, timedelta
 
 from fixtures import (
     BN,
@@ -25,13 +25,19 @@ from pytest import approx, raises
 from lpa.aggregate import AggregatedSentiment
 from lpa.domain import ElectionStatus, Projection, SeatBaseline, SeatCall, StateElectionSignal
 from lpa.public_page import (
+    MIN_TREND_READINGS,
     SITE_URL,
     TIER_LABEL,
+    TREND_MIN_SPAN,
+    TREND_PAD_Y,
+    TREND_VIEW_H,
+    TREND_WINDOW_DAYS,
     ChamberSeat,
     Tier,
     _permalink_path,
     _search_blob,
     _slots,
+    _trend_marks,
     lede,
     page_model,
     render_html,
@@ -1078,3 +1084,241 @@ def test_the_too_close_module_says_so_plainly_when_the_band_is_empty():
 
     assert "No Seat is projected inside six points." in block
     assert "<table" not in block
+
+
+# ── the Majority-margin trend (#45) ───────────────────────────────────────
+#
+# The pipeline is young, so the states worth testing are the thin ones: what
+# the page does on one stored run, on a handful, and on enough to draw a line
+# — and, at every count, that the picture claims no more than the readings
+# support.
+
+TREND_DAY = date(2026, 8, 6)
+"""The same day `model_for`'s own Projection is computed on, so a history
+ending here and the rest of the page agree about which day is today."""
+
+
+def stored_runs(margins, last_day=TREND_DAY, step=1):
+    """One stored Projection per margin, oldest first, `step` days apart.
+
+    `margins` are Seats clear of `government_config`'s 4-seat Majority — PH
+    is a Government Coalition there, so putting `4 + margin` Seats on it puts
+    the Government Coalition exactly that far past the line.
+    """
+    last = len(margins) - 1
+    return [
+        Projection(
+            coalition_seat_totals={PH: 4 + margin, PN: 2},
+            government_majority=margin >= 0,
+            computed_at=last_day - timedelta(days=(last - i) * step),
+        )
+        for i, margin in enumerate(margins)
+    ]
+
+
+def trend_block(page):
+    """The #45 section's own markup, from its opening div to the next section."""
+    return page.split('<div class="trend">')[1].split('<div class="too-close">')[0]
+
+
+def test_one_stored_run_is_a_reading_and_not_a_trend():
+    # A single mark alone on an axis invites the eye to read a flat line
+    # through it, and there is nothing to compare it against in any case. The
+    # day is stated in prose instead, with its count, and no plot is drawn.
+    model = model_for()
+    block = trend_block(render_html(model))
+
+    assert len(model.trend) == 1
+    assert not model.trend_is_plotted
+    assert "One run is stored, 6 August 2026" in block
+    assert "<svg" not in block
+    assert "trend-mark" not in block
+
+
+def test_a_days_reading_is_the_same_margin_the_rest_of_the_page_states():
+    # The right-hand end of the plot and the buffer in the lede are the same
+    # quantity, so they must be the same number — two paths to one figure is
+    # how a chart comes to disagree with the prose above it.
+    model = model_for()
+
+    assert model.trend[-1].margin == model.buffer
+    assert model.trend[-1].government_seats == model.government_seats
+    assert model.trend[-1].day == model.computed_at
+
+
+def test_a_few_runs_are_plotted_as_marks_and_never_joined_up():
+    # Five runs is #45's own worry made concrete: enough to draw something,
+    # nowhere near enough for the distance between two marks to mean more
+    # than the model's noise. They are plotted — hiding them would be its own
+    # dishonesty — but nothing is drawn between them.
+    model = model_for(history=stored_runs([0, 2, 1, 3, 2]))
+    block = trend_block(render_html(model))
+
+    assert len(model.trend) == 5
+    assert model.trend_is_plotted
+    assert not model.trend_is_joined
+    assert block.count('class="trend-mark"') == 5
+    assert "trend-step" not in block
+    assert "deliberately not joined up" in block
+    assert f"draws a line between them at {MIN_TREND_READINGS} runs" in block
+
+
+def test_enough_runs_are_joined_but_only_between_consecutive_days():
+    # At MIN_TREND_READINGS the marks are joined. Straight segments between
+    # adjacent days, one fewer than there are readings — no curve, no spline,
+    # and nothing that would put a value on a day between two runs.
+    margins = [i % 4 for i in range(MIN_TREND_READINGS)]
+    model = model_for(history=stored_runs(margins))
+    block = trend_block(render_html(model))
+
+    assert len(model.trend) == MIN_TREND_READINGS
+    assert model.trend_is_joined
+    assert block.count('class="trend-mark"') == MIN_TREND_READINGS
+    assert block.count('class="trend-step"') == MIN_TREND_READINGS - 1
+    assert "consecutive days" in block
+    # The one drawing primitive that would imply a value the model never
+    # produced. Segments are <line>s; a path with curve commands is not.
+    assert "<path" not in block
+
+
+def test_a_day_the_pipeline_missed_is_left_as_a_gap_in_the_line():
+    # The honesty rule the joined state turns on: a segment across a missing
+    # day would state a margin for a day that has no reading. Seven runs are
+    # daily, then a four-day hole, then eight more — so exactly one join is
+    # missing from the run of them.
+    daily = stored_runs([1] * 7, last_day=TREND_DAY - timedelta(days=11))
+    later = stored_runs([2] * 8)
+    model = model_for(history=daily + later)
+    block = trend_block(render_html(model))
+
+    assert len(model.trend) == 15
+    assert model.trend_is_joined
+    assert block.count('class="trend-step"') == 13  # 14 adjacencies, one a gap
+    assert "a gap in the line is a day the pipeline did not run" in block
+
+
+def test_the_marks_sit_where_the_dates_are_and_not_where_the_readings_are():
+    # Evenly spacing readings by index would close up the same missing week
+    # the segment rule leaves open — an eight-day gap drawn as one day apart.
+    # The middle run here is one day after the first and eight days before
+    # the last, so its mark belongs near the left, not at the halfway point.
+    model = model_for(
+        history=stored_runs([0, 1], last_day=TREND_DAY - timedelta(days=8)) + stored_runs([2])
+    )
+    marks = _trend_marks(model)
+
+    assert [reading.day.day for reading in model.trend] == [28, 29, 6]
+    across = (marks[1][0] - marks[0][0]) / (marks[2][0] - marks[0][0])
+    assert across == approx(1 / 9)
+
+
+def test_a_quiet_run_of_days_is_drawn_as_a_quiet_run_of_days():
+    # Scaled to its own data a fortnight sitting between +8 and +9 would fill
+    # the box top to bottom and read as a dramatic swing. The scale never
+    # covers fewer than TREND_MIN_SPAN Seats, so one Seat of movement is
+    # drawn as one Seat of movement.
+    model = model_for(history=stored_runs([8, 9] * 7))
+    low, high = model.trend_span
+    marks = _trend_marks(model)
+
+    assert high - low >= TREND_MIN_SPAN
+    # One Seat of movement over a scale that wide is a small fraction of the
+    # plot's height, not most of it.
+    height = max(y for _, y in marks) - min(y for _, y in marks)
+    assert height < 0.12 * (TREND_VIEW_H - 2 * TREND_PAD_Y)
+
+
+def test_a_scale_always_contains_the_majority_line_it_is_measured_from():
+    # A margin is a distance from the Majority line, so a plot of margins
+    # that cropped the line out would be a picture of a quantity with its
+    # own zero off-screen.
+    for margins in ([20, 22, 21], [-15, -14, -16], [0, 1, -1]):
+        low, high = model_for(history=stored_runs(margins)).trend_span
+        assert low <= 0 <= high
+
+
+def test_every_reading_on_one_margin_renders_flat_rather_than_failing():
+    # The likeliest shape a young pipeline actually produces: nothing moved.
+    # The value span goes to zero, and it may not divide.
+    model = model_for(history=stored_runs([3] * 5))
+    marks = _trend_marks(model)
+    block = trend_block(render_html(model))
+
+    assert len({round(y, 6) for _, y in marks}) == 1
+    assert block.count('class="trend-mark"') == 5
+
+
+def test_how_thin_the_history_is_can_never_be_read_off_the_plot_alone():
+    # #45's framing risk in one line: the count is in the copy in every
+    # state, so nobody reads the picture without knowing how many runs made
+    # it.
+    for margins, stated in (
+        ([0], "One run is stored"),
+        ([0, 1], "2 runs"),
+        ([0, 1] * 7, "14 runs"),
+    ):
+        block = trend_block(render_html(model_for(history=stored_runs(margins))))
+        assert stated in block
+
+
+def test_the_plot_never_claims_the_move_is_a_measurement_of_opinion():
+    # ADR 0003's caveat, stated on the section itself rather than left to the
+    # colophon: a trend line is exactly the visual that reads as more
+    # confident than two unfitted constants can support.
+    block = trend_block(render_html(model_for(history=stored_runs([0, 1] * 7))))
+
+    assert "not a measurement of opinion changing" in block
+    assert "ADR 0003" in block
+
+
+def test_readings_older_than_the_window_are_not_plotted():
+    # Not lost — Storage keeps them and the dated permalinks state them. A
+    # plot that grew without bound would eventually squash a year of runs
+    # into six hundred pixels.
+    inside = stored_runs([1, 2, 3])
+    outside = stored_runs([9], last_day=TREND_DAY - timedelta(days=TREND_WINDOW_DAYS + 1))
+    model = model_for(history=outside + inside)
+
+    assert [reading.margin for reading in model.trend] == [1, 2, 3]
+
+
+def test_a_day_stored_twice_is_one_mark_and_not_a_vertical_jump():
+    # A re-run writes a second row for a day already written. Two marks on
+    # one date would draw a jump that never happened.
+    runs = stored_runs([1, 2])
+    again = Projection(
+        coalition_seat_totals={PH: 7, PN: 2},
+        government_majority=True,
+        computed_at=runs[-1].computed_at,
+    )
+    model = model_for(history=[*runs, again])
+
+    assert [(r.day.day, r.margin) for r in model.trend] == [(5, 1), (6, 3)]
+
+
+def test_the_margin_counts_todays_government_coalitions_on_every_stored_day():
+    # Which Coalitions form the government is config that can change under a
+    # stored day (domain.government_seat_total's own reason for existing).
+    # Re-deriving is what keeps every mark counting the same Coalitions as
+    # the figure in the lede.
+    history = stored_runs([1, 2])
+    model = model_for(
+        history=history,
+        config=government_config(government_coalitions=frozenset({PH, PN})),
+    )
+
+    # PH 5 + PN 2, then PH 6 + PN 2, against the same 4-seat line.
+    assert [reading.margin for reading in model.trend] == [3, 4]
+
+
+def test_the_readings_are_reachable_without_a_mouse():
+    # The marks carry their date and value in a hover <title> only — the same
+    # keyboard-and-touch dead end HANDOFF defect 5 found on the chamber's
+    # dots. visually-hidden, never display: none.
+    model = model_for(history=stored_runs([0, 5]))
+    block = trend_block(render_html(model))
+
+    assert '<table class="visually-hidden trend-table">' in block
+    assert block.count("<tr>") == 3  # a header row and one per reading
+    assert "6 August 2026" in block
+    assert "+5" in block
