@@ -53,14 +53,21 @@ from sqlalchemy.engine import Engine
 
 from lpa.domain import Coalition, ElectionStatus, SeatBaseline, SeatCall
 from lpa.mp_profile import ABSENT, AYE, NO, Division, MPProfile
-from lpa.politikku_shell import Language, render_shell, short_date
+from lpa.politikku_i18n import (
+    GOVERNMENT_COALITION_EN,
+    GOVERNMENT_COALITION_MS,
+    MAJORITY_EN,
+    MAJORITY_MS,
+    NON_GOVERNMENT_EN,
+    NON_GOVERNMENT_MS,
+    not_calibrated_tag,
+)
+from lpa.politikku_shell import Language, render_shell, short_date, t
 from lpa.public_page import PageModel
 from lpa.seat_call_card import card_model
 
 DIVISIONS_SHOWN = 4
 """"Voting record · last 4 divisions" — the mock's own count."""
-
-_MODELLED_TAG = '<span class="pk-tag-modelled">NOT CALIBRATED</span>'
 
 _VOTE_PILL_LABEL: Mapping[str, str] = {AYE: "AYE", NO: "NO", ABSENT: "ABSENT"}
 """`ABSTAIN` has no colour in the mock's own vote-pill table (only
@@ -74,6 +81,7 @@ class ContactAction:
     """One of the profile's up-to-two primary contact buttons."""
 
     label: str
+    label_ms: str
     href: str
 
 
@@ -100,11 +108,18 @@ class SeatProjection:
     hemicycle) rather than by Coalition ink, since PolitikKu carries no
     party colours (README, Design Tokens)."""
 
-    headline: str
-    """"<Coalition> hold" / "<Coalition> gain" — hold when the call agrees
-    with the Seat's actual GE15 winner, gain otherwise."""
-    note: str
-    """The plain-language margin sentence (`card_model`'s own `note`)."""
+    winner_name: str
+    """The Coalition names the projection ("<Coalition> hold"/"gain")."""
+    holds: bool
+    """`True` when the call agrees with the Seat's actual GE15 winner
+    ("hold"), `False` when it flips the Seat ("gain") — the raw fact
+    `headline`'s EN/BM verb is built from at render time (#81), rather than
+    baking one language's verb into this dataclass."""
+    margin_points: str
+    """`card_model`'s own `margin_points` (already formatted to one decimal
+    place, e.g. `"6.2"`) — the figure the plain-language margin sentence
+    (built at render time in #81, one sentence per language from this same
+    string) states."""
     left_pct: float
     right_pct: float
     left_government: bool
@@ -134,21 +149,33 @@ class MPProfilePageModel:
     turnout_pct: float
     electors: int
     attendance_pct: float | None
-    attendance_note: str | None
+    attendance_note_en: str | None
+    attendance_note_ms: str | None
     """Set (and `attendance_pct` `None`) when Parliament publishes no
     attendance figure — `MPProfile.unverified["attendance"]`'s own reason,
-    stated to the reader rather than shown as a blank."""
+    stated to the reader rather than shown as a blank. `_en`/`_ms` are
+    identical (untranslated) when the reason came from `unverified` (real,
+    per-profile free text this codebase has no BM translation of); they
+    differ only for this module's own fallback wording, which #81 does
+    translate — see `_gap_note`."""
     divisions: tuple[DivisionRow, ...]
     bills_sponsored: tuple[str, ...]
-    bills_sponsored_note: str | None
+    bills_sponsored_note_en: str | None
+    bills_sponsored_note_ms: str | None
     """Set (and `bills_sponsored` empty) when the Member has sponsored
     nothing this term — a real finding (`MPProfile.unverified
-    ["bills_sponsored"]`), not a missing read."""
+    ["bills_sponsored"]`), not a missing read. Same `_en`/`_ms` split as
+    `attendance_note_en`/`_ms` above."""
     contact_address: str | None
-    contact_opening_hours_note: str | None
+    contact_opening_hours_note_en: str | None
+    contact_opening_hours_note_ms: str | None
     contact_actions: tuple[ContactAction, ...]
     profile_url: str | None
-    who_lives_here_note: str
+    who_lives_here_note_en: str
+    who_lives_here_note_ms: str
+    """This module's own authored sentence (no per-profile data behind it),
+    so #81 gives it a real BM translation rather than the `_gap_note`
+    untranslated-fallback split above."""
     projection: SeatProjection
 
 
@@ -182,32 +209,47 @@ def mp_profile_page_model(
     government = profile.coalition in page.government_coalitions
 
     attendance_pct = None
-    attendance_note = None
+    attendance_note_en = attendance_note_ms = None
     if profile.attendance is None:
-        attendance_note = profile.unverified.get(
-            "attendance", "Not published by any source this pipeline checked."
+        attendance_note_en, attendance_note_ms = _gap_note(
+            profile.unverified,
+            "attendance",
+            "Not published by any source this pipeline checked.",
+            "Tidak diterbitkan oleh mana-mana sumber yang disemak oleh saluran paip ini.",
         )
     else:
         attendance_pct = profile.attendance * 100
 
     bills_sponsored = tuple(profile.bills_sponsored)
-    bills_sponsored_note = None
+    bills_sponsored_note_en = bills_sponsored_note_ms = None
     if not bills_sponsored:
-        bills_sponsored_note = profile.unverified.get(
-            "bills_sponsored", "No Bill or motion sponsorship found for this Member this term."
+        bills_sponsored_note_en, bills_sponsored_note_ms = _gap_note(
+            profile.unverified,
+            "bills_sponsored",
+            "No Bill or motion sponsorship found for this Member this term.",
+            "Tiada penajaan rang undang-undang atau usul dijumpai bagi Ahli ini pada penggal ini.",
         )
 
-    opening_hours_note = None
+    opening_hours_note_en = opening_hours_note_ms = None
     if profile.contact.opening_hours is None:
-        opening_hours_note = profile.unverified.get(
-            "contact.opening_hours", "Not published by Parliament for any Member."
+        opening_hours_note_en, opening_hours_note_ms = _gap_note(
+            profile.unverified,
+            "contact.opening_hours",
+            "Not published by Parliament for any Member.",
+            "Tidak diterbitkan oleh Parlimen bagi mana-mana Ahli.",
         )
 
     contact_actions: list[ContactAction] = []
     if profile.contact.email:
-        contact_actions.append(ContactAction("Email MP", f"mailto:{profile.contact.email}"))
+        contact_actions.append(
+            ContactAction("Email MP", "E-mel Ahli Parlimen", f"mailto:{profile.contact.email}")
+        )
     if profile.contact.phone:
-        contact_actions.append(ContactAction("Call service centre", f"tel:{profile.contact.phone}"))
+        contact_actions.append(
+            ContactAction(
+                "Call service centre", "Hubungi pusat khidmat", f"tel:{profile.contact.phone}"
+            )
+        )
 
     return MPProfilePageModel(
         updated_at=page.computed_at,
@@ -227,20 +269,47 @@ def mp_profile_page_model(
         turnout_pct=profile.ge15.turnout * 100,
         electors=profile.ge15.electors,
         attendance_pct=attendance_pct,
-        attendance_note=attendance_note,
+        attendance_note_en=attendance_note_en,
+        attendance_note_ms=attendance_note_ms,
         divisions=tuple(_division_row(d) for d in profile.divisions[:DIVISIONS_SHOWN]),
         bills_sponsored=bills_sponsored,
-        bills_sponsored_note=bills_sponsored_note,
+        bills_sponsored_note_en=bills_sponsored_note_en,
+        bills_sponsored_note_ms=bills_sponsored_note_ms,
         contact_address=profile.contact.address,
-        contact_opening_hours_note=opening_hours_note,
+        contact_opening_hours_note_en=opening_hours_note_en,
+        contact_opening_hours_note_ms=opening_hours_note_ms,
         contact_actions=tuple(contact_actions),
         profile_url=profile.contact.profile_url,
-        who_lives_here_note=(
+        who_lives_here_note_en=(
             "Census profile not yet ingested for this Seat — DOSM publishes "
             "no per-Seat breakdown this pipeline currently reads."
         ),
+        who_lives_here_note_ms=(
+            "Profil banci belum dimasukkan bagi kerusi ini — DOSM tidak menerbitkan "
+            "pecahan mengikut kerusi yang dibaca oleh saluran paip ini buat masa ini."
+        ),
         projection=_seat_projection(call, baseline, page, names),
     )
+
+
+def _gap_note(
+    unverified: Mapping[str, str], key: str, fallback_en: str, fallback_ms: str
+) -> tuple[str, str]:
+    """An honest "why this field is empty" note, in both languages.
+
+    When `unverified[key]` exists it is a real, per-profile reason
+    (`MPProfile.unverified`'s own docstring) — left identical in both
+    languages rather than guessed at, since this codebase carries no BM
+    translation of arbitrary free text entered per-profile (an honest,
+    named gap, listed in #81's PR description rather than silently
+    papered over with an invented translation). Only this module's own
+    fallback wording, used when no per-profile reason was recorded, gets a
+    real `fallback_ms` translation.
+    """
+    if key in unverified:
+        reason = unverified[key]
+        return reason, reason
+    return fallback_en, fallback_ms
 
 
 def _division_row(d: Division) -> DivisionRow:
@@ -259,8 +328,6 @@ def _seat_projection(
 ) -> SeatProjection:
     model = card_model(call, baseline, names)
     holds = call.coalition == model.incumbent
-    verb = "hold" if holds else "gain"
-    headline = f"{names.get(call.coalition, call.coalition)} {verb}"
 
     # The card's own three-part track (incumbent / margin gap / opponent)
     # is right for the shareable SVG card, but the mock's per-Seat bar here
@@ -272,8 +339,9 @@ def _seat_projection(
     left_coalition = model.incumbent
     right_coalition = model.opponent
     return SeatProjection(
-        headline=headline,
-        note=model.note,
+        winner_name=names.get(call.coalition, call.coalition),
+        holds=holds,
+        margin_points=model.margin_points,
         left_pct=left_pct,
         right_pct=right_pct,
         left_government=left_coalition in page.government_coalitions,
@@ -286,50 +354,62 @@ def _seat_projection(
 # ── rendering ─────────────────────────────────────────────────────────────
 
 
-def _chip_row(model: MPProfilePageModel) -> str:
+def _chip_row(model: MPProfilePageModel, language: Language) -> str:
     chips = []
     if model.party:
         chips.append(f'<span class="pk-mp-chip">{html.escape(model.party)}</span>')
     chips.append(f'<span class="pk-mp-chip">{html.escape(model.coalition_name)}</span>')
-    gov_label = "Government Coalition" if model.government else "Non-government"
+    gov_label = (
+        t(language, GOVERNMENT_COALITION_EN, GOVERNMENT_COALITION_MS)
+        if model.government
+        else t(language, NON_GOVERNMENT_EN, NON_GOVERNMENT_MS)
+    )
     chips.append(f'<span class="pk-mp-chip pk-mp-chip-gov">{html.escape(gov_label)}</span>')
     return "".join(chips)
 
 
-def _identity_band(model: MPProfilePageModel) -> str:
+def _identity_band(model: MPProfilePageModel, language: Language) -> str:
+    eyebrow = t(language, "YOUR SEAT", "KERUSI ANDA")
+    no_portrait = t(language, "No portrait available", "Tiada potret tersedia")
+    member_since = t(language, "Member since", "Ahli sejak")
+    ge15_majority = t(language, f"GE15 {MAJORITY_EN.lower()}", f"{MAJORITY_MS} PRU15")
+    vote_share = t(language, "Vote share", "Peratusan undi")
+    turnout = t(language, "Turnout", "Peratusan keluar mengundi")
+    electors = t(language, "Electors", "Pemilih berdaftar")
     return f"""
 <section class="pk-mp-identity">
-  <div class="pk-eyebrow">YOUR SEAT</div>
+  <div class="pk-eyebrow">{eyebrow}</div>
   <div class="pk-mp-identity-row">
-    <div class="pk-mp-portrait" role="img" aria-label="No portrait available">{html.escape(model.mp_name[:1])}</div>
+    <div class="pk-mp-portrait" role="img" aria-label="{no_portrait}">{html.escape(model.mp_name[:1])}</div>
     <div class="pk-mp-identity-text">
       <div class="pk-mp-seat-code">{html.escape(model.seat_code)}</div>
       <h1>{html.escape(model.seat_name)}</h1>
       <div class="pk-mp-state">{html.escape(model.seat_state)}</div>
       <div class="pk-mp-name">{html.escape(model.mp_name)}</div>
-      <div class="pk-mp-chips">{_chip_row(model)}</div>
-      <div class="pk-mp-tenure">Member since {model.term_start_text}</div>
+      <div class="pk-mp-chips">{_chip_row(model, language)}</div>
+      <div class="pk-mp-tenure">{member_since} {model.term_start_text}</div>
     </div>
   </div>
-  {_mobile_primary_actions(model)}
+  {_mobile_primary_actions(model, language)}
   <div class="pk-mp-stat-grid">
-    <div><div class="pk-mp-stat">{model.majority:,}</div><div class="pk-mp-stat-cap">GE15 majority</div></div>
-    <div><div class="pk-mp-stat">{model.vote_share_pct:.2f}%</div><div class="pk-mp-stat-cap">Vote share</div></div>
-    <div><div class="pk-mp-stat">{model.turnout_pct:.1f}%</div><div class="pk-mp-stat-cap">Turnout</div></div>
-    <div><div class="pk-mp-stat">{model.electors:,}</div><div class="pk-mp-stat-cap">Electors</div></div>
+    <div><div class="pk-mp-stat">{model.majority:,}</div><div class="pk-mp-stat-cap">{ge15_majority}</div></div>
+    <div><div class="pk-mp-stat">{model.vote_share_pct:.2f}%</div><div class="pk-mp-stat-cap">{vote_share}</div></div>
+    <div><div class="pk-mp-stat">{model.turnout_pct:.1f}%</div><div class="pk-mp-stat-cap">{turnout}</div></div>
+    <div><div class="pk-mp-stat">{model.electors:,}</div><div class="pk-mp-stat-cap">{electors}</div></div>
   </div>
 </section>
 """.strip()
 
 
-def _contact_buttons(actions: tuple[ContactAction, ...]) -> str:
+def _contact_buttons(actions: tuple[ContactAction, ...], language: Language) -> str:
     return "".join(
-        f'<a class="pk-mp-contact-btn" href="{html.escape(a.href)}">{html.escape(a.label)}</a>'
+        f'<a class="pk-mp-contact-btn" href="{html.escape(a.href)}">'
+        f"{html.escape(t(language, a.label, a.label_ms))}</a>"
         for a in actions
     )
 
 
-def _mobile_primary_actions(model: MPProfilePageModel) -> str:
+def _mobile_primary_actions(model: MPProfilePageModel, language: Language) -> str:
     """Mobile-only duplicate of the Contact card's two buttons — README's
     mobile spec puts "identity and the two primary actions... first, above
     the fold", ahead of the GE15 stat grid, while the full Contact &
@@ -338,28 +418,40 @@ def _mobile_primary_actions(model: MPProfilePageModel) -> str:
     two copies at a time per breakpoint, never both."""
     if not model.contact_actions:
         return ""
-    return f'<div class="pk-mp-mobile-actions">{_contact_buttons(model.contact_actions)}</div>'
+    buttons = _contact_buttons(model.contact_actions, language)
+    return f'<div class="pk-mp-mobile-actions">{buttons}</div>'
 
 
-def _record_this_term(model: MPProfilePageModel) -> str:
+def _record_this_term(model: MPProfilePageModel, language: Language) -> str:
+    heading = t(language, "Attendance", "Kehadiran")
     if model.attendance_pct is not None:
+        source = t(
+            language,
+            f"{model.attendance_pct:.0f}% of sitting days · Dewan Rakyat Hansard",
+            f"{model.attendance_pct:.0f}% daripada hari persidangan · Hansard Dewan Rakyat",
+        )
         card = f"""
 <div class="pk-mp-card">
-  <h3>Attendance</h3>
+  <h3>{heading}</h3>
   <div class="pk-mp-progress"><div class="pk-mp-progress-fill" style="width:{model.attendance_pct:.1f}%"></div></div>
-  <div class="pk-mp-source">{model.attendance_pct:.0f}% of sitting days · Dewan Rakyat Hansard</div>
+  <div class="pk-mp-source">{source}</div>
 </div>
 """.strip()
     else:
+        not_published = t(language, "Not published.", "Tidak diterbitkan.")
+        note = html.escape(
+            t(language, model.attendance_note_en or "", model.attendance_note_ms or "")
+        )
         card = f"""
 <div class="pk-mp-card">
-  <h3>Attendance</h3>
-  <p class="pk-mp-gap-note">Not published. {html.escape(model.attendance_note or "")}</p>
+  <h3>{heading}</h3>
+  <p class="pk-mp-gap-note">{not_published} {note}</p>
 </div>
 """.strip()
+    eyebrow = t(language, "Record this term", "Rekod penggal ini")
     return f"""
 <section class="pk-mp-record pk-mp-col-left">
-  <div class="pk-eyebrow">Record this term</div>
+  <div class="pk-eyebrow">{eyebrow}</div>
   {card}
 </section>
 """.strip()
@@ -370,9 +462,14 @@ def _vote_pill(vote: str, label: str) -> str:
     return f'<span class="pk-vote-pill {cls}">{html.escape(label)}</span>'
 
 
-def _voting_record(model: MPProfilePageModel) -> str:
+def _voting_record(model: MPProfilePageModel, language: Language) -> str:
     if not model.divisions:
-        rows = '<p class="pk-mp-gap-note">No Division recorded for this Member this term.</p>'
+        no_division = t(
+            language,
+            "No Division recorded for this Member this term.",
+            "Tiada undian direkodkan bagi Ahli ini pada penggal ini.",
+        )
+        rows = f'<p class="pk-mp-gap-note">{no_division}</p>'
     else:
         rows = "".join(
             f"""
@@ -384,51 +481,70 @@ def _voting_record(model: MPProfilePageModel) -> str:
 """.strip()
             for d in model.divisions
         )
+    heading = t(
+        language,
+        f"Voting record · last {DIVISIONS_SHOWN} divisions",
+        f"Rekod pengundian · {DIVISIONS_SHOWN} undian terakhir",
+    )
     return f"""
 <section class="pk-mp-voting pk-mp-col-left">
-  <h3>Voting record · last {DIVISIONS_SHOWN} divisions</h3>
+  <h3>{heading}</h3>
   <div class="pk-mp-division-list">{rows}</div>
 </section>
 """.strip()
 
 
-def _bills_sponsored(model: MPProfilePageModel) -> str:
+def _bills_sponsored(model: MPProfilePageModel, language: Language) -> str:
     if not model.bills_sponsored:
-        body = f'<p class="pk-mp-gap-note">{html.escape(model.bills_sponsored_note or "")}</p>'
+        note = html.escape(
+            t(language, model.bills_sponsored_note_en or "", model.bills_sponsored_note_ms or "")
+        )
+        body = f'<p class="pk-mp-gap-note">{note}</p>'
     else:
         body = "".join(
             f'<div class="pk-mp-bill-card">{html.escape(title)}</div>'
             for title in model.bills_sponsored
         )
+    heading = t(
+        language, "Bills and motions sponsored", "Rang undang-undang dan usul yang dicadangkan"
+    )
     return f"""
 <section class="pk-mp-bills pk-mp-col-left">
-  <h3>Bills and motions sponsored</h3>
+  <h3>{heading}</h3>
   {body}
 </section>
 """.strip()
 
 
-def _contact_card(model: MPProfilePageModel) -> str:
+def _contact_card(model: MPProfilePageModel, language: Language) -> str:
+    no_address = t(
+        language, "No correspondence address published.", "Tiada alamat surat-menyurat diterbitkan."
+    )
     address = (
         f"<div>{html.escape(model.contact_address)}</div>"
         if model.contact_address
-        else '<p class="pk-mp-gap-note">No correspondence address published.</p>'
+        else f'<p class="pk-mp-gap-note">{no_address}</p>'
     )
-    hours = (
-        f'<p class="pk-mp-gap-note">{html.escape(model.contact_opening_hours_note)}</p>'
-        if model.contact_opening_hours_note
-        else ""
-    )
-    buttons = _contact_buttons(model.contact_actions)
+    hours = ""
+    if model.contact_opening_hours_note_en is not None:
+        note = t(
+            language,
+            model.contact_opening_hours_note_en,
+            model.contact_opening_hours_note_ms or "",
+        )
+        hours = f'<p class="pk-mp-gap-note">{html.escape(note)}</p>'
+    buttons = _contact_buttons(model.contact_actions, language)
+    parliament_profile = t(language, "Parliament's own profile →", "Profil rasmi Parlimen →")
     profile_link = (
         f'<a class="pk-mp-parliament-link" href="{html.escape(model.profile_url)}">'
-        "Parliament's own profile →</a>"
+        f"{parliament_profile}</a>"
         if model.profile_url
         else ""
     )
+    heading = t(language, "Contact &amp; service centre", "Hubungi &amp; pusat khidmat")
     return f"""
 <div class="pk-mp-card pk-mp-col-right pk-mp-contact">
-  <h3>Contact &amp; service centre</h3>
+  <h3>{heading}</h3>
   {address}
   {hours}
   <div class="pk-mp-contact-actions">{buttons}</div>
@@ -437,11 +553,13 @@ def _contact_card(model: MPProfilePageModel) -> str:
 """.strip()
 
 
-def _who_lives_here(model: MPProfilePageModel) -> str:
+def _who_lives_here(model: MPProfilePageModel, language: Language) -> str:
+    heading = t(language, "Who lives here", "Siapa yang tinggal di sini")
+    note = html.escape(t(language, model.who_lives_here_note_en, model.who_lives_here_note_ms))
     return f"""
 <div class="pk-mp-card pk-mp-col-right pk-mp-who-lives-here">
-  <h3>Who lives here</h3>
-  <p class="pk-mp-gap-note">{html.escape(model.who_lives_here_note)}</p>
+  <h3>{heading}</h3>
+  <p class="pk-mp-gap-note">{note}</p>
 </div>
 """.strip()
 
@@ -461,27 +579,39 @@ def _projection_bar(p: SeatProjection) -> str:
 """.strip()
 
 
-def _seat_projection_section(model: MPProfilePageModel) -> str:
+def _seat_projection_section(model: MPProfilePageModel, language: Language) -> str:
     p = model.projection
+    heading = t(language, "This Seat in the GE16 projection", "Kerusi ini dalam unjuran PRU16")
+    verb = t(language, "hold" if p.holds else "gain", "kekal" if p.holds else "rampas")
+    headline = html.escape(f"{p.winner_name} {verb}")
+    note = t(
+        language,
+        f"The projection puts {model.seat_name} with {p.winner_name}, ahead by {p.margin_points} points.",
+        f"Unjuran meletakkan {model.seat_name} bersama {p.winner_name}, mendahului dengan "
+        f"{p.margin_points} mata.",
+    )
     return f"""
 <div class="pk-mp-card pk-mp-col-right pk-mp-projection">
-  <h3>This Seat in the GE16 projection</h3>
-  <div class="pk-mp-projection-headline">{html.escape(p.headline)} {_MODELLED_TAG}</div>
-  <p class="pk-mp-projection-note">{html.escape(p.note)}</p>
+  <h3>{heading}</h3>
+  <div class="pk-mp-projection-headline">{headline} {not_calibrated_tag(language)}</div>
+  <p class="pk-mp-projection-note">{html.escape(note)}</p>
   {_projection_bar(p)}
 </div>
 """.strip()
 
 
-def _source_footer() -> str:
-    return (
-        '<p class="pk-mp-footer-note pk-mp-col-right">Facts on this page — the MP, GE15 '
-        "result, demographics — come from SPR, DOSM and parlimen.gov.my. "
-        "Only the projection is modelled.</p>"
+def _source_footer(language: Language) -> str:
+    text = t(
+        language,
+        "Facts on this page — the MP, GE15 result, demographics — come from SPR, DOSM and "
+        "parlimen.gov.my. Only the projection is modelled.",
+        "Fakta pada halaman ini — Ahli Parlimen, keputusan PRU15, demografi — datang daripada "
+        "SPR, DOSM dan parlimen.gov.my. Hanya unjuran adalah berdasarkan model.",
     )
+    return f'<p class="pk-mp-footer-note pk-mp-col-right">{text}</p>'
 
 
-def render_mp_profile_body(model: MPProfilePageModel) -> str:
+def render_mp_profile_body(model: MPProfilePageModel, language: Language = Language.EN) -> str:
     """The profile page's `body_html`, without the persistent shell.
 
     Every left/right-column section is a direct child of `.pk-mp-body`
@@ -496,15 +626,16 @@ def render_mp_profile_body(model: MPProfilePageModel) -> str:
     since nothing here sets `order` outside the mobile media query.
     """
     sections = (
-        _record_this_term(model)
-        + _voting_record(model)
-        + _bills_sponsored(model)
-        + _contact_card(model)
-        + _who_lives_here(model)
-        + _seat_projection_section(model)
-        + _source_footer()
+        _record_this_term(model, language)
+        + _voting_record(model, language)
+        + _bills_sponsored(model, language)
+        + _contact_card(model, language)
+        + _who_lives_here(model, language)
+        + _seat_projection_section(model, language)
+        + _source_footer(language)
     )
-    return f'<style>{_CSS}</style>{_identity_band(model)}<div class="pk-mp-body">{sections}</div>'
+    identity = _identity_band(model, language)
+    return f'<style>{_CSS}</style>{identity}<div class="pk-mp-body">{sections}</div>'
 
 
 def render_mp_profile(model: MPProfilePageModel, *, language: Language = Language.EN) -> str:
@@ -517,7 +648,7 @@ def render_mp_profile(model: MPProfilePageModel, *, language: Language = Languag
         updated_at=model.updated_at,
         sources_count=model.sources_count,
         status=model.status,
-        body_html=render_mp_profile_body(model),
+        body_html=render_mp_profile_body(model, language),
     )
 
 
@@ -669,7 +800,9 @@ _CSS = """
 # ── I/O ───────────────────────────────────────────────────────────────────
 
 
-def build_mp_profile_page(engine: Engine, seat_code: str) -> tuple[str, date]:
+def build_mp_profile_page(
+    engine: Engine, seat_code: str, *, language: Language = Language.EN
+) -> tuple[str, date]:
     """Read Storage and render one Seat's MP profile page. The whole I/O half."""
     from lpa.config import (
         coalition_names,
@@ -725,19 +858,25 @@ def build_mp_profile_page(engine: Engine, seat_code: str) -> tuple[str, date]:
         state_swing=load_state_swing(engine, projections[-1].computed_at),
     )
     model = mp_profile_page_model(page, profile, baseline, call, names)
-    return render_mp_profile(model), model.updated_at
+    return render_mp_profile(model, language=language), model.updated_at
 
 
-def build_all_mp_profile_pages(engine: Engine) -> list[tuple[str, str]]:
-    """Render one page per MP Profile in `data/mp_profiles.json`, as
-    `(seat_code, html)` pairs — currently just Bangi's pilot slice (#78)."""
+def build_all_mp_profile_pages(engine: Engine) -> list[tuple[str, Language, str]]:
+    """Render one page per MP Profile in `data/mp_profiles.json`, in both
+    languages, as `(seat_code, language, html)` triples — currently just
+    Bangi's pilot slice (#78), now doubled to EN + BM by #81."""
     from lpa.config import load_mp_profiles
 
-    return [(code, build_mp_profile_page(engine, code)[0]) for code in load_mp_profiles()]
+    return [
+        (code, language, build_mp_profile_page(engine, code, language=language)[0])
+        for code in load_mp_profiles()
+        for language in Language
+    ]
 
 
 def main() -> None:
-    """Render every MP profile page from Storage and write them to disk."""
+    """Render every MP profile page, in both languages, from Storage and
+    write them to disk."""
     import argparse
     from pathlib import Path
 
@@ -748,17 +887,22 @@ def main() -> None:
         "--output-dir",
         type=Path,
         default=Path("public/politikku/mp"),
-        help="directory to write one <seat-code>.html per MP Profile",
+        help="directory to write one English <seat-code>.html per MP Profile; the BM variant is "
+        "written alongside it at <output-dir>/ms/<seat-code>.html, matching "
+        "`politikku_shell._ms_route`'s own path convention",
     )
     args = parser.parse_args()
 
     engine = connect()
     pages = build_all_mp_profile_pages(engine)
-    args.output_dir.mkdir(parents=True, exist_ok=True)
-    for code, page in pages:
-        target = args.output_dir / f"{code}.html"
+    en_dir = args.output_dir
+    ms_dir = args.output_dir.parent / "ms" / args.output_dir.name
+    en_dir.mkdir(parents=True, exist_ok=True)
+    ms_dir.mkdir(parents=True, exist_ok=True)
+    for code, language, page in pages:
+        target = (en_dir if language is Language.EN else ms_dir) / f"{code}.html"
         target.write_text(page, encoding="utf-8")
-    print(f"Wrote {len(pages)} MP profile page(s) to {args.output_dir}")
+    print(f"Wrote {len(pages)} MP profile page(s) to {en_dir} and {ms_dir}")
 
 
 if __name__ == "__main__":

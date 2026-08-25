@@ -29,6 +29,7 @@ from lpa.politikku_landing import (
     render_landing,
     render_landing_body,
 )
+from lpa.politikku_shell import Language
 from lpa.storage import SentimentSnapshot
 
 PH = "PH"
@@ -167,9 +168,9 @@ def test_the_first_card_states_the_real_bangi_majority_and_seat_name():
     seat = next(s for s in page.seats if s.code == BANGI.seat_code)
 
     card = model.cards[0]
-    assert BANGI.name in card.claim
-    assert seat.name in card.claim
-    assert f"{BANGI.ge15.majority:,}" in card.claim
+    assert BANGI.name in card.claim_en
+    assert seat.name in card.claim_en
+    assert f"{BANGI.ge15.majority:,}" in card.claim_en
 
 
 def test_the_second_card_states_the_real_bill_division_and_title():
@@ -177,9 +178,9 @@ def test_the_second_card_states_the_real_bill_division_and_title():
     d = FEATURED_BILL.division
 
     card = model.cards[1]
-    assert FEATURED_BILL.title in card.claim
-    assert f"{d.ayes}" in card.claim
-    assert f"{d.noes}" in card.claim
+    assert FEATURED_BILL.title in card.claim_en
+    assert f"{d.ayes}" in card.claim_en
+    assert f"{d.noes}" in card.claim_en
 
 
 def test_the_third_card_states_the_same_seat_counts_the_homepage_would():
@@ -187,7 +188,7 @@ def test_the_third_card_states_the_same_seat_counts_the_homepage_would():
     model = landing_model(page, _history(), NAMES, BANGI, FEATURED_BILL)
 
     card = model.cards[2]
-    assert f"{page.government_seats} of {page.total_seats}" in card.claim
+    assert f"{page.government_seats} of {page.total_seats}" in card.claim_en
 
 
 def test_the_hemicycle_matches_politikku_homepages_own_tally_not_a_second_copy():
@@ -219,14 +220,14 @@ def test_the_mover_card_names_whichever_coalition_moved_most_not_a_hardcoded_one
     # PH's (0.10 - 0.02 = 0.08), so PN is the real mover, not PH — the
     # mockup this replaces hardcoded "Coverage of PH rose...".
     card = model.cards[3]
-    assert NAMES[PN] in card.claim
-    assert "fell" in card.claim
-    assert "15.0 points" in card.claim
+    assert NAMES[PN] in card.claim_en
+    assert "fell" in card.claim_en
+    assert "15.0 points" in card.claim_en
 
 
 def test_the_mover_card_states_no_movement_when_history_is_empty():
     card = _sentiment_mover_card([], NAMES)
-    assert card.claim == "Not enough Sentiment history yet to state a week-over-week move"
+    assert card.claim_en == "Not enough Sentiment history yet to state a week-over-week move"
 
 
 def test_every_card_stating_a_modelled_number_is_flagged_for_the_trust_tag():
@@ -270,7 +271,9 @@ def test_the_tag_renders_inline_beside_modelled_claims_and_never_on_fact_claims(
 
 def test_landing_model_with_no_sentiment_history_reports_no_movement_too():
     model = landing_model(_page_model(), [], NAMES, BANGI, FEATURED_BILL)
-    assert model.cards[3].claim == "Not enough Sentiment history yet to state a week-over-week move"
+    assert (
+        model.cards[3].claim_en == "Not enough Sentiment history yet to state a week-over-week move"
+    )
 
 
 def test_the_body_carries_every_section():
@@ -293,6 +296,54 @@ def test_the_full_page_wraps_the_body_in_the_persistent_shell():
 
     assert 'class="pk-footer"' in page  # the persistent methodology footer
     assert 'class="pk-landing-hero"' in page  # the landing page's own body
+
+
+# ── #81: bilingual copy ──────────────────────────────────────────────────
+
+
+def test_bm_rendering_differs_from_english_and_carries_the_settled_pairs():
+    model = landing_model(_page_model(), _history(), NAMES, BANGI, FEATURED_BILL)
+    en = render_landing_body(model)
+    ms = render_landing_body(model, Language.MS)
+
+    assert en != ms
+    for pair in (
+        "Cari Ahli Parlimen anda",  # Find your MP
+        "Poskod atau nama kawasan",  # Postcode or constituency name
+        "Unjuran kerusi PRU16",  # GE16 Seat Projection
+    ):
+        assert pair in ms
+        assert pair not in en
+
+
+def test_bm_trust_cards_keep_the_same_sourced_numbers_as_english():
+    model = landing_model(_page_model(), _history(), NAMES, BANGI, FEATURED_BILL)
+    ms = render_landing_body(model, Language.MS)
+
+    assert BANGI.name in ms
+    assert f"{BANGI.ge15.majority:,}" in ms
+    assert FEATURED_BILL.title in ms
+    assert f"{FEATURED_BILL.division.ayes}" in ms  # type: ignore[union-attr]
+
+
+def test_the_not_calibrated_tag_translates_and_stays_inline_in_bm():
+    history = [
+        _snapshot(SEVEN_DAYS_BACK, {PH: 0.02}, {PH: 4}),
+        _snapshot(LATEST_DAY, {PH: 0.10}, {PH: 8}),
+    ]
+    model = landing_model(_page_model(), history, NAMES, BANGI, FEATURED_BILL)
+    ms = render_landing_body(model, Language.MS)
+
+    tag = '<span class="pk-tag-modelled">BELUM DITENTUKUR</span>'
+    assert ms.count(tag) == 2  # the two number-stating MODEL cards, same as the English count
+    assert "NOT CALIBRATED" not in ms
+
+
+def test_the_full_bm_page_wraps_in_the_shell_with_the_bm_lang_attribute():
+    model = landing_model(_page_model(), _history(), NAMES, BANGI, FEATURED_BILL)
+    page = render_landing(model, language=Language.MS)
+    assert '<html lang="ms">' in page
+    assert "Cari Ahli Parlimen anda" in page
 
 
 def test_a_bill_title_carrying_markup_cannot_break_out_of_the_card():

@@ -79,13 +79,24 @@ of the same string."""
 class Language(StrEnum):
     """The two languages a PolitikKu page can be served in.
 
-    Chrome-only for now (#72's scope excludes translated copy, which is
-    #81's job) — this only drives which toggle link is current and which
-    route prefix a page's other links resolve under, not the strings shown.
+    Originally chrome-only (#72's scope excluded translated copy); #81 wires
+    this to real BM strings throughout the shell and every page built on it,
+    via `t()` below.
     """
 
     EN = "en"
     MS = "ms"
+
+
+def t(language: Language, en: str, ms: str) -> str:
+    """Pick `en` or `ms` copy for `language` — the one primitive every
+    PolitikKu page's rendering function calls at each point bilingual text
+    appears (#81). Lives here, next to `Language`, rather than in
+    `politikku_i18n` so that module (shared vocabulary built out of this
+    same primitive) can import both from one place without a circular
+    import back to itself.
+    """
+    return en if language is Language.EN else ms
 
 
 @dataclass(frozen=True)
@@ -93,18 +104,31 @@ class NavLink:
     """One item in the persistent header nav."""
 
     label: str
+    label_ms: str
+    """BM copy for `label`. No settled source (the design handoff's bilingual
+    table covers homepage copy, not shell nav) — plain, low-risk cognates/
+    translations, listed in #81's PR description for a native-BM check."""
     href: str
+    """For a `localized` link, the page-path fragment `_en_route`/`_ms_route`
+    take (e.g. `"bills.html"`, `""` for the homepage) — routed through
+    whichever language the current page is in, so clicking a nav item from
+    a BM page stays in BM (#81's own "persisted... drives /ms/ routes"
+    requirement extends to in-site navigation, not just the toggle itself).
+    For a non-localized link (`DASHBOARD_URL`: the pre-existing chamber
+    dashboard, #70, which has no BM build at all), the real absolute href,
+    used exactly as given."""
     key: str
     """Identifies this link for the `active_nav` comparison — stable even if
-    `label` changes once #81 translates it."""
+    `label`/`label_ms` change."""
+    localized: bool = True
 
 
 NAV_LINKS: tuple[NavLink, ...] = (
-    NavLink("Home", "/politikku/", "home"),
-    NavLink("Seat Projection", DASHBOARD_URL, "projection"),
-    NavLink("Bills", "/politikku/bills.html", "bills"),
-    NavLink("Sentiment", "/politikku/sentiment.html", "sentiment"),
-    NavLink("Methodology", "/politikku/methodology.html", "methodology"),
+    NavLink("Home", "Utama", "", "home"),
+    NavLink("Seat Projection", "Unjuran Kerusi", DASHBOARD_URL, "projection", localized=False),
+    NavLink("Bills", "Rang Undang-Undang", "bills.html", "bills"),
+    NavLink("Sentiment", "Sentimen", "sentiment.html", "sentiment"),
+    NavLink("Methodology", "Metodologi", "methodology.html", "methodology"),
 )
 
 
@@ -121,30 +145,52 @@ def short_date(day: date) -> str:
     return f"{day.day} {day.strftime('%b %Y')}"
 
 
-def trust_strip_status_text(status: ElectionStatus) -> str:
+def trust_strip_status_text(status: ElectionStatus, language: Language = Language.EN) -> str:
     """The Election Status as the trust strip's one-line form.
 
     A compact sibling of `public_page.status_sentence`, not a reuse of it —
     that function writes a standfirst sentence; this is a strip item a few
     words wide. Same discipline: never guesses a date that is not set.
+
+    The BM sentences have no settled source (design handoff's table covers
+    homepage copy, not the election-status strip text) — original
+    translations, listed in #81's PR description for a native-BM check.
     """
     if not status.called:
-        return f"GE16 not yet called — constitutional deadline {short_date(status.constitutional_deadline)}"
+        deadline = short_date(status.constitutional_deadline)
+        return t(
+            language,
+            f"GE16 not yet called — constitutional deadline {deadline}",
+            f"PRU16 belum diisytiharkan — tarikh akhir perlembagaan {deadline}",
+        )
     if status.polling_date is None:
-        return f"GE16 called, dissolved {short_date(status.dissolved_on)} — polling day not yet announced"  # type: ignore[arg-type]
-    return f"GE16 called — polling {short_date(status.polling_date)}"
+        dissolved = short_date(status.dissolved_on)  # type: ignore[arg-type]
+        return t(
+            language,
+            f"GE16 called, dissolved {dissolved} — polling day not yet announced",
+            f"PRU16 diisytiharkan, dibubarkan {dissolved} — tarikh mengundi belum diumumkan",
+        )
+    polling = short_date(status.polling_date)
+    return t(
+        language, f"GE16 called — polling {polling}", f"PRU16 diisytiharkan — mengundi {polling}"
+    )
 
 
 _ARIA_CURRENT_PAGE = ' aria-current="page"'
 
 
-def _link(*, href: str, label: str, css_class: str, current: bool) -> str:
+def _link(*, href: str, label: str, css_class: str, current: bool, extra: str = "") -> str:
     """One `<a>` tag, escaped, with `aria-current="page"` when it's the
     current page — factored out because pre-3.12 f-strings cannot contain a
-    backslash-escaped quote inside a `{}` expression."""
+    backslash-escaped quote inside a `{}` expression.
+
+    `extra`, when set, adds `data-pk-set-lang="{extra}"` — read by
+    `_LANGUAGE_PERSISTENCE_SCRIPT`'s click listener, not a navigation
+    handler, so the link stays a real `<a href>` either way."""
     aria = _ARIA_CURRENT_PAGE if current else ""
     cls = f' class="{css_class}"' if css_class else ""
-    return f'<a{cls} href="{html.escape(href)}"{aria}>{html.escape(label)}</a>'
+    extra_attr = f' data-pk-set-lang="{extra}"' if extra else ""
+    return f'<a{cls} href="{html.escape(href)}"{aria}{extra_attr}>{html.escape(label)}</a>'
 
 
 def _lang_toggle(language: Language, page_path: str) -> str:
@@ -152,13 +198,60 @@ def _lang_toggle(language: Language, page_path: str) -> str:
     ms_href = _ms_route(page_path)
     en_current = language is Language.EN
     ms_current = language is Language.MS
+    # `data-pk-set-lang` (via `_link`'s `extra` param) is read by
+    # `_LANGUAGE_PERSISTENCE_SCRIPT` below, not a click handler that
+    # intercepts navigation — the link's own `href` is what actually moves
+    # the visitor, matching this ticket's "a pair of links to the localised
+    # routes, not a JS-only control" requirement.
     en_link = _link(
-        href=en_href, label="EN", css_class="lang-current" if en_current else "", current=en_current
+        href=en_href,
+        label="EN",
+        css_class="lang-current" if en_current else "",
+        current=en_current,
+        extra="en",
     )
     ms_link = _link(
-        href=ms_href, label="BM", css_class="lang-current" if ms_current else "", current=ms_current
+        href=ms_href,
+        label="BM",
+        css_class="lang-current" if ms_current else "",
+        current=ms_current,
+        extra="ms",
     )
     return f'<div class="lang-toggle" role="group" aria-label="Language">{en_link}{ms_link}</div>'
+
+
+_LANGUAGE_PERSISTENCE_SCRIPT = """
+<script>
+(function () {
+  try {
+    var stored = window.localStorage.getItem('pk-language');
+    if (stored === 'en' || stored === 'ms') {
+      var path = location.pathname;
+      var current = path.indexOf('/politikku/ms/') === 0 ? 'ms' : 'en';
+      if (stored !== current) {
+        var target = stored === 'ms'
+          ? path.replace('/politikku/', '/politikku/ms/')
+          : path.replace('/politikku/ms/', '/politikku/');
+        if (target !== path) { location.replace(target); return; }
+      }
+    }
+  } catch (e) {}
+  document.addEventListener('click', function (event) {
+    var el = event.target.closest && event.target.closest('[data-pk-set-lang]');
+    if (!el) return;
+    try { window.localStorage.setItem('pk-language', el.getAttribute('data-pk-set-lang')); } catch (e) {}
+  });
+})();
+</script>
+"""
+"""#81's own requirement: `language` "persisted (cookie or localStorage),
+drives /ms/ routes" — a static site with no server has nowhere but the
+browser to keep that, so this is unavoidably a small script, the same
+progressive-enhancement shape #77's "Recently looked up" chips already use
+(a real link/feature works with no script; this only remembers the choice
+for next time). Placed early in `<head>` (see `render_shell`) so a stored
+preference redirects before the wrong-language page paints, rather than
+flashing it first."""
 
 
 def render_header(*, active_nav: str, language: Language, page_path: str) -> str:
@@ -170,26 +263,36 @@ def render_header(*, active_nav: str, language: Language, page_path: str) -> str
     links stay real and reachable with no script, matching this ticket's
     EN/BM-toggle accessibility requirement extended to the rest of the nav.
     """
+
+    def _nav_href(link: NavLink) -> str:
+        if not link.localized:
+            return link.href
+        return _en_route(link.href) if language is Language.EN else _ms_route(link.href)
+
     links_html = "".join(
         _link(
-            href=link.href,
-            label=link.label,
+            href=_nav_href(link),
+            label=t(language, link.label, link.label_ms),
             css_class="active" if link.key == active_nav else "",
             current=link.key == active_nav,
         )
         for link in NAV_LINKS
     )
+    menu_label = t(language, "Menu", "Menu")  # "menu" is standard BM too
+    primary_label = t(language, "Primary", "Utama")
+    primary_mobile_label = t(language, "Primary (mobile)", "Utama (mudah alih)")
+    home_href = _en_route("") if language is Language.EN else _ms_route("")
     return f"""
 <header class="pk-header">
   <div class="pk-header-left">
-    <a class="wordmark" href="/politikku/">PolitikKu</a>
-    <nav class="pk-nav" aria-label="Primary">{links_html}</nav>
+    <a class="wordmark" href="{html.escape(home_href)}">PolitikKu</a>
+    <nav class="pk-nav" aria-label="{primary_label}">{links_html}</nav>
   </div>
   <details class="pk-nav-mobile">
-    <summary aria-label="Menu">
+    <summary aria-label="{menu_label}">
       <span></span><span></span><span></span>
     </summary>
-    <nav aria-label="Primary (mobile)">{links_html}</nav>
+    <nav aria-label="{primary_mobile_label}">{links_html}</nav>
   </details>
   {_lang_toggle(language, page_path)}
 </header>
@@ -201,6 +304,7 @@ def render_trust_strip(
     updated_at: date,
     sources_count: int,
     status: ElectionStatus,
+    language: Language = Language.EN,
     methodology_href: str = "/politikku/methodology.html",
 ) -> str:
     """The persistent trust strip — appears on every PolitikKu page.
@@ -208,22 +312,34 @@ def render_trust_strip(
     Desktop shows all three items; the `<= 900px` rule in `_CSS` condenses
     it to just the date and a "Sources" link, per the handoff's mobile trust
     strip ("Updated 06:00 MYT today" + "Sources").
+
+    "Updated" translates from the settled `Updated … today` row (dropping
+    "hari ini"/"today" — this strip states a real date, never a fabricated
+    "today", per its own docstring above). "{n} news source(s) read" and
+    "How this works" have no settled source — original translations, listed
+    in #81's PR description.
     """
     updated = html.escape(short_date(updated_at))
-    sources_word = "source" if sources_count == 1 else "sources"
-    status_text = html.escape(trust_strip_status_text(status))
+    updated_word = t(language, "Updated", "Dikemas kini")
+    sources_text = t(
+        language,
+        f"{sources_count} news source{'' if sources_count == 1 else 's'} read",
+        f"{sources_count} sumber berita dibaca",
+    )
+    status_text = html.escape(trust_strip_status_text(status, language))
     methodology = html.escape(methodology_href)
+    how_it_works = t(language, "How this works", "Cara ini berfungsi")
     return f"""
 <div class="pk-trust-strip">
   <span class="pk-trust-full">
-    <span>Updated {updated}, MYT</span>
+    <span>{updated_word} {updated}, MYT</span>
     <span class="pk-dot">·</span>
-    <span>{sources_count} news {sources_word} read</span>
+    <span>{sources_text}</span>
     <span class="pk-dot">·</span>
     <span>{status_text}</span>
   </span>
-  <span class="pk-trust-condensed">Updated {updated}, MYT</span>
-  <a class="pk-trust-link" href="{methodology}">How this works</a>
+  <span class="pk-trust-condensed">{updated_word} {updated}, MYT</span>
+  <a class="pk-trust-link" href="{methodology}">{how_it_works}</a>
 </div>
 """.strip()
 
@@ -233,15 +349,21 @@ class SourceGroup:
     """One column of the methodology footer's source lists."""
 
     heading: str
+    heading_ms: str
     sources: Sequence[str]
+    """Source names/citations — kept identical in both languages (mostly
+    proper institutional names, several already part-BM, e.g. "Dewan Rakyat
+    Hansard"; see `render_methodology_footer`'s docstring)."""
 
 
 FACTUAL_SOURCES = SourceGroup(
     "Factual data",
+    "Data faktual",
     ("Election Commission (SPR)", "Dewan Rakyat Hansard", "parlimen.gov.my"),
 )
 MODELLED_SOURCES = SourceGroup(
     "Modelled inputs",
+    "Input model",
     ("News outlets, EN + BM", "Merdeka Center polling", "GE15 Baseline + state results"),
 )
 """`MODELLED_SOURCES`' first line drops the handoff's hardcoded "9" (outlet
@@ -252,32 +374,53 @@ dropped from `data/outlets.json` would itself be a trust-rule violation."""
 
 def render_methodology_footer(
     *,
+    language: Language = Language.EN,
     methodology_href: str = "/politikku/methodology.html",
     factual: SourceGroup = FACTUAL_SOURCES,
     modelled: SourceGroup = MODELLED_SOURCES,
 ) -> str:
     """The navy 3-column footer: methodology statement, factual sources,
-    modelled sources. Persistent chrome, same as the header."""
+    modelled sources. Persistent chrome, same as the header.
+
+    The heading is the settled `Methodology & sources` -> `Metodologi &
+    sumber` row. The disclaimer paragraph and the two footer links have no
+    settled source — original translations, listed in #81's PR description.
+    Source names/citations (`factual.sources`/`modelled.sources`) are left
+    untranslated in both languages — see `SourceGroup.sources`'s docstring.
+    """
     factual_items = "".join(f"<span>{html.escape(s)}</span>" for s in factual.sources)
     modelled_items = "".join(f"<span>{html.escape(s)}</span>" for s in modelled.sources)
     href = html.escape(methodology_href)
     landing_href = html.escape(LANDING_URL)
+    heading = t(language, "Methodology &amp; sources", "Metodologi &amp; sumber")
+    statement = t(
+        language,
+        'Seat Calls are model-driven and <span class="pk-not-calibrated">not calibrated</span>'
+        " against survey data. MP records, GE15 results and bill status are factual and sourced"
+        " below. Everything here is open source.",
+        'Keputusan Kerusi dijana oleh model dan <span class="pk-not-calibrated">'
+        "belum ditentukur</span> terhadap data tinjauan. Rekod Ahli Parlimen, keputusan"
+        " PRU15 dan status rang undang-undang adalah fakta dan disumberkan di bawah."
+        " Semuanya di sini adalah sumber terbuka.",
+    )
+    read_methodology = t(language, "Read the full methodology →", "Baca metodologi penuh →")
+    what_is_politikku = t(language, "What is PolitikKu? →", "Apakah itu PolitikKu? →")
+    factual_heading = html.escape(t(language, factual.heading, factual.heading_ms))
+    modelled_heading = html.escape(t(language, modelled.heading, modelled.heading_ms))
     return f"""
 <footer class="pk-footer">
   <div class="pk-footer-statement">
-    <div class="pk-footer-heading">Methodology &amp; sources</div>
-    <p>Seat Calls are model-driven and <span class="pk-not-calibrated">not calibrated</span>
-    against survey data. MP records, GE15 results and bill status are factual and sourced
-    below. Everything here is open source.</p>
-    <a class="pk-footer-link" href="{href}">Read the full methodology →</a>
-    <a class="pk-footer-link" href="{landing_href}">What is PolitikKu? →</a>
+    <div class="pk-footer-heading">{heading}</div>
+    <p>{statement}</p>
+    <a class="pk-footer-link" href="{href}">{read_methodology}</a>
+    <a class="pk-footer-link" href="{landing_href}">{what_is_politikku}</a>
   </div>
   <div class="pk-footer-col">
-    <div class="pk-footer-label">{html.escape(factual.heading)}</div>
+    <div class="pk-footer-label">{factual_heading}</div>
     <div class="pk-footer-list">{factual_items}</div>
   </div>
   <div class="pk-footer-col">
-    <div class="pk-footer-label">{html.escape(modelled.heading)}</div>
+    <div class="pk-footer-label">{modelled_heading}</div>
     <div class="pk-footer-list">{modelled_items}</div>
   </div>
 </footer>
@@ -304,14 +447,15 @@ def render_shell(
     """
     header = render_header(active_nav=active_nav, language=language, page_path=page_path)
     trust_strip = render_trust_strip(
-        updated_at=updated_at, sources_count=sources_count, status=status
+        updated_at=updated_at, sources_count=sources_count, status=status, language=language
     )
-    footer = render_methodology_footer()
+    footer = render_methodology_footer(language=language)
     lang_attr = "ms" if language is Language.MS else "en"
     return f"""<!doctype html>
 <html lang="{lang_attr}">
 <head>
 <meta charset="utf-8">
+{_LANGUAGE_PERSISTENCE_SCRIPT}
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{html.escape(title)}</title>
 <link rel="preload" href="/politikku/fonts/newsreader-variable.woff2" as="font" type="font/woff2" crossorigin>

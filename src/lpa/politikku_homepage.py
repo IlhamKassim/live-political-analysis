@@ -42,7 +42,32 @@ from sqlalchemy.engine import Engine
 from lpa.bill_tracker import Bill
 from lpa.domain import Coalition, ElectionStatus
 from lpa.politikku_hemicycle import HemicycleCounts, Palette, render_hemicycle
-from lpa.politikku_shell import DASHBOARD_URL, Language, render_shell, short_date
+from lpa.politikku_i18n import (
+    CONSTITUENCY_LOOKUP_EN,
+    CONSTITUENCY_LOOKUP_MS,
+    DEWAN_RAKYAT_THIS_WEEK_EN,
+    DEWAN_RAKYAT_THIS_WEEK_MS,
+    FIND_YOUR_MP_EN,
+    FIND_YOUR_MP_MS,
+    GE16_SEAT_PROJECTION_EN,
+    GE16_SEAT_PROJECTION_MS,
+    GOVERNMENT_CLEAR_EN,
+    GOVERNMENT_CLEAR_MS,
+    GOVERNMENT_COALITION_EN,
+    GOVERNMENT_COALITION_MS,
+    MAJORITY_EN,
+    MAJORITY_MS,
+    NONGOVERNMENT_CLEAR_EN,
+    NONGOVERNMENT_CLEAR_MS,
+    POSTCODE_OR_CONSTITUENCY_EN,
+    POSTCODE_OR_CONSTITUENCY_MS,
+    USE_MY_LOCATION_EN,
+    USE_MY_LOCATION_MS,
+    WITHIN_MODEL_NOISE_EN,
+    WITHIN_MODEL_NOISE_MS,
+    not_calibrated_tag,
+)
+from lpa.politikku_shell import DASHBOARD_URL, Language, render_shell, short_date, t
 from lpa.public_page import PageModel, Tier, format_signed
 from lpa.storage import SentimentSnapshot
 
@@ -213,71 +238,123 @@ def _top_bills(bills: Mapping[str, Bill], limit: int = BILLS_SHOWN) -> tuple[Bil
 # ── rendering ─────────────────────────────────────────────────────────────
 
 
-def _hero(model: HomepageModel) -> str:
-    tag = '<span class="pk-tag-modelled">NOT CALIBRATED</span>'
+def _hero(model: HomepageModel, language: Language) -> str:
+    tag = not_calibrated_tag(language)
+    eyebrow_lookup = t(language, CONSTITUENCY_LOOKUP_EN, CONSTITUENCY_LOOKUP_MS).upper()
+    h1 = t(language, FIND_YOUR_MP_EN, FIND_YOUR_MP_MS)
+    lede = t(
+        language,
+        "Enter your postcode or the name of your constituency to see who "
+        "represents you in the Dewan Rakyat.",
+        "Masukkan poskod atau nama kawasan anda untuk melihat siapa mewakili anda di Dewan Rakyat.",
+    )
+    postcode_label = t(language, POSTCODE_OR_CONSTITUENCY_EN, POSTCODE_OR_CONSTITUENCY_MS)
+    search = t(language, "Search", "Cari")
+    use_my_location = t(language, USE_MY_LOCATION_EN, USE_MY_LOCATION_MS)
+    privacy_note = t(
+        language,
+        "Location is read in your browser and never sent to us.",
+        "Lokasi dibaca dalam pelayar anda dan tidak pernah dihantar kepada kami.",
+    )
+    recently_looked_up = t(language, "Recently looked up", "Carian terkini")
+    eyebrow_projection = t(language, GE16_SEAT_PROJECTION_EN, GE16_SEAT_PROJECTION_MS).upper()
+    full_projection = t(language, "Full projection →", "Unjuran penuh →")
+    to_government_coalition = t(
+        language,
+        f"of {model.total_seats} to the {GOVERNMENT_COALITION_EN}",
+        f"daripada {model.total_seats} kepada {GOVERNMENT_COALITION_MS}",
+    )
+    majority_label = t(
+        language,
+        f"{MAJORITY_EN} {model.majority_threshold}",
+        f"{MAJORITY_MS} {model.majority_threshold}",
+    ).upper()
+    government_clear = t(language, GOVERNMENT_CLEAR_EN, GOVERNMENT_CLEAR_MS)
+    within_model_noise = t(language, WITHIN_MODEL_NOISE_EN, WITHIN_MODEL_NOISE_MS)
+    nongovernment_clear = t(language, NONGOVERNMENT_CLEAR_EN, NONGOVERNMENT_CLEAR_MS)
+    margin_over_majority = t(language, "Margin over majority", "Lebihan berbanding majoriti")
+    seats_word = t(language, "seats", "kerusi")
+    clear_seat_calls = t(language, "Clear Seat Calls", "Keputusan Kerusi jelas")
+    of_word = t(language, "of", "daripada")
+    caveat = t(
+        language,
+        "Seat Calls are model-driven and not calibrated against survey "
+        'data — see <a href="/politikku/methodology.html">how this works</a>.',
+        "Keputusan Kerusi dijana oleh model dan belum ditentukur terhadap data "
+        'tinjauan — lihat <a href="/politikku/methodology.html">cara ini berfungsi</a>.',
+    )
     return f"""
 <section class="pk-hero">
   <div class="pk-hero-lookup">
-    <div class="pk-eyebrow">CONSTITUENCY LOOKUP</div>
-    <h1>Find your MP</h1>
-    <p class="pk-lede">Enter your postcode or the name of your constituency to see who
-    represents you in the Dewan Rakyat.</p>
+    <div class="pk-eyebrow">{eyebrow_lookup}</div>
+    <h1>{h1}</h1>
+    <p class="pk-lede">{lede}</p>
     <form class="pk-lookup-form" data-pk-lookup-form>
-      <label class="pk-visually-hidden" for="pk-lookup-input">Postcode or constituency</label>
+      <label class="pk-visually-hidden" for="pk-lookup-input">{postcode_label}</label>
       <input id="pk-lookup-input" name="q" type="text" autocomplete="off"
-             placeholder="Postcode or constituency" data-pk-lookup-input>
-      <button type="submit" class="pk-search-btn" data-pk-lookup-submit>Search</button>
+             placeholder="{postcode_label}" data-pk-lookup-input>
+      <button type="submit" class="pk-search-btn" data-pk-lookup-submit>{search}</button>
     </form>
-    <button type="button" class="pk-locate-btn" data-pk-locate>Use my location</button>
-    <p class="pk-privacy-note">Location is read in your browser and never sent to us.</p>
+    <button type="button" class="pk-locate-btn" data-pk-locate>{use_my_location}</button>
+    <p class="pk-privacy-note">{privacy_note}</p>
     <div class="pk-lookup-results" data-pk-lookup-results hidden></div>
     <div class="pk-recent-chips" data-pk-recent-chips hidden>
-      <div class="pk-recent-label">Recently looked up</div>
+      <div class="pk-recent-label">{recently_looked_up}</div>
       <div class="pk-recent-list" data-pk-recent-list></div>
     </div>
   </div>
   <div class="pk-hero-projection">
     <div class="pk-eyebrow-row">
-      <div class="pk-eyebrow">GE16 SEAT PROJECTION</div>
-      <a href="{html.escape(DASHBOARD_URL)}">Full projection →</a>
+      <div class="pk-eyebrow">{eyebrow_projection}</div>
+      <a href="{html.escape(DASHBOARD_URL)}">{full_projection}</a>
     </div>
     <div class="pk-projection-headline">
-      <span class="pk-headline-number">{model.government_seats} of {model.total_seats}</span>
-      <span class="pk-headline-unit">to the Government Coalition</span>
+      <span class="pk-headline-number">{model.government_seats} {of_word} {model.total_seats}</span>
+      <span class="pk-headline-unit">{to_government_coalition}</span>
       {tag}
     </div>
-    {render_hemicycle(model.hemicycle, palette=Palette.LIGHT, majority_label=f"MAJORITY {model.majority_threshold}")}
+    {render_hemicycle(model.hemicycle, palette=Palette.LIGHT, majority_label=majority_label)}
     <ul class="pk-hemicycle-legend">
-      <li><span class="pk-swatch pk-swatch-gov"></span>Government clear</li>
-      <li><span class="pk-swatch pk-swatch-noise"></span>Within model noise</li>
-      <li><span class="pk-swatch pk-swatch-nongov"></span>Non-government clear</li>
+      <li><span class="pk-swatch pk-swatch-gov"></span>{government_clear}</li>
+      <li><span class="pk-swatch pk-swatch-noise"></span>{within_model_noise}</li>
+      <li><span class="pk-swatch pk-swatch-nongov"></span>{nongovernment_clear}</li>
     </ul>
     <div class="pk-stat-grid">
-      <div><dt>Margin over majority</dt><dd>{format_signed(model.margin_over_majority)} seats</dd></div>
-      <div><dt>Clear Seat Calls</dt><dd>{model.clear_seat_calls} of {model.total_seats}</dd></div>
+      <div><dt>{margin_over_majority}</dt><dd>{format_signed(model.margin_over_majority)} {seats_word}</dd></div>
+      <div><dt>{clear_seat_calls}</dt><dd>{model.clear_seat_calls} {of_word} {model.total_seats}</dd></div>
     </div>
-    <p class="pk-caveat">Seat Calls are model-driven and not calibrated against survey
-    data — see <a href="/politikku/methodology.html">how this works</a>.</p>
+    <p class="pk-caveat">{caveat}</p>
   </div>
 </section>
 """.strip()
 
 
-def _bill_card(bill: Bill) -> str:
+def _bill_card(bill: Bill, language: Language) -> str:
     if bill.division is not None:
         d = bill.division
-        footer = f"{d.ayes} AYE · {d.noes} NO"
+        footer = f"{d.ayes} AYE · {d.noes} NO"  # Hansard vote codes, not translated — see module docstring
     else:
-        footer = "No Division — voice vote"
+        footer = t(language, "No Division — voice vote", "Tiada Undian — undian suara")
     positive = bill.stage == "Lulus"
     dot_class = "pk-dot-positive" if positive else "pk-dot-pending"
+    # EN shows this module's own sourced gloss (`_stage_label`); BM shows the
+    # Bill's own `stage` field unchanged — it is already Parliament's real
+    # Malay word for the stage (e.g. "Lulus"), not a translation this
+    # codebase produces (see the settled `Passed · 2nd reading` row's own
+    # comment in `politikku_i18n.py`).
+    stage_text = t(language, _stage_label(bill.stage), bill.stage)
+    bill_note = t(
+        language,
+        "Parliament's own text, Bahasa Malaysia — untranslated.",
+        "Teks asal Parlimen.",
+    )
     return f"""
 <article class="pk-bill-card">
   <div class="pk-bill-status"><span class="{dot_class}"></span>
-    <span class="pk-bill-stage">{html.escape(_stage_label(bill.stage))}</span></div>
+    <span class="pk-bill-stage">{html.escape(stage_text)}</span></div>
   <h3><a href="{html.escape(bill.summary_source_url)}">{html.escape(bill.title)}</a></h3>
   <p class="pk-bill-summary" lang="ms">{html.escape(bill.summary)}</p>
-  <div class="pk-bill-note">Parliament's own text, Bahasa Malaysia — untranslated.</div>
+  <div class="pk-bill-note">{bill_note}</div>
   <div class="pk-bill-footer">
     <span>{html.escape(short_date(bill.stage_date))}</span>
     <span>{html.escape(footer)}</span>
@@ -286,99 +363,115 @@ def _bill_card(bill: Bill) -> str:
 """.strip()
 
 
-def _bill_tracker(model: HomepageModel) -> str:
-    cards = "".join(_bill_card(bill) for bill in model.bills)
+def _bill_tracker(model: HomepageModel, language: Language) -> str:
+    cards = "".join(_bill_card(bill, language) for bill in model.bills)
+    heading = t(language, DEWAN_RAKYAT_THIS_WEEK_EN, DEWAN_RAKYAT_THIS_WEEK_MS)
+    all_bills = t(language, "All bills →", "Semua rang undang-undang →")
     return f"""
 <section class="pk-bills">
   <div class="pk-section-head">
-    <h2>Dewan Rakyat this week</h2>
-    <a href="/politikku/bills.html">All bills →</a>
+    <h2>{heading}</h2>
+    <a href="/politikku/bills.html">{all_bills}</a>
   </div>
   <div class="pk-bill-grid">{cards}</div>
 </section>
 """.strip()
 
 
-def _sentiment_bar(score: float) -> str:
+def _sentiment_bar(score: float, language: Language) -> str:
     """Score (roughly -1..+1) as a 0–100% fill, centred at 50%."""
     clamped = max(-1.0, min(1.0, score))
     pct = (clamped + 1) / 2 * 100
+    label = t(language, "Sentiment score", "Skor sentimen")
     return (
         f'<div class="pk-sentiment-bar" role="img" '
-        f'aria-label="Sentiment score {score:+.2f}">'
+        f'aria-label="{label} {score:+.2f}">'
         f'<div class="pk-sentiment-fill" style="width:{pct:.1f}%"></div></div>'
     )
 
 
-_MODELLED_TAG = '<span class="pk-tag-modelled">NOT CALIBRATED</span>'
-"""The handoff's trust rule 1 names this inline, travelling with the
-number, as non-negotiable for "the sentiment deltas" by name — the
-homepage mockup's own screenshot omits it there, which is a gap in the
-mockup, not a narrower reading of the rule text (see the design handoff's
-"Trust rules" section, resolved 24 Aug 2026)."""
-
-
-def _sentiment_delta(delta: float | None) -> str:
+def _sentiment_delta(delta: float | None, language: Language) -> str:
     if delta is None:
         return '<span class="pk-delta-none">—</span>'
     arrow = "↑" if delta > 0 else "↓" if delta < 0 else "→"
     cls = "pk-delta-up" if delta > 0 else "pk-delta-down" if delta < 0 else "pk-delta-flat"
-    return f'<span class="{cls}">{arrow} {abs(delta):.2f}</span> {_MODELLED_TAG}'
+    return f'<span class="{cls}">{arrow} {abs(delta):.2f}</span> {not_calibrated_tag(language)}'
 
 
-def _sentiment_row(row: SentimentRow) -> str:
+def _sentiment_row(row: SentimentRow, language: Language) -> str:
     return (
         "<tr>"
         f'<td><span class="pk-coalition">{html.escape(row.name)} '
         f"<small>{html.escape(row.coalition)}</small></span></td>"
         f"<td>{row.article_count}</td>"
-        f"<td>{_sentiment_bar(row.score)}</td>"
-        f"<td>{_sentiment_delta(row.delta)}</td>"
+        f"<td>{_sentiment_bar(row.score, language)}</td>"
+        f"<td>{_sentiment_delta(row.delta, language)}</td>"
         "</tr>"
     )
 
 
-def _sentiment_digest(model: HomepageModel) -> str:
-    rows = "".join(_sentiment_row(row) for row in model.sentiment_rows)
+def _sentiment_digest(model: HomepageModel, language: Language) -> str:
+    rows = "".join(_sentiment_row(row, language) for row in model.sentiment_rows)
+    eyebrow = t(language, "SENTIMENT DIGEST", "RINGKASAN SENTIMEN")
+    heading = t(
+        language,
+        "How coverage is trending, by Coalition",
+        "Bagaimana liputan berubah, mengikut Gabungan",
+    )
+    disclaimer = t(
+        language,
+        "Coverage tone is not support, and not a poll.",
+        "Nada liputan bukan sokongan, dan bukan tinjauan pendapat.",
+    )
+    col_coalition = t(language, "Coalition", "Gabungan")
+    col_articles = t(language, "Articles", "Artikel")
+    col_tone = t(language, "Tone", "Nada")
+    col_change = t(language, "Change", "Perubahan")
+    articles_word = t(language, "articles", "artikel")
     return f"""
 <section class="pk-sentiment">
   <div class="pk-sentiment-prose">
-    <div class="pk-eyebrow">SENTIMENT DIGEST</div>
-    <h2>How coverage is trending, by Coalition</h2>
-    <p>Coverage tone is not support, and not a poll.</p>
+    <div class="pk-eyebrow">{eyebrow}</div>
+    <h2>{heading}</h2>
+    <p>{disclaimer}</p>
   </div>
   <div class="pk-sentiment-table-wrap">
     <table class="pk-sentiment-table">
-      <thead><tr><th scope="col">Coalition</th><th scope="col">Articles</th>
-      <th scope="col">Tone</th><th scope="col">Change</th></tr></thead>
+      <thead><tr><th scope="col">{col_coalition}</th><th scope="col">{col_articles}</th>
+      <th scope="col">{col_tone}</th><th scope="col">{col_change}</th></tr></thead>
       <tbody>{rows}</tbody>
     </table>
-    <div class="pk-sentiment-footer">{model.sentiment_total_articles:,} articles</div>
+    <div class="pk-sentiment-footer">{model.sentiment_total_articles:,} {articles_word}</div>
   </div>
 </section>
 """.strip()
 
 
-def render_homepage_body(model: HomepageModel) -> str:
+def render_homepage_body(model: HomepageModel, language: Language = Language.EN) -> str:
     """The homepage's `body_html`, without the persistent shell around it."""
-    return f"<style>{_CSS}</style>{_hero(model)}{_bill_tracker(model)}{_sentiment_digest(model)}"
+    return (
+        f"<style>{_CSS}</style>{_hero(model, language)}"
+        f"{_bill_tracker(model, language)}{_sentiment_digest(model, language)}"
+    )
 
 
 def render_homepage(model: HomepageModel, *, language: Language = Language.EN) -> str:
     """The homepage as one full HTML document, shell included.
 
-    `page_path` is always `""` (the shell's own `Home` link target) — #81's
-    BM route is what would give this a second `page_path` to render at.
+    `page_path` is always `""` (the shell's own `Home` link target) — the
+    BM route (`/politikku/ms/`) resolves against that same empty path via
+    `politikku_shell._ms_route`.
     """
+    title = t(language, "PolitikKu — Find your MP", f"PolitikKu — {FIND_YOUR_MP_MS}")
     return render_shell(
-        title="PolitikKu — Find your MP",
+        title=title,
         active_nav="home",
         language=language,
         page_path="",
         updated_at=model.updated_at,
         sources_count=model.sources_count,
         status=model.status,
-        body_html=render_homepage_body(model),
+        body_html=render_homepage_body(model, language),
     )
 
 
@@ -520,7 +613,7 @@ _CSS = """
 """
 
 
-def build_homepage(engine: Engine) -> tuple[str, date]:
+def build_homepage(engine: Engine, *, language: Language = Language.EN) -> tuple[str, date]:
     """Read Storage and render the homepage. The whole I/O half, in one place.
 
     Mirrors `public_page.build_page` exactly, plus the two reads this page
@@ -567,11 +660,20 @@ def build_homepage(engine: Engine) -> tuple[str, date]:
         state_swing=load_state_swing(engine, projections[-1].computed_at),
     )
     model = homepage_model(page, snapshots, names, load_bills())
-    return render_homepage(model), model.updated_at
+    return render_homepage(model, language=language), model.updated_at
+
+
+def build_all_homepage_languages(engine: Engine) -> list[tuple[Language, str, date]]:
+    """`build_homepage`, once per `Language` — the EN and BM variants #81's
+    `/ms/` route needs, both built from the one Storage read `build_homepage`
+    already does per call. Naming matches `politikku_mp_profile.
+    build_all_mp_profile_pages`'s own "build every variant this page has"
+    precedent."""
+    return [(language, *build_homepage(engine, language=language)) for language in Language]
 
 
 def main() -> None:
-    """Render the homepage from Storage and write it to disk."""
+    """Render the homepage from Storage and write both languages to disk."""
     import argparse
     from pathlib import Path
 
@@ -582,14 +684,20 @@ def main() -> None:
         "--output",
         type=Path,
         default=Path("public/politikku/index.html"),
-        help="where to write the page (default: public/politikku/index.html)",
+        help="where to write the English page (default: public/politikku/index.html); "
+        "the BM variant is written alongside it at <output-dir>/ms/<output-name>, "
+        "matching `politikku_shell._ms_route`'s own path convention",
     )
     args = parser.parse_args()
 
-    page, computed_at = build_homepage(connect())
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(page, encoding="utf-8")
-    print(f"Wrote {args.output} ({len(page):,} bytes), computed {computed_at}")
+    engine = connect()
+    for language, page, computed_at in build_all_homepage_languages(engine):
+        target = (
+            args.output if language is Language.EN else args.output.parent / "ms" / args.output.name
+        )
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(page, encoding="utf-8")
+        print(f"Wrote {target} ({len(page):,} bytes), computed {computed_at}")
 
 
 if __name__ == "__main__":
