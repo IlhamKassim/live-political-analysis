@@ -10,11 +10,15 @@ from datetime import date
 from lpa.domain import ElectionStatus
 from lpa.politikku_shell import (
     NAV_LINKS,
+    PROJECTION_PREFIX,
     Language,
+    methodology_url,
+    projection_url,
     render_header,
     render_methodology_footer,
     render_shell,
     render_trust_strip,
+    route,
     trust_strip_status_text,
 )
 
@@ -53,12 +57,17 @@ def test_the_active_nav_link_is_the_only_one_marked_current():
     assert len(NAV_LINKS) > 1  # otherwise the count above would be trivially true
 
 
-def test_the_projection_nav_item_points_at_the_existing_dashboard_not_a_new_page():
-    # #70: the new pages stand alongside the dashboard rather than replacing
-    # it, and the dashboard already is the full seat-level projection page.
+def test_the_projection_nav_item_points_at_politikkus_own_projection_page():
+    # #102/ADR 0011 supersede #70's "stand alongside" resolution: the old
+    # chamber dashboard at `/` is no longer any nav item's target, and
+    # "Seat Projection" now means `politikku_projection.py`'s own page at
+    # `PROJECTION_PREFIX` — a directory route, so its `href` is the empty
+    # page path, the same shape the Home item uses for `/politikku/`.
     projection_link = next(link for link in NAV_LINKS if link.key == "projection")
-    assert projection_link.href == "/"
-    assert projection_link.localized is False
+    assert projection_link.prefix == PROJECTION_PREFIX
+    assert projection_link.href == ""
+    assert projection_url() == "/projection/"
+    assert projection_url(Language.MS) == "/projection/ms/"
 
 
 def test_a_localized_nav_link_stays_in_bm_not_just_the_toggle():
@@ -74,9 +83,48 @@ def test_a_localized_nav_link_stays_in_bm_not_just_the_toggle():
     assert 'href="/politikku/bills.html">Rang Undang-Undang</a>' not in header
 
 
-def test_the_non_localized_dashboard_link_is_never_routed_through_ms():
-    header = render_header(active_nav="home", language=Language.MS, page_path="")
-    assert 'href="/"' in header
+def test_no_nav_link_opts_out_of_language_routing():
+    # The `localized: bool` flag `NavLink.prefix` replaced existed for one
+    # item only — the un-translated chamber dashboard at `/`, which #102
+    # replaced with a page that has a real BM sibling. So there is no longer
+    # any nav item whose BM href is its EN href: every link, whichever route
+    # family it hangs off, goes through `/ms/` from a BM page.
+    en_header = render_header(active_nav="home", language=Language.EN, page_path="")
+    ms_header = render_header(active_nav="home", language=Language.MS, page_path="")
+    assert 'href="/"' not in ms_header
+    for link in NAV_LINKS:
+        assert f'href="{link.prefix}{link.href}"' in en_header
+        assert f'href="{link.prefix}ms/{link.href}"' in ms_header
+
+
+def test_the_methodology_and_projection_urls_are_language_aware():
+    # Before #102 the BM footer/trust strip linked the *English* methodology
+    # page — invisible only because no methodology page existed in either
+    # language. Both helpers now route through the current language.
+    assert methodology_url() == "/politikku/methodology.html"
+    assert methodology_url(Language.MS) == "/politikku/ms/methodology.html"
+    assert route(Language.MS, "bills.html") == "/politikku/ms/bills.html"
+
+
+def test_the_language_persistence_script_compares_the_pages_own_route_family():
+    # A page served from `PROJECTION_PREFIX` has to compare its own prefix,
+    # or a stored BM preference would silently no-op there (#102).
+    kwargs = {
+        "title": "x",
+        "active_nav": "projection",
+        "language": Language.EN,
+        "page_path": "",
+        "updated_at": date(2026, 8, 23),
+        "sources_count": 3,
+        "status": NOT_CALLED,
+        "body_html": "<main></main>",
+    }
+    politikku = render_shell(**kwargs)  # type: ignore[arg-type]
+    projection = render_shell(**kwargs, prefix=PROJECTION_PREFIX)  # type: ignore[arg-type]
+
+    assert "'/politikku/ms/'" in politikku
+    assert "'/projection/ms/'" in projection
+    assert "'/politikku/ms/'" not in projection
 
 
 def test_the_wordmark_stays_in_the_current_language():

@@ -106,7 +106,6 @@ from lpa.politikku_shell import (
 from lpa.public_page import (
     MIN_TREND_READINGS,
     SITE_URL,
-    TREND_PAD_X,
     TREND_PAD_Y,
     TREND_VIEW_H,
     TREND_VIEW_W,
@@ -129,9 +128,13 @@ from lpa.public_page import (
 
 PROJECTION_PAGE = "index.html"
 """`/projection/` is a directory route, so its file is an `index.html` —
-the same shape `politikku_homepage` uses for `/politikku/`. Named here
-because `main`'s default output path and `render_projection`'s own
-`page_path` (which drives the EN/BM toggle) have to agree."""
+the same shape `politikku_homepage` uses for `/politikku/`. This is the
+*filename* `main` writes, and only that: the page's own `page_path` (which
+drives the EN/BM toggle) is `""`, the directory route itself, exactly as
+`politikku_homepage.render_homepage` passes `""` for `/politikku/`. Spelling
+the file name into the toggle instead would give one page two canonical
+URLs — `projection_url()` and the header nav both say `/projection/`, and a
+toggle saying `/projection/index.html` would quietly disagree with them."""
 
 
 def _permalink_url(model: PageModel, language: Language) -> str:
@@ -548,8 +551,10 @@ def _trend_plot(model: PageModel, language: Language) -> str:
     span = high - low
     zero_y = TREND_PAD_Y + (1 - (0 - low) / span) * (TREND_VIEW_H - 2 * TREND_PAD_Y)
     parts = [
-        f'<line class="pk-proj-trend-majority" x1="0" y1="{zero_y:.1f}" '
-        f'x2="{TREND_VIEW_W:.0f}" y2="{zero_y:.1f}"/>'
+        (
+            f'<line class="pk-proj-trend-majority" x1="0" y1="{zero_y:.1f}" '
+            f'x2="{TREND_VIEW_W:.0f}" y2="{zero_y:.1f}"/>'
+        )
     ]
     if model.trend_is_joined:
         for i in range(1, len(model.trend)):
@@ -682,8 +687,7 @@ def _trend_section(model: PageModel, language: Language) -> str:
         )
         return _band(
             "pk-proj-trend",
-            f'{head}<p class="pk-proj-note">{html.escape(note)}</p>'
-            f"{_trend_table(model, language)}",
+            f'{head}<p class="pk-proj-note">{html.escape(note)}</p>{_trend_table(model, language)}',
         )
     date_first = _long_date(model.trend[0].day, language)
     date_last = _long_date(model.trend[-1].day, language)
@@ -1002,6 +1006,11 @@ def _cite_section(model: PageModel, language: Language) -> str:
         "pk-proj-provenance",
         f'{_cite_this(model, language)}<a class="pk-proj-methodology-link" href="{href}">'
         f"{read_full}</a>",
+        # `paper-alt`, so the page closes on a distinct band rather than
+        # running on out of the seat table's own `paper` — the same band the
+        # methodology page already gives this block, and the alternating
+        # rhythm the homepage and landing page read in.
+        alt=True,
     )
 
 
@@ -1054,12 +1063,19 @@ def _seat_filter_script(language: Language) -> str:
 
 
 def render_projection_body(model: PageModel, language: Language = Language.EN) -> str:
-    """The projection page's `body_html`, without the persistent shell."""
+    """The projection page's `body_html`, without the persistent shell.
+
+    `_tipping_point` returns `""` where the Majority line falls outside the
+    chamber (`PageModel.threshold_seat` is `None` there, deliberately) — the
+    band around it is skipped rather than emitted empty, since a bordered
+    52px-tall section with nothing in it reads as a section that failed to
+    load rather than as one the page had nothing to say in.
+    """
+    tipping = _tipping_point(model, language)
+    tipping_band = _band("pk-proj-tipping-band", tipping) if tipping else ""
     return (
         f"<style>{_CSS}</style>"
-        f"{_hero(model, language)}"
-        + _band("pk-proj-tipping-band", _tipping_point(model, language))
-        + f"{_ledger_section(model, language)}"
+        f"{_hero(model, language)}" + tipping_band + f"{_ledger_section(model, language)}"
         f"{_stress_section(model, language)}"
         f"{_trend_section(model, language)}"
         f"{_too_close_section(model, language)}"
@@ -1082,7 +1098,7 @@ def render_projection(model: PageModel, *, language: Language = Language.EN) -> 
         title=title,
         active_nav="projection",
         language=language,
-        page_path=PROJECTION_PAGE,
+        page_path="",
         updated_at=model.computed_at,
         sources_count=len(model.sources),
         status=model.status,
@@ -1531,13 +1547,27 @@ def build_methodology(engine: Engine, *, language: Language = Language.EN) -> tu
 
 def build_all_projection_languages(engine: Engine) -> list[tuple[Language, str, date]]:
     """`build_projection`, once per `Language` — matching
-    `politikku_landing.build_all_landing_languages`'s own naming."""
-    return [(language, *build_projection(engine, language=language)) for language in Language]
+    `politikku_landing.build_all_landing_languages`'s own naming.
+
+    One Storage read behind both languages, not one per language: two reads
+    could straddle a pipeline write and publish an EN and a BM page stating
+    different days' figures under the same "updated" date.
+    """
+    model = _projection_page_model(engine)
+    return [
+        (language, render_projection(model, language=language), model.computed_at)
+        for language in Language
+    ]
 
 
 def build_all_methodology_languages(engine: Engine) -> list[tuple[Language, str, date]]:
-    """`build_methodology`, once per `Language`."""
-    return [(language, *build_methodology(engine, language=language)) for language in Language]
+    """`build_methodology`, once per `Language` — one Storage read behind
+    both, for `build_all_projection_languages`' own reason."""
+    model = _projection_page_model(engine)
+    return [
+        (language, render_methodology(model, language=language), model.computed_at)
+        for language in Language
+    ]
 
 
 def main() -> None:

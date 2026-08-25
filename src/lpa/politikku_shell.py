@@ -169,11 +169,7 @@ def route(language: Language, page_path: str, prefix: str = POLITIKKU_PREFIX) ->
     """`page_path` under `prefix`, in whichever language — the one place a
     caller outside this module turns "which page, which language" into a
     real href, rather than each page reassembling `/politikku/ms/…` itself."""
-    return (
-        _en_route(page_path, prefix)
-        if language is Language.EN
-        else _ms_route(page_path, prefix)
-    )
+    return _en_route(page_path, prefix) if language is Language.EN else _ms_route(page_path, prefix)
 
 
 def methodology_url(language: Language = Language.EN) -> str:
