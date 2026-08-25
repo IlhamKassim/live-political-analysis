@@ -49,7 +49,7 @@ DEFAULT_CONFIG_PATH = data_file("coalitions.json")
 
 
 def load_coalition_config(path: Path | None = None) -> Mapping[str, Any]:
-    return cast(Mapping[str, Any], json.loads((path or DEFAULT_CONFIG_PATH).read_text()))
+    return cast(Mapping[str, Any], json.loads((path or DEFAULT_CONFIG_PATH).read_text(encoding="utf-8")))
 
 
 def party_to_coalition(config: Mapping[str, Any]) -> Mapping[str, Coalition]:
@@ -87,7 +87,7 @@ DEFAULT_OUTLETS_PATH = data_file("outlets.json")
 
 def load_outlets(path: Path | None = None) -> list[Outlet]:
     """The outlets the Scraper reads, from `data/outlets.json`."""
-    config = json.loads((path or DEFAULT_OUTLETS_PATH).read_text())
+    config = json.loads((path or DEFAULT_OUTLETS_PATH).read_text(encoding="utf-8"))
     return [Outlet(name=o["name"], feed_url=o["feed_url"]) for o in config["outlets"]]
 
 
@@ -111,7 +111,7 @@ def load_transcribed_polls(
     report is derived from current configuration; a leader's Coalition is a
     historical fact about the fieldwork window (ADR 0004).
     """
-    config = json.loads((path or DEFAULT_POLL_CALIBRATION_PATH).read_text())
+    config = json.loads((path or DEFAULT_POLL_CALIBRATION_PATH).read_text(encoding="utf-8"))
     reports = [
         PollCalibration(
             publisher=entry["publisher"],
@@ -161,7 +161,7 @@ def load_election_status(path: Path | None = None) -> ElectionStatus:
     polling date with no dissolution behind it would have the page announce
     an election that constitutionally cannot have been called yet.
     """
-    config = json.loads((path or DEFAULT_ELECTION_STATUS_PATH).read_text())
+    config = json.loads((path or DEFAULT_ELECTION_STATUS_PATH).read_text(encoding="utf-8"))
     dissolved_on = _optional_date(config["dissolved_on"])
     nomination_date = _optional_date(config["nomination_date"])
     polling_date = _optional_date(config["polling_date"])
@@ -224,7 +224,7 @@ DEFAULT_STATE_ELECTIONS_PATH = data_file("state_elections.json")
 
 def load_state_election_signals(path: Path | None = None) -> list[StateElectionSignal]:
     """State elections held since GE15, from `data/state_elections.json`."""
-    config = json.loads((path or DEFAULT_STATE_ELECTIONS_PATH).read_text())
+    config = json.loads((path or DEFAULT_STATE_ELECTIONS_PATH).read_text(encoding="utf-8"))
     return [
         StateElectionSignal(
             state=entry["state"],
@@ -246,7 +246,7 @@ def load_postcode_seat_index(path: Path | None = None) -> Mapping[str, tuple[Sea
     an empty tuple for a postcode not in the returned mapping is the caller's
     job (`lpa.postcode_index.lookup_postcode` does this), not this loader's.
     """
-    config = json.loads((path or DEFAULT_POSTCODE_SEAT_INDEX_PATH).read_text())
+    config = json.loads((path or DEFAULT_POSTCODE_SEAT_INDEX_PATH).read_text(encoding="utf-8"))
     index = {}
     for postcode, seat_codes in config["postcodes"].items():
         if not seat_codes:
@@ -279,7 +279,7 @@ def load_mp_profiles(path: Path | None = None) -> Mapping[str, MPProfile]:
     checked: that they account for all 222. They often do not, for reasons
     that are real rather than erroneous — see `Division.members_accounted`.
     """
-    config = json.loads((path or DEFAULT_MP_PROFILES_PATH).read_text())
+    config = json.loads((path or DEFAULT_MP_PROFILES_PATH).read_text(encoding="utf-8"))
     profiles = {}
     for seat_code, entry in config["profiles"].items():
         profile = MPProfile(
@@ -354,7 +354,7 @@ def load_bills(path: Path | None = None) -> Mapping[str, Bill]:
     0010. Rejects a Bill that leaves `division` unset with no reason, the
     same discipline `load_mp_profiles` applies to a profile.
     """
-    config = json.loads((path or DEFAULT_BILLS_PATH).read_text())
+    config = json.loads((path or DEFAULT_BILLS_PATH).read_text(encoding="utf-8"))
     bills = {}
     for code, entry in config["bills"].items():
         bill = Bill(
