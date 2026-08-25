@@ -283,18 +283,10 @@ def test_the_page_carries_open_graph_and_twitter_card_tags():
     page = render_html(model)
 
     assert 'property="og:title" content="GE16 Projection' in page
-    assert (
-        'property="og:url" content="https://ilhamkassim.github.io/live-political-analysis/"' in page
-    )
-    assert (
-        'property="og:image" content="https://ilhamkassim.github.io/live-political-analysis/og-image.png"'
-        in page
-    )
+    assert 'property="og:url" content="https://politikku.my/"' in page
+    assert 'property="og:image" content="https://politikku.my/og-image.png"' in page
     assert 'name="twitter:card" content="summary_large_image"' in page
-    assert (
-        'name="twitter:image" content="https://ilhamkassim.github.io/live-political-analysis/og-image.png"'
-        in page
-    )
+    assert 'name="twitter:image" content="https://politikku.my/og-image.png"' in page
     # Reuses the existing description copy rather than inventing new prose.
     description_meta = re.search(r'name="description" content="([^"]+)"', page)
     og_description_meta = re.search(r'property="og:description" content="([^"]+)"', page)

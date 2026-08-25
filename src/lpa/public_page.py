@@ -48,11 +48,11 @@ from lpa.domain import (
 )
 from lpa.swing_model import swing_model
 
-SITE_URL = "https://ilhamkassim.github.io/live-political-analysis/"
-"""The published GitHub Pages URL — the repo's own project-pages address.
+SITE_URL = "https://politikku.my/"
+"""The published site's real address — `public/CNAME`'s custom domain.
 
 Named here rather than left implicit so `og:url`/`og:image` have one place to
-change from if the site ever moves to a custom domain.
+change from if the domain ever changes again.
 """
 
 TIGHT_MARGIN = 0.06

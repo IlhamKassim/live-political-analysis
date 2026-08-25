@@ -84,8 +84,12 @@ A piece of legislation before the Dewan Rakyat, tracked on PolitikKu's homepage 
 _Avoid_: Act (a Bill only becomes an Act once it receives royal assent, which is out of this pilot's scope); inventing an English gloss of `stage` in the data layer rather than at presentation.
 
 **Audience**:
-Younger Malaysians who first encounter this project's content secondhand — a shared Seat Call card, a screenshot, a repost — rather than by navigating to the dashboard directly, and who are not already politically engaged. The target for #22 (site-literacy) and #23 (shareable cards). Distinct from an existing politically-engaged reader who would seek the dashboard out regardless.
+Younger Malaysians who first encounter this project's content secondhand — a shared Seat Call card, a screenshot, a repost — rather than by navigating to the dashboard directly, and who are not already politically engaged. The target for #22 (site-literacy) and #23 (shareable cards). Distinct from an Engaged Reader, who would seek the dashboard out regardless.
 _Avoid_: Users, readers (both too generic — use Audience when the younger, secondhand-discovery reader is specifically meant)
+
+**Engaged Reader**:
+A reader who already follows Malaysian politics and comes to this site by deliberate navigation, not secondhand discovery — the counterpart Audience is explicitly defined against. Served by the `/projection/` detail page (the full seat ledger, sensitivity table, Majority-margin trend, per-state rollup, methodology, and the dated-permalink citation archive — see ADR 0011), not by PolitikKu's homepage/landing, which target Audience instead.
+_Avoid_: Power user (implies technical sophistication is the distinguishing trait, when it's political engagement)
 
 **Return Trigger**:
 A real-world event — a news cycle, a state election, GE16 being called, a Projection swing worth noticing — that makes an Audience member who already knows this site come back to it, as opposed to a scheduled habit (there is no daily check-in loop; the site updates once a day per ADR 0006 and has no accounts or push). Retention here means the site is easy to return to and freshest right at a Return Trigger, not that it earns a recurring visit slot.

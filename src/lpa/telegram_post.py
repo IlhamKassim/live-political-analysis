@@ -69,7 +69,7 @@ from lpa.telegram_card import (
 )
 
 TELEGRAM_API = "https://api.telegram.org"
-SITE_URL = "https://ilhamkassim.github.io/live-political-analysis/"
+SITE_URL = "https://politikku.my/"
 
 
 def _long_date(day: date) -> str:
