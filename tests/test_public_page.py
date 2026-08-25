@@ -15,6 +15,7 @@ from fixtures import (
     PH,
     PN,
     government_config,
+    one_seat_with_a_small_third_coalition,
     three_coalition_seats,
     two_coalition_seats,
     two_state_seats,
@@ -22,7 +23,7 @@ from fixtures import (
 from pytest import approx, raises
 
 from lpa.aggregate import AggregatedSentiment
-from lpa.domain import ElectionStatus, Projection, SeatCall, StateElectionSignal
+from lpa.domain import ElectionStatus, Projection, SeatBaseline, SeatCall, StateElectionSignal
 from lpa.public_page import (
     SITE_URL,
     TIER_LABEL,
@@ -934,3 +935,146 @@ def test_the_cite_this_link_shows_its_own_url_when_printed():
     print_block = page[page.index("@media print") :]
     assert ".colophon a::after" in print_block
     assert "attr(href)" in print_block
+
+
+# ── #48: the Seats already inside the tight band, listed ──────────────────
+
+
+def staggered_marginals():
+    """Four Selangor seats straddling the tight band's upper boundary.
+
+    PH leads by 2, 4 and 6 points in the first three; PN leads by 10 in the
+    last. Six points is `TIGHT_MARGIN` itself, which `tier_for` puts in the
+    safer band — so P003 is the Seat that separates "reuses the tier" from
+    "wrote its own comparison", and P001/P002 are the whole tight band.
+    """
+    return [
+        SeatBaseline(code="P001", name="P001", state="Selangor", vote_share={PH: 0.51, PN: 0.49}),
+        SeatBaseline(code="P002", name="P002", state="Selangor", vote_share={PH: 0.52, PN: 0.48}),
+        SeatBaseline(code="P003", name="P003", state="Selangor", vote_share={PH: 0.53, PN: 0.47}),
+        SeatBaseline(code="P004", name="P004", state="Selangor", vote_share={PN: 0.55, PH: 0.45}),
+    ]
+
+
+def too_close_block(page):
+    """The #48 module's own markup, from its opening div to the next section."""
+    return page.split('<div class="too-close">')[1].split('<div class="sensitivity">')[0]
+
+
+def test_the_too_close_list_holds_the_tight_band_and_stops_at_its_boundary():
+    # Hand-checked from staggered_marginals(): 2 and 4 points are inside the
+    # band, 6 points is the boundary and belongs to the safer one (the same
+    # boundary test_a_margin_lands_in_the_band_its_size_puts_it_in pins on
+    # tier_for), 10 points is nowhere near it. Smallest margin first.
+    model = model_for(baseline=staggered_marginals())
+
+    assert [s.code for s in model.too_close_seats] == ["P001", "P002"]
+    assert [s.margin for s in model.too_close_seats] == [approx(0.02), approx(0.04)]
+
+
+def test_the_too_close_list_follows_tier_for_rather_than_a_bar_of_its_own(monkeypatch):
+    # #48's framing risk: the module must surface the Seats the page already
+    # tags at the tightest existing Tier, never define its own idea of close.
+    # Moving TIGHT_MARGIN moves this list with it — a hard-coded 0.06 here
+    # would leave it stuck at two Seats.
+    monkeypatch.setattr("lpa.public_page.TIGHT_MARGIN", 0.11)
+    model = model_for(baseline=staggered_marginals())
+
+    assert [s.code for s in model.too_close_seats] == ["P001", "P002", "P003", "P004"]
+    assert all(s.tier == Tier.TIGHT for s in model.too_close_seats)
+
+
+def test_the_too_close_list_agrees_with_the_ledger_column_and_the_chamber():
+    # One tier, three presentations. If this module ever counted its own
+    # Seats, the page could state one number in the ledger's "Too close"
+    # column and draw a different set of hollow rings above it.
+    model = model_for(baseline=three_coalition_seats(), config=government_config())
+
+    hollow = [s.code for s in model.seats if s.tier == Tier.TIGHT]
+    assert sorted(s.code for s in model.too_close_seats) == sorted(hollow)
+    assert sum(row.too_close for row in model.ledger) == len(model.too_close_seats)
+
+
+def test_the_too_close_module_states_why_a_seat_is_listed_and_nothing_more():
+    # The whole point of #48's framing-risk section: small margin is the only
+    # claim on the page here. Editorial words are pinned as absent so a later
+    # edit cannot reintroduce the "Seats to watch" register CONTEXT.md and
+    # ADR 0005 rule out — and the arithmetic disclaimer is pinned as present,
+    # in the same tone as _tipping_point's own caveat.
+    block = too_close_block(render_html(model_for(baseline=staggered_marginals())))
+
+    for word in (
+        "watch",
+        "key",
+        "battleground",
+        "important",
+        "contested",
+        "crucial",
+        "decisive",
+        "momentum",
+        "bellwether",
+        "race",
+    ):
+        assert word not in block.lower()
+    assert "because of the size of its margin and nothing else" in block
+    assert "not a claim about any of these Seats" in block
+    assert "2 of 4 Seats are projected inside six points" in block
+
+
+def test_the_count_line_inflects_the_verb_and_not_the_seats_it_counts():
+    # "1 of 222 Seat is" would be the plural keyed to the numerator while
+    # sitting after the denominator. One Seat inside the band is an ordinary
+    # day, not an edge case: two_coalition_seats() has exactly one (P004, at
+    # four points), the same count test_the_stress_numbers_are_the_buffer_
+    # worked_both_ways hand-checks. lede() states it the same way.
+    model = model_for()
+    block = too_close_block(render_html(model))
+
+    assert len(model.too_close_seats) == 1
+    assert "1 of 6 Seats is projected inside six points" in block
+
+
+def test_the_too_close_module_reuses_the_tiers_own_settled_label():
+    # TIER_LABEL[Tier.TIGHT] and HANDOFF's confirmed BM word for it, not a
+    # new name for the same band. Section eyebrows carry BM (HANDOFF defect
+    # 6); "terlalu rapat" is one of the words settled 9 Aug 2026.
+    block = too_close_block(render_html(model_for(baseline=staggered_marginals())))
+
+    assert TIER_LABEL[Tier.TIGHT] == "Too close"
+    assert "Too close · Terlalu rapat" in block
+
+
+def test_each_listed_seat_is_identifiable_by_its_code():
+    # #23's cards key off a Seat's code, so each row states one — as
+    # data-seat, never an id: _seat_table's rows are the document's
+    # fragment-link target and an id can only anchor one element.
+    block = too_close_block(render_html(model_for(baseline=staggered_marginals())))
+
+    assert 'data-seat="P001"' in block
+    assert '<small class="seat-code">P001</small>' in block
+    assert 'id="seat-' not in block
+
+
+def test_a_listed_seat_name_carrying_markup_cannot_break_out_of_the_row():
+    baseline = staggered_marginals()
+    baseline[0] = type(baseline[0])(
+        code=baseline[0].code,
+        name='Bagan <script>alert("x")</script>',
+        state=baseline[0].state,
+        vote_share=baseline[0].vote_share,
+    )
+    block = too_close_block(render_html(model_for(baseline=baseline)))
+
+    assert "<script>alert" not in block
+    assert "&lt;script&gt;" in block
+
+
+def test_the_too_close_module_says_so_plainly_when_the_band_is_empty():
+    # A day on which nothing is inside six points is a real result, not a
+    # reason for the section to vanish silently — the lede already states
+    # the Government half of the same fact in prose.
+    baseline = one_seat_with_a_small_third_coalition()
+    block = too_close_block(render_html(model_for(baseline=baseline)))
+
+    assert "No Seat is projected inside six points." in block
+    assert "<table" not in block
