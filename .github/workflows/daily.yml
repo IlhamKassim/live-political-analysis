@@ -101,6 +101,12 @@ jobs:
         # setup-node; placed here, ahead of the pipeline run, so a broken
         # bundle fails fast before the (much slower) pipeline/render steps
         # spend the run's time budget.
+        #
+        # continue-on-error: same reasoning as "Archive the dated
+        # permalink" below — a broken PolitikKu build must not take down
+        # the old dashboard's own render/deploy that follows. A stale
+        # lookup.js is a worse PolitikKu lookup, not a worse site.
+        continue-on-error: true
         working-directory: ts
         run: npm ci && npm run build
 
@@ -123,16 +129,26 @@ jobs:
         # below — none of these modules import from one another's CLI or
         # read another's output — so their order relative to each other
         # doesn't matter; grouped together here for readability.
+        #
+        # continue-on-error: these four steps are new, untested against
+        # real production data (only against fixtures locally) — a failure
+        # in any one of them must not stop "Archive the dated permalink",
+        # "Export the Projection", the Seat Call cards, the Telegram post,
+        # or the Pages deploy that follow. A bad day for PolitikKu is a
+        # worse PolitikKu page, not a site that stops updating.
+        continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m lpa.politikku_homepage
 
       - name: Render the PolitikKu landing page
+        continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m lpa.politikku_landing
 
       - name: Render the PolitikKu MP profile pages
+        continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m lpa.politikku_mp_profile
@@ -142,6 +158,7 @@ jobs:
         # data the ts/ bundle built above fetches at runtime in the
         # browser — not read by any step in this workflow, so it has no
         # ordering dependency on the bundle build either.
+        continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m lpa.politikku_lookup_index
