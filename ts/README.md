@@ -27,6 +27,11 @@ geolocation fix to a Seat, entirely in the browser.
   the dynamic results area (`[data-pk-lookup-results]`) for the
   `searching`/`locating`/`ambiguous`/`notFound`/`resolved` states, none of
   which are pre-rendered server-side.
+- `src/i18n.ts` — the results area's own EN/BM copy table (#82), keyed off
+  the `<html lang>` attribute `politikku_shell.py` already stamps. The rest
+  of PolitikKu is translated server-side by Python's `t(language, en, ms)`;
+  this module renders markup Python never sees, so it carries its own
+  strings rather than fetching them.
 - `src/lookup.ts` — the entry point, bundled to `lookup.js`.
 
 ## Commands

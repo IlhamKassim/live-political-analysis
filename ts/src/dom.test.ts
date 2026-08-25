@@ -54,7 +54,29 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  // A BM test would otherwise leak its `lang` into every test after it.
+  document.documentElement.lang = "en";
+  Object.defineProperty(navigator, "geolocation", {
+    value: originalGeolocation,
+    configurable: true,
+  });
 });
+
+const originalGeolocation = navigator.geolocation;
+
+/** Denies the permission, then clicks "Use my location" and settles. */
+async function locateDenied(container: HTMLElement): Promise<void> {
+  Object.defineProperty(navigator, "geolocation", {
+    value: {
+      getCurrentPosition: (_success: PositionCallback, error?: PositionErrorCallback) => {
+        error?.({ code: 1, PERMISSION_DENIED: 1 } as GeolocationPositionError);
+      },
+    },
+    configurable: true,
+  });
+  container.querySelector<HTMLButtonElement>("[data-pk-locate]")!.click();
+  await flushMicrotasks();
+}
 
 describe("mountLookup", () => {
   it("links a resolved Seat with a profile straight to its MP profile page", async () => {
@@ -112,6 +134,74 @@ describe("mountLookup", () => {
     expect(input.value).toBe("");
     expect(document.activeElement).toBe(input);
     expect(container.querySelector<HTMLElement>("[data-pk-lookup-results]")!.hidden).toBe(true);
+  });
+
+  it("a denied location offers the two routes that aren't about the postcode index", async () => {
+    const container = buildContainer();
+    mountLookup(container);
+    await locateDenied(container);
+    expect(container.querySelector(".pk-lookup-no-match-reason")?.textContent).toBe(
+      "Location permission was declined.",
+    );
+    const labels = [...container.querySelectorAll(".pk-lookup-routes a")].map((a) => a.textContent);
+    expect(labels).toEqual(["Search by name", "Browse all 222 Seats"]);
+  });
+
+  it("a denied location never flags the input, which holds no mistaken query", async () => {
+    const container = buildContainer();
+    mountLookup(container);
+    await locateDenied(container);
+    const input = container.querySelector<HTMLInputElement>("[data-pk-lookup-input]")!;
+    expect(input.classList.contains("pk-lookup-input-error")).toBe(false);
+  });
+
+  it("\"Search by name\" from a denied location returns focus to the still-live field", async () => {
+    const container = buildContainer();
+    mountLookup(container);
+    await locateDenied(container);
+    const input = container.querySelector<HTMLInputElement>("[data-pk-lookup-input]")!;
+    container.querySelector<HTMLAnchorElement>(".pk-lookup-routes a")!.click();
+    expect(document.activeElement).toBe(input);
+    expect(container.querySelector<HTMLElement>("[data-pk-lookup-results]")!.hidden).toBe(true);
+  });
+
+  it("renders BM copy when the page is in BM, for every state that has any", async () => {
+    document.documentElement.lang = "ms";
+    const container = buildContainer();
+    mountLookup(container);
+
+    await submit(container, "43200");
+    expect(container.querySelector(".pk-lookup-ambiguous-heading")?.textContent).toBe(
+      "Lebih daripada satu Kerusi sepadan — pilih Kerusi anda:",
+    );
+    expect(container.querySelector(".pk-lookup-candidate-mp")?.textContent).toBe(
+      "Profil Ahli Parlimen belum tersedia",
+    );
+
+    await submit(container, "99999");
+    expect(container.querySelector(".pk-lookup-no-match-tag")?.textContent).toBe("TIADA PADANAN");
+    expect(container.querySelector(".pk-lookup-no-match-reason")?.textContent).toBe(
+      "Tiada dalam indeks poskod Suruhanjaya Pilihan Raya.",
+    );
+
+    await submit(container, "43100");
+    expect(container.querySelector(".pk-lookup-resolved-no-profile")?.textContent).toBe(
+      "Hulu Langat, Selangor — profil Ahli Parlimen bagi Kerusi ini belum dibina.",
+    );
+  });
+
+  it("draws different copy per language for the same state", async () => {
+    const container = buildContainer();
+    mountLookup(container);
+    await submit(container, "43200");
+    const english = container.querySelector(".pk-lookup-ambiguous-heading")?.textContent;
+
+    document.documentElement.lang = "ms";
+    const malay = buildContainer();
+    mountLookup(malay);
+    await submit(malay, "43200");
+
+    expect(malay.querySelector(".pk-lookup-ambiguous-heading")?.textContent).not.toBe(english);
   });
 
   it("an ambiguous result lists every candidate, degrading the one with no profile", async () => {

@@ -6,6 +6,11 @@
 // `resolved` (`[data-pk-lookup-results]`, added alongside the form in both
 // pages' shared markup for this ticket).
 //
+// Every string this file draws comes from `i18n.ts`, in whichever language
+// `<html lang>` says (#82) — this results area is the only part of
+// PolitikKu whose BM copy is not rendered server-side, because it is the
+// only part Python never renders at all.
+//
 // The "narrow down by street name or Seksyen" field the mock draws for the
 // ambiguous state is not built here: this pilot's index (ADR 0008) has no
 // street-level data to narrow anything with, and a text field that quietly
@@ -14,6 +19,7 @@
 // at most a handful) candidate rows are picked directly instead.
 
 import { locate } from "./geolocation";
+import { copyFor, currentLanguage, type LookupCopy } from "./i18n";
 import { loadClientIndex } from "./index-data";
 import { resolveQuery } from "./resolve";
 import { readRecentSeats, recordRecentSeat } from "./storage";
@@ -134,30 +140,34 @@ function render(refs: Refs, model: LookupModel, onSearchByName: () => void): voi
   );
 
   if (!refs.results) return;
+  // Read per render, not once at mount: nothing here caches a language, so
+  // the results area always speaks whatever `<html lang>` says at the
+  // moment it draws.
+  const copy = copyFor(currentLanguage());
   refs.results.hidden = model.state === "idle";
   refs.results.replaceChildren();
   switch (model.state) {
     case "idle":
       return;
     case "searching":
-      refs.results.append(skeleton("Reading the boundary index in your browser"));
+      refs.results.append(skeleton(copy.searching));
       return;
     case "locating":
-      refs.results.append(skeleton("Reading your location in your browser"));
+      refs.results.append(skeleton(copy.locating));
       return;
     case "ambiguous":
       if (model.result?.kind === "ambiguous") {
-        refs.results.append(ambiguousView(model.result.candidates));
+        refs.results.append(ambiguousView(model.result.candidates, copy));
       }
       return;
     case "notFound":
       if (model.result?.kind === "notFound") {
-        refs.results.append(notFoundView(model.result.reason, onSearchByName));
+        refs.results.append(notFoundView(model.result.reason, onSearchByName, copy));
       }
       return;
     case "resolved":
       if (model.result?.kind === "resolved") {
-        refs.results.append(resolvedView(model.result.seat));
+        refs.results.append(resolvedView(model.result.seat, copy));
       }
       return;
   }
@@ -182,26 +192,26 @@ function skeleton(statusText: string): HTMLElement {
   return el;
 }
 
-function ambiguousView(candidates: readonly LookupSeat[]): HTMLElement {
+function ambiguousView(candidates: readonly LookupSeat[], copy: LookupCopy): HTMLElement {
   const el = document.createElement("div");
   el.className = "pk-lookup-ambiguous";
   const heading = document.createElement("p");
   heading.className = "pk-lookup-ambiguous-heading";
-  heading.textContent = "More than one Seat matches — pick yours:";
+  heading.textContent = copy.ambiguousHeading;
   el.append(heading);
   const list = document.createElement("div");
   list.className = "pk-lookup-candidate-list";
   for (const seat of candidates) {
-    list.append(candidateRow(seat));
+    list.append(candidateRow(seat, copy));
   }
   const footnote = document.createElement("p");
   footnote.className = "pk-lookup-footnote";
-  footnote.textContent = "Boundaries per the Election Commission's 2018 delimitation.";
+  footnote.textContent = copy.boundariesFootnote;
   el.append(list, footnote);
   return el;
 }
 
-function candidateRow(seat: LookupSeat): HTMLElement {
+function candidateRow(seat: LookupSeat, copy: LookupCopy): HTMLElement {
   const row = document.createElement("a");
   row.className = "pk-lookup-candidate";
   row.href = seat.hasProfile ? mpProfileUrl(seat.code) : "#";
@@ -217,18 +227,10 @@ function candidateRow(seat: LookupSeat): HTMLElement {
   name.textContent = `${seat.name}, ${seat.state}`;
   const mp = document.createElement("span");
   mp.className = "pk-lookup-candidate-mp";
-  mp.textContent = seat.hasProfile && seat.mpName ? seat.mpName : "MP profile not yet available";
+  mp.textContent = seat.hasProfile && seat.mpName ? seat.mpName : copy.noProfileYet;
   row.append(code, name, mp);
   return row;
 }
-
-const NO_MATCH_COPY: Record<NoMatchReason, string> = {
-  "not-in-index": "Not found in the Election Commission postcode index.",
-  "geolocation-unsupported": "This browser doesn't support location lookup.",
-  "geolocation-denied": "Location permission was declined.",
-  "geolocation-unresolvable":
-    "Location was read, but this pilot has no boundary data yet to match it to a Seat — try a postcode or constituency name instead.",
-};
 
 // README's "No match" state names four routes out — three named links plus
 // "a public corrections link" — and requires "search by name" to be a real
@@ -241,40 +243,77 @@ const NO_MATCH_COPY: Record<NoMatchReason, string> = {
 const CORRECTIONS_URL =
   "https://github.com/IlhamKassim/live-political-analysis/issues/new?title=Postcode%20index%20correction";
 
-function notFoundView(reason: NoMatchReason, onSearchByName: () => void): HTMLElement {
+// Which routes out each no-match reason offers (#82).
+//
+// `not-in-index` keeps all four, unchanged from #77. `geolocation-denied`
+// gets the two that are about finding a Seat at all — the text search this
+// state falls back to, and the full list of 222 — and not the two that are
+// about the postcode index specifically ("Check registration with SPR",
+// "Report a mistake in this index"): a declined permission never consulted
+// that index, so pointing at its corrections form would invite a report
+// about a dataset that had nothing to do with what just happened.
+//
+// The other two geolocation reasons stay bare on purpose.
+// `geolocation-unresolvable` already names its own way forward inside its
+// message ("try a postcode or constituency name instead") and a routes list
+// under it would say the same thing twice; `geolocation-unsupported` is
+// outside this ticket's scope (#82 scopes the permission-denied state), so
+// it is left as #77 shipped it rather than redesigned in passing.
+//
+// Nothing here touches `pk-lookup-input-error`: that amber input border
+// flags a typed query the index rejected, and a geolocation failure is not
+// a typing mistake. The container's own `pk-lookup-not-found` caution
+// border is the whole visual treatment — no error-red anywhere, per the
+// tone rule #77 set.
+const ROUTES_BY_REASON: Record<NoMatchReason, readonly RouteId[]> = {
+  "not-in-index": ["searchByName", "browseAllSeats", "checkRegistration", "reportMistake"],
+  "geolocation-denied": ["searchByName", "browseAllSeats"],
+  "geolocation-unsupported": [],
+  "geolocation-unresolvable": [],
+};
+
+type RouteId = "searchByName" | "browseAllSeats" | "checkRegistration" | "reportMistake";
+
+const ROUTE_HREFS: Record<Exclude<RouteId, "searchByName">, string> = {
+  browseAllSeats: "/",
+  checkRegistration: "https://daftarj.spr.gov.my/",
+  reportMistake: CORRECTIONS_URL,
+};
+
+function notFoundView(
+  reason: NoMatchReason,
+  onSearchByName: () => void,
+  copy: LookupCopy,
+): HTMLElement {
   const el = document.createElement("div");
   el.className = "pk-lookup-not-found";
   const tag = document.createElement("span");
   tag.className = "pk-lookup-no-match-tag";
-  tag.textContent = "NO MATCH";
+  tag.textContent = copy.noMatchTag;
   const message = document.createElement("p");
   message.className = "pk-lookup-no-match-reason";
-  message.textContent = NO_MATCH_COPY[reason];
+  message.textContent = copy.noMatch[reason];
   el.append(tag, message);
-  if (reason === "not-in-index") {
+
+  const routeIds = ROUTES_BY_REASON[reason];
+  if (routeIds.length > 0) {
     const routes = document.createElement("ul");
     routes.className = "pk-lookup-routes";
-
-    const searchByName = document.createElement("li");
-    const searchByNameLink = document.createElement("a");
-    searchByNameLink.href = "#";
-    searchByNameLink.textContent = "Search by name";
-    searchByNameLink.addEventListener("click", (event) => {
-      event.preventDefault();
-      onSearchByName();
-    });
-    searchByName.append(searchByNameLink);
-    routes.append(searchByName);
-
-    for (const [label, href] of [
-      ["Browse all 222 Seats", "/"],
-      ["Check registration with SPR", "https://daftarj.spr.gov.my/"],
-      ["Report a mistake in this index", CORRECTIONS_URL],
-    ] as const) {
+    for (const id of routeIds) {
       const li = document.createElement("li");
       const a = document.createElement("a");
-      a.href = href;
-      a.textContent = label;
+      a.textContent = copy.routes[id];
+      if (id === "searchByName") {
+        // The text field itself never went away — this link only puts the
+        // cursor back in it, which is the whole fallback this state needs.
+        a.href = "#";
+        a.addEventListener("click", (event) => {
+          event.preventDefault();
+          onSearchByName();
+        });
+      } else {
+        a.href = ROUTE_HREFS[id];
+      }
       li.append(a);
       routes.append(li);
     }
@@ -283,19 +322,19 @@ function notFoundView(reason: NoMatchReason, onSearchByName: () => void): HTMLEl
   return el;
 }
 
-function resolvedView(seat: LookupSeat): HTMLElement {
+function resolvedView(seat: LookupSeat, copy: LookupCopy): HTMLElement {
   const el = document.createElement("div");
   el.className = "pk-lookup-resolved";
   if (seat.hasProfile) {
     const link = document.createElement("a");
     link.className = "pk-lookup-resolved-link";
     link.href = mpProfileUrl(seat.code);
-    link.textContent = `${seat.name} — see your MP →`;
+    link.textContent = copy.seeYourMp(seat.name);
     el.append(link);
   } else {
     const p = document.createElement("p");
     p.className = "pk-lookup-resolved-no-profile";
-    p.textContent = `${seat.name}, ${seat.state} — MP profile for this Seat isn't built yet.`;
+    p.textContent = copy.resolvedNoProfile(seat.name, seat.state);
     el.append(p);
   }
   return el;
