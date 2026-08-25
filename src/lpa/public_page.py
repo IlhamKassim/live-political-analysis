@@ -254,6 +254,31 @@ class PageModel:
         return sum(1 for s in self.seats if not s.government and s.tier == Tier.TIGHT)
 
     @property
+    def too_close_seats(self) -> tuple[ChamberSeat, ...]:
+        """Every Seat in the `Tier.TIGHT` band, smallest margin first (#48).
+
+        Filtered on the tier `_ordered_seats` already stamped on each Seat
+        with `tier_for`, so this list, the ledger's "Too close" column and
+        the chamber's hollow rings cannot come to disagree about which
+        Seats those are. It has no threshold of its own and defines no new
+        category: a Seat is here because `TIGHT_MARGIN` put it here, not
+        because anything judged it worth listing.
+
+        Ordered by margin rather than by the chamber's
+        Government-then-Non-government sort — the two sides interleave
+        here, which is fine because no Majority line is drawn against this
+        ordering (`_ordered_seats` explains why the chamber's own order
+        cannot do that). The Seat code breaks a tie, so two Seats on the
+        same margin come out in the same order on every run.
+        """
+        return tuple(
+            sorted(
+                (seat for seat in self.seats if seat.tier == Tier.TIGHT),
+                key=lambda seat: (seat.margin, seat.code),
+            )
+        )
+
+    @property
     def if_every_marginal_fell(self) -> int:
         return self.government_seats - self.government_too_close
 
@@ -1165,6 +1190,82 @@ def _tipping_point(model: PageModel) -> str:
     )
 
 
+def _too_close_table(model: PageModel) -> str:
+    """The Seats already in the `Tier.TIGHT` band, listed by margin (#48).
+
+    A secondary module, in the same print register as the ledger and the
+    stress-test row above it — a ruled table, not a card. It states which
+    Seats sit inside the band the page already draws as hollow rings and
+    counts in the ledger's "Too close" column, so a reader does not have to
+    scan the whole chamber to find them.
+
+    Nothing here is a selection. `model.too_close_seats` filters on the tier
+    `tier_for` already assigned, so this module introduces no threshold, no
+    cutoff on how many Seats it will show, and no category of its own — a
+    Seat is listed if and only if its projected margin is under
+    `TIGHT_MARGIN`, and the copy says exactly that and nothing more. The
+    phrasing "inside six points" is the lede's, the chamber caption's, the
+    stress row's and the seat key's, for this same constant: if
+    `TIGHT_MARGIN` ever moves, those are the places to grep.
+
+    Each row carries `data-seat` — the Seat's own code, the way the rest of
+    the page identifies one — but no `id`, because `_seat_table`'s rows are
+    this document's fragment-link target and an `id` can only anchor to one
+    element per document.
+
+    The Seat filter (#47) does not narrow this table: `_SEAT_FILTER_SCRIPT`
+    selects `.seat-table` rows only. That is the right answer rather than an
+    oversight — this is a fixed statement of which Seats are inside the
+    band, not a search result — but it is an accident of the selector today,
+    so it is written down here.
+
+    It does print, unlike the 222-row `.seat-table` the print block keeps
+    hidden. Deliberate: this table is a section of the page in its own
+    right, and it is the size of the tight band rather than the size of the
+    chamber.
+    """
+    seats = model.too_close_seats
+    header = (
+        '<div class="strip"><div class="eyebrow">Too close · Terlalu rapat '
+        "— Seats inside six points, by margin</div></div>"
+    )
+    if not seats:
+        return (
+            '<div class="too-close">'
+            f"{header}"
+            '<p class="sensitivity-note">No Seat is projected inside six '
+            "points.</p></div>"
+        )
+    rows = "".join(
+        f'<tr data-seat="{html.escape(seat.code)}">'
+        f'<td>{html.escape(seat.name)} <small class="seat-code">'
+        f"{html.escape(seat.code)}</small></td>"
+        f"<td>{html.escape(seat.state)}</td>"
+        f"<td>{html.escape(seat.coalition)}</td>"
+        f"<td>{_points(seat.margin)}</td>"
+        "</tr>"
+        for seat in seats
+    )
+    return (
+        '<div class="too-close">'
+        f"{header}"
+        f'<p class="sensitivity-note">{len(seats)} of {model.total_seats} '
+        f"{_plural(len(seats), 'Seat is', 'Seats are')} projected inside six "
+        "points — the same Seats the chamber draws as hollow rings and the "
+        "ledger counts under Too close, smallest margin first. A Seat is "
+        "listed here because of the size of its margin and nothing else: the "
+        "Swing is uniform within a state, so this is arithmetic against GE15, "
+        "not a claim about any of these Seats.</p>"
+        '<div class="too-close-scroll"><table class="too-close-table">'
+        "<thead><tr>"
+        '<th scope="col">Seat</th><th scope="col">State</th>'
+        '<th scope="col">Coalition</th><th scope="col">Margin (points)</th>'
+        "</tr></thead>"
+        f"<tbody>{rows}</tbody></table></div>"
+        "</div>"
+    )
+
+
 def _sensitivity_table(model: PageModel) -> str:
     """The Government Coalition total at each of `SENSITIVITY_ROWS` (#51).
 
@@ -1809,6 +1910,24 @@ _CSS = """
 
   .state-rollup { margin: clamp(46px, 7vw, 78px) 0 0; }
 
+  /* #48. Same spacing and the same ruled-table register as the two
+     secondary sections either side of it — no card, no new treatment. */
+  .too-close { margin: clamp(46px, 7vw, 78px) 0 0; }
+  /* Four short columns fit a phone, so this table overrides the global
+     540px table min-width rather than inheriting a sideways scroll it does
+     not need. The wrapper is its own class, not .ledger-scroll: that one is
+     switched to overflow: visible below 600px, which would put a residual
+     overflow on the body rather than inside the wrapper. */
+  .too-close-scroll { overflow-x: auto; }
+  .too-close-table { min-width: 0; }
+  .too-close-table .seat-code {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .06em;
+    color: var(--ink-faint);
+    margin-left: 8px;
+  }
+
   .colophon {
     margin-top: clamp(52px, 8vw, 90px);
     padding-top: 22px;
@@ -2090,6 +2209,7 @@ def render_html(model: PageModel) -> str:
     <div class="ledger-scroll">{_ledger_table(model)}</div>
     {_ledger_narrow(model)}
     <dl class="stress">{_stress(model)}</dl>
+    {_too_close_table(model)}
     {_sensitivity_table(model)}
     {_state_rollup_table(model)}
   </section>
