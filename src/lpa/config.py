@@ -49,7 +49,9 @@ DEFAULT_CONFIG_PATH = data_file("coalitions.json")
 
 
 def load_coalition_config(path: Path | None = None) -> Mapping[str, Any]:
-    return cast(Mapping[str, Any], json.loads((path or DEFAULT_CONFIG_PATH).read_text(encoding="utf-8")))
+    return cast(
+        Mapping[str, Any], json.loads((path or DEFAULT_CONFIG_PATH).read_text(encoding="utf-8"))
+    )
 
 
 def party_to_coalition(config: Mapping[str, Any]) -> Mapping[str, Coalition]:
