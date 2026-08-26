@@ -15,7 +15,9 @@ whose Pos Malaysia town name exactly matches an Election Commission daerah
 mengundi, nationwide, plus a small hand-curated set of aliases — not yet all
 222 Seats, since most of the remainder need the same per-locality
 verification done by hand (see ADR 0008's "Update (#107)" and
-`data/postcode_seat_index_unresolved.json` for what is left).
+`data/postcode_seat_index_unresolved.json` for what is left). It no longer
+moves in step with the MP profiles, which #105 took to most of the House;
+the lookup's `has_profile` flag is what keeps the two independent.
 """
 
 from __future__ import annotations

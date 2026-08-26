@@ -263,7 +263,13 @@ DEFAULT_MP_PROFILES_PATH = data_file("mp_profiles.json")
 def load_mp_profiles(path: Path | None = None) -> Mapping[str, MPProfile]:
     """Seat code -> its sitting Member's profile, from `data/mp_profiles.json`.
 
-    A pilot slice, not all 222 Seats — see `lpa.mp_profile` and ADR 0009.
+    Most of the 222 Seats but not all of them: a Seat the sources cannot
+    support a profile for is in the file's `_skipped` block with the reason
+    rather than here, so a caller asking for one and not finding it is
+    looking at a documented absence — see `lpa.mp_profile` and ADR 0009.
+    `_skipped` is deliberately not loaded into `MPProfile`s; it is a record
+    for a human reading the file, and a caller's own no-profile-yet
+    behaviour is what a missing Seat should drive.
 
     Distrusts the file the way `load_election_status` does, and for a sharper
     reason: every figure in a profile is attached to a named person, so the

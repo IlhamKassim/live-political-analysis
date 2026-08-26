@@ -270,12 +270,16 @@ def fetch_summary(client: httpx.Client, pdf_path: str) -> tuple[str, str]:
 def load_division_tallies() -> dict[str, dict[str, Any]]:
     """Every Division already shipped for P.102, keyed by its subject.
 
-    P.102 Bangi because that is the only Seat #78's pilot populated — reads
-    the already-verified `data/mp_profiles.json` rather than Hansard
-    directly, since re-deriving these tallies here would risk the same fact
-    disagreeing with itself in two files (see the module docstring). A
-    second populated Seat would need this to take a Seat code; there is no
-    second one yet, so it does not.
+    P.102 Bangi, and any Seat would do since #105 populated most of the
+    House: a Division's tallies are the Chair's declared result, the same
+    four numbers on every Member's copy of it, so this reads one Seat rather
+    than reconciling 199. Reads the already-verified
+    `data/mp_profiles.json` rather than Hansard directly, since re-deriving
+    these tallies here would risk the same fact disagreeing with itself in
+    two files (see the module docstring). Bangi is hardcoded because it is
+    the Seat with a complete voting record that this repo has quoted from
+    the start; three Seats' records are one Division short (see ADR 0009)
+    and picking one of those would lose a Bill its Division.
     """
     config = json.loads(MP_PROFILES_PATH.read_text())
     return {d["subject"]: d for d in config["profiles"]["P.102"]["divisions"]}
