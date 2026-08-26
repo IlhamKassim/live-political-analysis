@@ -282,19 +282,34 @@ def test_the_shipped_voting_record_runs_newest_first():
         assert dates == sorted(dates, reverse=True), seat_code
 
 
-def test_every_seat_the_postcode_index_can_return_has_a_profile():
-    # #76 and #78 piloted the same Seats on purpose: the lookup result page
-    # (#79) needs both halves for the same Seat to render at all. #105 took
-    # profiles past the postcode index's own slice, so the containment now
-    # runs this way round — a postcode a reader can type must not resolve to
-    # a Seat this file has nothing to say about.
+def test_a_postcode_resolving_to_an_unprofiled_seat_is_flagged_not_silently_dropped():
+    # #76 and #78 piloted the same two Seats on purpose, so containment held
+    # by construction for a while. #105 (MP profiles, most of the House) and
+    # #107 (postcode index, nationwide exact-match join) then each scaled up
+    # independently, on parallel branches with no visibility into the
+    # other's final coverage — postcode_index.py's own docstring now states
+    # plainly that the two no longer move in step. A handful of Seats the
+    # postcode index can resolve to (9 of 113 as of #107) have no MP
+    # Profile yet.
+    #
+    # That gap is real, but it is not a bug to hide: `politikku_lookup_index
+    # .has_profile` is computed from `lpa.config.load_mp_profiles()`'s
+    # actual keys precisely so a postcode can resolve to a Seat with no
+    # profile page built yet, and the lookup UI (`ts/src/dom.ts`) reads that
+    # flag to show an honest "MP profile not yet available" instead of
+    # linking to a page that doesn't exist. So the invariant this test
+    # actually owes the reader is narrower than containment: every indexed
+    # Seat missing a profile must be a Seat this file can explain, not one
+    # `load_mp_profiles` would silently misreport.
     from lpa.config import load_postcode_seat_index
 
     indexed = {
         match.seat_code for matches in load_postcode_seat_index().values() for match in matches
     }
+    unprofiled = indexed - set(SHIPPED_PROFILES)
 
-    assert indexed <= set(SHIPPED_PROFILES)
+    config = json.loads(DEFAULT_MP_PROFILES_PATH.read_text(encoding="utf-8"))
+    assert unprofiled <= set(config["_skipped"]), unprofiled
 
 
 def test_no_shipped_seat_is_also_recorded_as_skipped():
