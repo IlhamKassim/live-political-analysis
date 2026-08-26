@@ -33,6 +33,7 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 
 from sqlalchemy.engine import Engine
 
@@ -53,6 +54,28 @@ class LookupSeat:
     empty string) when it doesn't, so the client can tell "no data" from
     "MP profile publishes no name", which cannot currently happen but
     shouldn't be conflated with this if it ever does."""
+
+
+DEFAULT_OUTPUT_PATH = "public/data/lookup-index.json"
+DEFAULT_UNRESOLVED_PATH = "data/lookup_index_unresolved_profiles.json"
+
+
+@dataclass(frozen=True)
+class LookupIndexBuildResult:
+    """Summary of client lookup index generation."""
+
+    size_bytes: int
+    total_mp_profiles: int
+    reachable_mp_profiles: int
+    excluded_mp_profiles: int
+
+
+def compute_unresolved_mp_profiles(
+    mp_names: Mapping[str, str],
+    client_index_seats: Mapping[str, object],
+) -> dict[str, str]:
+    """Return `{code: member_name}` for all MP profiles omitted from the client index."""
+    return {code: mp_names[code] for code in sorted(mp_names) if code not in client_index_seats}
 
 
 def build_client_index(
@@ -115,15 +138,17 @@ def build_client_index_json(
 # ── I/O ───────────────────────────────────────────────────────────────────
 
 
-def build_and_write_client_index(engine: Engine, output_path: str) -> int:
-    """Read Storage/config and write the client index to `output_path`.
+def build_and_write_client_index(
+    engine: Engine,
+    output_path: str | Path = DEFAULT_OUTPUT_PATH,
+    unresolved_path: str | Path | None = DEFAULT_UNRESOLVED_PATH,
+) -> LookupIndexBuildResult:
+    """Read Storage/config and write the client index and unresolved report.
 
-    Returns the byte length written, so a caller (`main`) can report it —
-    the size claim is exactly what ADR 0008's sizing argument depends on
-    staying true as the pilot grows past two Seats.
+    Writes the client index to `output_path` and durable unresolved profiles
+    report to `unresolved_path` (issue #118), so exclusions are visible to
+    maintainers without diffing raw data files.
     """
-    from pathlib import Path
-
     from lpa.config import load_mp_profiles, load_postcode_seat_index
     from lpa.storage import load_seat_baselines
 
@@ -135,15 +160,48 @@ def build_and_write_client_index(engine: Engine, output_path: str) -> int:
     }
     mp_names = {code: profile.name for code, profile in load_mp_profiles().items()}
 
-    payload = build_client_index_json(baseline, postcode_index, mp_names)
+    index_data = build_client_index(baseline, postcode_index, mp_names)
+    payload = json.dumps(index_data, separators=(",", ":"))
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(payload, encoding="utf-8")
-    return len(payload.encode("utf-8"))
+
+    client_seats = index_data.get("seats", {})
+    assert isinstance(client_seats, dict)
+    excluded_profiles = compute_unresolved_mp_profiles(mp_names, client_seats)
+    total_profiles = len(mp_names)
+    reachable_profiles = total_profiles - len(excluded_profiles)
+
+    if unresolved_path is not None:
+        unresolved_file = Path(unresolved_path)
+        unresolved_file.parent.mkdir(parents=True, exist_ok=True)
+        unresolved_report = {
+            "_comment": [
+                "MP Profiles (from data/mp_profiles.json) whose Seats are not reachable from",
+                "the postcode index (data/postcode_seat_index.json) and are therefore omitted",
+                "from the client-side lookup index (public/data/lookup-index.json).",
+                "Generated automatically on every build of lpa.politikku_lookup_index (issue #118).",
+            ],
+            "total_mp_profiles": total_profiles,
+            "reachable_mp_profiles": reachable_profiles,
+            "excluded_count": len(excluded_profiles),
+            "unresolved_mp_profiles": excluded_profiles,
+        }
+        unresolved_file.write_text(
+            json.dumps(unresolved_report, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+
+    return LookupIndexBuildResult(
+        size_bytes=len(payload.encode("utf-8")),
+        total_mp_profiles=total_profiles,
+        reachable_mp_profiles=reachable_profiles,
+        excluded_mp_profiles=len(excluded_profiles),
+    )
 
 
 def main() -> None:
-    """Write the client lookup index to `public/data/lookup-index.json`."""
+    """Write the client lookup index and report reachability metrics."""
     import argparse
 
     from lpa.storage import connect
@@ -151,15 +209,23 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--output",
-        default="public/data/lookup-index.json",
-        help="where to write the client index (default: public/data/lookup-index.json, "
-        "the URL `ts/src/index-data.ts` fetches since #104's cutover)",
+        default=DEFAULT_OUTPUT_PATH,
+        help=f"where to write the client index (default: {DEFAULT_OUTPUT_PATH})",
+    )
+    parser.add_argument(
+        "--unresolved-output",
+        default=DEFAULT_UNRESOLVED_PATH,
+        help=f"where to write the unresolved MP profiles report (default: {DEFAULT_UNRESOLVED_PATH})",
     )
     args = parser.parse_args()
 
     engine = connect()
-    size = build_and_write_client_index(engine, args.output)
-    print(f"Wrote {args.output} ({size:,} bytes)")
+    result = build_and_write_client_index(engine, args.output, args.unresolved_output)
+    print(
+        f"Wrote {args.output} ({result.size_bytes:,} bytes) — "
+        f"{result.reachable_mp_profiles}/{result.total_mp_profiles} MP Profiles reachable "
+        f"({result.excluded_mp_profiles} excluded)"
+    )
 
 
 if __name__ == "__main__":
