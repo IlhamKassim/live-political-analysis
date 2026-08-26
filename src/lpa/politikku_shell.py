@@ -534,9 +534,19 @@ def render_methodology_footer(
 """.strip()
 
 
+SITE_URL = "https://politikku.my/"
+"""The published site's real address — `public/CNAME`'s custom domain.
+
+Duplicated from `public_page.py` rather than imported: `public_page.py`
+already imports `Language`/`t` from this module, so importing `SITE_URL`
+back the other way would be circular. `telegram_post.py` already carries
+its own copy of this same constant for the same reason."""
+
+
 def render_shell(
     *,
     title: str,
+    description: str,
     active_nav: str,
     language: Language,
     page_path: str,
@@ -557,6 +567,12 @@ def render_shell(
     only the EN/BM toggle and the language-persistence script read it (the
     nav's own links each carry their own `NavLink.prefix`). It defaults to
     `POLITIKKU_PREFIX`, so every page that existed before #102 is unchanged.
+
+    `description` backs both `<meta name="description">` and the og:/
+    twitter: tags — required, not defaulted, the same discipline #41 used
+    for `public_page.py`'s own version of this block: every caller states
+    real, page-specific copy rather than a generic fallback that reads the
+    same on every page a reader shares.
     """
     header = render_header(
         active_nav=active_nav, language=language, page_path=page_path, prefix=prefix
@@ -566,13 +582,27 @@ def render_shell(
     )
     footer = render_methodology_footer(language=language)
     lang_attr = "ms" if language is Language.MS else "en"
+    escaped_title = html.escape(title)
+    escaped_description = html.escape(description)
+    og_url = html.escape(f"{SITE_URL.rstrip('/')}{route(language, page_path, prefix)}")
+    og_image = html.escape(f"{SITE_URL}og-image.png")
     return f"""<!doctype html>
 <html lang="{lang_attr}">
 <head>
 <meta charset="utf-8">
 {_language_persistence_script(prefix)}
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{html.escape(title)}</title>
+<title>{escaped_title}</title>
+<meta name="description" content="{escaped_description}">
+<meta property="og:title" content="{escaped_title}">
+<meta property="og:description" content="{escaped_description}">
+<meta property="og:url" content="{og_url}">
+<meta property="og:type" content="website">
+<meta property="og:image" content="{og_image}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{escaped_title}">
+<meta name="twitter:description" content="{escaped_description}">
+<meta name="twitter:image" content="{og_image}">
 <link rel="preload" href="{POLITIKKU_PREFIX}fonts/newsreader-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="{POLITIKKU_PREFIX}fonts/ibm-plex-sans-variable.woff2" as="font" type="font/woff2" crossorigin>
 <style>{_CSS}</style>

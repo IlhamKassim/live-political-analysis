@@ -145,6 +145,7 @@ def test_the_language_persistence_script_compares_the_pages_own_route_family():
     # or a stored BM preference would silently no-op there (#102).
     kwargs = {
         "title": "x",
+        "description": "x",
         "active_nav": "projection",
         "language": Language.EN,
         "page_path": "",
@@ -169,6 +170,7 @@ def test_the_root_familys_persistence_script_rewrites_the_leading_slash():
     # replace every slash, which would mangle `/mp/P.102.html`.
     page = render_shell(
         title="x",
+        description="x",
         active_nav="home",
         language=Language.EN,
         page_path="",
@@ -192,6 +194,7 @@ def test_the_wordmark_stays_in_the_current_language():
 def test_the_language_persistence_script_is_present_and_reads_localstorage():
     header = render_shell(
         title="x",
+        description="x",
         active_nav="home",
         language=Language.EN,
         page_path="",
@@ -259,6 +262,7 @@ def test_a_source_name_carrying_markup_cannot_break_out_of_the_footer():
 def test_the_shell_escapes_the_page_title():
     page = render_shell(
         title="Bills & motions </title>",
+        description="x",
         active_nav="bills",
         language=Language.EN,
         page_path="bills.html",
@@ -273,9 +277,54 @@ def test_the_shell_escapes_the_page_title():
     assert "newsreader-variable.woff2" in page
 
 
+def test_the_shell_carries_og_and_twitter_tags_with_the_real_domain():
+    # #104's cutover moved every PolitikKu page to the site root, but
+    # `render_shell` never carried og:/twitter: tags at all — #41 built
+    # those only for the old dashboard (`public_page.py`). Losing them here
+    # would silently break link previews for exactly the Audience
+    # `CONTEXT.md` defines as encountering this project's content via a
+    # shared link, not by navigating to it directly.
+    page = render_shell(
+        title="Bills & motions",
+        description="A description & a test",
+        active_nav="bills",
+        language=Language.EN,
+        page_path="mp/P.102.html",
+        updated_at=date(2026, 8, 23),
+        sources_count=9,
+        status=NOT_CALLED,
+        body_html="",
+    )
+    assert '<meta name="description" content="A description &amp; a test">' in page
+    assert '<meta property="og:title" content="Bills &amp; motions">' in page
+    assert '<meta property="og:description" content="A description &amp; a test">' in page
+    assert '<meta property="og:url" content="https://politikku.my/mp/P.102.html">' in page
+    assert '<meta property="og:type" content="website">' in page
+    assert '<meta property="og:image" content="https://politikku.my/og-image.png">' in page
+    assert '<meta name="twitter:card" content="summary_large_image">' in page
+    assert '<meta name="twitter:image" content="https://politikku.my/og-image.png">' in page
+
+
+def test_the_og_url_carries_the_bm_route_and_prefix_together():
+    page = render_shell(
+        title="x",
+        description="x",
+        active_nav="projection",
+        language=Language.MS,
+        page_path="",
+        updated_at=date(2026, 8, 23),
+        sources_count=1,
+        status=NOT_CALLED,
+        body_html="",
+        prefix=PROJECTION_PREFIX,
+    )
+    assert '<meta property="og:url" content="https://politikku.my/projection/ms/">' in page
+
+
 def test_the_shell_sets_the_bahasa_malaysia_lang_attribute():
     page = render_shell(
         title="Bil",
+        description="x",
         active_nav="bills",
         language=Language.MS,
         page_path="bills.html",
@@ -330,6 +379,7 @@ def test_the_footer_heading_is_the_settled_bm_pair():
 def test_the_full_shell_in_bm_carries_no_leftover_english_chrome_copy():
     page = render_shell(
         title="Halaman ujian",
+        description="Penerangan ujian",
         active_nav="home",
         language=Language.MS,
         page_path="",

@@ -1095,8 +1095,18 @@ def render_projection(model: PageModel, *, language: Language = Language.EN) -> 
         "GE16 Seat Projection — PolitikKu",
         "Unjuran kerusi PRU16 — PolitikKu",
     )
+    description = t(
+        language,
+        f"Full Seat-by-Seat GE16 projection: {model.total_seats} Seats, ledger, "
+        "Majority-margin trend, and per-state rollup — model-driven and not calibrated "
+        "against survey data.",
+        f"Unjuran PRU16 kerusi demi kerusi secara penuh: {model.total_seats} Kerusi, "
+        "ledger, tren jidar majoriti, dan ringkasan mengikut negeri — dijana oleh model "
+        "dan belum ditentukur terhadap data tinjauan.",
+    )
     return render_shell(
         title=title,
+        description=description,
         active_nav="projection",
         language=language,
         page_path="",
@@ -1228,8 +1238,16 @@ def render_methodology(model: PageModel, *, language: Language = Language.EN) ->
         "Methodology & sources — PolitikKu",
         "Metodologi & sumber — PolitikKu",
     )
+    description = t(
+        language,
+        "How PolitikKu's GE16 Swing Model works: the Seats, Coalitions, and News "
+        "Sentiment sources behind the projection.",
+        "Cara Model Peralihan PRU16 PolitikKu berfungsi: Kerusi, Gabungan, dan sumber "
+        "Sentimen Berita di sebalik unjuran.",
+    )
     return render_shell(
         title=title,
+        description=description,
         active_nav="methodology",
         language=language,
         page_path=METHODOLOGY_PAGE,

@@ -482,8 +482,18 @@ def render_homepage(model: HomepageModel, *, language: Language = Language.EN) -
     `politikku_shell._ms_route`.
     """
     title = t(language, "PolitikKu — Find your MP", f"PolitikKu — {FIND_YOUR_MP_MS}")
+    description = t(
+        language,
+        f"Live GE16 seat projection for the Dewan Rakyat: {model.government_seats} of "
+        f"{model.total_seats} Seats. Updated daily from News Sentiment, not calibrated "
+        "against survey data.",
+        f"Unjuran kerusi PRU16 langsung untuk Dewan Rakyat: {model.government_seats} "
+        f"daripada {model.total_seats} Kerusi. Dikemas kini setiap hari daripada Sentimen "
+        "Berita, belum ditentukur terhadap data tinjauan.",
+    )
     return render_shell(
         title=title,
+        description=description,
         active_nav="home",
         language=language,
         page_path="",

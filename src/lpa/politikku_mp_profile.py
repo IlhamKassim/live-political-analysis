@@ -644,8 +644,17 @@ def render_mp_profile_body(model: MPProfilePageModel, language: Language = Langu
 
 def render_mp_profile(model: MPProfilePageModel, *, language: Language = Language.EN) -> str:
     """The profile page as one full HTML document, shell included."""
+    description = t(
+        language,
+        f"{model.mp_name}, {model.coalition_name} — the Member of Parliament for "
+        f"{model.seat_name}, {model.seat_state}. Voting record, attendance, and contact "
+        "details.",
+        f"{model.mp_name}, {model.coalition_name} — Ahli Parlimen bagi {model.seat_name}, "
+        f"{model.seat_state}. Rekod undi, kehadiran, dan butiran hubungan.",
+    )
     return render_shell(
         title=f"{model.mp_name} — {model.seat_name} | PolitikKu",
+        description=description,
         active_nav="home",
         language=language,
         page_path=f"{MP_PROFILE_DIR}/{model.seat_code}.html",

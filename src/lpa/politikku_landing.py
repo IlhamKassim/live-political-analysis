@@ -538,8 +538,17 @@ def render_landing(model: LandingModel, *, language: Language = Language.EN) -> 
         "PolitikKu — a public reference for Malaysian politics",
         "PolitikKu — rujukan awam untuk politik Malaysia",
     )
+    description = t(
+        language,
+        "Find your MP, see the GE16 seat projection, and track Bills before the Dewan "
+        "Rakyat — a free, open reference for Malaysian politics.",
+        "Cari Ahli Parlimen anda, lihat unjuran kerusi PRU16, dan jejaki Rang "
+        "Undang-Undang di Dewan Rakyat — rujukan percuma dan terbuka untuk politik "
+        "Malaysia.",
+    )
     return render_shell(
         title=title,
+        description=description,
         active_nav="landing",
         language=language,
         page_path=LANDING_PAGE,
