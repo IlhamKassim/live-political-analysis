@@ -330,7 +330,11 @@ function notFoundView(
           onSearchByName();
         });
       } else {
-        a.href = ROUTE_HREFS[id];
+        if (id === "browseAllSeats") {
+          a.href = currentLanguage() === "ms" ? "/projection/ms/" : "/projection/";
+        } else {
+          a.href = ROUTE_HREFS[id];
+        }
       }
       li.append(a);
       routes.append(li);

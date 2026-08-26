@@ -40,6 +40,7 @@ from lpa.politikku_projection import (
     render_methodology,
     render_projection,
 )
+from lpa.politikku_sentiment import render_sentiment_page, sentiment_page_model
 from lpa.politikku_shell import (
     MP_PROFILE_DIR,
     POLITIKKU_PREFIX,
@@ -48,20 +49,16 @@ from lpa.politikku_shell import (
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-UNBUILT_ROUTES = frozenset(
-    {
-        "/sentiment.html",
-        "/ms/sentiment.html",
-    }
-)
-"""The two nav items the design handoff itself asks to be "wired to routes
-that don't need to exist yet" — no ticket has built either page. Listed
-explicitly rather than skipped by pattern so that building one, or adding a
-third, has to come through here."""
+UNBUILT_ROUTES: frozenset[str] = frozenset()
+"""The nav items the design handoff itself asks to be "wired to routes
+that don't need to exist yet" — none remaining. Listed explicitly rather than
+skipped by pattern so that adding a route has to come through here."""
 
 GENERATED_BY_ANOTHER_BUILD_STEP = {
     "/lookup.js": "ts/build.mjs",
     "/data/lookup-index.json": "src/lpa/politikku_lookup_index.py",
+    "/projection.csv": "src/lpa/public_export.py",
+    "/projection.json": "src/lpa/public_export.py",
 }
 """Real published files that no Python page renderer writes, so they cannot
 be in the rendered tree. The value is the file that decides their path, and
@@ -105,12 +102,20 @@ def rendered_site(tmp_path_factory) -> Path:
         sources_count=len(page.sources),
         status=page.status,
     )
+    sentiment_model = sentiment_page_model(
+        snapshots=[],
+        names=NAMES,
+        status=page.status,
+    )
 
     for language in Language:
         ms = "" if language is Language.EN else "ms/"
         _write(root, f"{ms}index.html", render_homepage(homepage, language=language))
         _write(root, f"{ms}landing.html", render_landing(landing, language=language))
         _write(root, f"{ms}bills.html", render_bills_page(bills_model, language=language))
+        _write(
+            root, f"{ms}sentiment.html", render_sentiment_page(sentiment_model, language=language)
+        )
         _write(root, f"{ms}{METHODOLOGY_PAGE}", render_methodology(page, language=language))
         _write(
             root,
@@ -231,6 +236,13 @@ def test_the_assets_no_page_renderer_writes_are_named_by_the_step_that_does(rend
     )
     assert '"/data/lookup-index.json"' in fetched_by
     assert '"public/data/lookup-index.json"' in written_by
+
+    # The projection data exports are written by public_export.py.
+    export_written = (REPO_ROOT / GENERATED_BY_ANOTHER_BUILD_STEP["/projection.json"]).read_text(
+        encoding="utf-8"
+    )
+    assert '"projection.json"' in export_written
+    assert '"projection.csv"' in export_written
 
     # The fonts, by contrast, are committed — so their real path is checkable.
     fonts = re.findall(r"[\w/.-]*\.woff2", home)

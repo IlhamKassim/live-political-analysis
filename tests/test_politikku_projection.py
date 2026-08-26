@@ -593,3 +593,42 @@ def test_the_bm_page_leaks_no_english_copy():
         # pass by naming a sentence neither page states.
         assert sentinel in en
         assert sentinel not in ms
+
+
+def test_seat_table_and_too_close_link_to_mp_profile_when_available(monkeypatch):
+    from test_politikku_mp_profile import _profile
+
+    fake_profile = _profile(seat_code="P000")
+    monkeypatch.setattr("lpa.config.load_mp_profiles", lambda: {"P000": fake_profile})
+
+    model = _projection_model()
+    en_body = render_projection_body(model, Language.EN)
+    ms_body = render_projection_body(model, Language.MS)
+
+    assert '<a href="/mp/P000.html">' in en_body
+    assert '<a href="/ms/mp/P000.html">' in ms_body
+
+
+def test_cite_section_renders_download_buttons_in_both_languages():
+    model = _projection_model()
+    en_body = render_projection_body(model, Language.EN)
+    ms_body = render_projection_body(model, Language.MS)
+
+    assert '<div class="pk-proj-downloads"' in en_body
+    assert (
+        '<a href="/projection.csv" class="pk-button pk-button-outline">Download CSV</a>' in en_body
+    )
+    assert (
+        '<a href="/projection.json" class="pk-button pk-button-outline">Download JSON</a>'
+        in en_body
+    )
+
+    assert '<div class="pk-proj-downloads"' in ms_body
+    assert (
+        '<a href="/projection.csv" class="pk-button pk-button-outline">Muat turun CSV</a>'
+        in ms_body
+    )
+    assert (
+        '<a href="/projection.json" class="pk-button pk-button-outline">Muat turun JSON</a>'
+        in ms_body
+    )

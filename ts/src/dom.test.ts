@@ -113,13 +113,26 @@ describe("mountLookup", () => {
     const container = buildContainer();
     mountLookup(container);
     await submit(container, "99999");
-    const labels = [...container.querySelectorAll(".pk-lookup-routes a")].map((a) => a.textContent);
+    const links = [...container.querySelectorAll<HTMLAnchorElement>(".pk-lookup-routes a")];
+    const labels = links.map((a) => a.textContent);
     expect(labels).toEqual([
       "Search by name",
       "Browse all 222 Seats",
       "Check registration with SPR",
       "Report a mistake in this index",
     ]);
+    const browseLink = links.find((a) => a.textContent === "Browse all 222 Seats");
+    expect(browseLink?.getAttribute("href")).toBe("/projection/");
+  });
+
+  it("browse all seats links to /projection/ms/ when in BM", async () => {
+    document.documentElement.lang = "ms";
+    const container = buildContainer();
+    mountLookup(container);
+    await submit(container, "99999");
+    const links = [...container.querySelectorAll<HTMLAnchorElement>(".pk-lookup-routes a")];
+    const browseLink = links.find((a) => a.textContent === "Lihat semua 222 Kerusi");
+    expect(browseLink?.getAttribute("href")).toBe("/projection/ms/");
   });
 
   it("clicking \"Search by name\" clears the input, focuses it, and returns to idle", async () => {

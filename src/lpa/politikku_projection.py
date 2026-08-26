@@ -749,6 +749,18 @@ def _too_close_section(model: PageModel, language: Language) -> str:
     its own. The note is `public_page._too_close_table`'s own, both
     languages, and says exactly that and nothing more.
     """
+    from lpa.config import load_mp_profiles
+
+    profiles = load_mp_profiles()
+    prefix = "/ms/mp/" if language is Language.MS else "/mp/"
+
+    def _seat_name(seat_code: str, seat_name: str) -> str:
+        escaped_name = html.escape(seat_name)
+        if seat_code in profiles:
+            url = html.escape(f"{prefix}{seat_code}.html")
+            return f'<a href="{url}">{escaped_name}</a>'
+        return escaped_name
+
     seats = model.too_close_seats
     head_note = (
         t(
@@ -788,7 +800,7 @@ def _too_close_section(model: PageModel, language: Language) -> str:
         return _band("pk-proj-too-close", head, alt=True)
     rows = "".join(
         f'<tr data-seat="{html.escape(seat.code)}">'
-        f'<td>{html.escape(seat.name)} <small class="pk-proj-code">'
+        f'<td>{_seat_name(seat.code, seat.name)} <small class="pk-proj-code">'
         f"{html.escape(seat.code)}</small></td>"
         f"<td>{html.escape(seat.state)}</td>"
         f"<td>{html.escape(seat.coalition)}</td>"
@@ -906,11 +918,23 @@ def _seat_table_section(model: PageModel, language: Language) -> str:
     (built by `public_page._search_blob`, in the page's own language) so a
     BM reader typing "selamat" finds the rows the column labelled "Selamat".
     """
+    from lpa.config import load_mp_profiles
+
+    profiles = load_mp_profiles()
+    prefix = "/ms/mp/" if language is Language.MS else "/mp/"
+
+    def _seat_name(seat_code: str, seat_name: str) -> str:
+        escaped_name = html.escape(seat_name)
+        if seat_code in profiles:
+            url = html.escape(f"{prefix}{seat_code}.html")
+            return f'<a href="{url}">{escaped_name}</a>'
+        return escaped_name
+
     names = _coalition_names(model)
     rows = "".join(
         f'<tr id="seat-{html.escape(seat.code)}" data-seat="{html.escape(seat.code)}" '
         f'data-search="{html.escape(_search_blob(seat, names, language))}">'
-        f'<td>{html.escape(seat.name)} <small class="pk-proj-code">'
+        f'<td>{_seat_name(seat.code, seat.name)} <small class="pk-proj-code">'
         f"{html.escape(seat.code)}</small></td>"
         f"<td>{html.escape(seat.state)}</td>"
         f"<td>{html.escape(seat.coalition)}</td>"
@@ -1003,10 +1027,18 @@ def _cite_this(model: PageModel, language: Language) -> str:
 def _cite_section(model: PageModel, language: Language) -> str:
     read_full = t(language, "Read the full methodology →", "Baca metodologi penuh →")
     href = html.escape(methodology_url(language))
+    csv_label = t(language, "Download CSV", "Muat turun CSV")
+    json_label = t(language, "Download JSON", "Muat turun JSON")
+    downloads = (
+        '<div class="pk-proj-downloads" style="margin-top: 14px; display: flex; gap: 8px;">\n'
+        f'  <a href="/projection.csv" class="pk-button pk-button-outline">{html.escape(csv_label)}</a>\n'
+        f'  <a href="/projection.json" class="pk-button pk-button-outline">{html.escape(json_label)}</a>\n'
+        "</div>"
+    )
     return _band(
         "pk-proj-provenance",
         f'{_cite_this(model, language)}<a class="pk-proj-methodology-link" href="{href}">'
-        f"{read_full}</a>",
+        f"{read_full}</a>\n{downloads}",
         # `paper-alt`, so the page closes on a distinct band rather than
         # running on out of the seat table's own `paper` — the same band the
         # methodology page already gives this block, and the alternating
@@ -1472,6 +1504,16 @@ _CSS = """
   }
   .pk-proj-colophon-grid {
     display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;
+  }
+  .pk-button {
+    display: inline-block; font-size: 13px; font-family: var(--sans);
+    padding: 6px 12px; border-radius: var(--radius-md); text-decoration: none;
+  }
+  .pk-button-outline {
+    border: 1px solid var(--line-strong); color: var(--ink); background: var(--white);
+  }
+  .pk-button-outline:hover {
+    border-color: var(--accent); color: var(--accent);
   }
 
   @media (max-width: 900px) {
