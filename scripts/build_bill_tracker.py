@@ -1,8 +1,15 @@
-"""One-off ingestion: build `data/bills.json` (issue #80).
+"""Ingestion: build `data/bills.json` (issues #80, #106).
 
 Run by hand, not part of the daily pipeline — a Bill's stage changes on the
 order of days during a sitting and not at all between sittings, and the
-register offers no feed to poll for a diff.
+register offers no feed to poll for a diff. #106 scaled this from #80's
+four-Bill pilot to the register's full default view (below) but kept the
+manual cadence: the failure mode here is a page layout change, a PDF whose
+HURAIAN section can't be cleanly excerpted, or a Division that can be named
+but not dated (see `AMBIGUOUS_DIVISIONS`) — all things worth a human glancing
+at the run's printed skip list before `data/bills.json` ships, not something
+a cron job should paper over by shipping whatever it got. See ADR 0010's
+Consequences for this call.
 
 ## What is read from where
 
@@ -19,7 +26,10 @@ register offers no feed to poll for a diff.
 2. **The plain-language summary** — a verbatim excerpt of each Bill's own
    "HURAIAN" (Explanation) section, read from the Bill's own PDF (linked
    from the register). See `lpa.bill_tracker`'s module docstring for why
-   this is a quote and not a paraphrase.
+   this is a quote and not a paraphrase. A Bill whose PDF has no extractable
+   HURAIAN (a scanned image, most often) is skipped rather than shipped with
+   an invented summary — printed in the run's skip list, not silently
+   dropped.
 3. **Division result** — not fetched here at all. Where a Bill's Division
    already appears in `data/mp_profiles.json` (issue #78 read Hansard's full
    name lists and Chair-declared tallies for the 15th Parliament's ten
@@ -27,13 +37,19 @@ register offers no feed to poll for a diff.
    subject — see `BILL_DIVISIONS`. A Bill with no recorded Division needs no
    new sourcing either: #78's ADR 0009 already established the complete list
    of the term's Divisions, so a Bill absent from `BILL_DIVISIONS` is known,
-   not merely unchecked, to have passed on a voice vote.
+   not merely unchecked, to have passed on a voice vote — except a Bill
+   named in `AMBIGUOUS_DIVISIONS`, whose title matches one of the ten but
+   whose date does not; see that dict for why matching stops there rather
+   than forcing an attachment.
 
 ## Scope
 
-Pilot slice: four Bills, chosen because two have a real, already-verified
-Division and two do not — enough to exercise both shapes of the schema.
-Scaling to the full register is follow-up work under #80.
+The register's full default view — everything `fetch_register` returns,
+which as of #106 is Bills from 2024 into 2026; the register offers no way
+to page further back, and #80's ADR 0010 already flagged going past that
+default view as untested. Not every Bill in that view makes it into
+`data/bills.json`: a Bill whose PDF yields no HURAIAN excerpt is skipped
+(see point 2 above) rather than shipped with a placeholder.
 """
 
 from __future__ import annotations
@@ -57,15 +73,15 @@ MP_PROFILES_PATH = Path(__file__).resolve().parents[1] / "data" / "mp_profiles.j
 PARLIMEN = "https://www.parlimen.gov.my"
 REGISTER_URL = f"{PARLIMEN}/bills-dewan-rakyat.html?uweb=dr"
 
-# The pilot slice. Two have a real Division (see BILL_DIVISIONS below); two
-# passed on a voice vote, confirmed by absence from #78's complete list of
-# the term's ten Divisions rather than by a fresh check here.
-BILLS = ("D.R.20/2026", "D.R.8/2026", "D.R.28/2025", "D.R. 5/2025")
-
 # D.R. code -> the exact `subject` string of its Division in
 # data/mp_profiles.json's P.102 profile, verified by hand against both the
 # register's own dates (matching exactly) and a live fetch of the
-# corresponding Hansard sitting on 2026-08-24.
+# corresponding Hansard sitting. Of P.102's ten recorded Divisions (#78's ADR
+# 0009), only four name a Bill title that appears anywhere in the register's
+# current default view at all (the other six are 2023-2024 events the
+# register's default view no longer lists) — and of those four, only three
+# have a stage date that agrees with the Division's own sitting date; see
+# AMBIGUOUS_DIVISIONS for the fourth (D.R.30/2025).
 BILL_DIVISIONS: dict[str, str] = {
     "D.R.28/2025": (
         "RANG INDANG-UNDANG > RANG UNDANG-UNDANG PEROLEHAN KERAJAAN 2025 "
@@ -74,6 +90,32 @@ BILL_DIVISIONS: dict[str, str] = {
     "D.R. 5/2025": (
         "RANG UNDANG-UNDANG > RANG UNDANG-UNDANG PERLEMBAGAAN (PINDAAN) 2025 "
         "Bacaan Kali Yang Kedua dan Ketiga"
+    ),
+    "D.R.4/2026": (
+        "RANG UNDANG-UNDANG > RANG UNDANG-UNDANG PERLEMBAGAAN (PINDAAN) 2026 "
+        "Bacaan Kali Yang Kedua"
+    ),
+}
+
+# D.R. code -> why this Bill's Division is known but not attached. Added by
+# #106: this Bill's title is an exact, unambiguous match for one of P.102's
+# ten recorded Divisions (data/mp_profiles.json), but the register's own
+# "Bacaan Kedua Pada" date (01/12/2025) does not agree with that Division's
+# sitting date (2025-11-04) the way BILL_DIVISIONS' three entries do —
+# Budget bills run an extended second-reading debate, and the vote that
+# closes debate is not always the date the register records for "Bacaan
+# Kedua". Recording the disagreement rather than guessing which date is
+# right, and rather than defaulting to "passed on a voice vote", which the
+# real Division record shows is false for this Bill.
+AMBIGUOUS_DIVISIONS: dict[str, str] = {
+    "D.R.30/2025": (
+        "A Division exists for this Bill's second reading (data/mp_profiles.json, "
+        "P.102, sitting 2025-11-04, subject \"RANG UNDANG-UNDANG PERBEKALAN 2026 "
+        "Bacaan Kali Yang Kedua\") but is not attached here: the Bills register "
+        "gives this Bill's own \"Bacaan Kedua Pada\" as 01/12/2025, not 2025-11-04, "
+        "and this pipeline will not attach a Division to a Bill whose own stage "
+        "date disagrees with the Division's sitting date. Needs a fresh Hansard "
+        "check to resolve which date is right, not a guess."
     ),
 }
 
@@ -166,9 +208,12 @@ def stage_date(row: dict[str, Any]) -> date:
     reading) that has a date — a fixed priority order, not a computed
     maximum. The two agree for every ordinary path a Bill takes, where each
     milestone strictly follows the last; they could disagree for a Bill
-    referred to a Special Select Committee *after* a second reading, a path
-    this pilot's four Bills do not exercise and this function does not
-    claim to handle correctly.
+    referred to a Special Select Committee *after* a second reading. #106
+    checked this against all 67 Bills the register's default view carried at
+    the time (each field's presence and chronological order against the
+    others, keyed to each row's own status label) and found no such case,
+    but this function still does not claim to handle one correctly should
+    the register's contents change to include one.
     """
     for key in ("passed", "referred_jkpk", "second_reading", "first_reading"):
         parsed = _parse_date(row[key])
@@ -237,7 +282,7 @@ def load_division_tallies() -> dict[str, dict[str, Any]]:
 
 
 def build_bill(
-    row: dict[str, Any], summary: str, summary_url: str, division: dict[str, Any] | None
+    code: str, row: dict[str, Any], summary: str, summary_url: str, division: dict[str, Any] | None
 ) -> dict[str, Any]:
     entry: dict[str, Any] = {
         "title": row["title"],
@@ -260,11 +305,11 @@ def build_bill(
         entry["unverified"] = {}
     else:
         entry["division"] = None
-        entry["unverified"] = {"division": _no_division_reason(row)}
+        entry["unverified"] = {"division": _no_division_reason(code, row)}
     return entry
 
 
-def _no_division_reason(row: dict[str, Any]) -> str:
+def _no_division_reason(code: str, row: dict[str, Any]) -> str:
     """Why this Bill has no Division — checked against its actual stage.
 
     A Bill only reaches a vote once it is read a second time, so "passed on
@@ -273,7 +318,15 @@ def _no_division_reason(row: dict[str, Any]) -> str:
     (JKPK) has not reached a point where a Division could have happened at
     all, and saying otherwise would be exactly the false-blank failure this
     pipeline's `unverified` discipline exists to prevent.
+
+    Checks `AMBIGUOUS_DIVISIONS` first: a Bill named there does have a real
+    Division (its title is an unambiguous match), just not one this pipeline
+    will attach without a date it can confirm — "passed on a voice vote"
+    would be false for a Bill that in fact went to a Division, so that
+    default is skipped for exactly this case.
     """
+    if code in AMBIGUOUS_DIVISIONS:
+        return AMBIGUOUS_DIVISIONS[code]
     if row["status"] == "Lulus":
         return (
             "Not among the 15th Parliament's ten recorded Divisions (see "
@@ -286,6 +339,22 @@ def _no_division_reason(row: dict[str, Any]) -> str:
         "been put to the House on this Bill yet, so there is no Division to have "
         "or not have."
     )
+
+
+def _fetch_summary_resilient(client: httpx.Client, pdf_path: str) -> tuple[str, str]:
+    """`fetch_summary`, retried once on a transient transport failure.
+
+    A sequence of ~70 requests to one host over a couple of minutes hits the
+    occasional dropped connection that has nothing to do with the Bill's own
+    PDF — a `RemoteProtocolError` was seen mid-run during #106's own scrape.
+    Retrying once turns that into a non-event; a `ValueError` (no HURAIAN
+    section found) is not retried, since it is a real finding about the
+    PDF's own layout that a second fetch will not change.
+    """
+    try:
+        return fetch_summary(client, pdf_path)
+    except httpx.HTTPError:
+        return fetch_summary(client, pdf_path)
 
 
 def main() -> None:
@@ -304,15 +373,21 @@ def main() -> None:
         divisions_by_subject = load_division_tallies()
 
         bills: dict[str, Any] = {}
-        for code in BILLS:
-            if code not in register:
-                raise ValueError(f"{code} is not on the register's default view")
-            row = register[code]
+        skipped: list[str] = []
+        for code, row in register.items():
             pdf_url = f"{PARLIMEN}{quote(row['pdf_path'])}"
             if not robots.is_allowed(pdf_url):
-                raise SystemExit(f"robots.txt disallows {pdf_url}: {robots.refusal_reason(pdf_url)}")
+                skipped.append(f"{code}: robots.txt disallows {pdf_url}: {robots.refusal_reason(pdf_url)}")
+                continue
             limiter.wait_turn(pdf_url, robots.crawl_delay(pdf_url))
-            summary, summary_url = fetch_summary(client, row["pdf_path"])
+            try:
+                summary, summary_url = _fetch_summary_resilient(client, row["pdf_path"])
+            except httpx.HTTPError as error:
+                skipped.append(f"{code}: fetch failed after retry: {type(error).__name__}: {error}")
+                continue
+            except ValueError as error:
+                skipped.append(f"{code}: {error}")
+                continue
 
             division = None
             if code in BILL_DIVISIONS:
@@ -323,16 +398,19 @@ def main() -> None:
                         f"{MP_PROFILES_PATH} — the curated mapping may be stale"
                     )
 
-            bills[code] = build_bill(row, summary, summary_url, division)
+            bills[code] = build_bill(code, row, summary, summary_url, division)
 
     output = {
         "_comment": [
-            "Bills tracked on the homepage's bill tracker (issue #80). Pilot",
-            "slice: four Bills — see scripts/build_bill_tracker.py, which",
-            "generated this file, and ADR 0010 for the method. `stage` is",
-            "Parliament's own status label, not a translated or invented one;",
-            "`summary` is a verbatim excerpt of the Bill's own explanatory",
-            "statement, not this pipeline's paraphrase.",
+            "Bills tracked on the homepage's bill tracker (issues #80, #106).",
+            "See scripts/build_bill_tracker.py, which generated this file, and",
+            "ADR 0010 for the method. `stage` is Parliament's own status label,",
+            "not a translated or invented one; `summary` is a verbatim excerpt",
+            "of the Bill's own explanatory statement, not this pipeline's",
+            "paraphrase. Covers the Bills register's full default view as of",
+            "`_source.retrieved`, minus any Bill whose PDF yielded no clean",
+            "HURAIAN excerpt — see the run's own printed skip list, not",
+            "recorded in this file, for which and why.",
         ],
         "_source": {
             "register": {
@@ -352,8 +430,10 @@ def main() -> None:
         "bills": bills,
     }
 
-    OUTPUT_PATH.write_text(json.dumps(output, indent=2, ensure_ascii=False) + "\n")
-    print(f"wrote {len(bills)} Bills to {OUTPUT_PATH}")
+    OUTPUT_PATH.write_text(json.dumps(output, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    for reason in skipped:
+        print(f"skipped {reason}")
+    print(f"wrote {len(bills)} Bills to {OUTPUT_PATH} ({len(skipped)} skipped)")
 
 
 if __name__ == "__main__":

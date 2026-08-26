@@ -1,4 +1,4 @@
-"""Bill Tracker, and the shipped pilot slice (issue #80).
+"""Bill Tracker, and the shipped register coverage (issues #80, #106).
 
 Split the way `test_mp_profile.py` is: the loader against synthetic
 fixtures, the register parser against a fixture built to reproduce a real
@@ -157,13 +157,16 @@ def test_no_shipped_bill_holds_a_placeholder_rather_than_a_value():
             assert not any(word in lowered for word in PLACEHOLDER_WORDS), f"{code}: {value!r}"
 
 
-def test_every_shipped_summary_is_parliaments_own_purpose_sentence():
-    # Not a hard requirement of the schema (a Bill without one falls back to
-    # its literal first sentence — see ADR 0010), but true of this pilot's
-    # four Bills, and a cheap check that the extraction did not regress to
-    # picking an unrelated sentence.
-    for code, bill in SHIPPED_BILLS.items():
-        assert "bertujuan" in bill.summary.lower(), code
+def test_most_shipped_summaries_are_parliaments_own_purpose_sentence():
+    # Not a hard requirement of the schema — a Bill whose HURAIAN opens with
+    # something other than its purpose (a constitutional citation, say)
+    # falls back to its literal first sentence instead, still verbatim, per
+    # ADR 0010 — but true of most Bills' HURAIAN sections, and a cheap check
+    # that the "bertujuan" search itself did not regress to matching nothing.
+    with_bertujuan = sum(
+        1 for bill in SHIPPED_BILLS.values() if "bertujuan" in bill.summary.lower()
+    )
+    assert with_bertujuan / len(SHIPPED_BILLS) >= 0.7
 
 
 def test_every_shipped_summary_source_points_at_a_pdf_page():
@@ -180,7 +183,7 @@ def test_every_shipped_division_is_consistent_with_its_bills_own_stage_date():
 
 
 def test_the_shipped_bills_carry_at_least_one_with_a_division_and_one_without():
-    # The pilot was chosen to exercise both shapes of the schema.
+    # Both shapes of the schema must be exercised by real data.
     has_division = [c for c, b in SHIPPED_BILLS.items() if b.division is not None]
     no_division = [c for c, b in SHIPPED_BILLS.items() if b.division is None]
     assert has_division and no_division
