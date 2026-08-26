@@ -215,4 +215,42 @@ describe("mountLookup", () => {
     );
     expect(rows[1]?.querySelector(".pk-lookup-candidate-mp")?.textContent).toBe("Syahredzan Johan");
   });
+
+  it("transitions to notFound with index-unavailable copy when index fetch fails", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 404 }));
+    const container = buildContainer();
+    mountLookup(container);
+
+    await submit(container, "43000");
+    expect(container.querySelector(".pk-lookup-no-match-tag")?.textContent).toBe("NO MATCH");
+    expect(container.querySelector(".pk-lookup-no-match-reason")?.textContent).toBe(
+      "The constituency index couldn't be loaded right now — check your connection or browse all seats below.",
+    );
+    const input = container.querySelector<HTMLInputElement>("[data-pk-lookup-input]")!;
+    expect(input.classList.contains("pk-lookup-input-error")).toBe(false);
+
+    const labels = [...container.querySelectorAll(".pk-lookup-routes a")].map((a) => a.textContent);
+    expect(labels).toEqual(["Browse all 222 Seats"]);
+  });
+
+  it("renders BM copy when index fetch fails on a BM page", async () => {
+    document.documentElement.lang = "ms";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+    const container = buildContainer();
+    mountLookup(container);
+
+    await submit(container, "43000");
+    expect(container.querySelector(".pk-lookup-no-match-tag")?.textContent).toBe("TIADA PADANAN");
+    expect(container.querySelector(".pk-lookup-no-match-reason")?.textContent).toBe(
+      "Indeks kawasan pilihan raya tidak dapat dimuatkan — semak sambungan anda atau lihat semua kerusi di bawah.",
+    );
+  });
+
+  it("mount-time index fetch failure does not throw unhandled rejection and mounts cleanly", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
+    const container = buildContainer();
+    mountLookup(container);
+    await flushMicrotasks();
+    expect(container.querySelector<HTMLElement>("[data-pk-lookup-results]")!.hidden).toBe(true);
+  });
 });

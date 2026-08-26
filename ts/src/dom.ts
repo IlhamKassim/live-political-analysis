@@ -94,14 +94,23 @@ export function mountLookup(container: HTMLElement): void {
     // the boundary index in your browser") is only ever shown while this
     // is genuinely still pending — usually never, once the index is
     // cached from an earlier lookup on the page.
-    void loadClientIndex().then((index) => {
-      const result = resolveQuery(query, index);
-      if (result.kind === "resolved") {
-        recordRecentSeat({ code: result.seat.code, name: result.seat.name });
-      }
-      setModel(transition(model, { type: "resolved", result }));
-      if (result.kind === "resolved") renderRecentChips(refs, index);
-    });
+    void loadClientIndex()
+      .then((index) => {
+        const result = resolveQuery(query, index);
+        if (result.kind === "resolved") {
+          recordRecentSeat({ code: result.seat.code, name: result.seat.name });
+        }
+        setModel(transition(model, { type: "resolved", result }));
+        if (result.kind === "resolved") renderRecentChips(refs, index);
+      })
+      .catch(() => {
+        setModel(
+          transition(model, {
+            type: "resolved",
+            result: { kind: "notFound", reason: "index-unavailable" },
+          }),
+        );
+      });
   });
 
   refs.locateButton?.addEventListener("click", () => {
@@ -111,7 +120,11 @@ export function mountLookup(container: HTMLElement): void {
     });
   });
 
-  void loadClientIndex().then((index) => renderRecentChips(refs, index));
+  void loadClientIndex()
+    .then((index) => renderRecentChips(refs, index))
+    .catch(() => {
+      // Quietly skip rendering recent chips if index load fails at mount time.
+    });
 }
 
 function renderRecentChips(refs: Refs, index: ClientLookupIndex): void {
@@ -274,6 +287,7 @@ const ROUTES_BY_REASON: Record<NoMatchReason, readonly RouteId[]> = {
   "geolocation-denied": ["searchByName", "browseAllSeats"],
   "geolocation-unsupported": [],
   "geolocation-unresolvable": [],
+  "index-unavailable": ["browseAllSeats"],
 };
 
 type RouteId = "searchByName" | "browseAllSeats" | "checkRegistration" | "reportMistake";
