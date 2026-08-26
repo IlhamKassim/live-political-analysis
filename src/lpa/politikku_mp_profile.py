@@ -5,8 +5,9 @@ Full layout spec: `design_handoff_politikku/README.md`, "3. Constituency
 lookup result". As with `#74`/`#75`, the mock's *structure* is given
 verbatim; several of its sample *values* are not this repo's real data, and
 checking each one against `data/mp_profiles.json` (Bangi/Syahredzan Johan,
-the pilot's one real profile, #78/ADR 0009) found real gaps rather than
-just wrong numbers — decided with the user rather than guessed:
+then the only real profile, #78/ADR 0009; #105 built most of the House on
+the same schema) found real gaps rather than just wrong numbers — decided
+with the user rather than guessed:
 
 - **"Record this term"** shows attendance and an "interventions" stat.
   Bangi's `attendance` is `None`, explained in `MPProfile.unverified`
@@ -864,8 +865,14 @@ def build_mp_profile_page(
 
 def build_all_mp_profile_pages(engine: Engine) -> list[tuple[str, Language, str]]:
     """Render one page per MP Profile in `data/mp_profiles.json`, in both
-    languages, as `(seat_code, language, html)` triples — currently just
-    Bangi's pilot slice (#78), now doubled to EN + BM by #81."""
+    languages, as `(seat_code, language, html)` triples.
+
+    One Seat when #78 shipped, most of the House since #105, and doubled to
+    EN + BM by #81 — so this is now several hundred pages per build rather
+    than two. Driven off the file's own keys throughout: a Seat in its
+    `_skipped` block gets no page, which is what `has_profile` in the lookup
+    index exists to degrade to.
+    """
     from lpa.config import load_mp_profiles
 
     return [

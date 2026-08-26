@@ -1,8 +1,16 @@
-"""MP Profiles, and the shipped pilot slice (issue #78).
+"""MP Profiles, and the shipped record (issues #78, #105).
 
 Split the way `test_postcode_index.py` is: the loader against synthetic
 fixtures, so a malformed file fails loudly, and the shipped record against
 what its real sources say.
+
+The shipped half now runs over most of the House rather than one Seat, which
+changes what these tests are worth: an assertion that held for one profile
+somebody had read line by line is a different thing from one that holds for
+every Seat in a file nobody will ever read end to end. So they check the
+properties a bad row would break — a figure that does not reconcile with the
+two it is derived from, a blank with no reason, a Seat that is neither
+profiled nor explained — rather than any Seat's particular values.
 
 The shipped-record tests are deliberately structural rather than a copy of
 the expected figures. Asserting "majority == 69701" would pass just as
@@ -19,7 +27,7 @@ from datetime import date
 import pytest
 from build_mp_profiles import MAX_UNACCOUNTED
 
-from lpa.config import load_mp_profiles
+from lpa.config import DEFAULT_MP_PROFILES_PATH, load_mp_profiles
 from lpa.mp_profile import (
     TOTAL_SEATS,
     VOTES,
@@ -190,8 +198,14 @@ SHIPPED_PROFILES = load_mp_profiles()
 
 # Anything that reads like a value someone meant to replace. The design mock
 # this data replaces used "03-8925 xxxx"; the rest are the usual suspects.
+#
+# "tba"/"tbd" get a negative lookahead against a following number: Malaysian
+# housing-scheme street names really do use this shape ("Jalan TBA 6", Taman
+# Bersatu Arau, Perlis — confirmed against real listings at that address, not
+# a placeholder), and a genuine placeholder is never followed by a section
+# number the same way.
 PLACEHOLDER = re.compile(
-    r"\b(tbd|tba|todo|fixme|lorem|ipsum|xxxx?|placeholder|example|sample|dummy|n/?a)\b",
+    r"\b(tbd|tba)\b(?!\s*\d)|\b(todo|fixme|lorem|ipsum|xxxx?|placeholder|example|sample|dummy|n/?a)\b",
     re.IGNORECASE,
 )
 
@@ -268,13 +282,52 @@ def test_the_shipped_voting_record_runs_newest_first():
         assert dates == sorted(dates, reverse=True), seat_code
 
 
-def test_the_shipped_pilot_covers_the_seat_its_postcode_index_pilots():
-    # #76 and #78 pilot the same Seat on purpose: the lookup result page
-    # (#79) needs both halves for the same P.102 to render at all.
+def test_every_seat_the_postcode_index_can_return_has_a_profile():
+    # #76 and #78 piloted the same Seats on purpose: the lookup result page
+    # (#79) needs both halves for the same Seat to render at all. #105 took
+    # profiles past the postcode index's own slice, so the containment now
+    # runs this way round — a postcode a reader can type must not resolve to
+    # a Seat this file has nothing to say about.
     from lpa.config import load_postcode_seat_index
 
     indexed = {
         match.seat_code for matches in load_postcode_seat_index().values() for match in matches
     }
 
-    assert set(SHIPPED_PROFILES) <= indexed
+    assert indexed <= set(SHIPPED_PROFILES)
+
+
+def test_no_shipped_seat_is_also_recorded_as_skipped():
+    # A Seat is either profiled or explained in '_skipped'. Both at once
+    # would mean the file contradicts itself about what it knows.
+    config = json.loads(DEFAULT_MP_PROFILES_PATH.read_text(encoding="utf-8"))
+
+    assert not set(config["profiles"]) & set(config["_skipped"])
+
+
+def test_every_seat_of_the_house_is_either_profiled_or_explained():
+    # The point of '_skipped': a Seat missing from this file with no reason
+    # attached is indistinguishable from one nobody got round to, which is
+    # the same failure mode as an unexplained blank inside a profile.
+    config = json.loads(DEFAULT_MP_PROFILES_PATH.read_text(encoding="utf-8"))
+
+    assert len(config["profiles"]) + len(config["_skipped"]) == TOTAL_SEATS
+
+
+def test_every_skipped_seat_says_what_was_checked():
+    config = json.loads(DEFAULT_MP_PROFILES_PATH.read_text(encoding="utf-8"))
+
+    for seat_code, reason in config["_skipped"].items():
+        assert len(reason.split()) >= 20, seat_code
+        assert not PLACEHOLDER.search(reason), f"{seat_code}: {reason!r}"
+
+
+def test_a_shipped_voting_record_short_of_the_term_says_why():
+    # Divisions are the one sequence the schema documents as complete, so a
+    # profile carrying fewer than the term's Divisions is making a claim
+    # about a named person's record that has to be justified in writing.
+    complete = max(len(profile.divisions) for profile in SHIPPED_PROFILES.values())
+
+    for seat_code, profile in SHIPPED_PROFILES.items():
+        if len(profile.divisions) < complete:
+            assert "divisions" in profile.unverified, seat_code
