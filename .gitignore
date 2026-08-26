@@ -41,6 +41,8 @@ public/cards/
 # `public/politikku/` in #104's cutover.
 public/landing.html
 public/ms/landing.html
+public/bills.html
+public/ms/bills.html
 public/methodology.html
 public/ms/methodology.html
 public/mp/

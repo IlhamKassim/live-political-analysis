@@ -67,22 +67,24 @@ def test_a_postcode_naming_a_seat_with_no_baseline_is_rejected():
         build_client_index([P102], POSTCODE_INDEX, {})  # P.101 missing from baseline
 
 
-def test_mp_profiles_for_unreferenced_seats_are_omitted_from_client_index():
+def test_every_baseline_seat_is_searchable_by_name():
     index = build_client_index(
         [P101, P102],
         {"43000": ("P.102",)},
         {"P.101": "Someone", "P.102": "Syahredzan Johan"},
     )
     assert "P.102" in index["seats"]
-    assert "P.101" not in index["seats"]
+    assert "P.101" in index["seats"]
+    assert index["seats"]["P.101"]["hasProfile"] is True
+    assert index["seats"]["P.101"]["mpName"] == "Someone"
 
 
 def test_compute_unresolved_mp_profiles_identifies_omitted_members():
     from lpa.politikku_lookup_index import compute_unresolved_mp_profiles
 
     mp_names = {"P.002": "Shahidan Kassim", "P.102": "Syahredzan Johan"}
-    client_seats = {"P.102": {"code": "P.102"}}
-    unresolved = compute_unresolved_mp_profiles(mp_names, client_seats)
+    referenced_postcode_seats = {"P.102"}
+    unresolved = compute_unresolved_mp_profiles(mp_names, referenced_postcode_seats)
     assert unresolved == {"P.002": "Shahidan Kassim"}
 
 
@@ -124,7 +126,7 @@ def test_build_and_write_client_index_writes_payload_and_unresolved_report(
 
     payload = json.loads(output_path.read_text(encoding="utf-8"))
     assert "P.102" in payload["seats"]
-    assert "P.101" not in payload["seats"]
+    assert "P.101" in payload["seats"]
 
     unresolved_data = json.loads(unresolved_path.read_text(encoding="utf-8"))
     assert unresolved_data["total_mp_profiles"] == 2

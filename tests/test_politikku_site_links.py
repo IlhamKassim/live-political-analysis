@@ -29,6 +29,7 @@ from test_politikku_homepage import NAMES, _bill, _page_model
 from test_politikku_landing import BANGI, FEATURED_BILL, _history
 from test_politikku_mp_profile import _baseline, _call, _profile
 
+from lpa.politikku_bills import BillsPageModel, render_bills_page
 from lpa.politikku_homepage import homepage_model, render_homepage
 from lpa.politikku_landing import landing_model, render_landing
 from lpa.politikku_mp_profile import mp_profile_page_model, render_mp_profile
@@ -49,8 +50,6 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 UNBUILT_ROUTES = frozenset(
     {
-        "/bills.html",
-        "/ms/bills.html",
         "/sentiment.html",
         "/ms/sentiment.html",
     }
@@ -100,10 +99,18 @@ def rendered_site(tmp_path_factory) -> Path:
     profile = mp_profile_page_model(page, _profile(), _baseline(), _call(), NAMES)
     projection_dir = PROJECTION_PREFIX.strip("/")
 
+    bills_model = BillsPageModel(
+        bills=tuple(bills.values()),
+        updated_at=page.computed_at,
+        sources_count=len(page.sources),
+        status=page.status,
+    )
+
     for language in Language:
         ms = "" if language is Language.EN else "ms/"
         _write(root, f"{ms}index.html", render_homepage(homepage, language=language))
         _write(root, f"{ms}landing.html", render_landing(landing, language=language))
+        _write(root, f"{ms}bills.html", render_bills_page(bills_model, language=language))
         _write(root, f"{ms}{METHODOLOGY_PAGE}", render_methodology(page, language=language))
         _write(
             root,

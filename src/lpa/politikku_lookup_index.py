@@ -72,10 +72,12 @@ class LookupIndexBuildResult:
 
 def compute_unresolved_mp_profiles(
     mp_names: Mapping[str, str],
-    client_index_seats: Mapping[str, object],
+    referenced_postcode_seats: Sequence[str] | set[str] | Mapping[str, object],
 ) -> dict[str, str]:
-    """Return `{code: member_name}` for all MP profiles omitted from the client index."""
-    return {code: mp_names[code] for code in sorted(mp_names) if code not in client_index_seats}
+    """Return `{code: member_name}` for all MP profiles whose Seats have no reachable postcode."""
+    return {
+        code: mp_names[code] for code in sorted(mp_names) if code not in referenced_postcode_seats
+    }
 
 
 def build_client_index(
@@ -103,12 +105,12 @@ def build_client_index(
     seats = {
         code: LookupSeat(
             code=code,
-            name=by_code[code].name,
-            state=by_code[code].state,
+            name=seat.name,
+            state=seat.state,
             has_profile=code in mp_names,
             mp_name=mp_names.get(code),
         )
-        for code in sorted(referenced_codes)
+        for code, seat in sorted(by_code.items())
     }
     return {
         "seats": {
@@ -166,9 +168,8 @@ def build_and_write_client_index(
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(payload, encoding="utf-8")
 
-    client_seats = index_data.get("seats", {})
-    assert isinstance(client_seats, dict)
-    excluded_profiles = compute_unresolved_mp_profiles(mp_names, client_seats)
+    referenced_codes = {code for codes in postcode_index.values() for code in codes}
+    excluded_profiles = compute_unresolved_mp_profiles(mp_names, referenced_codes)
     total_profiles = len(mp_names)
     reachable_profiles = total_profiles - len(excluded_profiles)
 
