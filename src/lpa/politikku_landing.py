@@ -70,10 +70,12 @@ from lpa.politikku_i18n import (
     not_calibrated_tag,
 )
 from lpa.politikku_shell import (
+    LANDING_PAGE,
     LANDING_URL,
     Language,
     methodology_url,
     render_shell,
+    route,
     short_date,
     t,
 )
@@ -474,6 +476,10 @@ def _hero(model: LandingModel, language: Language) -> str:
     )
     find_your_mp = t(language, FIND_YOUR_MP_EN, FIND_YOUR_MP_MS)
     read_methodology = t(language, "Read the methodology", "Baca metodologi")
+    # The homepage, routed rather than hardcoded (#104) — and language-aware
+    # with it, so a BM reader's "Find your MP" lands on the BM homepage
+    # rather than being dropped into English.
+    homepage_href = html.escape(route(language, ""))
     return f"""
 <section class="pk-landing-hero">
   {texture}
@@ -482,7 +488,7 @@ def _hero(model: LandingModel, language: Language) -> str:
     <h1>{h1}</h1>
     <p class="pk-lede-on-dark">{lede}</p>
     <div class="pk-landing-hero-actions">
-      <a class="pk-landing-cta-primary" href="/politikku/">{find_your_mp}</a>
+      <a class="pk-landing-cta-primary" href="{homepage_href}">{find_your_mp}</a>
       <a class="pk-landing-cta-secondary" href="{html.escape(methodology_url(language))}">{read_methodology}</a>
     </div>
   </div>
@@ -536,7 +542,7 @@ def render_landing(model: LandingModel, *, language: Language = Language.EN) -> 
         title=title,
         active_nav="landing",
         language=language,
-        page_path="landing.html",
+        page_path=LANDING_PAGE,
         updated_at=model.updated_at,
         sources_count=model.sources_count,
         status=model.status,
@@ -727,7 +733,9 @@ def main() -> None:
         "--output",
         type=Path,
         default=Path("public") / LANDING_URL.removeprefix("/"),
-        help="where to write the English page; the BM variant is written alongside it at "
+        help="where to write the English page (default: public/landing.html, derived from "
+        "`politikku_shell.LANDING_URL` so the path and the link to it cannot disagree); "
+        "the BM variant is written alongside it at "
         "<output-dir>/ms/<output-name>, matching `politikku_shell._ms_route`'s own path convention",
     )
     args = parser.parse_args()

@@ -553,7 +553,9 @@ def test_the_projection_page_is_served_from_its_own_route_family(language):
     assert f'href="{PROJECTION_PREFIX}"' in page
     assert f'href="{PROJECTION_PREFIX}ms/"' in page
     assert "'/projection/ms/'" in page
-    assert "'/politikku/ms/'" not in page
+    # Not the root family's own comparison (`POLITIKKU_PREFIX`, `/` since
+    # #104) — that would silently no-op a stored BM preference here.
+    assert "'/ms/'" not in page
     # One canonical URL, not two: the toggle never names `index.html`.
     assert f"{PROJECTION_PREFIX}{PROJECTION_PAGE}" not in page
 

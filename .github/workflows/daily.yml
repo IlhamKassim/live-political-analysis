@@ -115,33 +115,62 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m lpa.pipeline
 
-      - name: Render the public page
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: python -m lpa.public_page
+      # The old chamber dashboard's own render step (`python -m
+      # lpa.public_page`, which wrote public/index.html and its dated
+      # permalinks) was retired here by #104's cutover: PolitikKu's homepage
+      # now owns public/index.html, and the dashboard's analytical depth is
+      # published by "Render the PolitikKu projection page" below (ADR
+      # 0011). `public_page.py` itself is very much still alive — it is
+      # where `page_model()` and every figure on both pages is computed, and
+      # each PolitikKu step below imports it — it just no longer renders or
+      # publishes a page of its own.
 
       - name: Render the PolitikKu homepage
         # #103: first time any of the PolitikKu pages actually ship. Each
         # module's main() writes both EN and BM in one invocation (the BM
         # variant alongside the EN one, under ms/) and reads Storage the
-        # same way public_page does above, so it needs the same
-        # DATABASE_URL. Independent of the other three PolitikKu steps
-        # below — none of these modules import from one another's CLI or
-        # read another's output — so their order relative to each other
-        # doesn't matter; grouped together here for readability.
+        # same way public_page used to, so it needs the same DATABASE_URL.
+        # Independent of the other PolitikKu steps below — none of these
+        # modules import from one another's CLI or read another's output —
+        # so their order relative to each other doesn't matter; grouped
+        # together here for readability.
         #
-        # continue-on-error: these four steps are new, untested against
-        # real production data (only against fixtures locally) — a failure
-        # in any one of them must not stop "Archive the dated permalink",
-        # "Export the Projection", the Seat Call cards, the Telegram post,
-        # or the Pages deploy that follow. A bad day for PolitikKu is a
-        # worse PolitikKu page, not a site that stops updating.
-        continue-on-error: true
+        # NOT continue-on-error, unlike the three steps further down and
+        # unlike this step until #104: this now writes public/index.html,
+        # the site root. That file is gitignored, so a failed render does
+        # not leave yesterday's copy behind for the checkout to publish —
+        # it leaves the uploaded artifact with no root page at all, and
+        # deploy-pages replaces the live site wholesale rather than merging
+        # into it. Failing the job instead means the last good deploy stays
+        # up: a day-stale site, which is the failure mode public_page's own
+        # render step always had here.
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m lpa.politikku_homepage
 
+      - name: Render the PolitikKu projection and methodology pages
+        # #102/#104: the old dashboard's analytical depth, redrawn in
+        # PolitikKu's register at /projection/ (plus /methodology.html and
+        # both BM variants), and the dated permalinks #55 needs — this one
+        # invocation writes all six files. Nothing rendered this page until
+        # now; #102 built it while public_page was still the deployed site.
+        #
+        # Fail-fast for the homepage step's reason: this is where every
+        # figure the retired dashboard used to publish now lives, and
+        # "Seat Projection" is a nav item on every single PolitikKu page.
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m lpa.politikku_projection
+
       - name: Render the PolitikKu landing page
+        # continue-on-error, here and on the two steps below: these are
+        # untested against real production data (only against fixtures
+        # locally), and a failure in any one of them must not stop "Archive
+        # the dated permalink", "Export the Projection", the Seat Call
+        # cards, the Telegram post, or the Pages deploy that follow. A bad
+        # day for one of these is a worse PolitikKu, not a site that stops
+        # updating — which is exactly the argument that stops applying to
+        # the two steps above now that they are the site.
         continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -154,10 +183,10 @@ jobs:
         run: python -m lpa.politikku_mp_profile
 
       - name: Render the PolitikKu lookup index
-        # Writes public/politikku/data/lookup-index.json, the client-side
-        # data the ts/ bundle built above fetches at runtime in the
-        # browser — not read by any step in this workflow, so it has no
-        # ordering dependency on the bundle build either.
+        # Writes public/data/lookup-index.json, the client-side data the
+        # ts/ bundle built above fetches at runtime in the browser — not
+        # read by any step in this workflow, so it has no ordering
+        # dependency on the bundle build either.
         continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -172,6 +201,16 @@ jobs:
         # file to publish alongside the new one. Never index.html itself —
         # that stays the ephemeral daily overwrite by design.
         #
+        # The glob follows the content: until #104 these files sat beside
+        # public/index.html, written by public_page.main. They are now
+        # written by politikku_projection.main beside
+        # public/projection/index.html — the path `_permalink_url` prints
+        # on the page itself, so the citation link and the archived file
+        # cannot disagree. Nothing writes the old public/<year>/... paths
+        # any more, and no run ever archived one (the PolitikKu pages had
+        # not shipped when this step was last exercised), so there is no
+        # historical set of files at the old path left behind.
+        #
         # continue-on-error: a failure here (e.g. a push rejected by branch
         # protection) must not take down the actual page deploy that
         # follows — a day the archive step fails is a worse citation
@@ -180,7 +219,7 @@ jobs:
         continue-on-error: true
         run: |
           shopt -s nullglob
-          files=(public/[0-9]*/*/*.html public/ms/[0-9]*/*/*.html)
+          files=(public/projection/[0-9]*/*/*.html public/projection/ms/[0-9]*/*/*.html)
           if [ ${#files[@]} -eq 0 ]; then
             echo "No dated permalink to archive."
             exit 0

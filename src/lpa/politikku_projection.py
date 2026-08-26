@@ -7,8 +7,9 @@ depth serves `CONTEXT.md`'s **Engaged Reader**, who PolitikKu's own
 homepage/landing pages — built for the **Audience** — have no equivalent for.
 So it moves here, into PolitikKu's visual register, as one linked detail page
 at `/projection/` (`politikku_shell.PROJECTION_PREFIX`), plus the full
-methodology/colophon at `/politikku/methodology.html`
-(`politikku_shell.METHODOLOGY_PAGE`).
+methodology/colophon at `/methodology.html`
+(`politikku_shell.METHODOLOGY_PAGE`, under `POLITIKKU_PREFIX` — the site
+root since #104's cutover).
 
 **Two pages, not one.** The ported colophon (Method, Read from, Election
 status, Not calibrated, Cite this) is what the header nav's "Methodology"
@@ -128,10 +129,10 @@ from lpa.public_page import (
 
 PROJECTION_PAGE = "index.html"
 """`/projection/` is a directory route, so its file is an `index.html` —
-the same shape `politikku_homepage` uses for `/politikku/`. This is the
+the same shape `politikku_homepage` uses for `/`. This is the
 *filename* `main` writes, and only that: the page's own `page_path` (which
 drives the EN/BM toggle) is `""`, the directory route itself, exactly as
-`politikku_homepage.render_homepage` passes `""` for `/politikku/`. Spelling
+`politikku_homepage.render_homepage` passes `""` for `/`. Spelling
 the file name into the toggle instead would give one page two canonical
 URLs — `projection_url()` and the header nav both say `/projection/`, and a
 toggle saying `/projection/index.html` would quietly disagree with them."""
@@ -1581,9 +1582,10 @@ def main() -> None:
 
     Renders from one `PageModel` directly rather than through
     `build_all_projection_languages`/`build_all_methodology_languages`: those
-    are the two-line API #104's `daily.yml` wiring will call for one page at
-    a time, and using both here would put two Storage reads behind four
-    pages that all cite one model run.
+    are the two-line API a caller that wants one page at a time reaches for,
+    and using both here would put two Storage reads behind four pages that
+    all cite one model run. `daily.yml` calls this `main()` (#104's cutover
+    added the step), so the six files it writes are one model run's worth.
     """
     import argparse
     from pathlib import Path
@@ -1603,9 +1605,10 @@ def main() -> None:
     parser.add_argument(
         "--methodology-output",
         type=Path,
-        default=Path("public/politikku") / METHODOLOGY_PAGE,
+        default=Path("public") / METHODOLOGY_PAGE,
         help="where to write the English methodology page "
-        "(default: public/politikku/methodology.html); the BM variant is written "
+        "(default: public/methodology.html — under `POLITIKKU_PREFIX`, which #104's "
+        "cutover moved to the site root); the BM variant is written "
         "alongside it at <output-dir>/ms/<output-name>",
     )
     args = parser.parse_args()

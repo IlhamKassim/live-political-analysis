@@ -84,7 +84,7 @@ describe("mountLookup", () => {
     mountLookup(container);
     await submit(container, "43000");
     const link = container.querySelector<HTMLAnchorElement>(".pk-lookup-resolved-link");
-    expect(link?.getAttribute("href")).toBe("/politikku/mp/P.102.html");
+    expect(link?.getAttribute("href")).toBe("/mp/P.102.html");
   });
 
   it("degrades a resolved Seat with no profile to an honest message, not a link", async () => {
