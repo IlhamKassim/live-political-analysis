@@ -12,12 +12,12 @@ The dashboard's party-colour tokens (`--ph`/`--pn`/`--bn`/`--gps`/`--grs`)
 have no equivalent here; the handoff is explicit that PolitikKu carries no
 party colours at all.
 
-`render_shell` also loads `/politikku/lookup.js` — the compiled output of
-`ts/src/` (issue #77), the one piece of PolitikKu with real client-side
+`render_shell` also loads `{POLITIKKU_PREFIX}lookup.js` — the compiled output
+of `ts/src/` (issue #77), the one piece of PolitikKu with real client-side
 state (#70). It is a static module script, harmless on a page with no
 `[data-pk-lookup-form]` (`mountAllLookups()` is a no-op then), so it is
 loaded on every page rather than conditionally per template. Like every
-other PolitikKu page, `public/politikku/lookup.js` is generated, not
+other PolitikKu page, `public/lookup.js` is generated, not
 committed — `ts/README.md` (or `ts/package.json`'s `build` script) is
 what produces it, run alongside the Python pages' own build step.
 
@@ -41,20 +41,25 @@ says as much for other fields):
 
 Routing (not specified by #72's body — the handoff only tells the toggle to
 link to real routes, not what they are — so this is a scoped, reversible
-call rather than a mechanical translation of a given value): new pages live
-under `/politikku/`, English at `/politikku/<page>` and Bahasa Malaysia at
-`/politikku/ms/<page>`, all root-relative (the whole site now serves from
-one domain per `public/CNAME`). Bills/Sentiment point at pages later tickets
+call rather than a mechanical translation of a given value): PolitikKu's
+pages live under `POLITIKKU_PREFIX`, English at `/<page>` and Bahasa
+Malaysia at `/ms/<page>`, all root-relative (the whole site serves from one
+domain per `public/CNAME`). Bills/Sentiment point at pages later tickets
 have not built yet, same as the handoff itself asks for ("wired to routes
 that don't need to exist yet").
 
 Two of those routes stopped being placeholders in #102 (ADR 0011), which is
 also why the routing helpers below take a `prefix` rather than hardcoding
-`/politikku/`: "Seat Projection" now points at `politikku_projection.py`'s
-own page at `/projection/` (and `/projection/ms/`) instead of at the old
-chamber dashboard at `/`, and "Methodology" now has a real page behind it.
-`public/index.html` — the existing chamber dashboard — is still untouched at
-`/` until #104's cutover; nothing here links to it any more.
+one: "Seat Projection" points at `politikku_projection.py`'s own page at
+`/projection/` (and `/projection/ms/`) rather than at the old chamber
+dashboard, and "Methodology" has a real page behind it.
+
+#104 finished the cutover ADR 0011 describes by flipping `POLITIKKU_PREFIX`
+from the staging `/politikku/` to `/`: `politikku_homepage` now owns
+`public/index.html`, the old chamber dashboard (`public_page.py`) is no
+longer rendered or published at all, and its analytical depth lives at
+`/projection/`. `public_page.py` itself stays — every number on both
+`/` and `/projection/` is still computed by its `page_model()`.
 """
 
 from __future__ import annotations
@@ -67,19 +72,30 @@ from enum import StrEnum
 
 from lpa.domain import ElectionStatus
 
-POLITIKKU_PREFIX = "/politikku/"
-"""Where PolitikKu's own pages are served from. Every route below is built
-from a prefix plus a page path, so a page living outside `/politikku/` (see
-`PROJECTION_PREFIX`) still gets the same EN/`ms/` pairing rather than a
-second, hand-written routing scheme."""
+POLITIKKU_PREFIX = "/"
+"""Where PolitikKu's own pages are served from — the site root since #104's
+cutover (ADR 0011). Every route below is built from a prefix plus a page
+path, so a page living outside this family (see `PROJECTION_PREFIX`) still
+gets the same EN/`ms/` pairing rather than a second, hand-written routing
+scheme.
+
+Until #104 this was the staging prefix `/politikku/`, and flipping this one
+constant is the whole of the cutover for every link in the shell: the nav
+(`NAV_LINKS` -> `route`), the wordmark, the EN/BM toggle, the
+language-persistence script's route-family detection, `LANDING_URL`,
+`methodology_url`, and the self-hosted font/`lookup.js` asset URLs in
+`render_shell`/`_CSS` all read it rather than spelling a prefix themselves.
+The page-writing side follows the same constant: `politikku_homepage`'s
+`--output` default is `public/index.html`, `politikku_landing`'s is derived
+from `LANDING_URL`, and `ts/build.mjs` writes `public/lookup.js`."""
 
 PROJECTION_PREFIX = "/projection/"
 """The ported projection detail page (#102, ADR 0011) — the old dashboard's
 analytical depth redrawn in PolitikKu's register. It sits at its own
-top-level route rather than under `/politikku/` because ADR 0011 has
-PolitikKu becoming the site itself: `/politikku/` is a staging prefix that
-#104's cutover collapses, and `/projection/` is the address this content is
-meant to keep afterwards."""
+top-level route rather than under `POLITIKKU_PREFIX` because ADR 0011 has
+PolitikKu becoming the site itself: with #104's cutover done,
+`POLITIKKU_PREFIX` *is* `/`, so the projection page needs a route of its own
+to live at rather than sharing the root with the homepage."""
 
 METHODOLOGY_PAGE = "methodology.html"
 """The page path (under `POLITIKKU_PREFIX`) the header nav, the trust strip
@@ -87,14 +103,36 @@ and the footer all link "how this works" at. Built by
 `politikku_projection.build_methodology`; before #102 this link target did
 not exist anywhere — see that module's docstring."""
 
-LANDING_URL = "/politikku/landing.html"
-"""`politikku_landing.py`'s own page (#75) — not in `NAV_LINKS` (it's a
-first-visit door, not a nav destination), so it needs a link from
-somewhere. The persistent footer's own "way back to it" link is that
-somewhere, per #75's own routing note. Defined here, not on
-`politikku_landing`, so both directions of the reference (footer -> landing,
-landing -> its own path) read from the one constant rather than two copies
-of the same string."""
+MP_PROFILE_DIR = "mp"
+"""The directory MP profile pages live in, under `POLITIKKU_PREFIX` — one
+`<seat-code>.html` per Seat (`politikku_mp_profile`), so `/mp/P.102.html` in
+English and `/ms/mp/P.102.html` in BM. Named here because three places have
+to agree on it: the pages' own `page_path` (which drives their EN/BM
+toggle), `politikku_mp_profile.main`'s `--output-dir` default, and
+`ts/src/dom.ts`'s `mpProfileUrl()`, which builds the same href in the
+browser and cannot import this constant."""
+
+BILLS_PAGE = "bills.html"
+"""The bill-tracker page path — still one of the routes "wired to routes that
+don't need to exist yet" (no ticket has built it). Named here rather than
+spelled twice because `politikku_homepage`'s "All bills →" link points at the
+same page the nav does, and #104 found that second copy still carrying the
+pre-cutover `/politikku/` prefix."""
+
+LANDING_PAGE = "landing.html"
+"""`politikku_landing.py`'s own page (#75), as a page path under
+`POLITIKKU_PREFIX` — the same shape as `METHODOLOGY_PAGE`, so `route()`
+turns it into a real href in whichever language rather than a hand-written
+string. Defined here, not on `politikku_landing`, so both directions of the
+reference (footer -> landing, landing -> its own output path) read from the
+one constant rather than two copies of the same string."""
+
+LANDING_URL = f"{POLITIKKU_PREFIX}{LANDING_PAGE}"
+"""The English landing page's URL — what `politikku_landing.main` derives its
+`--output` default from, and nothing else (link *targets* go through
+`landing_url` below, which is language-aware). Until #104 this was a
+hardcoded `/politikku/landing.html`: a stale prefix that would have survived
+the cutover, which is exactly why it is now built from `POLITIKKU_PREFIX`."""
 
 
 class Language(StrEnum):
@@ -151,7 +189,7 @@ class NavLink:
 NAV_LINKS: tuple[NavLink, ...] = (
     NavLink("Home", "Utama", "", "home"),
     NavLink("Seat Projection", "Unjuran Kerusi", "", "projection", prefix=PROJECTION_PREFIX),
-    NavLink("Bills", "Rang Undang-Undang", "bills.html", "bills"),
+    NavLink("Bills", "Rang Undang-Undang", BILLS_PAGE, "bills"),
     NavLink("Sentiment", "Sentimen", "sentiment.html", "sentiment"),
     NavLink("Methodology", "Metodologi", METHODOLOGY_PAGE, "methodology"),
 )
@@ -168,7 +206,7 @@ def _ms_route(page_path: str, prefix: str = POLITIKKU_PREFIX) -> str:
 def route(language: Language, page_path: str, prefix: str = POLITIKKU_PREFIX) -> str:
     """`page_path` under `prefix`, in whichever language — the one place a
     caller outside this module turns "which page, which language" into a
-    real href, rather than each page reassembling `/politikku/ms/…` itself."""
+    real href, rather than each page reassembling `/ms/…` itself."""
     return _en_route(page_path, prefix) if language is Language.EN else _ms_route(page_path, prefix)
 
 
@@ -182,6 +220,14 @@ def methodology_url(language: Language = Language.EN) -> str:
 def projection_url(language: Language = Language.EN) -> str:
     """Where "Seat Projection"/"Full projection →" point (#102)."""
     return route(language, "", PROJECTION_PREFIX)
+
+
+def landing_url(language: Language = Language.EN) -> str:
+    """Where the footer's "What is PolitikKu? →" points. Language-aware for
+    `methodology_url`'s own reason (#102): a BM page linking the English
+    landing page is a leak, and `politikku_landing.main` writes a BM variant
+    at `ms/landing.html` for it to link."""
+    return route(language, LANDING_PAGE)
 
 
 def short_date(day: date) -> str:
@@ -297,10 +343,15 @@ for next time). Placed early in `<head>` (see `render_shell`) so a stored
 preference redirects before the wrong-language page paints, rather than
 flashing it first.
 
-`__PREFIX__` is substituted per page (#102) rather than hardcoded to
-`/politikku/`: a page served from `PROJECTION_PREFIX` has to compare its own
-route family, or a stored BM preference would silently no-op there while
-working everywhere else."""
+`__PREFIX__` is substituted per page (#102) rather than hardcoded: a page
+served from `PROJECTION_PREFIX` has to compare its own route family, or a
+stored BM preference would silently no-op there while working everywhere
+else. Both substitutions are prefix-shaped on purpose — with
+`POLITIKKU_PREFIX` now `/` (#104), `path.replace('/', '/ms/')` rewrites the
+*leading* slash (`String.replace` with a string pattern replaces the first
+occurrence only), so `/mp/P.102.html` becomes `/ms/mp/P.102.html` and `/`
+becomes `/ms/`, which are the paths `politikku_mp_profile.main` and
+`politikku_homepage.main` actually write."""
 
 
 def _language_persistence_script(prefix: str = POLITIKKU_PREFIX) -> str:
@@ -447,7 +498,7 @@ def render_methodology_footer(
     factual_items = "".join(f"<span>{html.escape(s)}</span>" for s in factual.sources)
     modelled_items = "".join(f"<span>{html.escape(s)}</span>" for s in modelled.sources)
     href = html.escape(methodology_href or methodology_url(language))
-    landing_href = html.escape(LANDING_URL)
+    landing_href = html.escape(landing_url(language))
     heading = t(language, "Methodology &amp; sources", "Metodologi &amp; sumber")
     statement = t(
         language,
@@ -483,9 +534,19 @@ def render_methodology_footer(
 """.strip()
 
 
+SITE_URL = "https://politikku.my/"
+"""The published site's real address — `public/CNAME`'s custom domain.
+
+Duplicated from `public_page.py` rather than imported: `public_page.py`
+already imports `Language`/`t` from this module, so importing `SITE_URL`
+back the other way would be circular. `telegram_post.py` already carries
+its own copy of this same constant for the same reason."""
+
+
 def render_shell(
     *,
     title: str,
+    description: str,
     active_nav: str,
     language: Language,
     page_path: str,
@@ -506,6 +567,12 @@ def render_shell(
     only the EN/BM toggle and the language-persistence script read it (the
     nav's own links each carry their own `NavLink.prefix`). It defaults to
     `POLITIKKU_PREFIX`, so every page that existed before #102 is unchanged.
+
+    `description` backs both `<meta name="description">` and the og:/
+    twitter: tags — required, not defaulted, the same discipline #41 used
+    for `public_page.py`'s own version of this block: every caller states
+    real, page-specific copy rather than a generic fallback that reads the
+    same on every page a reader shares.
     """
     header = render_header(
         active_nav=active_nav, language=language, page_path=page_path, prefix=prefix
@@ -515,15 +582,29 @@ def render_shell(
     )
     footer = render_methodology_footer(language=language)
     lang_attr = "ms" if language is Language.MS else "en"
+    escaped_title = html.escape(title)
+    escaped_description = html.escape(description)
+    og_url = html.escape(f"{SITE_URL.rstrip('/')}{route(language, page_path, prefix)}")
+    og_image = html.escape(f"{SITE_URL}og-image.png")
     return f"""<!doctype html>
 <html lang="{lang_attr}">
 <head>
 <meta charset="utf-8">
 {_language_persistence_script(prefix)}
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{html.escape(title)}</title>
-<link rel="preload" href="/politikku/fonts/newsreader-variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="/politikku/fonts/ibm-plex-sans-variable.woff2" as="font" type="font/woff2" crossorigin>
+<title>{escaped_title}</title>
+<meta name="description" content="{escaped_description}">
+<meta property="og:title" content="{escaped_title}">
+<meta property="og:description" content="{escaped_description}">
+<meta property="og:url" content="{og_url}">
+<meta property="og:type" content="website">
+<meta property="og:image" content="{og_image}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{escaped_title}">
+<meta name="twitter:description" content="{escaped_description}">
+<meta name="twitter:image" content="{og_image}">
+<link rel="preload" href="{POLITIKKU_PREFIX}fonts/newsreader-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{POLITIKKU_PREFIX}fonts/ibm-plex-sans-variable.woff2" as="font" type="font/woff2" crossorigin>
 <style>{_CSS}</style>
 </head>
 <body>
@@ -531,19 +612,19 @@ def render_shell(
 {trust_strip}
 {body_html}
 {footer}
-<script type="module" src="/politikku/lookup.js"></script>
+<script type="module" src="{POLITIKKU_PREFIX}lookup.js"></script>
 </body>
 </html>
 """
 
 
-_CSS = """
+_CSS_TEMPLATE = """
   @font-face {
     font-family: 'Newsreader';
     font-style: normal;
     font-weight: 400 600;
     font-display: swap;
-    src: url('/politikku/fonts/newsreader-variable.woff2') format('woff2');
+    src: url('__PREFIX__fonts/newsreader-variable.woff2') format('woff2');
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
       U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
   }
@@ -552,7 +633,7 @@ _CSS = """
     font-style: normal;
     font-weight: 400 600;
     font-display: swap;
-    src: url('/politikku/fonts/ibm-plex-sans-variable.woff2') format('woff2');
+    src: url('__PREFIX__fonts/ibm-plex-sans-variable.woff2') format('woff2');
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
       U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
   }
@@ -561,14 +642,14 @@ _CSS = """
     font-style: normal;
     font-weight: 400;
     font-display: swap;
-    src: url('/politikku/fonts/ibm-plex-mono-400.woff2') format('woff2');
+    src: url('__PREFIX__fonts/ibm-plex-mono-400.woff2') format('woff2');
   }
   @font-face {
     font-family: 'IBM Plex Mono';
     font-style: normal;
     font-weight: 500;
     font-display: swap;
-    src: url('/politikku/fonts/ibm-plex-mono-500.woff2') format('woff2');
+    src: url('__PREFIX__fonts/ibm-plex-mono-500.woff2') format('woff2');
   }
 
   :root {
@@ -860,3 +941,12 @@ _CSS = """
     }
   }
 """
+
+_CSS = _CSS_TEMPLATE.replace("__PREFIX__", POLITIKKU_PREFIX)
+"""`_CSS_TEMPLATE` bound to the one route family PolitikKu's self-hosted
+fonts are served from — the same `.replace` substitution
+`_language_persistence_script` makes, and for the same reason: the stylesheet
+is brace-dense, so an f-string is not available. The fonts are PolitikKu's
+own assets rather than any one page's, so this is `POLITIKKU_PREFIX` and not
+the per-page `prefix` — a `/projection/` page loads the same
+`{POLITIKKU_PREFIX}fonts/...` files the homepage does."""

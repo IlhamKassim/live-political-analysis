@@ -308,8 +308,9 @@ def test_the_full_page_wraps_the_body_in_the_shell_with_home_active():
     # fragment routed through the current language, not the literal
     # rendered href — see politikku_shell.NavLink's own docstring (#81).
     header = render_header(active_nav="home", language=Language.EN, page_path="")
-    assert 'href="/politikku/" aria-current="page"' in header
-    assert 'href="/politikku/" aria-current="page"' in page
+    # The site root since #104's cutover, not `/politikku/`.
+    assert 'href="/" aria-current="page"' in header
+    assert 'href="/" aria-current="page"' in page
     assert 'class="pk-footer"' in page  # the persistent methodology footer
     assert 'class="pk-hero"' in page  # the homepage's own body content
 

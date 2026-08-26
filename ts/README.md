@@ -21,7 +21,7 @@ geolocation fix to a Seat, entirely in the browser.
   every state transition is testable without a DOM.
 - `src/storage.ts` — "Recently looked up" chips, `localStorage`, capped at
   four.
-- `src/index-data.ts` — fetches `/politikku/data/lookup-index.json` once
+- `src/index-data.ts` — fetches `/data/lookup-index.json` once
   (built by `lpa.politikku_lookup_index`) and caches it in memory.
 - `src/dom.ts` — mounts the state machine onto the existing markup and owns
   the dynamic results area (`[data-pk-lookup-results]`) for the
@@ -41,10 +41,10 @@ npm install
 npm run typecheck   # tsc --noEmit
 npm run lint        # eslint
 npm test            # vitest run
-npm run build       # esbuild -> ../public/politikku/lookup.js (generated,
+npm run build       # esbuild -> ../public/lookup.js (generated,
                      # not committed — see the repo root .gitignore)
 ```
 
-`public/politikku/data/lookup-index.json` (the client index `index-data.ts`
+`public/data/lookup-index.json` (the client index `index-data.ts`
 fetches) is generated separately, by `python -m lpa.politikku_lookup_index`
 — run both build steps before opening the pages locally.

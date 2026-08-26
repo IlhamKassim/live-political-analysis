@@ -117,35 +117,53 @@ latest report, whether or not it could be drawn.
 Reads are cached for 15 minutes, so a pipeline run that finishes while a tab
 is open takes up to that long to appear.
 
-## The public page
+## The public site
 
 A second surface over the same Storage, and a different thing from the
-dashboard above: one day's Projection drawn as the Dewan Rakyat, with all 222
-Seats called individually. It is a static file rather than a served app
+dashboard above. Every page of it is a static file rather than a served app
 ([ADR 0006](docs/adr/0006-static-html-for-the-public-page.md)) — the daily
-Action renders and publishes it, so public traffic never reaches the database.
+Action renders and publishes them, so public traffic never reaches the
+database. It is served at [politikku.my](https://politikku.my)
+(`public/CNAME`).
+
+Since #104's cutover ([ADR
+0011](docs/adr/0011-politikku-becomes-the-site-old-dashboard-moves-to-projection.md))
+the site *is* PolitikKu: the homepage at `/`, the landing page at
+`/landing.html`, one MP profile per Seat under `/mp/`, and the seat
+projection — one day's Projection drawn as the Dewan Rakyat, with all 222
+Seats called individually — at `/projection/`, with the full methodology at
+`/methodology.html`. Each page has a Bahasa Malaysia sibling under `/ms/`
+(`/ms/`, `/ms/landing.html`, `/projection/ms/`, …).
 
 ```sh
-.venv/bin/python -m lpa.public_page --output public/index.html
+.venv/bin/python -m lpa.politikku_homepage      # public/index.html + public/ms/
+.venv/bin/python -m lpa.politikku_landing
+.venv/bin/python -m lpa.politikku_projection    # /projection/ + /methodology.html
+.venv/bin/python -m lpa.politikku_mp_profile
+.venv/bin/python -m lpa.politikku_lookup_index  # public/data/lookup-index.json
+(cd ts && npm ci && npm run build)              # public/lookup.js
 ```
 
-To work on it, serve it instead. Every request re-renders from Storage and the
-browser reloads itself when the output changes, so a saved edit is on screen
-without a build step:
+`lpa.public_page` no longer renders a page of its own — the old chamber
+dashboard's URL was what the cutover retired — but it is still where
+`page_model()` computes every figure the pages above state, and every one of
+them imports it. Its own renderer and preview server still work, and remain
+the fastest way to iterate on that shared model. Every request re-renders
+from Storage and the browser reloads itself when the output changes, so a
+saved edit is on screen without a build step:
 
 ```sh
 .venv/bin/python scripts/preview_public_page.py     # http://127.0.0.1:8000
 ```
 
-The page needs a Projection carrying Seat Calls, which means one computed since
-Seat-Level Projection shipped; it refuses to draw an empty chamber rather than
-render 222 blanks that look like a result.
+The pages need a Projection carrying Seat Calls, which means one computed
+since Seat-Level Projection shipped; they refuse to draw an empty chamber
+rather than render 222 blanks that look like a result.
 
-Each day's run also writes a **dated, citable copy** alongside the live page
-(`public/YYYY/MM/DD.html`) — the colophon's "cite this" link points at it, so
-a figure quoted from the site still resolves once tomorrow's run overwrites
-`index.html` (issue #55). It is served at
-[politikku.my](https://politikku.my) (`public/CNAME`).
+Each day's run also writes a **dated, citable copy** of the projection page
+alongside the live one (`public/projection/YYYY/MM/DD.html`) — the "cite
+this" link points at it, so a figure quoted from the site still resolves once
+tomorrow's run overwrites `index.html` (issue #55).
 
 Three more surfaces are rendered from the same Storage, by the same daily run:
 
@@ -249,7 +267,13 @@ against fixtures with no network, so CI stays fast and offline.
 | `lpa/pipeline.py` | Wires all of the above and stores a snapshot |
 | `lpa/storage.py` | Baseline table, daily snapshots, Poll Calibration points, the frozen archive |
 | `lpa/dashboard.py` | Streamlit page rendering the latest stored Projection |
-| `lpa/public_page.py` | Static public page + dated permalink, rendered from Storage (ADR 0006) |
+| `lpa/public_page.py` | `page_model()` — every figure the public pages state, computed from Storage (ADR 0006). Its own renderer is retired as a published page (ADR 0011) |
+| `lpa/politikku_shell.py` | The persistent site chrome (header, trust strip, EN/BM toggle, footer) and the one routing table behind every internal link |
+| `lpa/politikku_homepage.py` | The homepage at `/` |
+| `lpa/politikku_landing.py` | The landing page at `/landing.html` |
+| `lpa/politikku_projection.py` | `/projection/` + `/methodology.html` + the dated permalink |
+| `lpa/politikku_mp_profile.py` | One MP profile page per Seat, under `/mp/` |
+| `lpa/politikku_lookup_index.py` | `public/data/lookup-index.json`, the constituency lookup's client-side data |
 | `lpa/public_export.py` | The Projection as `projection.json`/`projection.csv` |
 | `lpa/seat_call_card.py` | One shareable SVG per Seat Call, written to `public/cards/` |
 | `lpa/return_trigger.py` | Pure: does today's Storage state cross a Return Trigger threshold |

@@ -10,7 +10,7 @@ await esbuild.build({
   sourcemap: true,
   format: "esm",
   target: "es2020",
-  outfile: "../public/politikku/lookup.js",
+  outfile: "../public/lookup.js",
 });
 
-console.log("Wrote ../public/politikku/lookup.js");
+console.log("Wrote ../public/lookup.js");

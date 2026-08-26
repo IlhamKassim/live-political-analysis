@@ -1,8 +1,19 @@
 """The public page: one day's Projection, rendered as the Dewan Rakyat.
 
-A static HTML file built from Storage (ADR 0006), not a served app. The daily
-Action renders it and publishes it; the database is never touched at request
-time. `dashboard.py` remains the internal view and is not what this replaces.
+A static HTML file built from Storage (ADR 0006), not a served app. The
+database is never touched at request time. `dashboard.py` remains the
+internal view and is not what this replaces.
+
+**No longer published** (#104, ADR 0011). This page owned `/` until
+PolitikKu's cutover; `politikku_homepage` owns that path now, this module's
+content lives at `/projection/` (`politikku_projection`, redrawn rather than
+relocated), and `daily.yml` no longer runs `main()`. What did *not* move is
+everything above the rendering half: `page_model` is still where every
+figure on every published page is computed, `politikku_homepage`/`_landing`/
+`_mp_profile`/`_projection` all read it, `seat_call_card` and `telegram_post`
+import `Tier`/`tier_for`/`TIER_LABEL` from here, and `render_html`/`main`
+still work — `scripts/preview_public_page.py` is still the fastest way to
+iterate on the shared model. Nothing here is dead; one output of it is.
 
 The module is in two halves, and the seam between them is the point:
 
@@ -2091,11 +2102,17 @@ def _article_counts_line(model: PageModel, language: Language = Language.EN) -> 
 
 
 def _permalink_path(computed_at: date) -> str:
-    """Where this day's dated copy lives, relative to the site root (#55).
+    """Where this day's dated copy lives, relative to its page's own route
+    (#55).
 
     Shared by the colophon's "cite this" link and `main`'s own file write,
     so the URL stated on the page and the file that answers it can never
-    name two different paths.
+    name two different paths — and, since #102, by
+    `politikku_projection.main`/`_permalink_url` for the same reason. This
+    returns the `{year}/{month}/{day}.html` tail only, never the route it
+    hangs off, so the published copies now live under `/projection/` with
+    the page that cites them rather than at the site root where this
+    module's own page used to be.
     """
     return f"{computed_at:%Y}/{computed_at:%m}/{computed_at:%d}.html"
 

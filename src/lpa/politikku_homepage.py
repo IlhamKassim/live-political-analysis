@@ -68,10 +68,12 @@ from lpa.politikku_i18n import (
     not_calibrated_tag,
 )
 from lpa.politikku_shell import (
+    BILLS_PAGE,
     Language,
     methodology_url,
     projection_url,
     render_shell,
+    route,
     short_date,
     t,
 )
@@ -379,11 +381,16 @@ def _bill_tracker(model: HomepageModel, language: Language) -> str:
     cards = "".join(_bill_card(bill, language) for bill in model.bills)
     heading = t(language, DEWAN_RAKYAT_THIS_WEEK_EN, DEWAN_RAKYAT_THIS_WEEK_MS)
     all_bills = t(language, "All bills →", "Semua rang undang-undang →")
+    # Routed rather than hardcoded (#104): the bills page is still a route
+    # nothing builds yet (`politikku_shell.NAV_LINKS` links the same one),
+    # but a hardcoded `/politikku/bills.html` here would have survived the
+    # cutover as a link into a prefix that no longer exists.
+    all_bills_href = html.escape(route(language, BILLS_PAGE))
     return f"""
 <section class="pk-bills">
   <div class="pk-section-head">
     <h2>{heading}</h2>
-    <a href="/politikku/bills.html">{all_bills}</a>
+    <a href="{all_bills_href}">{all_bills}</a>
   </div>
   <div class="pk-bill-grid">{cards}</div>
 </section>
@@ -471,12 +478,22 @@ def render_homepage(model: HomepageModel, *, language: Language = Language.EN) -
     """The homepage as one full HTML document, shell included.
 
     `page_path` is always `""` (the shell's own `Home` link target) — the
-    BM route (`/politikku/ms/`) resolves against that same empty path via
+    BM route (`/ms/`) resolves against that same empty path via
     `politikku_shell._ms_route`.
     """
     title = t(language, "PolitikKu — Find your MP", f"PolitikKu — {FIND_YOUR_MP_MS}")
+    description = t(
+        language,
+        f"Live GE16 seat projection for the Dewan Rakyat: {model.government_seats} of "
+        f"{model.total_seats} Seats. Updated daily from News Sentiment, not calibrated "
+        "against survey data.",
+        f"Unjuran kerusi PRU16 langsung untuk Dewan Rakyat: {model.government_seats} "
+        f"daripada {model.total_seats} Kerusi. Dikemas kini setiap hari daripada Sentimen "
+        "Berita, belum ditentukur terhadap data tinjauan.",
+    )
     return render_shell(
         title=title,
+        description=description,
         active_nav="home",
         language=language,
         page_path="",
@@ -695,8 +712,9 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("public/politikku/index.html"),
-        help="where to write the English page (default: public/politikku/index.html); "
+        default=Path("public/index.html"),
+        help="where to write the English page (default: public/index.html — the site "
+        "root since #104's cutover, the path the old chamber dashboard used to own); "
         "the BM variant is written alongside it at <output-dir>/ms/<output-name>, "
         "matching `politikku_shell._ms_route`'s own path convention",
     )

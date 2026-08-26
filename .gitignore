@@ -15,9 +15,12 @@ dist/
 # before this line existed.
 .DS_Store
 
-# Rendered by `python -m lpa.public_page`; the Action publishes it, the repo
-# does not carry it.
+# Rendered by `python -m lpa.politikku_homepage` (PolitikKu's homepage owns
+# the site root since #104's cutover — `lpa.public_page` used to write this
+# path and is no longer rendered or published at all); the Action publishes
+# it, the repo does not carry it.
 public/index.html
+public/ms/index.html
 
 # Rendered by `python -m lpa.public_export`, alongside index.html — same
 # reasoning: the Action publishes it, the repo does not carry it.
@@ -28,23 +31,32 @@ public/projection.csv
 # same reasoning again.
 public/cards/
 
-# PolitikKu's own pages (#74/#75/#79) and their generated data — same
+# PolitikKu's other pages (#75/#79/#102) and their generated data — same
 # reasoning as public/index.html above: rendered by `python -m
-# lpa.politikku_homepage`/`politikku_landing`/`politikku_mp_profile`, not
+# lpa.politikku_landing`/`politikku_mp_profile`/`politikku_projection`, not
 # carried in the repo. Never had an explicit entry until #77 added
 # lookup.js/lookup-index.json alongside them, which is also when this gap
 # (the earlier three pages relying on nobody ever `git add -A`-ing them)
-# was noticed and closed.
-public/politikku/index.html
-public/politikku/landing.html
-public/politikku/mp/
-public/politikku/data/
+# was noticed and closed. Every path here moved out from under
+# `public/politikku/` in #104's cutover.
+public/landing.html
+public/ms/landing.html
+public/methodology.html
+public/ms/methodology.html
+public/mp/
+public/ms/mp/
+public/data/
+# The projection page (#102) itself, but deliberately *not* the dated
+# permalinks written beside it (public/projection/<year>/<month>/<day>.html)
+# — see the #55 note further down, which those files are the whole point of.
+public/projection/index.html
+public/projection/ms/index.html
 
 # ts/src/lookup.ts's compiled output (#77, `node build.mjs`) — generated,
 # not committed, the same call already made for the Python-rendered pages
 # above. ts/ itself (source, package.json, tests) is tracked normally.
-public/politikku/lookup.js
-public/politikku/lookup.js.map
+public/lookup.js
+public/lookup.js.map
 node_modules/
 
 # public/learn/ is different: hand-authored content pages (#26/#27/#28), not
@@ -52,7 +64,9 @@ node_modules/
 # publish alongside the freshly-rendered index.html — see daily.yml's
 # "Upload the page" step, which uploads the whole public/ directory.
 
-# public/<year>/<month>/<day>.html (#55) is also tracked, deliberately —
+# public/projection/<year>/<month>/<day>.html (#55) is also tracked,
+# deliberately — the path moved with the content in #102/#104, but not the
+# reasoning —
 # unlike index.html above, a dated permalink's whole point is to survive
 # past today. deploy-pages replaces the live site wholesale on every run
 # rather than merging into it, so a gitignored dated file would vanish the

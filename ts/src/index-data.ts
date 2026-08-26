@@ -1,4 +1,4 @@
-// Fetches the client lookup index (public/politikku/data/lookup-index.json,
+// Fetches the client lookup index (public/data/lookup-index.json,
 // built by lpa.politikku_lookup_index) once and keeps it in memory. This is
 // the one network request the lookup module makes — a static same-origin
 // file, not a query endpoint, so nothing about *what the visitor typed or
@@ -9,7 +9,7 @@ import type { ClientLookupIndex } from "./types";
 
 let cached: Promise<ClientLookupIndex> | null = null;
 
-export function loadClientIndex(url = "/politikku/data/lookup-index.json"): Promise<ClientLookupIndex> {
+export function loadClientIndex(url = "/data/lookup-index.json"): Promise<ClientLookupIndex> {
   cached ??= fetch(url)
     .then((response) => {
       if (!response.ok) {

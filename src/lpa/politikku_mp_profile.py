@@ -31,8 +31,10 @@ with the user rather than guessed:
   in the right place" confirmation instead; #77 can still deep-link straight
   to this page once it exists, matching #79's own routing note below.
 
-Routing: one static page per Seat, at `/politikku/mp/<code>.html` (English)
-and `/politikku/ms/mp/<code>.html` (BM) — the seat code is the identifier
+Routing: one static page per Seat, at `/mp/<code>.html` (English)
+and `/ms/mp/<code>.html` (BM) — `politikku_shell.MP_PROFILE_DIR` under
+`POLITIKKU_PREFIX`, which #104's cutover moved to the site root — the seat
+code is the identifier
 `#42`'s own chamber-page deep links already key on (`data-seat`/
 `id="seat-<code>"`), so this reuses that identifier rather than inventing a
 second scheme; nothing about #42's per-page anchors themselves is reused
@@ -64,7 +66,7 @@ from lpa.politikku_i18n import (
     NON_GOVERNMENT_MS,
     not_calibrated_tag,
 )
-from lpa.politikku_shell import Language, render_shell, short_date, t
+from lpa.politikku_shell import MP_PROFILE_DIR, Language, render_shell, short_date, t
 from lpa.public_page import PageModel
 from lpa.seat_call_card import card_model
 
@@ -642,11 +644,20 @@ def render_mp_profile_body(model: MPProfilePageModel, language: Language = Langu
 
 def render_mp_profile(model: MPProfilePageModel, *, language: Language = Language.EN) -> str:
     """The profile page as one full HTML document, shell included."""
+    description = t(
+        language,
+        f"{model.mp_name}, {model.coalition_name} — the Member of Parliament for "
+        f"{model.seat_name}, {model.seat_state}. Voting record, attendance, and contact "
+        "details.",
+        f"{model.mp_name}, {model.coalition_name} — Ahli Parlimen bagi {model.seat_name}, "
+        f"{model.seat_state}. Rekod undi, kehadiran, dan butiran hubungan.",
+    )
     return render_shell(
         title=f"{model.mp_name} — {model.seat_name} | PolitikKu",
+        description=description,
         active_nav="home",
         language=language,
-        page_path=f"mp/{model.seat_code}.html",
+        page_path=f"{MP_PROFILE_DIR}/{model.seat_code}.html",
         updated_at=model.updated_at,
         sources_count=model.sources_count,
         status=model.status,
@@ -894,8 +905,9 @@ def main() -> None:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("public/politikku/mp"),
-        help="directory to write one English <seat-code>.html per MP Profile; the BM variant is "
+        default=Path("public") / MP_PROFILE_DIR,
+        help="directory to write one English <seat-code>.html per MP Profile "
+        "(default: public/mp); the BM variant is "
         "written alongside it at <output-dir>/ms/<seat-code>.html, matching "
         "`politikku_shell._ms_route`'s own path convention",
     )

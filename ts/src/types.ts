@@ -23,7 +23,7 @@ export interface LookupSeat {
   readonly mpName: string | null;
 }
 
-// public/politikku/data/lookup-index.json's shape — built by
+// public/data/lookup-index.json's shape — built by
 // lpa.politikku_lookup_index.build_client_index. Keep these two in sync by
 // hand; there is no shared schema between the Python and TypeScript sides.
 export interface ClientLookupIndex {

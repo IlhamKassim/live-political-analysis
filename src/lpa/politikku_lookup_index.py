@@ -47,7 +47,7 @@ class LookupSeat:
     name: str
     state: str
     has_profile: bool
-    """Whether `/politikku/mp/<code>.html` was actually built this run."""
+    """Whether `/mp/<code>.html` was actually built this run."""
     mp_name: str | None
     """The sitting Member's name, where a profile exists — `None` (not an
     empty string) when it doesn't, so the client can tell "no data" from
@@ -152,7 +152,7 @@ def build_and_write_client_index(engine: Engine, output_path: str) -> int:
 
 
 def main() -> None:
-    """Write the client lookup index to `public/politikku/data/lookup-index.json`."""
+    """Write the client lookup index to `public/data/lookup-index.json`."""
     import argparse
 
     from lpa.storage import connect
@@ -160,8 +160,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--output",
-        default="public/politikku/data/lookup-index.json",
-        help="where to write the client index",
+        default="public/data/lookup-index.json",
+        help="where to write the client index (default: public/data/lookup-index.json, "
+        "the URL `ts/src/index-data.ts` fetches since #104's cutover)",
     )
     args = parser.parse_args()
 
