@@ -69,22 +69,13 @@ def build_client_index(
     code -> the sitting Member's name, from `lpa.config.load_mp_profiles()`
     (only codes with an actual profile are present).
 
-    Raises `ValueError` if a postcode names a Seat with no Baseline, or if
-    `mp_names` names a Seat the postcode index never mentions — either
-    would mean the published index quietly promised more than it can back
-    up.
+    Raises `ValueError` if a postcode names a Seat with no Baseline.
     """
     by_code = {seat.code: seat for seat in baseline}
     referenced_codes = {code for codes in postcode_index.values() for code in codes}
     for code in referenced_codes:
         if code not in by_code:
             raise ValueError(f"postcode index names Seat {code!r}, which has no Seat Baseline")
-    for code in mp_names:
-        if code not in referenced_codes:
-            raise ValueError(
-                f"MP Profile {code!r} is not reachable from the postcode index — "
-                "the client index would ship it with no way to look it up"
-            )
 
     seats = {
         code: LookupSeat(

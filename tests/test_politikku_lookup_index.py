@@ -66,9 +66,14 @@ def test_a_postcode_naming_a_seat_with_no_baseline_is_rejected():
         build_client_index([P102], POSTCODE_INDEX, {})  # P.101 missing from baseline
 
 
-def test_an_mp_profile_for_a_seat_the_postcode_index_never_reaches_is_rejected():
-    with pytest.raises(ValueError, match="not reachable"):
-        build_client_index([P101, P102], {"43000": ("P.102",)}, {"P.101": "Someone"})
+def test_mp_profiles_for_unreferenced_seats_are_omitted_from_client_index():
+    index = build_client_index(
+        [P101, P102],
+        {"43000": ("P.102",)},
+        {"P.101": "Someone", "P.102": "Syahredzan Johan"},
+    )
+    assert "P.102" in index["seats"]
+    assert "P.101" not in index["seats"]
 
 
 def test_the_json_form_round_trips_to_the_same_shape():
