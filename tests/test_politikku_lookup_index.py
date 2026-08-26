@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -76,6 +77,57 @@ def test_mp_profiles_for_unreferenced_seats_are_omitted_from_client_index():
     assert "P.101" not in index["seats"]
 
 
+def test_compute_unresolved_mp_profiles_identifies_omitted_members():
+    from lpa.politikku_lookup_index import compute_unresolved_mp_profiles
+
+    mp_names = {"P.002": "Shahidan Kassim", "P.102": "Syahredzan Johan"}
+    client_seats = {"P.102": {"code": "P.102"}}
+    unresolved = compute_unresolved_mp_profiles(mp_names, client_seats)
+    assert unresolved == {"P.002": "Shahidan Kassim"}
+
+
 def test_the_json_form_round_trips_to_the_same_shape():
     payload = json.loads(build_client_index_json([P101, P102], POSTCODE_INDEX, {}))
     assert payload == build_client_index([P101, P102], POSTCODE_INDEX, {})
+
+
+def test_build_and_write_client_index_writes_payload_and_unresolved_report(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from unittest.mock import MagicMock
+
+    from lpa.politikku_lookup_index import build_and_write_client_index
+    from lpa.postcode_index import SeatMatch
+
+    output_path = tmp_path / "lookup-index.json"
+    unresolved_path = tmp_path / "unresolved.json"
+
+    monkeypatch.setattr("lpa.storage.load_seat_baselines", lambda engine: [P101, P102])
+    monkeypatch.setattr(
+        "lpa.config.load_postcode_seat_index",
+        lambda: {"43000": (SeatMatch(seat_code="P.102"),)},
+    )
+
+    class DummyProfile:
+        def __init__(self, name: str):
+            self.name = name
+
+    monkeypatch.setattr(
+        "lpa.config.load_mp_profiles",
+        lambda: {"P.101": DummyProfile("Member 1"), "P.102": DummyProfile("Member 2")},
+    )
+
+    result = build_and_write_client_index(MagicMock(), output_path, unresolved_path)
+    assert result.total_mp_profiles == 2
+    assert result.reachable_mp_profiles == 1
+    assert result.excluded_mp_profiles == 1
+
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    assert "P.102" in payload["seats"]
+    assert "P.101" not in payload["seats"]
+
+    unresolved_data = json.loads(unresolved_path.read_text(encoding="utf-8"))
+    assert unresolved_data["total_mp_profiles"] == 2
+    assert unresolved_data["reachable_mp_profiles"] == 1
+    assert unresolved_data["excluded_count"] == 1
+    assert unresolved_data["unresolved_mp_profiles"] == {"P.101": "Member 1"}
