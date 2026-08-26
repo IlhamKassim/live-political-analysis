@@ -7,12 +7,17 @@ that honestly: a lookup returns every candidate Seat, never a single guessed
 answer, and an empty result means the postcode is not in the index (the
 lookup UI's no-match state, #77), not that it has no Seat.
 
-The index itself (`data/postcode_seat_index.json`) is a pilot slice — Selangor
-P.101 Hulu Langat and P.102 Bangi only, the same Seats #78's MP-profile pilot
-scopes to — built by joining the Election Commission's own delimitation data
-against a Pos Malaysia postcode reference; see
-`scripts/build_postcode_seat_index.py` for the method and ADR 0008 for why a
-join was necessary and what scaling to all 222 Seats will take.
+The index itself (`data/postcode_seat_index.json`) is built by joining the
+Election Commission's own delimitation data against a Pos Malaysia postcode
+reference; see `scripts/build_postcode_seat_index.py` for the method and ADR
+0008 for why a join was necessary. As of issue #107 it covers every postcode
+whose Pos Malaysia town name exactly matches an Election Commission daerah
+mengundi, nationwide, plus a small hand-curated set of aliases — not yet all
+222 Seats, since most of the remainder need the same per-locality
+verification done by hand (see ADR 0008's "Update (#107)" and
+`data/postcode_seat_index_unresolved.json` for what is left). It no longer
+moves in step with the MP profiles, which #105 took to most of the House;
+the lookup's `has_profile` flag is what keeps the two independent.
 """
 
 from __future__ import annotations

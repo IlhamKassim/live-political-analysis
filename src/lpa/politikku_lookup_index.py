@@ -19,11 +19,13 @@ are guaranteed to agree with every other page built from the same
 Baseline.
 
 `has_profile` is computed from `lpa.config.load_mp_profiles()`'s actual
-keys, not hardcoded: the postcode pilot (#76, Selangor P.101/P.102) and the
-MP-profile pilot (#78, Bangi/P.102 only) cover different Seats, so a
-lookup can genuinely resolve to a Seat with no profile page built yet
-(P.101 today). `ts/src/dom.ts` reads this flag to degrade gracefully
-instead of linking to a page that doesn't exist.
+keys, not hardcoded. #105 took profiles from one Seat to most of the House,
+so today every Seat the postcode pilot (#76, Selangor P.101/P.102) can
+return does have one — but the flag stays, and stays computed, because the
+two slices are still independent: profiles stop at the Seats Parliament's
+own sources support (see `data/mp_profiles.json`'s `_skipped`), and the
+postcode index will grow past them. `ts/src/dom.ts` reads this flag to
+degrade gracefully instead of linking to a page that doesn't exist.
 """
 
 from __future__ import annotations

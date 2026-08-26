@@ -1,10 +1,12 @@
-"""Postcode -> Seat lookup, and the shipped pilot slice (issue #76).
+"""Postcode -> Seat lookup, and the shipped index (issues #76, #107).
 
 `load_postcode_seat_index` and `lookup_postcode` are checked separately: the
 loader against synthetic fixtures (so a malformed file fails loudly), the
-shipped file against the two real cases the Election Commission source
-actually gives — an unambiguous postcode and the one genuinely ambiguous one
-in the pilot slice (Cheras, split between P.101 and P.102). See
+shipped file against real cases the Election Commission source actually
+gives — an unambiguous postcode and a genuinely ambiguous one (Cheras, split
+between P.101 and P.102) from #76's original hand-curated Selangor pilot,
+plus the invariant that #107's nationwide exact-match extension only ever
+adds to that pilot, never narrows or drops it. See
 `scripts/build_postcode_seat_index.py` for how the shipped file was built.
 """
 
@@ -39,7 +41,7 @@ def test_lookup_returns_every_candidate_for_an_ambiguous_postcode():
 
 def test_lookup_returns_nothing_for_a_postcode_not_in_the_index():
     # The no-match state (#77), not an error: a postcode can be well-formed
-    # and simply outside the pilot slice's two Seats.
+    # and simply not yet in the index.
     assert lookup_postcode("99999", {}) == ()
 
 
@@ -60,7 +62,36 @@ def test_the_loader_rejects_a_postcode_with_no_seats(tmp_path):
         load_postcode_seat_index(write_index(tmp_path, {"43650": []}))
 
 
+# #76's original hand-curated Selangor pilot, exactly as shipped before
+# #107's nationwide exact-match extension. #107 must only ever add to this —
+# never drop a postcode or narrow its Seat set — because every one of these
+# was verified by a human against the live SPR data, and #107's automation
+# was never asked to re-verify them.
+PILOT_INDEX = {
+    "43000": {"P.102"},
+    "43007": {"P.102"},
+    "43009": {"P.102"},
+    "43100": {"P.101"},
+    "43200": {"P.101", "P.102"},
+    "43207": {"P.101", "P.102"},
+    "43500": {"P.101"},
+    "43558": {"P.102"},
+    "43600": {"P.102"},
+    "43650": {"P.102"},
+    "43700": {"P.101"},
+    "43701": {"P.101"},
+}
+
 SHIPPED_INDEX = load_postcode_seat_index()
+
+
+def test_the_shipped_index_never_narrows_the_original_pilot_slice():
+    # Issue #107 extends #76's pilot with a nationwide exact-match tier; it
+    # must be additive only. A postcode disappearing or losing a Seat here
+    # would mean #107's automation overrode a human-verified #76 entry.
+    for postcode, seat_codes in PILOT_INDEX.items():
+        assert postcode in SHIPPED_INDEX, postcode
+        assert seat_codes <= {m.seat_code for m in SHIPPED_INDEX[postcode]}, postcode
 
 
 def test_the_shipped_index_resolves_bandar_baru_bangi_unambiguously():

@@ -81,8 +81,10 @@ from lpa.public_page import PageModel
 from lpa.storage import SentimentSnapshot
 
 BANGI_SEAT_CODE = "P.102"
-"""The one real MP Profile this pilot has (#78, ADR 0009) — the FACT card's
-source, read live rather than retyped."""
+"""The Seat the FACT card quotes (#78, ADR 0009) — read live rather than
+retyped. The first real MP Profile this repo had, and still the one the card
+names; #105 built most of the House on the same schema, so which Seat to
+feature is now an editorial choice rather than the only option."""
 
 FEATURED_BILL_CODE = "D.R.28/2025"
 """RUU Perolehan Kerajaan 2025 — the pilot's own Bill with a real, on-the-
