@@ -71,6 +71,8 @@ const EN: LookupCopy = {
     "geolocation-denied": "Location permission was declined.",
     "geolocation-unresolvable":
       "Location was read, but this pilot has no boundary data yet to match it to a Seat — try a postcode or constituency name instead.",
+    "index-unavailable":
+      "The constituency index couldn't be loaded right now — check your connection or browse all seats below.",
   },
   routes: {
     searchByName: "Search by name",
@@ -96,6 +98,8 @@ const MS: LookupCopy = {
     "geolocation-denied": "Kebenaran lokasi tidak diberikan.",
     "geolocation-unresolvable":
       "Lokasi telah dibaca, tetapi perintis ini belum mempunyai data sempadan untuk memadankannya dengan Kerusi — cuba poskod atau nama kawasan.",
+    "index-unavailable":
+      "Indeks kawasan pilihan raya tidak dapat dimuatkan — semak sambungan anda atau lihat semua kerusi di bawah.",
   },
   routes: {
     searchByName: "Cari mengikut nama",

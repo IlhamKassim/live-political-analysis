@@ -35,7 +35,8 @@ export type NoMatchReason =
   | "not-in-index"
   | "geolocation-unsupported"
   | "geolocation-denied"
-  | "geolocation-unresolvable";
+  | "geolocation-unresolvable"
+  | "index-unavailable";
 
 // The result of resolving one query (postcode, name, or a geolocation fix)
 // against the index — never more than the model actually knows. `ambiguous`
