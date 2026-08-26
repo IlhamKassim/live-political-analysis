@@ -1,11 +1,14 @@
 {
   "_comment": [
-    "Bills tracked on the homepage's bill tracker (issue #80). Pilot",
-    "slice: four Bills — see scripts/build_bill_tracker.py, which",
-    "generated this file, and ADR 0010 for the method. `stage` is",
-    "Parliament's own status label, not a translated or invented one;",
-    "`summary` is a verbatim excerpt of the Bill's own explanatory",
-    "statement, not this pipeline's paraphrase."
+    "Bills tracked on the homepage's bill tracker (issues #80, #106).",
+    "See scripts/build_bill_tracker.py, which generated this file, and",
+    "ADR 0010 for the method. `stage` is Parliament's own status label,",
+    "not a translated or invented one; `summary` is a verbatim excerpt",
+    "of the Bill's own explanatory statement, not this pipeline's",
+    "paraphrase. Covers the Bills register's full default view as of",
+    "`_source.retrieved`, minus any Bill whose PDF yielded no clean",
+    "HURAIAN excerpt — see the run's own printed skip list, not",
+    "recorded in this file, for which and why."
   ],
   "_source": {
     "register": {
@@ -19,10 +22,34 @@
       "name": "This repo's own data/mp_profiles.json (issue #78)",
       "note": "Not re-fetched from Hansard — see the module docstring."
     },
-    "retrieved": "2026-08-24",
+    "retrieved": "2026-08-26",
     "generated_by": "scripts/build_bill_tracker.py"
   },
   "bills": {
+    "D.R.22/2026": {
+      "title": "RUU Kumpulan Wang Amanah Negara 2026",
+      "year": 2026,
+      "stage": "Lulus",
+      "stage_date": "2026-07-16",
+      "summary": "Rang Undang-Undang Kumpulan Wang Amanah Negara 2026 (“Akta yang dicadangkan”) bertujuan untuk memansuhkan Akta Kumpulan Wang Amanah Negara 1988 [ Akta 339 ] (“Akta yang dimansuhkan”) dan menubuhkan semula Kumpulan Wang Amanah Negara (“Kumpulan Wang”).",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2026/DR/RUU%20Kumpulan%20Wang%20Amanah%20Negara%202026.pdf#page=26",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.21/2026": {
+      "title": "RUU Statistik 2026",
+      "year": 2026,
+      "stage": "Lulus",
+      "stage_date": "2026-07-16",
+      "summary": "Rang Undang-Undang ini (“Akta yang dicadangkan”) bertujuan untuk mengadakan peruntukan bagi fungsi Jabatan Statistik Malaysia, penubuhan Majlis Statistik Negara, perkara yang berkaitan dengan data dan statistik dan perkara lain yang berkaitan.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2026/DR/RUU%20Statistik%202026.pdf#page=15",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
     "D.R.20/2026": {
       "title": "RUU Kebebasan Maklumat 2026",
       "year": 2026,
@@ -35,6 +62,138 @@
         "division": "Still at the \"Dirujuk ke JKPK\" stage per the Bills register — no vote has been put to the House on this Bill yet, so there is no Division to have or not have."
       }
     },
+    "D.R.19/2026": {
+      "title": "RUU Suruhanjaya Komunikasi dan Multimedia Malaysia (Pindaan) 2026",
+      "year": 2026,
+      "stage": "Lulus",
+      "stage_date": "2026-07-15",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Suruhanjaya Komunikasi dan Multimedia Malaysia 1998 (“Akta 589”).",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2026/DR/RUU%20Suruhanjaya%20Komunikasi%20dan%20Multimedia%20Malaysia%20%28P%29%202026.pdf#page=10",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.18/2026": {
+      "title": "RUU Komunikasi dan Multimedia (Pindaan) 2026",
+      "year": 2026,
+      "stage": "Lulus",
+      "stage_date": "2026-07-15",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Komunikasi dan Multimedia 1998 (“Akta 588”), khususnya seksyen 202 Akta 588 berkenaan dengan pemberian perkhidmatan sejagat.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2026/DR/RUU%20Komunikasi%20dan%20Multimedia%20%28Pindaan%29%202026.pdf#page=2",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.17/2026": {
+      "title": "RUU Bidang Kuasa Admiralti 2026",
+      "year": 2026,
+      "stage": "Dirujuk ke JKPK",
+      "stage_date": "2026-07-13",
+      "summary": "Rang Undang-Undang ini (“Akta yang dicadangkan”) bertujuan untuk memperkukuh rangka perundangan Malaysia bagi penyelesaian pertikaian berkenaan dengan maritim dengan memberikan bidang kuasa admiralti kepada Mahkamah Tinggi, menentukan bagaimana bidang kuasa ini perlu dijalankan, dan menangani perkara lain yang berkaitan.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2026/DR/RUU%20Bidang%20Kuasa%20Admiralti%202026.pdf#page=12",
+      "division": null,
+      "unverified": {
+        "division": "Still at the \"Dirujuk ke JKPK\" stage per the Bills register — no vote has been put to the House on this Bill yet, so there is no Division to have or not have."
+      }
+    },
+    "D.R.16/2026": {
+      "title": "RUU Mahkamah Kehakiman (Pindaan) 2026",
+      "year": 2026,
+      "stage": "Bacaan Kali Pertama",
+      "stage_date": "2026-07-13",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Mahkamah Kehakiman 1964 (“Akta 91”) berikutan penggubalan Akta Bidang Kuasa Admiralti 2026, Akta Insolvensi Rentas Sempadan 2026 [ Akta 877 ] dan Akta Perjanjian Penyelesaian Antarabangsa yang Terhasil daripada Pengantaraan 2026 [ Akta 881].",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2026/DR/RUU%20Mahkamah%20Kehakiman%20%28Pindaan%29%202026.pdf#page=2",
+      "division": null,
+      "unverified": {
+        "division": "Still at the \"Bacaan Kali Pertama\" stage per the Bills register — no vote has been put to the House on this Bill yet, so there is no Division to have or not have."
+      }
+    },
+    "D.R.15/2026": {
+      "title": "RUU Perlindungan Saksi (Pindaan) 2026",
+      "year": 2026,
+      "stage": "Lulus",
+      "stage_date": "2026-07-14",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Perlindungan Saksi 2009 (“Akta 696”).",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2026/DR/RUU%20Perlindungan%20Saksi%20%28Pindaan%29%202026.pdf#page=4",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.14/2026": {
+      "title": "RUU Profesion Kerja Sosial 2026",
+      "year": 2026,
+      "stage": "Lulus",
+      "stage_date": "2026-07-14",
+      "summary": "Rang Undang-Undang ini (“Akta yang dicadangkan”) bertujuan untuk mengadakan peruntukan bagi penubuhan Majlis Profesion Kerja Sosial Malaysia, untuk mengawal selia pengamal kerja sosial, pelatih kerja sosial dan perkhidmatan kerja sosial, dan untuk mengadakan peruntukan bagi perkara yang berkaitan.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2026/DR/RUU%20Profesion%20Kerja%20Sosial%202026.pdf#page=30",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.13/2026": {
+      "title": "RUU Kawalan Padi dan Beras (Pindaan) 2026",
+      "year": 2026,
+      "stage": "Lulus",
+      "stage_date": "2026-07-13",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Kawalan Padi dan Beras 1994 (“Akta 522”).",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2026/DR/RUU%20Kawalan%20Padi%20dan%20Beras%20%28Pindaan%29%202026.pdf#page=3",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.12/2026": {
+      "title": "RUU Persaingan (Pindaan) 2026",
+      "year": 2026,
+      "stage": "Lulus",
+      "stage_date": "2026-07-06",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Persaingan 2010 (“Akta 712”) dengan matlamat untuk mengukuhkan pelbagai aspek Akta 712 termasuk peruntukan yang berhubungan dengan kuasa penyiasatan dan penguatkuasaan Suruhanjaya Persaingan Malaysia (“Suruhanjaya”), tatacara membuat keputusan oleh Suruhanjaya dan peruntukan yang mentadbir Tribunal Rayuan Persaingan.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2026/DR/RUU%20Persaingan%20%28Pindaan%29%202026%20-%20merged.pdf#page=31",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.11/2026": {
+      "title": "RUU Suruhanjaya Persaingan (Pindaan) 2026",
+      "year": 2026,
+      "stage": "Lulus",
+      "stage_date": "2026-07-06",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Suruhanjaya Persaingan 2010 (“Akta 713”).",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2026/DR/RUU%20Suruhanjaya%20Persaingan%20%28Pindaan%29%202026.pdf#page=7",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.10/2026": {
+      "title": "RUU Penjara (Pindaan) 2026",
+      "year": 2026,
+      "stage": "Dirujuk ke JKPK",
+      "stage_date": "2026-06-25",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Penjara 1995 (“Akta 537”).",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2026/DR/RUU%20Penjara%20%28Pindaan%29%202026.pdf#page=6",
+      "division": null,
+      "unverified": {
+        "division": "Still at the \"Dirujuk ke JKPK\" stage per the Bills register — no vote has been put to the House on this Bill yet, so there is no Division to have or not have."
+      }
+    },
+    "D.R.9/2026": {
+      "title": "RUU Kesalahan-Kesalahan Seksual terhadap Kanak-Kanak (Pindaan) 2026",
+      "year": 2026,
+      "stage": "Lulus",
+      "stage_date": "2026-06-30",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Kesalahan-Kesalahan Seksual terhadap Kanak-Kanak 2017 (“Akta 792”).",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2026/DR/RUU%20Kesalahan%20Seksual%20terhadap%20Kanak2.pdf#page=2",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
     "D.R.8/2026": {
       "title": "RUU Jenayah Siber 2026",
       "year": 2026,
@@ -42,6 +201,288 @@
       "stage_date": "2026-07-01",
       "summary": "Rang Undang-Undang ini (“Akta yang dicadangkan”) bertujuan untuk memansuhkan Akta Jenayah Komputer 1997 [ Akta 563 ] dan untuk mewujudkan suatu kerangka perundangan yang baharu dan komprehensif untuk mencegah dan memerangi jenayah siber, iaitu kesalahan-kesalahan yang diperuntukkan di bawah Bahagian III hingga VI Akta yang dicadangkan dan kesalahan-kesalahan di bawah mana-mana undang-undang bertulis lain yang dilakukan dengan menggunakan sistem komputer.",
       "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2026/DR/RUU%20Jenayah%20Siber%202026.pdf#page=47",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.7/2026": {
+      "title": "RUU Pengangkutan Jalan (Pindaan) 2026",
+      "year": 2026,
+      "stage": "Lulus",
+      "stage_date": "2026-06-24",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Pengangkutan Jalan 1987 (“Akta 333”) untuk memperkukuh kuasa pengawalseliaan dan penguatkuasaan di bawah Akta 333.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2026/DR/RUU%20Pengangkutan%20Jalan%20%28Pindaan%29%202026.pdf#page=19",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.6/2026": {
+      "title": "RUU Perbekalan Tambahan (2025) 2026",
+      "year": 2026,
+      "stage": "Lulus",
+      "stage_date": "2026-02-26",
+      "summary": "Rang Undang-Undang ini bertujuan untuk mengadakan peruntukan bagi pengeluaran wang daripada Kumpulan Wang Disatukan sebanyak tujuh bilion sembilan ratus tiga puluh lapan juta dua ratus dua belas ribu ringgit (RM7,938,212,000) untuk perkhidmatan dan maksud yang dinyatakan dalam Jadual bagi tahun 2025.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2026/DR/RUU%20Perbekalan%20Tambahan%20%282025%29%202026.pdf#page=2",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.5/2026": {
+      "title": "RUU Perlembagaan (Pindaan) (No.2) 2026",
+      "year": 2026,
+      "stage": "Dirujuk ke JKPK",
+      "stage_date": "2026-03-03",
+      "summary": "Rang Undang-Undang ini (“Akta yang dicadangkan”) bertujuan untuk meminda Perlembagaan Persekutuan untuk mengadakan peruntukan bagi pelantikan seorang Pendakwa Raya selaras dengan pengasingan peranan Pendakwa Raya daripada Peguam Negara, untuk mengadakan peruntukan lindung jamin bagi Pendakwa Raya dan untuk meminda Perkara yang berkaitan selaras dengan pengasingan peranan Pendakwa Raya daripada Peguam Negara.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2026/DR/RUU%20Perlembagaan%20%28Pindaan%29%20%28No.2%29%202026.pdf#page=9",
+      "division": null,
+      "unverified": {
+        "division": "Still at the \"Dirujuk ke JKPK\" stage per the Bills register — no vote has been put to the House on this Bill yet, so there is no Division to have or not have."
+      }
+    },
+    "D.R.4/2026": {
+      "title": "RUU Perlembagaan (Pindaan) 2026",
+      "year": 2026,
+      "stage": "Tidak Mendapat Undi 2/3 Peringkat Bacaan Ke-2",
+      "stage_date": "2026-03-02",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Perlembagaan Persekutuan.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2026/DR/RUU%20Perlembagaan%20%28Pindaan%29%202026.pdf#page=3",
+      "division": {
+        "sitting_date": "2026-03-02",
+        "ayes": 146,
+        "noes": 0,
+        "abstentions": 44,
+        "absent": 32,
+        "outcome": "Kurang daripada dua pertiga majoriti; tidak diluluskan",
+        "hansard_url": "https://hansard.parlimen.gov.my/hansard/dewan-rakyat/2026-03-02"
+      },
+      "unverified": {}
+    },
+    "D.R.3/2026": {
+      "title": "RUU Kualiti Alam Sekeliling (Pindaan) 2026",
+      "year": 2026,
+      "stage": "Lulus",
+      "stage_date": "2026-02-25",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Kualiti Alam Sekeliling 1974 (“Akta 127”).",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2026/DR/D.R%203_2026%20BM.pdf#page=2",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.2/2026": {
+      "title": "RUU Pemberian Mengikut Bilangan Orang 2026",
+      "year": 2026,
+      "stage": "Lulus",
+      "stage_date": "2026-02-23",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Bahagian I Jadual Kesepuluh kepada Perlembagaan Persekutuan untuk mengubah kadar pemberian mengikut bilangan orang kepada setiap Negeri mengikut struktur kadar yang baharu.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2026/DR/RUU%20Pemberian%20Mengikut%20Bilangan%20Orang%202026.pdf#page=2",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.1/2026": {
+      "title": "RUU Rapid Transit System Link Johor Bahru-Singapura 2026",
+      "year": 2026,
+      "stage": "Lulus",
+      "stage_date": "2026-02-12",
+      "summary": "Rang Undang-Undang ini (“Akta yang dicadangkan”) bertujuan untuk menguatkuasakan kewajipan Kerajaan Malaysia di bawah peruntukan tertentu dalam Perjanjian-Perjanjian antara Kerajaan Malaysia dengan Kerajaan Republik Singapura mengenai Rapid Transit System Link Johor Bahru–Singapura yang berhubungan dengan pelaksanaan fungsi pelepasan kastam, imigresen dan kuarantin dan fungsi keselamatan di kemudahan kastam, imigresen dan kuarantin terletak bersama di dalam kawasan ditetapkan di Stesen Bukit Chagar, Johor Bahru di Malaysia dan Stesen Woodlands North di Republik Singapura dan pengurusan insiden rentas sempadan dan untuk mengadakan peruntukan bagi perkara yang berkaitan.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2026/DR/DR01.2026.pdf#page=35",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.44/2025": {
+      "title": "RUU Perjanjian Penyelesaian Antarabangsa Yang Terhasil Daripada Pengantaraan 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2026-02-11",
+      "summary": "Rang Undang-Undang ini (“Akta yang dicadangkan”) bertujuan untuk menguatkuasakan Konvensyen Pertubuhan Bangsa-Bangsa Bersatu mengenai Perjanjian Penyelesaian Antarabangsa yang Terhasil daripada Pengantaraan (“Konvensyen”), yang ditandatangani oleh Malaysia pada 7 Ogos 2019.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/RUU%20Perjanjian%20Penyelesaian%20Antarabangsa.pdf#page=12",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.43/2025": {
+      "title": "RUU Pasport (Pindaan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-12-04",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Pasport 1966 (“Akta 150”).",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/D.R%2043_2025%20-%20RUU%20Pasport%20%28Pindaan%29%202025.pdf#page=2",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.42/2025": {
+      "title": "RUU Imigresen (Pindaan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-12-04",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Imigresen 1959/63 (“Akta 155”).",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/D.R%2042_2025%20-%20RUU%20Imigresen%20%28Pindaan%29%202025.pdf#page=12",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.41/2025": {
+      "title": "RUU Antibuli 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-12-03",
+      "summary": "Rang Undang-Undang ini (“Akta yang dicadangkan”) bertujuan untuk mengadakan peruntukan mengenai mekanisme khusus untuk menangani aduan buli, untuk mencegah dan menguruskan kes buli di institusi pendidikan dan institusi lain, untuk mengadakan peruntukan bagi penubuhan Tribunal bagi Antibuli, untuk meningkatkan kesedaran tentang buli dan pencegahan buli dan untuk mengadakan peruntukan bagi perkara berkaitan.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/D.R%2041_2025%20-%20RUU%20Antibuli%202025.pdf#page=40",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.40/2025": {
+      "title": "RUU Perbadanan Kemajuan Filem Nasional Malaysia (Pindaan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-12-03",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Perbadanan Kemajuan Filem Nasional Malaysia 1981 (“Akta 244”).",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/RUU%20Perbadanan%20Kemajuan%20Filem%20Nasional%20Malaysia%20%28Pindaan%29%202025.pdf#page=10",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.39/2025": {
+      "title": "RUU Langkah-Langkah bagi Pemungutan, Pentadbiran dan Penguatkuasaan Cukai 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-12-01",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Cukai Pendapatan 1967 (“Akta 53”), Akta Cukai Keuntungan Harta Tanah 1976 (“Akta 169”), Akta Setem 1949 (“Akta 378”), Akta Cukai Aktiviti Perniagaan Labuan 1990 (“Akta 445”) dan Akta Petroleum (Cukai Pendapatan) 1967 (“Akta 543”).",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/RUULAN~1.PDF#page=20",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.38/2025": {
+      "title": "RUU Kewangan 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-12-01",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Cukai Pendapatan 1967 (“Akta 53”), Akta Cukai Keuntungan Harta Tanah 1976 (“Akta 169”), Akta Setem 1949 (“Akta 378”), Akta Cukai Aktiviti Perniagaan Labuan 1990 (“Akta 445”) dan Akta Petroleum (Cukai Pendapatan) 1967 (“Akta 543”).",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/D.R%2038_2025%20-%20RUU%20Kewangan%202025.pdf#page=23",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.37/2025": {
+      "title": "RUU Profesion Undang-Undang (Pindaan) (No.2) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-12-01",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Profesion Undang-Undang 1976 (“Akta 166”).",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/D.R%2037_2025%20-%20RUU%20Profesion%20Undang-Undang%20%28Pindaan%29%20%28No.2%29%202025.pdf#page=10",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.36/2025": {
+      "title": "RUU Rukun Tetangga (Pindaan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-12-02",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Rukun Tetangga 2012 (“Akta 751”).",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/D.R%2036_2025%20-%20RUU%20Rukun%20Tetangga%20%28Pindaan%29%202025.pdf#page=5",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.35/2025": {
+      "title": "RUU Pembangunan Kemahiran Kebangsaan (Pindaan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-12-03",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Pembangunan Kemahiran Kebangsaan 2006 (“Akta 652”).",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/DR.35_2025%20-%20RUU%20Pembangunan%20Kemahiran%20Kebangsaan%20%28Pindaan%29%202025.pdf#page=10",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.34/2025": {
+      "title": "RUU Tabung Pembangunan Kemahiran (Pindaan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-12-03",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Tabung Pembangunan Kemahiran 2004 (“Akta 640”) untuk meluaskan fungsi Perbadanan Tabung Pembangunan Kemahiran (“Perbadanan”) berkenaan dengan pemberian bantuan kewangan latihan kemahiran, sebagai tambahan kepada pinjaman latihan kemahiran, kepada pelatih yang layak yang menjalankan program latihan kemahiran yang diluluskan, dan untuk meluaskan skop kelulusan program latihan kemahiran bagi maksud memberikan pinjaman latihan kemahiran atau bantuan kewangan latihan kemahiran di bawah Akta 640 supaya meliputi program latihan lain yang diiktiraf di bawah Akta Pembangunan Kemahiran Kebangsaan 2006 [Akta 652].",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/DR.34_2025%20-%20RUU%20Tabung%20Pembangunan%20Kemahiran%20%28Pindaan%29%202025.pdf#page=28",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.33/2025": {
+      "title": "RUU Sistem Insurans Pekerjaan (Pindaan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-12-02",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Sistem Insurans Pekerjaan 2017 (“Akta 800”) untuk memperluas ruang lingkupnya supaya merangkumi perkhidmatan pekerjaan kepada mana-mana orang dan untuk melaksanakan program, skim, langkah atau bantuan kewangan yang berhubungan dengan pasaran buruh yang aktif kepada mana-mana orang.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/Sistem%20Insurans%20Pekerjaan%20%28Pindaan%29%202025.pdf#page=12",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.32/2025": {
+      "title": "RUU Keselamatan Sosial Pekerja (Pindaan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-12-02",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Keselamatan Sosial Pekerja 1969 (“Akta 4”).",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/DR.32_2025%20RUU%20Keselamatan%20Sosial%20Pekerja%20%28Pindaan%29%202025.pdf#page=48",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.31/2025": {
+      "title": "RUU Agensi Persendirian (Pindaan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-10-09",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Agensi Persendirian 1971 (“Akta 27”), antara lainnya, untuk menambah baik peruntukan yang berhubungan dengan pengeluaran dan pembaharuan lesen kepada seseorang yang menjalankan perniagaan agensi persendirian.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/DR.31_2025%20RUU%20Agensi%20Persendirian%20%28Pindaan%29%202025.pdf#page=4",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.30/2025": {
+      "title": "RUU Perbekalan 2026",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-12-01",
+      "summary": "Rang Undang-Undang ini bertujuan untuk mengadakan peruntukan bagi mengeluarkan wang daripada Kumpulan Wang Disatukan sebanyak dua ratus dua puluh sembilan bilion lapan puluh juta lapan ratus dua belas ribu tujuh ratus ringgit (RM229,080,812,700) untuk perkhidmatan bagi tahun 2026 dan supaya jumlah wang itu diperuntukkan bagi maksud-maksud yang dinyatakan dalam Jadual.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/RUU%20Perbekalan%202026.pdf#page=3",
+      "division": null,
+      "unverified": {
+        "division": "A Division exists for this Bill's second reading (data/mp_profiles.json, P.102, sitting 2025-11-04, subject \"RANG UNDANG-UNDANG PERBEKALAN 2026 Bacaan Kali Yang Kedua\") but is not attached here: the Bills register gives this Bill's own \"Bacaan Kedua Pada\" as 01/12/2025, not 2025-11-04, and this pipeline will not attach a Division to a Bill whose own stage date disagrees with the Division's sitting date. Needs a fresh Hansard check to resolve which date is right, not a guess."
+      }
+    },
+    "D.R.29/2025": {
+      "title": "RUU Sewa Beli (Pindaan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-10-08",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Sewa Beli 1967 (“Akta 212”) dengan memperuntukkan penyelesaian yang lebih adil kepada pengguna di bawah suatu perjanjian sewa beli khususnya penggantian kaedah sedia ada bagi pengiraan caj terma.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/D.R.292025%20Rang%20Undang-Undang%20Sewa%20Beli%20%28Pindaan%29%202025.pdf#page=12",
       "division": null,
       "unverified": {
         "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
@@ -65,6 +506,270 @@
       },
       "unverified": {}
     },
+    "D.R.27/2025": {
+      "title": "RUU Pekerja Gig 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-08-28",
+      "summary": "Akta Pekerja Gig 2025 (“Akta yang dicadangkan”) bertujuan untuk melindungi hak pekerja gig, untuk mengadakan peruntukan bagi kewajipan entiti kontrak, untuk mengawal selia terma dan syarat perjanjian perkhidmatan yang dibuat antara entiti kontrak dengan pekerja gig, untuk mengadakan peruntukan bagi mekanisme penyelesaian pertikaian, untuk mengadakan peruntukan bagi penubuhan Majlis Perundingan, untuk mengadakan peruntukan bagi penubuhan Tribunal Pekerja Gig dan untuk mengadakan peruntukan bagi perkara yang berkaitan.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/D.R.272025%20RUU%20PEKERJA%20GIG%202025.pdf#page=61",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.26/2025": {
+      "title": "RUU Perlesenan Tenaga Atom (Pindaan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-08-25",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Perlesenan Tenaga Atom 1984 (“Akta 304”).",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/RUU%20Perlesenan%20Tenaga%20Atom%20%28Pindaan%29%202025.pdf#page=64",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.25/2025": {
+      "title": "RUU Pembaharuan Semula Bandar 2025",
+      "year": 2025,
+      "stage": "Bacaan Kali Pertama",
+      "stage_date": "2025-08-21",
+      "summary": "Rang Undang-Undang ini (“Akta yang dicadangkan”) bertujuan untuk mengadakan peruntukan bagi kawalan dan pengawasan pembaharuan semula bandar bagi maksud perancangan bandar dan bagi perkara lain yang berkaitan.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/RUU%20Pembaharuan%20Semula%20Bandar%202025.pdf#page=25",
+      "division": null,
+      "unverified": {
+        "division": "Still at the \"Bacaan Kali Pertama\" stage per the Bills register — no vote has been put to the House on this Bill yet, so there is no Division to have or not have."
+      }
+    },
+    "D.R.24/2025": {
+      "title": "RUU Bantuan Guaman dan Pembelaan Awam 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-08-25",
+      "summary": "Rang Undang-Undang Bantuan Guaman dan Pembelaan Awam 2025 (“Akta yang dicadangkan”) bertujuan untuk menambah baik dan mereformasikan khidmat bantuan guaman dengan memansuhkan Akta Bantuan Guaman 1971 [ Akta 26 ] dan menggantikannya dengan Akta yang dicadangkan ini.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/RUU%20Bantuan%20Guaman%20dan%20Pembelaan%20Awam%202025.pdf#page=60",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.23/2025": {
+      "title": "RUU Pendaftaran Negara (Pindaan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-08-27",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Pendaftaran Negara 1959 (“Akta 78”).",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/D.R%2023_2025%20-%20RUU%20Pendaftaran%20Negara%20%28Pindaan%29%202025.pdf#page=3",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.22/2025": {
+      "title": "RUU Duti Timbal Balas dan Anti-Lambakan (Pindaan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-08-26",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Duti Timbal Balas dan Anti-Lambakan 1993 (“Akta 504”).",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/D.R%2022_2025%20-%20RUU%20Duti%20Timbal%20Balas%20dan%20Anti-Lambakan.pdf#page=18",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.21/2025": {
+      "title": "RUU Insolvensi Rentas Sempadan 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-07-29",
+      "summary": "Rang Undang-Undang ini (“Akta yang dicadangkan”) bertujuan untuk mengadakan peruntukan bagi suatu rangka kerja undang-undang bagi perkara yang berhubungan dengan insolvensi rentas sempadan, termasuk akses kepada Mahkamah oleh wakil asing dan pemiutang asing, pengiktirafan prosiding insolvensi asing, pemberian relief berhubung dengan pengiktirafan prosiding asing, kerjasama dengan mahkamah asing dan wakil asing, penyelarasan prosiding serentak dan perkara lain yang berkaitan mengikut prinsip Undang-Undang Model berkenaan Insolvensi Rentas Sempadan yang diterima pakai oleh Suruhanjaya Bangsa-Bangsa Bersatu bagi Undang-Undang Perdagangan Antarabangsa (UNCITRAL).",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/D.R%2021_2025%20-%20RUU%20Insolvensi%20Rentas%20Sempadan%202025.pdf#page=34",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.20/2025": {
+      "title": "RUU Pendidikan (Pindaan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-07-30",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Pendidikan 1996 (“Akta 550”).",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/D.R%2020_2025%20-%20RUU%20Pendidikan%20%28Pindaan%29%202025.pdf#page=3",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.19/2025": {
+      "title": "RUU Fi (Feri Pengkalan Kubor) (Pengesahan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-07-28",
+      "summary": "Rang Undang-Undang Fi (Feri Pengkalan Kubor) (Pengesahan) 2025 yang dicadangkan (“Akta yang dicadangkan”) bertujuan untuk mengesahkan pemungutan fi berkenaan dengan perkhidmatan feri di antara Pengkalan Kubor, Malaysia dengan Takbai, Thailand yang ditadbir dan dikawal selia oleh Jabatan Kerja Raya Malaysia semasa tempoh mulai 1 Januari 1999 hingga 31 Disember 2024.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/D.R%2019_2025%20-%20RUU%20Fi%20%28Feri%20Pengkalan%20Kubor%29%20%28Pengesahan%29%202025.pdf#page=2",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.18/2025": {
+      "title": "RUU Perikanan (Pindaan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-07-29",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Perikanan 1985 (“Akta 317”).",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/DR%2018_2025%20-%20BM%20-%20RUU%20PERIKANAN%20%28PINDAAN%29%202025.pdf#page=39",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.17/2025": {
+      "title": "RUU Racun (Pindaan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-07-28",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Racun 1952 (“Akta 366”).",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/D.R%2017_2025%20-%20RUU%20Racun%20%28Pindaan%29%202025.pdf#page=3",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.16/2025": {
+      "title": "RUU Kehadiran Wajib Pesalah-Pesalah (Pindaan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-07-28",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Kehadiran Wajib Pesalah-Pesalah 1954 (“Akta 461”).",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/D.R%2016_2025%20-%20RUU%20Kehadiran%20Wajib%20Pesalah-Pesalah%20%28Pindaan%29%202025.pdf#page=4",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.15/2025": {
+      "title": "RUU Perlindungan Pemberi Maklumat (Pindaan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-07-22",
+      "summary": "Fasal 6 Rang Undang-Undang dipinda untuk memberi agensi penguatkuasaan kuasa untuk mengekalkan perlindungan kepada pemberi maklumat berhubung dengan sebab di bawah perenggan ll(l)(aJ Akta Perlindungan Pemberi Maklumat 2010 [Akta 711].",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/DR%2015_2025%20-BM-%20PERLINDUNGAN%20PEMBERI%20MAKLUMAT.pdf#page=1",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.14/2025": {
+      "title": "RUU Kredit Pengguna 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-07-21",
+      "summary": "Rang Undang-Undang ini (“Akta yang dicadangkan”) bertujuan untuk mengadakan peruntukan bagi penubuhan Suruhanjaya Kredit Pengguna, perlindungan kepentingan pengguna kredit, pengawalseliaan dan penyeliaan perniagaan kredit konvensional atau Islam dan perniagaan perkhidmatan kredit, pelakuan yang sepatutnya dan amalan peminjaman bertanggungjawab dalam industri kredit dan penggalakan suatu industri kredit yang adil, cekap dan telus dan untuk mengadakan peruntukan bagi perkara-perkara lain yang berkaitan dengannya dan bersampingan padanya.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/DR%2014-BM.pdf#page=144",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.13/2025": {
+      "title": "RUU Pengurusan Sisa Pepejal dan Pembersihan Awam (Pindaan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-07-21",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Pengurusan Sisa Pepejal dan Pembersihan Awam 2007 (“Akta 672”) untuk memasukkan Bahagian baharu VIII a ke dalam Akta 672 untuk mengadakan peruntukan bagi kesalahan membuang, mencampakkan, menempatkan atau meninggalkan atau menyebabkan untuk dibuang, dicampak, ditempatkan atau ditinggalkan apa-apa sisa pepejal di mana-mana tempat awam atau jalan awam dan untuk memberikan kuasa kepada mahkamah untuk membuat perintah khidmat masyarakat yang menghendaki seseorang yang disabitkan atas kesalahan itu untuk melaksanakan khidmat masyarakat sebagai tambahan kepada denda yang dikenakan bagi kesalahan itu.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/DR%2013-BM.pdf#page=5",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.12/2025": {
+      "title": "RUU Kerajaan Tempatan (Pindaan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-07-21",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Kerajaan Tempatan 1976 (“Akta 171”) untuk memberikan kuasa kepada mahkamah untuk membuat suatu perintah khidmat masyarakat yang menghendaki seseorang yang disabitkan atas suatu kesalahan bagi pelanggaran mana-mana undang-undang kecil yang dibuat di bawah subperenggan 73(1) (a) (ii) Akta 171 untuk melaksanakan khidmat masyarakat sebagai tambahan kepada denda yang dikenakan bagi kesalahan itu.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/DR%2012-BM.pdf#page=5",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.11/2025": {
+      "title": "RUU Jalan, Parit dan Bangunan (Pindaan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-07-22",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Jalan, Parit dan Bangunan 1974 (“Akta 133”) untuk memberikan kuasa kepada mahkamah untuk membuat suatu perintah khidmat masyarakat yang menghendaki seseorang yang disabitkan atas suatu kesalahan di bawah subseksyen 47(1) Akta 133 untuk melaksanakan khidmat masyarakat sebagai tambahan kepada denda",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/DR%2011-BM.pdf#page=5",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.10/2025": {
+      "title": "RUU Pemerangkapan, Penggunaan dan Penyimpanan Karbon 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-03-06",
+      "summary": "Rang Undang-Undang Pemerangkapan, Penggunaan dan Penyimpanan Karbon (“Akta yang dicadangkan”) bertujuan untuk mengadakan peruntukan untuk perkara yang berkaitan dengan pemerangkapan, pengangkutan, penggunaan dan penyimpanan kekal karbon dioksida dan mengurangkan kesan perubahan iklim, memangkinkan pembangunan industri pemerangkapan, penggunaan dan penyimpanan karbon sebagai suatu sumber baharu bagi pertumbuhan ekonomi dan bagi mengadakan peruntukan bagi perkara lain yang berhubungan dengannya.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/DR%2010-BM.pdf#page=35",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R. 9/2025": {
+      "title": "RUU Iltizam Kecekapan Perkhidmatan Kerajaan 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-03-06",
+      "summary": "Rang Undang-Undang ini (“Akta yang dicadangkan”) bertujuan untuk meningkatkan kualiti, kecekapan dan keberkesanan perkhidmatan Kerajaan dengan menangani birokrasi melalui pengurangan beban kawal selia.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/DR%209-BM.pdf#page=12",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R. 8/2025": {
+      "title": "RUU Kumpulan Wang Simpanan Pekerja (Pindaan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-03-06",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Kumpulan Wang Simpanan Pekerja 1991 (“Akta 452”) bagi mengadakan peruntukan yang berhubungan dengan tanggungan untuk membayar caruman dan kadar caruman yang kena dibayar ke atas pekerja yang bukan warganegara Malaysia.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/DR%208-BM.pdf#page=4",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R. 7/2025": {
+      "title": "RUU Suruhanjaya Tenaga (Pindaan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-07-30",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Suruhanjaya Tenaga 2001 (“Akta 610”) berikutan pindaan kepada Akta Bekalan Elektrik 1990 [ Akta 447 ].",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/DR%207-BM.pdf#page=2",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R. 6/2025": {
+      "title": "RUU Bekalan Elektrik (Pindaan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-07-30",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Bekalan Elektrik 1990 (“Akta 447”) untuk meluaskan ruang lingkup Akta 447 dengan mengawal selia pengimportan elektrik dan pengeksportan elektrik serta atribut hijau.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/DR%206-BM.pdf#page=9",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
     "D.R. 5/2025": {
       "title": "RUU Perlembagaan (Pindaan) 2025",
       "year": 2025,
@@ -82,6 +787,66 @@
         "hansard_url": "https://hansard.parlimen.gov.my/hansard/dewan-rakyat/2025-03-04"
       },
       "unverified": {}
+    },
+    "D.R. 4/2025": {
+      "title": "RUU Perkhidmatan Parlimen 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-03-05",
+      "summary": "Rang Undang-Undang ini (“Akta yang dicadangkan”) bertujuan untuk mengadakan peruntukan bagi penubuhan Perkhidmatan Parlimen dan Majlis Perkhidmatan Parlimen, pentadbiran Perkhidmatan Parlimen dan perkara lain yang berkaitan dengannya.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/DR%204%20-%20BM_merged.pdf#page=16",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R. 3/2025": {
+      "title": "RUU Perbekalan Tambahan (2024) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-03-03",
+      "summary": "Rang Undang-Undang ini bertujuan untuk mengadakan peruntukan bagi pengeluaran wang daripada Kumpulan Wang Disatukan sebanyak dua puluh bilion satu ratus sembilan puluh satu juta dua ratus sembilan puluh sembilan ribu lima ratus ringgit (RM20,191,299,500) untuk perkhidmatan dan maksud yang dinyatakan dalam Jadual bagi tahun 2024.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/DR3_2025%20-%20BM.pdf#page=2",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R. 2/2025": {
+      "title": "RUU Perkhidmatan Bomba (Pindaan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-03-05",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Perkhidmatan Bomba 1988 (“Akta 341”) untuk mengadakan peruntukan, antara lainnya, bagi pendaftaran Pasukan Bomba Sukarela dan perkara lain yang berkaitan, dan untuk mengadakan peruntukan bagi pendaftaran perunding keselamatan kebakaran, firma perunding keselamatan kebakaran, orang kompeten, kontraktor keselamatan kebakaran, penyedia latihan dan pengajar, dan kelengkapan menentang kebakaran atau pepasangan keselamatan kebakaran.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/DR2_2025%20-%20BM.pdf#page=25",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R. 1/2025": {
+      "title": "RUU Kumpulan Wang Yayasan Tunku Abdul Rahman (Pindaan) 2025",
+      "year": 2025,
+      "stage": "Lulus",
+      "stage_date": "2025-02-26",
+      "summary": "Rang Undang-Undang ini bertujuan untuk meminda Akta Kumpulan Wang Yayasan Tunku Abdul Rahman 1966 (“Akta 389”).",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2025/DR/DR%201_2025%20-%20BM.pdf#page=5",
+      "division": null,
+      "unverified": {
+        "division": "Not among the 15th Parliament's ten recorded Divisions (see data/mp_profiles.json and ADR 0009) — this Bill passed on a voice vote, which Hansard records as a decision with no individual position taken."
+      }
+    },
+    "D.R.19/2024": {
+      "title": "RUU Mufti (Wilayah-Wilayah Persekutuan) 2024",
+      "year": 2024,
+      "stage": "Bacaan Kali Pertama",
+      "stage_date": "2024-07-02",
+      "summary": "Rang Undang-Undang Mufti (Wilayah-Wilayah Persekutuan) 2024 (“Akta yang dicadangkan”) bertujuan untuk mengadakan peruntukan yang berhubungan dengan Mufti, penentuan perkara mengenai hukum dan doktrin Syarak dan perkara yang berkaitan.",
+      "summary_source_url": "https://www.parlimen.gov.my/files/billindex/pdf/2024/DR/DR%2019%20BM.pdf#page=27",
+      "division": null,
+      "unverified": {
+        "division": "Still at the \"Bacaan Kali Pertama\" stage per the Bills register — no vote has been put to the House on this Bill yet, so there is no Division to have or not have."
+      }
     }
   }
 }
