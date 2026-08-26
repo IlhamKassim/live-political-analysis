@@ -243,7 +243,7 @@ DEFAULT_POSTCODE_SEAT_INDEX_PATH = data_file("postcode_seat_index.json")
 def load_postcode_seat_index(path: Path | None = None) -> Mapping[str, tuple[SeatMatch, ...]]:
     """Postcode -> candidate Seat(s), from `data/postcode_seat_index.json`.
 
-    A pilot slice, not all 222 Seats — see the module docstring on
+    Not every Malaysian postcode yet — see the module docstring on
     `lpa.postcode_index` and ADR 0008. Every entry names at least one Seat;
     an empty tuple for a postcode not in the returned mapping is the caller's
     job (`lpa.postcode_index.lookup_postcode` does this), not this loader's.

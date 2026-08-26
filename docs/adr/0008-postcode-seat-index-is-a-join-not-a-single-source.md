@@ -69,3 +69,50 @@ Commission's boundaries — that would remove the curation step's manual
 verification burden entirely, at the cost of needing a geocoded postcode
 centroid dataset this session did not find one of comparably zero-cost and
 license-clear.
+
+**Update (#107): nationwide exact-match tier added; full curation still
+follow-up work.** Fetching both sources whole (all 16 states/territories,
+not just Selangor) confirmed the scaling concern above empirically: of 444
+Pos Malaysia towns, only 178 are byte-identical (case/whitespace folded) to
+a daerah mengundi string — the rest are overwhelmingly city/district names
+one level up from a daerah mengundi ("Johor Bahru", "Kluang", "Alor Setar")
+that would need the same per-locality hand-verification the pilot did,
+repeated roughly 35x. Rather than wait on that, the build script now has two
+tiers: an **exact-match** tier (`auto_match_localities` in
+`scripts/build_postcode_seat_index.py`) that needs no human curation at all
+— a town name equal to a daerah mengundi string is two sources agreeing, not
+a guess — applied across every state, plus the original 7-entry hand-curated
+Selangor table kept verbatim (four of those entries, "Semenyih", "Hulu
+Langat", "Bandar Baru Bangi", and "Cheras", have no exact match at all and
+are unreachable any other way). This took the shipped index from 12
+postcodes/2 Seats to 352 postcodes/116 Seats, strictly a superset of the
+original 12 — every #76 postcode keeps at least its original Seat(s), which
+`tests/test_postcode_index.py` now checks directly rather than trusting by
+inspection. The 262 towns that resolve to neither tier are recorded, per
+state, in `data/postcode_seat_index_unresolved.json` rather than guessed at
+or silently dropped — that file is the concrete starting point for the
+follow-up curation this ADR always expected, not a new decision.
+
+Doing this at full scale also surfaced a real correctness gap this ADR's
+pilot never exercised: 141 daerah mengundi strings, nationwide, are not
+unique within their own state — the identical name appears under two or more
+different Parlimen (e.g. Johor's "BUKIT PASIR" under both P.143 Pagoh and
+P.150 Batu Pahat). The pilot's own lookup dict was keyed by daerah string and
+would have silently kept only one Parlimen for any of these had one been in
+scope; at nationwide scale, 6 of the 178 exact-matched towns hit this
+directly. `fetch_daerah_to_parlimen_by_state` now keeps every Parlimen a
+daerah string resolves to, so these correctly come out multi-Seat — the same
+"never a guessed single answer" principle as Cheras, just visible one level
+lower than a curated town name. A separate, looser check — whether any *other*
+daerah mengundi merely contains an exact-matched town's name as a substring,
+under a different Parlimen — found 20 towns with that property, but manual
+inspection showed these are the "Penjara Kajang" pattern this ADR already
+rejected (e.g. "Sungai Buloh" exact-matches one daerah under P.106, while
+"Penjara Sungai Buloh" — a different name entirely — happens to sit under
+P.097): coincidental shared wording between distinctly-named daerah, not
+evidence of a real boundary split. Those are correctly left as exact-match
+singletons, not merged in.
+
+The per-postcode payload size held at ~20 bytes/postcode as predicted (7,157
+bytes for 352 postcodes' worth of `postcodes` alone), so the "well under 100
+KB uncompressed" estimate for a full ~2,900-postcode index still holds.
