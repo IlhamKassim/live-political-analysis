@@ -1,14 +1,17 @@
 {
   "_comment": [
     "Postcode -> candidate Seat code(s), for the constituency lookup",
-    "(issue #76). Pilot slice: Selangor P.101 Hulu Langat and P.102 Bangi",
-    "only — see scripts/build_postcode_seat_index.py, which generated this",
-    "file, for the method and TOWN_LOCALITIES for exactly which sources",
-    "justify each entry. A postcode with more than one Seat is genuinely",
-    "ambiguous: Malaysian postcodes were not drawn against electoral",
-    "boundaries, so a single postcode can serve localities that fall in",
-    "different Seats. `_seats` names each code once; a postcode entry",
-    "carries the code alone so the two cannot disagree."
+    "(issues #76, #107). See scripts/build_postcode_seat_index.py, which",
+    "generated this file, for the two-tier join method (exact match plus",
+    "hand-curated aliases) and for exactly which sources justify each",
+    "entry. A postcode with more than one Seat is genuinely ambiguous:",
+    "Malaysian postcodes were not drawn against electoral boundaries, so a",
+    "single postcode can serve localities that fall in different Seats.",
+    "`_seats` names each code once; a postcode entry carries the code",
+    "alone so the two cannot disagree. Towns this pass could not resolve",
+    "(no exact match and no hand-curated entry) are listed, with their",
+    "postcode counts, in postcode_seat_index_unresolved.json alongside",
+    "this file — not fabricated a Seat, and not silently dropped either."
   ],
   "_source": {
     "delimitation": {
@@ -19,12 +22,224 @@
     "postcode_locality": {
       "name": "AsyrafHussin/malaysia-postcodes (MIT)",
       "url": "https://github.com/AsyrafHussin/malaysia-postcodes",
-      "dataset_url": "https://raw.githubusercontent.com/AsyrafHussin/malaysia-postcodes/master/selangor.json"
+      "dataset_url": "https://raw.githubusercontent.com/AsyrafHussin/malaysia-postcodes/master/all.json"
     },
-    "retrieved": "2026-08-24",
+    "retrieved": "2026-08-26",
     "generated_by": "scripts/build_postcode_seat_index.py"
   },
   "_seats": {
+    "P.001": {
+      "name": "Padang Besar",
+      "state": "Perlis"
+    },
+    "P.006": {
+      "name": "Kubang Pasu",
+      "state": "Kedah"
+    },
+    "P.010": {
+      "name": "Kuala Kedah",
+      "state": "Kedah"
+    },
+    "P.012": {
+      "name": "Jerai",
+      "state": "Kedah"
+    },
+    "P.015": {
+      "name": "Sungai Petani",
+      "state": "Kedah"
+    },
+    "P.016": {
+      "name": "Baling",
+      "state": "Kedah"
+    },
+    "P.018": {
+      "name": "Kulim-Bandar Baharu",
+      "state": "Kedah"
+    },
+    "P.026": {
+      "name": "Ketereh",
+      "state": "Kelantan"
+    },
+    "P.028": {
+      "name": "Pasir Puteh",
+      "state": "Kelantan"
+    },
+    "P.031": {
+      "name": "Kuala Krai",
+      "state": "Kelantan"
+    },
+    "P.034": {
+      "name": "Setiu",
+      "state": "Terengganu"
+    },
+    "P.039": {
+      "name": "Dungun",
+      "state": "Terengganu"
+    },
+    "P.041": {
+      "name": "Kepala Batas",
+      "state": "Pulau Pinang"
+    },
+    "P.042": {
+      "name": "Tasek Gelugor",
+      "state": "Pulau Pinang"
+    },
+    "P.044": {
+      "name": "Permatang Pauh",
+      "state": "Pulau Pinang"
+    },
+    "P.046": {
+      "name": "Batu Kawan",
+      "state": "Pulau Pinang"
+    },
+    "P.047": {
+      "name": "Nibong Tebal",
+      "state": "Pulau Pinang"
+    },
+    "P.051": {
+      "name": "Bukit Gelugor",
+      "state": "Pulau Pinang"
+    },
+    "P.052": {
+      "name": "Bayan Baru",
+      "state": "Pulau Pinang"
+    },
+    "P.053": {
+      "name": "Balik Pulau",
+      "state": "Pulau Pinang"
+    },
+    "P.056": {
+      "name": "Larut",
+      "state": "Perak"
+    },
+    "P.057": {
+      "name": "Parit Buntar",
+      "state": "Perak"
+    },
+    "P.058": {
+      "name": "Bagan Serai",
+      "state": "Perak"
+    },
+    "P.059": {
+      "name": "Bukit Gantang",
+      "state": "Perak"
+    },
+    "P.060": {
+      "name": "Taiping",
+      "state": "Perak"
+    },
+    "P.061": {
+      "name": "Padang Rengas",
+      "state": "Perak"
+    },
+    "P.063": {
+      "name": "Tambun",
+      "state": "Perak"
+    },
+    "P.066": {
+      "name": "Batu Gajah",
+      "state": "Perak"
+    },
+    "P.067": {
+      "name": "Kuala Kangsar",
+      "state": "Perak"
+    },
+    "P.068": {
+      "name": "Beruas",
+      "state": "Perak"
+    },
+    "P.069": {
+      "name": "Parit",
+      "state": "Perak"
+    },
+    "P.070": {
+      "name": "Kampar",
+      "state": "Perak"
+    },
+    "P.071": {
+      "name": "Gopeng",
+      "state": "Perak"
+    },
+    "P.072": {
+      "name": "Tapah",
+      "state": "Perak"
+    },
+    "P.073": {
+      "name": "Pasir Salak",
+      "state": "Perak"
+    },
+    "P.074": {
+      "name": "Lumut",
+      "state": "Perak"
+    },
+    "P.075": {
+      "name": "Bagan Datuk",
+      "state": "Perak"
+    },
+    "P.077": {
+      "name": "Tanjong Malim",
+      "state": "Perak"
+    },
+    "P.078": {
+      "name": "Cameron Highlands",
+      "state": "Pahang"
+    },
+    "P.079": {
+      "name": "Lipis",
+      "state": "Pahang"
+    },
+    "P.080": {
+      "name": "Raub",
+      "state": "Pahang"
+    },
+    "P.082": {
+      "name": "Indera Mahkota",
+      "state": "Pahang"
+    },
+    "P.084": {
+      "name": "Paya Besar",
+      "state": "Pahang"
+    },
+    "P.085": {
+      "name": "Pekan",
+      "state": "Pahang"
+    },
+    "P.087": {
+      "name": "Kuala Krau",
+      "state": "Pahang"
+    },
+    "P.089": {
+      "name": "Bentong",
+      "state": "Pahang"
+    },
+    "P.090": {
+      "name": "Bera",
+      "state": "Pahang"
+    },
+    "P.091": {
+      "name": "Rompin",
+      "state": "Pahang"
+    },
+    "P.093": {
+      "name": "Sungai Besar",
+      "state": "Selangor"
+    },
+    "P.094": {
+      "name": "Hulu Selangor",
+      "state": "Selangor"
+    },
+    "P.096": {
+      "name": "Kuala Selangor",
+      "state": "Selangor"
+    },
+    "P.097": {
+      "name": "Selayang",
+      "state": "Selangor"
+    },
+    "P.098": {
+      "name": "Gombak",
+      "state": "Selangor"
+    },
     "P.101": {
       "name": "Hulu Langat",
       "state": "Selangor"
@@ -32,9 +247,640 @@
     "P.102": {
       "name": "Bangi",
       "state": "Selangor"
+    },
+    "P.109": {
+      "name": "Kapar",
+      "state": "Selangor"
+    },
+    "P.113": {
+      "name": "Sepang",
+      "state": "Selangor"
+    },
+    "P.126": {
+      "name": "Jelebu",
+      "state": "Negeri Sembilan"
+    },
+    "P.127": {
+      "name": "Jempol",
+      "state": "Negeri Sembilan"
+    },
+    "P.128": {
+      "name": "Seremban",
+      "state": "Negeri Sembilan"
+    },
+    "P.129": {
+      "name": "Kuala Pilah",
+      "state": "Negeri Sembilan"
+    },
+    "P.130": {
+      "name": "Rasah",
+      "state": "Negeri Sembilan"
+    },
+    "P.131": {
+      "name": "Rembau",
+      "state": "Negeri Sembilan"
+    },
+    "P.132": {
+      "name": "Port Dickson",
+      "state": "Negeri Sembilan"
+    },
+    "P.134": {
+      "name": "Masjid Tanah",
+      "state": "Melaka"
+    },
+    "P.140": {
+      "name": "Segamat",
+      "state": "Johor"
+    },
+    "P.142": {
+      "name": "Labis",
+      "state": "Johor"
+    },
+    "P.143": {
+      "name": "Pagoh",
+      "state": "Johor"
+    },
+    "P.144": {
+      "name": "Ledang",
+      "state": "Johor"
+    },
+    "P.146": {
+      "name": "Muar",
+      "state": "Johor"
+    },
+    "P.147": {
+      "name": "Parit Sulong",
+      "state": "Johor"
+    },
+    "P.149": {
+      "name": "Sri Gading",
+      "state": "Johor"
+    },
+    "P.150": {
+      "name": "Batu Pahat",
+      "state": "Johor"
+    },
+    "P.151": {
+      "name": "Simpang Renggam",
+      "state": "Johor"
+    },
+    "P.153": {
+      "name": "Sembrong",
+      "state": "Johor"
+    },
+    "P.156": {
+      "name": "Kota Tinggi",
+      "state": "Johor"
+    },
+    "P.157": {
+      "name": "Pengerang",
+      "state": "Johor"
+    },
+    "P.159": {
+      "name": "Pasir Gudang",
+      "state": "Johor"
+    },
+    "P.163": {
+      "name": "Kulai",
+      "state": "Johor"
+    },
+    "P.164": {
+      "name": "Pontian",
+      "state": "Johor"
+    },
+    "P.169": {
+      "name": "Kota Belud",
+      "state": "Sabah"
+    },
+    "P.170": {
+      "name": "Tuaran",
+      "state": "Sabah"
+    },
+    "P.172": {
+      "name": "Kota Kinabalu",
+      "state": "Sabah"
+    },
+    "P.176": {
+      "name": "Kimanis",
+      "state": "Sabah"
+    },
+    "P.177": {
+      "name": "Beaufort",
+      "state": "Sabah"
+    },
+    "P.182": {
+      "name": "Pensiangan",
+      "state": "Sabah"
+    },
+    "P.183": {
+      "name": "Beluran",
+      "state": "Sabah"
+    },
+    "P.187": {
+      "name": "Kinabatangan",
+      "state": "Sabah"
+    },
+    "P.192": {
+      "name": "Mas Gading",
+      "state": "Sarawak"
+    },
+    "P.193": {
+      "name": "Santubong",
+      "state": "Sarawak"
+    },
+    "P.197": {
+      "name": "Kota Samarahan",
+      "state": "Sarawak"
+    },
+    "P.198": {
+      "name": "Puncak Borneo",
+      "state": "Sarawak"
+    },
+    "P.200": {
+      "name": "Batang Sadong",
+      "state": "Sarawak"
+    },
+    "P.201": {
+      "name": "Batang Lupar",
+      "state": "Sarawak"
+    },
+    "P.203": {
+      "name": "Lubok Antu",
+      "state": "Sarawak"
+    },
+    "P.204": {
+      "name": "Betong",
+      "state": "Sarawak"
+    },
+    "P.205": {
+      "name": "Saratok",
+      "state": "Sarawak"
+    },
+    "P.206": {
+      "name": "Tanjong Manis",
+      "state": "Sarawak"
+    },
+    "P.207": {
+      "name": "Igan",
+      "state": "Sarawak"
+    },
+    "P.208": {
+      "name": "Sarikei",
+      "state": "Sarawak"
+    },
+    "P.209": {
+      "name": "Julau",
+      "state": "Sarawak"
+    },
+    "P.210": {
+      "name": "Kanowit",
+      "state": "Sarawak"
+    },
+    "P.211": {
+      "name": "Lanang",
+      "state": "Sarawak"
+    },
+    "P.213": {
+      "name": "Mukah",
+      "state": "Sarawak"
+    },
+    "P.214": {
+      "name": "Selangau",
+      "state": "Sarawak"
+    },
+    "P.215": {
+      "name": "Kapit",
+      "state": "Sarawak"
+    },
+    "P.216": {
+      "name": "Hulu Rajang",
+      "state": "Sarawak"
+    },
+    "P.217": {
+      "name": "Bintulu",
+      "state": "Sarawak"
+    },
+    "P.218": {
+      "name": "Sibuti",
+      "state": "Sarawak"
+    },
+    "P.219": {
+      "name": "Miri",
+      "state": "Sarawak"
+    },
+    "P.220": {
+      "name": "Baram",
+      "state": "Sarawak"
+    },
+    "P.221": {
+      "name": "Limbang",
+      "state": "Sarawak"
+    },
+    "P.222": {
+      "name": "Lawas",
+      "state": "Sarawak"
     }
   },
   "postcodes": {
+    "02100": [
+      "P.001"
+    ],
+    "06050": [
+      "P.006"
+    ],
+    "06200": [
+      "P.006"
+    ],
+    "06207": [
+      "P.006"
+    ],
+    "06209": [
+      "P.006"
+    ],
+    "06650": [
+      "P.010",
+      "P.016"
+    ],
+    "06680": [
+      "P.010",
+      "P.016"
+    ],
+    "06800": [
+      "P.010"
+    ],
+    "08300": [
+      "P.012"
+    ],
+    "08330": [
+      "P.012"
+    ],
+    "08500": [
+      "P.015"
+    ],
+    "08507": [
+      "P.015"
+    ],
+    "08509": [
+      "P.015"
+    ],
+    "08800": [
+      "P.012"
+    ],
+    "09110": [
+      "P.016"
+    ],
+    "09700": [
+      "P.018"
+    ],
+    "11000": [
+      "P.053"
+    ],
+    "11010": [
+      "P.053"
+    ],
+    "11020": [
+      "P.053"
+    ],
+    "11500": [
+      "P.051"
+    ],
+    "11900": [
+      "P.053"
+    ],
+    "11910": [
+      "P.053"
+    ],
+    "11920": [
+      "P.053"
+    ],
+    "11950": [
+      "P.053"
+    ],
+    "11960": [
+      "P.052"
+    ],
+    "13100": [
+      "P.041"
+    ],
+    "13110": [
+      "P.041"
+    ],
+    "13200": [
+      "P.041"
+    ],
+    "13210": [
+      "P.041"
+    ],
+    "13220": [
+      "P.041"
+    ],
+    "13300": [
+      "P.042"
+    ],
+    "13310": [
+      "P.042"
+    ],
+    "13500": [
+      "P.044"
+    ],
+    "13600": [
+      "P.046"
+    ],
+    "13700": [
+      "P.046"
+    ],
+    "14100": [
+      "P.042",
+      "P.044"
+    ],
+    "14101": [
+      "P.042",
+      "P.044"
+    ],
+    "14110": [
+      "P.042",
+      "P.044"
+    ],
+    "14120": [
+      "P.042",
+      "P.044"
+    ],
+    "14300": [
+      "P.047"
+    ],
+    "14310": [
+      "P.047"
+    ],
+    "14320": [
+      "P.047"
+    ],
+    "14400": [
+      "P.044"
+    ],
+    "16400": [
+      "P.026"
+    ],
+    "16450": [
+      "P.026"
+    ],
+    "16810": [
+      "P.028"
+    ],
+    "18200": [
+      "P.031"
+    ],
+    "21500": [
+      "P.034"
+    ],
+    "22100": [
+      "P.034"
+    ],
+    "22107": [
+      "P.034"
+    ],
+    "22109": [
+      "P.034"
+    ],
+    "22110": [
+      "P.034"
+    ],
+    "22120": [
+      "P.034"
+    ],
+    "23200": [
+      "P.039"
+    ],
+    "26080": [
+      "P.082"
+    ],
+    "26100": [
+      "P.082"
+    ],
+    "26150": [
+      "P.082"
+    ],
+    "26190": [
+      "P.082"
+    ],
+    "26250": [
+      "P.085"
+    ],
+    "26300": [
+      "P.084"
+    ],
+    "26310": [
+      "P.084"
+    ],
+    "26320": [
+      "P.084"
+    ],
+    "26330": [
+      "P.084"
+    ],
+    "26340": [
+      "P.084"
+    ],
+    "26350": [
+      "P.084"
+    ],
+    "26360": [
+      "P.084"
+    ],
+    "26370": [
+      "P.084"
+    ],
+    "26700": [
+      "P.091"
+    ],
+    "26800": [
+      "P.091"
+    ],
+    "26810": [
+      "P.091"
+    ],
+    "26820": [
+      "P.091"
+    ],
+    "27100": [
+      "P.079"
+    ],
+    "27500": [
+      "P.080"
+    ],
+    "27660": [
+      "P.080"
+    ],
+    "28050": [
+      "P.087"
+    ],
+    "28340": [
+      "P.090"
+    ],
+    "28380": [
+      "P.090"
+    ],
+    "31250": [
+      "P.063"
+    ],
+    "31600": [
+      "P.071"
+    ],
+    "31610": [
+      "P.071"
+    ],
+    "31700": [
+      "P.070"
+    ],
+    "31750": [
+      "P.066"
+    ],
+    "32000": [
+      "P.068"
+    ],
+    "32010": [
+      "P.068"
+    ],
+    "32020": [
+      "P.068"
+    ],
+    "32040": [
+      "P.074"
+    ],
+    "32050": [
+      "P.074"
+    ],
+    "32200": [
+      "P.074"
+    ],
+    "32500": [
+      "P.068"
+    ],
+    "32700": [
+      "P.068"
+    ],
+    "32900": [
+      "P.069"
+    ],
+    "32999": [
+      "P.069"
+    ],
+    "33500": [
+      "P.061"
+    ],
+    "33700": [
+      "P.061"
+    ],
+    "33800": [
+      "P.067"
+    ],
+    "34140": [
+      "P.056"
+    ],
+    "34200": [
+      "P.057"
+    ],
+    "34250": [
+      "P.057"
+    ],
+    "34300": [
+      "P.058"
+    ],
+    "34310": [
+      "P.058"
+    ],
+    "34350": [
+      "P.057"
+    ],
+    "34400": [
+      "P.058"
+    ],
+    "34500": [
+      "P.056"
+    ],
+    "34510": [
+      "P.056"
+    ],
+    "34520": [
+      "P.056"
+    ],
+    "34600": [
+      "P.060"
+    ],
+    "34800": [
+      "P.059"
+    ],
+    "34850": [
+      "P.059"
+    ],
+    "34900": [
+      "P.068"
+    ],
+    "34910": [
+      "P.068"
+    ],
+    "34950": [
+      "P.018"
+    ],
+    "35350": [
+      "P.072"
+    ],
+    "35600": [
+      "P.077"
+    ],
+    "35700": [
+      "P.077"
+    ],
+    "36200": [
+      "P.075"
+    ],
+    "36207": [
+      "P.075"
+    ],
+    "36209": [
+      "P.075"
+    ],
+    "36300": [
+      "P.075"
+    ],
+    "36307": [
+      "P.075"
+    ],
+    "36309": [
+      "P.075"
+    ],
+    "36400": [
+      "P.075"
+    ],
+    "36600": [
+      "P.073"
+    ],
+    "36700": [
+      "P.073"
+    ],
+    "36750": [
+      "P.073"
+    ],
+    "39000": [
+      "P.078"
+    ],
+    "39007": [
+      "P.078"
+    ],
+    "39009": [
+      "P.078"
+    ],
+    "39010": [
+      "P.078"
+    ],
+    "42200": [
+      "P.109"
+    ],
+    "42209": [
+      "P.109"
+    ],
+    "42300": [
+      "P.096"
+    ],
     "43000": [
       "P.102"
     ],
@@ -72,6 +918,599 @@
     ],
     "43701": [
       "P.101"
+    ],
+    "44100": [
+      "P.094"
+    ],
+    "44300": [
+      "P.094"
+    ],
+    "44309": [
+      "P.094"
+    ],
+    "44330": [
+      "P.094"
+    ],
+    "45000": [
+      "P.096"
+    ],
+    "45010": [
+      "P.096"
+    ],
+    "45400": [
+      "P.093"
+    ],
+    "45700": [
+      "P.096"
+    ],
+    "45800": [
+      "P.096"
+    ],
+    "48000": [
+      "P.097"
+    ],
+    "48009": [
+      "P.097"
+    ],
+    "48010": [
+      "P.097"
+    ],
+    "48020": [
+      "P.097"
+    ],
+    "48050": [
+      "P.097"
+    ],
+    "48100": [
+      "P.097"
+    ],
+    "48200": [
+      "P.094"
+    ],
+    "48250": [
+      "P.094"
+    ],
+    "48300": [
+      "P.097"
+    ],
+    "48302": [
+      "P.097"
+    ],
+    "49000": [
+      "P.080"
+    ],
+    "63000": [
+      "P.113"
+    ],
+    "63100": [
+      "P.113"
+    ],
+    "63200": [
+      "P.113"
+    ],
+    "63300": [
+      "P.113"
+    ],
+    "68100": [
+      "P.098"
+    ],
+    "69000": [
+      "P.089"
+    ],
+    "71050": [
+      "P.132"
+    ],
+    "71059": [
+      "P.132"
+    ],
+    "71100": [
+      "P.131"
+    ],
+    "71109": [
+      "P.131"
+    ],
+    "71150": [
+      "P.132"
+    ],
+    "71159": [
+      "P.132"
+    ],
+    "71200": [
+      "P.131"
+    ],
+    "71209": [
+      "P.131"
+    ],
+    "71250": [
+      "P.132"
+    ],
+    "71259": [
+      "P.132"
+    ],
+    "71350": [
+      "P.131"
+    ],
+    "71359": [
+      "P.131"
+    ],
+    "71500": [
+      "P.129"
+    ],
+    "71509": [
+      "P.129"
+    ],
+    "71550": [
+      "P.129"
+    ],
+    "71559": [
+      "P.129"
+    ],
+    "71800": [
+      "P.128"
+    ],
+    "71807": [
+      "P.128"
+    ],
+    "71809": [
+      "P.128"
+    ],
+    "71850": [
+      "P.128"
+    ],
+    "71900": [
+      "P.130"
+    ],
+    "71907": [
+      "P.130"
+    ],
+    "71909": [
+      "P.130"
+    ],
+    "72120": [
+      "P.127"
+    ],
+    "72127": [
+      "P.127"
+    ],
+    "72129": [
+      "P.127"
+    ],
+    "72300": [
+      "P.126"
+    ],
+    "72307": [
+      "P.126"
+    ],
+    "72309": [
+      "P.126"
+    ],
+    "72400": [
+      "P.126"
+    ],
+    "72409": [
+      "P.126"
+    ],
+    "73500": [
+      "P.127"
+    ],
+    "73507": [
+      "P.127"
+    ],
+    "73509": [
+      "P.127"
+    ],
+    "78200": [
+      "P.134"
+    ],
+    "81000": [
+      "P.163"
+    ],
+    "81010": [
+      "P.163"
+    ],
+    "81020": [
+      "P.163"
+    ],
+    "81030": [
+      "P.163"
+    ],
+    "81040": [
+      "P.163"
+    ],
+    "81050": [
+      "P.163"
+    ],
+    "81600": [
+      "P.157"
+    ],
+    "81620": [
+      "P.157"
+    ],
+    "81650": [
+      "P.157"
+    ],
+    "81700": [
+      "P.159"
+    ],
+    "81750": [
+      "P.159"
+    ],
+    "81760": [
+      "P.159"
+    ],
+    "81850": [
+      "P.151"
+    ],
+    "82100": [
+      "P.164"
+    ],
+    "82200": [
+      "P.164"
+    ],
+    "83100": [
+      "P.150"
+    ],
+    "83200": [
+      "P.150"
+    ],
+    "83500": [
+      "P.147"
+    ],
+    "83600": [
+      "P.147"
+    ],
+    "83610": [
+      "P.147"
+    ],
+    "84150": [
+      "P.146"
+    ],
+    "84160": [
+      "P.146"
+    ],
+    "84300": [
+      "P.143",
+      "P.150"
+    ],
+    "84400": [
+      "P.144"
+    ],
+    "84409": [
+      "P.144"
+    ],
+    "84500": [
+      "P.143",
+      "P.156"
+    ],
+    "84600": [
+      "P.143"
+    ],
+    "84800": [
+      "P.144"
+    ],
+    "85100": [
+      "P.140"
+    ],
+    "85200": [
+      "P.140"
+    ],
+    "85210": [
+      "P.140"
+    ],
+    "85300": [
+      "P.142"
+    ],
+    "86400": [
+      "P.143",
+      "P.146",
+      "P.149"
+    ],
+    "86600": [
+      "P.153"
+    ],
+    "86700": [
+      "P.153"
+    ],
+    "88856": [
+      "P.172"
+    ],
+    "88858": [
+      "P.177",
+      "P.187"
+    ],
+    "89150": [
+      "P.169"
+    ],
+    "89157": [
+      "P.169"
+    ],
+    "89158": [
+      "P.169"
+    ],
+    "89159": [
+      "P.169"
+    ],
+    "89250": [
+      "P.170"
+    ],
+    "89257": [
+      "P.170"
+    ],
+    "89258": [
+      "P.170"
+    ],
+    "89259": [
+      "P.170"
+    ],
+    "89260": [
+      "P.170"
+    ],
+    "89700": [
+      "P.176"
+    ],
+    "89707": [
+      "P.176"
+    ],
+    "89708": [
+      "P.176"
+    ],
+    "89709": [
+      "P.176"
+    ],
+    "89720": [
+      "P.176"
+    ],
+    "89727": [
+      "P.176"
+    ],
+    "89728": [
+      "P.176"
+    ],
+    "89729": [
+      "P.176"
+    ],
+    "89760": [
+      "P.177"
+    ],
+    "89767": [
+      "P.177"
+    ],
+    "89768": [
+      "P.177"
+    ],
+    "89769": [
+      "P.177"
+    ],
+    "89950": [
+      "P.182"
+    ],
+    "89957": [
+      "P.182"
+    ],
+    "89958": [
+      "P.182"
+    ],
+    "89959": [
+      "P.182"
+    ],
+    "90200": [
+      "P.187"
+    ],
+    "90400": [
+      "P.183"
+    ],
+    "94000": [
+      "P.192"
+    ],
+    "94007": [
+      "P.192"
+    ],
+    "94009": [
+      "P.192"
+    ],
+    "94200": [
+      "P.198"
+    ],
+    "94500": [
+      "P.193"
+    ],
+    "94507": [
+      "P.193"
+    ],
+    "94509": [
+      "P.193"
+    ],
+    "94600": [
+      "P.197"
+    ],
+    "94650": [
+      "P.205"
+    ],
+    "94800": [
+      "P.200"
+    ],
+    "94807": [
+      "P.200"
+    ],
+    "94809": [
+      "P.200"
+    ],
+    "94850": [
+      "P.201"
+    ],
+    "94900": [
+      "P.201"
+    ],
+    "94950": [
+      "P.201"
+    ],
+    "95300": [
+      "P.205"
+    ],
+    "95400": [
+      "P.205"
+    ],
+    "95407": [
+      "P.205"
+    ],
+    "95409": [
+      "P.205"
+    ],
+    "95500": [
+      "P.204"
+    ],
+    "95600": [
+      "P.204"
+    ],
+    "95700": [
+      "P.204"
+    ],
+    "95707": [
+      "P.204"
+    ],
+    "95709": [
+      "P.204"
+    ],
+    "95800": [
+      "P.203"
+    ],
+    "95900": [
+      "P.203"
+    ],
+    "96010": [
+      "P.211"
+    ],
+    "96100": [
+      "P.208"
+    ],
+    "96107": [
+      "P.208"
+    ],
+    "96108": [
+      "P.208"
+    ],
+    "96109": [
+      "P.208"
+    ],
+    "96150": [
+      "P.206"
+    ],
+    "96200": [
+      "P.207"
+    ],
+    "96250": [
+      "P.207"
+    ],
+    "96300": [
+      "P.213"
+    ],
+    "96307": [
+      "P.213"
+    ],
+    "96309": [
+      "P.213"
+    ],
+    "96350": [
+      "P.213"
+    ],
+    "96400": [
+      "P.213"
+    ],
+    "96410": [
+      "P.213"
+    ],
+    "96500": [
+      "P.206"
+    ],
+    "96507": [
+      "P.206"
+    ],
+    "96508": [
+      "P.206"
+    ],
+    "96509": [
+      "P.206"
+    ],
+    "96510": [
+      "P.206"
+    ],
+    "96600": [
+      "P.209"
+    ],
+    "96700": [
+      "P.210"
+    ],
+    "96707": [
+      "P.210"
+    ],
+    "96709": [
+      "P.210"
+    ],
+    "96800": [
+      "P.215"
+    ],
+    "96807": [
+      "P.215"
+    ],
+    "96809": [
+      "P.215"
+    ],
+    "96850": [
+      "P.215"
+    ],
+    "96900": [
+      "P.216"
+    ],
+    "96950": [
+      "P.216"
+    ],
+    "96999": [
+      "P.216"
+    ],
+    "97100": [
+      "P.217"
+    ],
+    "97200": [
+      "P.214"
+    ],
+    "98100": [
+      "P.219"
+    ],
+    "98107": [
+      "P.219"
+    ],
+    "98109": [
+      "P.219"
+    ],
+    "98200": [
+      "P.218"
+    ],
+    "98300": [
+      "P.220"
+    ],
+    "98700": [
+      "P.221"
+    ],
+    "98707": [
+      "P.221"
+    ],
+    "98708": [
+      "P.221"
+    ],
+    "98709": [
+      "P.221"
+    ],
+    "98800": [
+      "P.222"
+    ],
+    "98850": [
+      "P.222"
+    ],
+    "98857": [
+      "P.222"
+    ],
+    "98859": [
+      "P.222"
     ]
   }
 }
