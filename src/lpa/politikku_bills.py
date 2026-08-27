@@ -95,9 +95,7 @@ def _bill_card(bill: Bill, language: Language) -> str:
         dot_class = "pk-bill-dot-pass"
     elif "jkpk" in stage_lower or "jawatankuasa" in stage_lower:
         dot_class = "pk-bill-dot-committee"
-    elif "tidak mendapat undi 2/3" in stage_lower:
-        dot_class = "pk-bill-dot-fail"
-    elif "ditarik balik" in stage_lower:
+    elif "tidak mendapat undi 2/3" in stage_lower or "ditarik balik" in stage_lower:
         dot_class = "pk-bill-dot-fail"
     else:
         dot_class = "pk-bill-dot-progress"
