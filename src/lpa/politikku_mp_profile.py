@@ -884,13 +884,65 @@ def build_all_mp_profile_pages(engine: Engine) -> list[tuple[str, Language, str]
     `_skipped` block gets no page, which is what `has_profile` in the lookup
     index exists to degrade to.
     """
-    from lpa.config import load_mp_profiles
+    from lpa.config import (
+        coalition_names,
+        load_coalition_config,
+        load_election_status,
+        load_mp_profiles,
+        load_state_election_signals,
+        swing_model_config,
+    )
+    from lpa.public_page import page_model
+    from lpa.storage import (
+        load_projections,
+        load_seat_baselines,
+        load_sentiment_snapshots,
+        load_state_swing,
+    )
 
-    return [
-        (code, language, build_mp_profile_page(engine, code, language=language)[0])
-        for code in load_mp_profiles()
-        for language in Language
-    ]
+    projections = load_projections(engine)
+    if not projections:
+        raise SystemExit("No Projection stored. Run `python -m lpa.pipeline` to compute one.")
+    baselines = load_seat_baselines(engine)
+    if not baselines:
+        raise SystemExit("No Seat Baseline in Storage. Run `python -m lpa.baseline_loader` first.")
+
+    profiles = load_mp_profiles()
+    baseline_by_code = {s.code: s for s in baselines}
+    calls_by_code = {c.code: c for c in projections[-1].seat_calls}
+
+    config = load_coalition_config()
+    names = coalition_names(config)
+    snapshots = load_sentiment_snapshots(engine)
+    latest_sentiment = snapshots[-1].sentiment if snapshots else None
+
+    page = page_model(
+        projection=projections[-1],
+        baseline=baselines,
+        status=load_election_status(),
+        config=swing_model_config(config),
+        names=names,
+        sentiment=latest_sentiment,
+        state_election_signals=load_state_election_signals(),
+        total_seats=config["total_seats"],
+        state_swing=load_state_swing(engine, projections[-1].computed_at),
+    )
+
+    pages = []
+    for code, profile in profiles.items():
+        if code not in baseline_by_code:
+            raise SystemExit(f"No Seat Baseline for {code!r}.")
+        if code not in calls_by_code:
+            raise SystemExit(f"No Seat Call for {code!r} in the latest Projection.")
+        
+        baseline = baseline_by_code[code]
+        call = calls_by_code[code]
+        model = mp_profile_page_model(page, profile, baseline, call, names)
+        
+        for language in Language:
+            pages.append((code, language, render_mp_profile(model, language=language)))
+            
+    return pages
 
 
 def main() -> None:
