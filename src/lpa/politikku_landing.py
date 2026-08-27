@@ -387,7 +387,7 @@ def _what_is_inside(language: Language) -> str:
     eyebrow = t(language, "What is inside", "Apa yang ada")
     return f"""
 <section class="pk-landing-inside">
-  <div class="pk-eyebrow">{eyebrow}</div>
+  <h2 class="pk-eyebrow">{eyebrow}</h2>
   <div class="pk-landing-grid">{cells}</div>
 </section>
 """.strip()

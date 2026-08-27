@@ -648,7 +648,9 @@ def render_shell(
 <body>
 {header}
 {trust_strip}
+<main id="main-content">
 {body_html}
+</main>
 {footer}
 <script type="module" src="{POLITIKKU_PREFIX}lookup.js"></script>
 </body>
@@ -694,7 +696,7 @@ _CSS_TEMPLATE = """
     /* Design tokens — design_handoff_politikku/README.md, "Design Tokens" */
     --ink:            #14203a;
     --ink-secondary:  #5f6773;
-    --muted:          #8a9099;
+    --muted:          #6b7280;
     --paper:          #fbfaf7;
     --paper-alt:      #f4f2ec;
     --white:          #ffffff;
@@ -713,12 +715,12 @@ _CSS_TEMPLATE = """
     --data-noise:          #d6d1c6;
     --data-nongovernment:  #93a0ac;
     --on-dark-body:   #b9c0cc;
-    --on-dark-muted:  #7d8697;
+    --on-dark-muted:  #8a94a6;
     --nav-active-rule: #7fa8a4;
 
     --serif: 'Newsreader', ui-serif, Georgia, 'Times New Roman', serif;
     --sans:  'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
-    --mono:  'IBM Plex Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+    --mono:  'IBM Plex Mono', ui-monospace, Menlo, Monaco, Consolas, 'Courier New', monospace;
 
     --radius-sm: 3px;
     --radius-md: 4px;
