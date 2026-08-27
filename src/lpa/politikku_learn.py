@@ -764,7 +764,7 @@ _PROCESS_BODY = """
     <div class="strip"><div class="eyebrow">What the dashboard actually renders</div></div>
     <h2>The three states</h2>
     <p>
-      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="three-states-summary">This dashboard's Election Status is driven by two dates, when the Dewan Rakyat was dissolved and when polling was set, and derives what it displays from which of those two dates are present.</span>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="three-states-summary">This dashboard's Election Status is driven by three dates, when the Dewan Rakyat was dissolved, when nomination occurs, and when polling was set, and derives what it displays from which of those three dates are present.</span>
     </p>
 
     <div class="states">
