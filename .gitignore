@@ -99,3 +99,4 @@ public/learn/*.pending.json
 # public/learn/*.pending.json above: written next to what it's about, not
 # meant to be committed.
 .deepseek-agent-runs/
+public/sitemap.xml

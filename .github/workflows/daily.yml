@@ -285,6 +285,10 @@ jobs:
           TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
         run: python -m lpa.telegram_post
 
+      - name: Generate sitemap
+        continue-on-error: true
+        run: python -m lpa.politikku_sitemap
+
       - name: Configure Pages
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b
 

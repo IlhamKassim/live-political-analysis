@@ -621,7 +621,25 @@ def render_shell(
     escaped_title = html.escape(title)
     escaped_description = html.escape(description)
     og_url = html.escape(f"{SITE_URL.rstrip('/')}{route(language, page_path, prefix)}")
+
+    en_url = html.escape(f"{SITE_URL.rstrip('/')}{_en_route(page_path, prefix)}")
+    ms_url = html.escape(f"{SITE_URL.rstrip('/')}{_ms_route(page_path, prefix)}")
+
     og_image = html.escape(f"{SITE_URL}og-image.png")
+
+    import json
+
+    website_ld = json.dumps(
+        {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "PolitikKu",
+            "url": SITE_URL,
+            "description": "A public reference for Malaysian politics",
+            "inLanguage": ["en", "ms"],
+        }
+    )
+
     return f"""<!doctype html>
 <html lang="{lang_attr}">
 <head>
@@ -639,10 +657,16 @@ def render_shell(
 <meta name="twitter:title" content="{escaped_title}">
 <meta name="twitter:description" content="{escaped_description}">
 <meta name="twitter:image" content="{og_image}">
+<link rel="canonical" href="{og_url}">
+<link rel="alternate" hreflang="en" href="{en_url}">
+<link rel="alternate" hreflang="ms" href="{ms_url}">
 <link rel="preload" href="{POLITIKKU_PREFIX}fonts/newsreader-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="{POLITIKKU_PREFIX}fonts/ibm-plex-sans-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="icon" href="{POLITIKKU_PREFIX}favicon.ico">
 <style>{_CSS}</style>
+<script type="application/ld+json">
+{website_ld}
+</script>
 <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{{"token": "5eadc388fb2a4518b8e846b059fb102c"}}'></script><!-- End Cloudflare Web Analytics --> <!-- gitleaks:allow -->
 </head>
 <body>

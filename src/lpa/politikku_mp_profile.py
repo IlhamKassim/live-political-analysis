@@ -652,6 +652,21 @@ def render_mp_profile(model: MPProfilePageModel, *, language: Language = Languag
         f"{model.mp_name}, {model.coalition_name} — Ahli Parlimen bagi {model.seat_name}, "
         f"{model.seat_state}. Rekod undi, kehadiran, dan butiran hubungan.",
     )
+
+    import json
+
+    person_ld = json.dumps(
+        {
+            "@context": "https://schema.org",
+            "@type": "Person",
+            "name": model.mp_name,
+            "jobTitle": "Member of Parliament",
+            "worksFor": {"@type": "Organization", "name": "Dewan Rakyat"},
+            "description": f"MP for {model.seat_name} ({model.seat_code})",
+        }
+    )
+    ld_script = f'<script type="application/ld+json">\n{person_ld}\n</script>'
+
     return render_shell(
         title=f"{model.mp_name} — {model.seat_name} | PolitikKu",
         description=description,
@@ -661,7 +676,7 @@ def render_mp_profile(model: MPProfilePageModel, *, language: Language = Languag
         updated_at=model.updated_at,
         sources_count=model.sources_count,
         status=model.status,
-        body_html=render_mp_profile_body(model, language),
+        body_html=render_mp_profile_body(model, language) + ld_script,
     )
 
 
