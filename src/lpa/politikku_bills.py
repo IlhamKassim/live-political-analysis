@@ -97,6 +97,8 @@ def _bill_card(bill: Bill, language: Language) -> str:
         dot_class = "pk-bill-dot-committee"
     elif "tidak mendapat undi 2/3" in stage_lower:
         dot_class = "pk-bill-dot-fail"
+    elif "ditarik balik" in stage_lower:
+        dot_class = "pk-bill-dot-fail"
     else:
         dot_class = "pk-bill-dot-progress"
 
@@ -110,8 +112,12 @@ def _bill_card(bill: Bill, language: Language) -> str:
             stage_text = "First Reading"
         elif "bacaan kali kedua" in stage_lower:
             stage_text = "Second Reading"
+        elif "bacaan kali ketiga" in stage_lower:
+            stage_text = "Third Reading"
         elif "tidak mendapat undi 2/3" in stage_lower:
             stage_text = "Failed to secure 2/3 majority at Second Reading"
+        elif "ditarik balik" in stage_lower:
+            stage_text = "Withdrawn"
 
     if bill.division is not None:
         footer = t(
