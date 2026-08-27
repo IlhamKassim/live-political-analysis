@@ -51,13 +51,25 @@ TEST_BILL_2 = Bill(
 )
 
 
+TEST_BILL_3 = Bill(
+    code="D.R.4/2026",
+    title="RUU Perlembagaan (Pindaan 2) 2026",
+    year=2026,
+    stage="Tidak Mendapat Undi 2/3 Peringkat Bacaan Ke-2",
+    stage_date=date(2026, 3, 2),
+    summary="Pindaan Perlembagaan gagal.",
+    summary_source_url="https://www.parlimen.gov.my/files/billindex/pdf/2026/DR/RUU4.pdf",
+    division=None,
+    unverified={},
+)
+
 STATUS = ElectionStatus(constitutional_deadline=date(2027, 12, 18), source="Constitution")
 
 
 @pytest.fixture
 def sample_bills_model() -> BillsPageModel:
     return BillsPageModel(
-        bills=(TEST_BILL_1, TEST_BILL_2),
+        bills=(TEST_BILL_1, TEST_BILL_2, TEST_BILL_3),
         updated_at=date(2026, 8, 26),
         sources_count=12,
         status=STATUS,
@@ -65,7 +77,7 @@ def sample_bills_model() -> BillsPageModel:
 
 
 def test_bills_page_model_computes_stats(sample_bills_model: BillsPageModel):
-    assert sample_bills_model.total_bills == 2
+    assert sample_bills_model.total_bills == 3
     assert sample_bills_model.passed_bills_count == 1
     assert sample_bills_model.committee_bills_count == 1
 
@@ -90,7 +102,9 @@ def test_render_bills_page_en(sample_bills_model: BillsPageModel):
     assert "Passed" in html_doc
     assert "Division 148–74" in html_doc
     assert "Referred to Committee" in html_doc
+    assert "Failed to secure 2/3 majority at Second Reading" in html_doc
     assert "Voice vote" in html_doc
+    assert "pk-bill-dot-fail" in html_doc
 
 
 def test_render_bills_page_ms(sample_bills_model: BillsPageModel):
