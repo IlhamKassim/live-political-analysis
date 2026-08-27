@@ -87,6 +87,7 @@ def rendered_site(tmp_path_factory) -> Path:
     # "passed" while a real published page pointed at the retired URL.
     for font in (REPO_ROOT / "public" / "fonts").iterdir():
         _write(root, f"fonts/{font.name}", "")
+    _write(root, "favicon.ico", "")
     shutil.copytree(REPO_ROOT / "public" / "learn", root / "learn")
 
     page = _page_model()
