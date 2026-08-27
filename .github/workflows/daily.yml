@@ -135,15 +135,13 @@ jobs:
         # so their order relative to each other doesn't matter; grouped
         # together here for readability.
         #
-        # NOT continue-on-error, unlike the three steps further down and
-        # unlike this step until #104: this now writes public/index.html,
-        # the site root. That file is gitignored, so a failed render does
-        # not leave yesterday's copy behind for the checkout to publish —
-        # it leaves the uploaded artifact with no root page at all, and
-        # deploy-pages replaces the live site wholesale rather than merging
-        # into it. Failing the job instead means the last good deploy stays
-        # up: a day-stale site, which is the failure mode public_page's own
-        # render step always had here.
+        # continue-on-error: this wrote public/index.html (the site root)
+        # and was NOT continue-on-error from #104 until the landing-page
+        # cutover below. It now writes public/home.html — a secondary
+        # "Dashboard" nav page, not the site root — so a bad render here is
+        # a worse PolitikKu, not a site that stops updating. The landing
+        # page below inherits the strict treatment this step is giving up.
+        continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m lpa.politikku_homepage
@@ -163,15 +161,14 @@ jobs:
         run: python -m lpa.politikku_projection
 
       - name: Render the PolitikKu landing page
-        # continue-on-error, here and on the two steps below: these are
-        # untested against real production data (only against fixtures
-        # locally), and a failure in any one of them must not stop "Archive
-        # the dated permalink", "Export the Projection", the Seat Call
-        # cards, the Telegram post, or the Pages deploy that follow. A bad
-        # day for one of these is a worse PolitikKu, not a site that stops
-        # updating — which is exactly the argument that stops applying to
-        # the two steps above now that they are the site.
-        continue-on-error: true
+        # NOT continue-on-error: this now writes public/index.html, the
+        # site root (the landing-page cutover — every visitor lands here
+        # first, not on the homepage/dashboard). Same reasoning the
+        # homepage step used to state here: that file is gitignored, so a
+        # failed render leaves the uploaded artifact with no root page at
+        # all rather than yesterday's copy, and deploy-pages replaces the
+        # live site wholesale — failing the job instead means the last
+        # good deploy stays up, a day-stale site rather than a rootless one.
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m lpa.politikku_landing

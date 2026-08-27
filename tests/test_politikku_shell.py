@@ -9,6 +9,7 @@ from datetime import date
 
 from lpa.domain import ElectionStatus
 from lpa.politikku_shell import (
+    HOMEPAGE_URL,
     LANDING_URL,
     MP_PROFILE_DIR,
     NAV_LINKS,
@@ -126,9 +127,13 @@ def test_politikku_is_served_from_the_site_root():
     assert POLITIKKU_PREFIX == "/"
     assert route(Language.EN, "") == "/"
     assert route(Language.MS, "") == "/ms/"
-    assert landing_url() == "/landing.html"
-    assert landing_url(Language.MS) == "/ms/landing.html"
-    assert LANDING_URL == "/landing.html"
+    # Landing-page cutover: the landing page IS the site root now, not a
+    # page linked from it — `landing_url`/`LANDING_URL` collapse to the
+    # prefix itself. `HOMEPAGE_PAGE`/`HOMEPAGE_URL` are what moved instead.
+    assert landing_url() == "/"
+    assert landing_url(Language.MS) == "/ms/"
+    assert LANDING_URL == "/"
+    assert HOMEPAGE_URL == "/home.html"
     assert route(Language.EN, f"{MP_PROFILE_DIR}/P.102.html") == "/mp/P.102.html"
     assert route(Language.MS, f"{MP_PROFILE_DIR}/P.102.html") == "/ms/mp/P.102.html"
 

@@ -32,16 +32,25 @@ Follows `public_page.py`/`politikku_homepage.py`'s seam: `landing_model`
 computes every number the page states; `render_landing` decides nothing;
 `build_landing`/`main` is the one place that touches Storage.
 
-Routing (`#75`'s own text: "the handoff doesn't specify the UI for that...
-use judgement here"): this page is a real, standalone, reachable page at
-its own route (`politikku_shell.LANDING_URL`) with a link back to it from
-the persistent footer — not wired to any `localStorage`-based "only show this
-to a first-time visitor" gate. That gate is real client-side state, and
-`#70` already settled that all of PolitikKu's client-side state lives in
-`#77`'s TypeScript module, not scattered inline scripts — building one here
-would be a second, uncoordinated place client state gets decided. `#77`'s
-own "Recently looked up" read of `localStorage` is the natural place to add
-"and if there's nothing there, land here first" once it exists.
+Routing: this page is the site root (`politikku_shell.LANDING_PAGE` is
+`""`, `LANDING_URL` is `POLITIKKU_PREFIX` itself) — every visitor lands here
+first, first-time or returning, project-owner decision rather than a
+`localStorage`-gated "only show this to a first-timer" split. `#74`'s
+homepage (the returning-visitor dashboard: hemicycle, headline figures,
+bill/sentiment digests) moved to `politikku_shell.HOMEPAGE_PAGE`
+(`/home.html`) and picked up its own "Dashboard" nav entry rather than
+staying at `/` alongside this page.
+
+Until this cutover, `#75`'s own text ("the handoff doesn't specify the UI
+for that... use judgement here") was read as: a real, standalone page at
+its own route, linked from the persistent footer, not gated by client-side
+first-visit state — `#70` had already settled that all of PolitikKu's
+client-side state lives in `#77`'s TypeScript module, not scattered inline
+scripts, so a `localStorage`-based gate here would have been a second,
+uncoordinated place client state gets decided. That reasoning is why this
+was never wired to such a gate; it does not argue against the harder
+cutover this docstring now describes, which a person made directly rather
+than deriving from visit history.
 """
 
 from __future__ import annotations
@@ -71,7 +80,6 @@ from lpa.politikku_i18n import (
 )
 from lpa.politikku_shell import (
     LANDING_PAGE,
-    LANDING_URL,
     Language,
     methodology_url,
     render_shell,
@@ -549,7 +557,7 @@ def render_landing(model: LandingModel, *, language: Language = Language.EN) -> 
     return render_shell(
         title=title,
         description=description,
-        active_nav="landing",
+        active_nav="home",
         language=language,
         page_path=LANDING_PAGE,
         updated_at=model.updated_at,
@@ -741,9 +749,11 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("public") / LANDING_URL.removeprefix("/"),
-        help="where to write the English page (default: public/landing.html, derived from "
-        "`politikku_shell.LANDING_URL` so the path and the link to it cannot disagree); "
+        default=Path("public/index.html"),
+        help="where to write the English page (default: public/index.html — the landing page "
+        "is the site root now; `politikku_shell.LANDING_PAGE` is empty, so "
+        "`LANDING_URL.removeprefix('/')` would be `''`, a directory, not this file, hence the "
+        "explicit default rather than deriving one from the constant the way this used to); "
         "the BM variant is written alongside it at "
         "<output-dir>/ms/<output-name>, matching `politikku_shell._ms_route`'s own path convention",
     )

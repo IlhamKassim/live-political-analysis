@@ -41,6 +41,7 @@ from lpa.politikku_projection import (
 )
 from lpa.politikku_sentiment import render_sentiment_page, sentiment_page_model
 from lpa.politikku_shell import (
+    HOMEPAGE_PAGE,
     MP_PROFILE_DIR,
     POLITIKKU_PREFIX,
     Language,
@@ -137,8 +138,8 @@ def rendered_site(tmp_path_factory) -> Path:
 
     for language in Language:
         ms = "" if language is Language.EN else "ms/"
-        _write(root, f"{ms}index.html", render_homepage(homepage, language=language))
-        _write(root, f"{ms}landing.html", render_landing(landing, language=language))
+        _write(root, f"{ms}index.html", render_landing(landing, language=language))
+        _write(root, f"{ms}{HOMEPAGE_PAGE}", render_homepage(homepage, language=language))
         _write(root, f"{ms}bills.html", render_bills_page(bills_model, language=language))
         _write(
             root, f"{ms}sentiment.html", render_sentiment_page(sentiment_model, language=language)
@@ -233,13 +234,16 @@ def test_the_language_toggle_on_every_page_reaches_the_other_language(rendered_s
 
 def test_the_pages_the_shell_links_on_every_page_are_all_real(rendered_site):
     # Named individually rather than left to the sweep above, because these
-    # four are the links that appear on *every* page — a broken one is a
-    # broken site, not a broken page.
+    # five are the links that appear on *every* page — a broken one is a
+    # broken site, not a broken page. `index.html` is the landing page's own
+    # render since the landing-page cutover (it is the site root now), so
+    # checking its own outbound links still exercises the persistent nav/
+    # footer every other page also carries.
     home = (rendered_site / "index.html").read_text(encoding="utf-8")
-    for link in ("/", "/ms/", "/methodology.html", "/landing.html", "/projection/"):
+    for link in ("/", "/ms/", "/methodology.html", "/home.html", "/projection/"):
         assert _resolve(rendered_site, link).is_file()
     assert '/methodology.html"' in home
-    assert '/landing.html"' in home
+    assert '/home.html"' in home
     assert '/projection/"' in home
 
 

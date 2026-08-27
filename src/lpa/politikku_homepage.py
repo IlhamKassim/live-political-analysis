@@ -69,6 +69,7 @@ from lpa.politikku_i18n import (
 )
 from lpa.politikku_shell import (
     BILLS_PAGE,
+    HOMEPAGE_PAGE,
     Language,
     methodology_url,
     projection_url,
@@ -494,9 +495,9 @@ def render_homepage(model: HomepageModel, *, language: Language = Language.EN) -
     return render_shell(
         title=title,
         description=description,
-        active_nav="home",
+        active_nav="dashboard",
         language=language,
-        page_path="",
+        page_path=HOMEPAGE_PAGE,
         updated_at=model.updated_at,
         sources_count=model.sources_count,
         status=model.status,
@@ -712,9 +713,9 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("public/index.html"),
-        help="where to write the English page (default: public/index.html — the site "
-        "root since #104's cutover, the path the old chamber dashboard used to own); "
+        default=Path("public") / HOMEPAGE_PAGE,
+        help="where to write the English page (default: public/home.html — this page moved "
+        "off the site root when the landing page took it over; see politikku_shell.HOMEPAGE_PAGE); "
         "the BM variant is written alongside it at <output-dir>/ms/<output-name>, "
         "matching `politikku_shell._ms_route`'s own path convention",
     )

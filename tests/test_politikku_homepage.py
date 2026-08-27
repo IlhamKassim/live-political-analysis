@@ -30,7 +30,7 @@ from lpa.politikku_homepage import (
     render_homepage,
     render_homepage_body,
 )
-from lpa.politikku_shell import Language, render_header
+from lpa.politikku_shell import HOMEPAGE_PAGE, Language, render_header
 from lpa.public_page import PageModel, Tier, page_model
 from lpa.storage import SentimentSnapshot
 from lpa.swing_model import swing_model
@@ -299,18 +299,19 @@ def test_the_body_carries_all_three_new_sections():
     assert 'class="pk-sentiment"' in body
 
 
-def test_the_full_page_wraps_the_body_in_the_shell_with_home_active():
+def test_the_full_page_wraps_the_body_in_the_shell_with_dashboard_active():
     from lpa.politikku_homepage import render_homepage
 
     page = render_homepage(_rendered_model(), language=Language.EN)
 
-    # NavLink.href for a localized link (home included) is a page-path
-    # fragment routed through the current language, not the literal
-    # rendered href — see politikku_shell.NavLink's own docstring (#81).
-    header = render_header(active_nav="home", language=Language.EN, page_path="")
-    # The site root since #104's cutover, not `/politikku/`.
-    assert 'href="/" aria-current="page"' in header
-    assert 'href="/" aria-current="page"' in page
+    # NavLink.href for a localized link is a page-path fragment routed
+    # through the current language, not the literal rendered href — see
+    # politikku_shell.NavLink's own docstring (#81).
+    header = render_header(active_nav="dashboard", language=Language.EN, page_path=HOMEPAGE_PAGE)
+    # /home.html since the landing-page cutover moved this page off the
+    # site root (it was "/" from #104 until then, not `/politikku/`).
+    assert 'href="/home.html" aria-current="page"' in header
+    assert 'href="/home.html" aria-current="page"' in page
     assert 'class="pk-footer"' in page  # the persistent methodology footer
     assert 'class="pk-hero"' in page  # the homepage's own body content
 

@@ -15,12 +15,18 @@ dist/
 # before this line existed.
 .DS_Store
 
-# Rendered by `python -m lpa.politikku_homepage` (PolitikKu's homepage owns
-# the site root since #104's cutover — `lpa.public_page` used to write this
-# path and is no longer rendered or published at all); the Action publishes
-# it, the repo does not carry it.
+# Rendered by `python -m lpa.politikku_landing` (the landing page owns the
+# site root since the landing-page cutover — `lpa.politikku_homepage` owned
+# it from #104 until then, and `lpa.public_page` before that; neither is
+# rendered or published at this path any more); the Action publishes it,
+# the repo does not carry it.
 public/index.html
 public/ms/index.html
+
+# Rendered by `python -m lpa.politikku_homepage` — moved off the site root
+# to `public/home.html` (the "Dashboard" nav page) at the same cutover.
+public/home.html
+public/ms/home.html
 
 # Rendered by `python -m lpa.public_export`, alongside index.html — same
 # reasoning: the Action publishes it, the repo does not carry it.
@@ -33,14 +39,14 @@ public/cards/
 
 # PolitikKu's other pages (#75/#79/#102) and their generated data — same
 # reasoning as public/index.html above: rendered by `python -m
-# lpa.politikku_landing`/`politikku_mp_profile`/`politikku_projection`, not
-# carried in the repo. Never had an explicit entry until #77 added
-# lookup.js/lookup-index.json alongside them, which is also when this gap
-# (the earlier three pages relying on nobody ever `git add -A`-ing them)
-# was noticed and closed. Every path here moved out from under
-# `public/politikku/` in #104's cutover.
-public/landing.html
-public/ms/landing.html
+# lpa.politikku_mp_profile`/`politikku_projection`, not carried in the
+# repo. Never had an explicit entry until #77 added lookup.js/
+# lookup-index.json alongside them, which is also when this gap (the
+# earlier three pages relying on nobody ever `git add -A`-ing them) was
+# noticed and closed. Every path here moved out from under
+# `public/politikku/` in #104's cutover. (`public/landing.html`/
+# `public/ms/landing.html` used to be listed here too, before the
+# landing-page cutover moved that output to `public/index.html` above.)
 public/bills.html
 public/ms/bills.html
 public/methodology.html

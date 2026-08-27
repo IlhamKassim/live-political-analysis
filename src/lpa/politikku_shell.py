@@ -85,9 +85,11 @@ constant is the whole of the cutover for every link in the shell: the nav
 language-persistence script's route-family detection, `LANDING_URL`,
 `methodology_url`, and the self-hosted font/`lookup.js` asset URLs in
 `render_shell`/`_CSS` all read it rather than spelling a prefix themselves.
-The page-writing side follows the same constant: `politikku_homepage`'s
-`--output` default is `public/index.html`, `politikku_landing`'s is derived
-from `LANDING_URL`, and `ts/build.mjs` writes `public/lookup.js`."""
+The page-writing side follows the same constant, though which page owns
+`public/index.html` changed again at the landing-page cutover below:
+`politikku_landing`'s `--output` default is `public/index.html` now,
+`politikku_homepage`'s is `public/home.html` (`HOMEPAGE_PAGE`), and
+`ts/build.mjs` writes `public/lookup.js`."""
 
 PROJECTION_PREFIX = "/projection/"
 """The ported projection detail page (#102, ADR 0011) — the old dashboard's
@@ -119,20 +121,37 @@ spelled twice because `politikku_homepage`'s "All bills →" link points at the
 same page the nav does, and #104 found that second copy still carrying the
 pre-cutover `/politikku/` prefix."""
 
-LANDING_PAGE = "landing.html"
+LANDING_PAGE = ""
 """`politikku_landing.py`'s own page (#75), as a page path under
 `POLITIKKU_PREFIX` — the same shape as `METHODOLOGY_PAGE`, so `route()`
 turns it into a real href in whichever language rather than a hand-written
 string. Defined here, not on `politikku_landing`, so both directions of the
 reference (footer -> landing, landing -> its own output path) read from the
-one constant rather than two copies of the same string."""
+one constant rather than two copies of the same string.
+
+Empty since the site-root cutover below: the landing page IS `/` now, not a
+page linked from it. Until that cutover this was `"landing.html"` — a real,
+separate route reached only via a CTA, with the homepage at `/`."""
 
 LANDING_URL = f"{POLITIKKU_PREFIX}{LANDING_PAGE}"
 """The English landing page's URL — what `politikku_landing.main` derives its
 `--output` default from, and nothing else (link *targets* go through
 `landing_url` below, which is language-aware). Until #104 this was a
 hardcoded `/politikku/landing.html`: a stale prefix that would have survived
-the cutover, which is exactly why it is now built from `POLITIKKU_PREFIX`."""
+the cutover, which is exactly why it is now built from `POLITIKKU_PREFIX`.
+With `LANDING_PAGE` now empty, this collapses to `POLITIKKU_PREFIX` itself
+(`"/"`) — the landing-page cutover, second verse."""
+
+HOMEPAGE_PAGE = "home.html"
+"""`politikku_homepage.py`'s own page (#74) — the returning-visitor
+dashboard (hemicycle, headline figures, bill tracker and sentiment digest
+snippets) — moved off the site root to make room for the landing page
+above. Before this cutover, `politikku_homepage.py` hardcoded `page_path=""`
+directly rather than reading a constant, because it *was* the root; now it
+needs a real page path like every other non-root page."""
+
+HOMEPAGE_URL = f"{POLITIKKU_PREFIX}{HOMEPAGE_PAGE}"
+"""The English dashboard page's URL, same shape as `LANDING_URL`."""
 
 
 class Language(StrEnum):
@@ -190,6 +209,7 @@ class NavLink:
 
 NAV_LINKS: tuple[NavLink, ...] = (
     NavLink("Home", "Utama", "", "home"),
+    NavLink("Dashboard", "Papan Pemuka", HOMEPAGE_PAGE, "dashboard"),
     NavLink("Seat Projection", "Unjuran Kerusi", "", "projection", prefix=PROJECTION_PREFIX),
     NavLink("Bills", "Rang Undang-Undang", BILLS_PAGE, "bills"),
     NavLink("Sentiment", "Sentimen", "sentiment.html", "sentiment"),
