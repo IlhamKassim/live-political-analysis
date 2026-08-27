@@ -79,6 +79,7 @@ from lpa.politikku_i18n import (
     not_calibrated_tag,
 )
 from lpa.politikku_shell import (
+    HOMEPAGE_PAGE,
     LANDING_PAGE,
     Language,
     methodology_url,
@@ -487,7 +488,7 @@ def _hero(model: LandingModel, language: Language) -> str:
     # The homepage, routed rather than hardcoded (#104) — and language-aware
     # with it, so a BM reader's "Find your MP" lands on the BM homepage
     # rather than being dropped into English.
-    homepage_href = html.escape(route(language, ""))
+    homepage_href = html.escape(route(language, HOMEPAGE_PAGE))
     return f"""
 <section class="pk-landing-hero">
   {texture}
