@@ -115,14 +115,6 @@ def rendered_site(tmp_path_factory) -> Path:
         "learn/live-figures.js",
         (REPO_ROOT / "public" / "learn" / "live-figures.js").read_text(),
     )
-    _write(
-        root, "learn/register-a.js", (REPO_ROOT / "public" / "learn" / "register-a.js").read_text()
-    )
-    _write(
-        root,
-        "learn/register-a.css",
-        (REPO_ROOT / "public" / "learn" / "register-a.css").read_text(),
-    )
 
     page = _page_model()
     bills = {"D.R.1/2026": _bill("D.R.1/2026", 2026, "Lulus", date(2026, 8, 1))}

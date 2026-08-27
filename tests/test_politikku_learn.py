@@ -31,3 +31,26 @@ def test_citation_claims_are_preserved():
     assert glossary.count("data-claim") == 50
     assert coalitions.count("data-claim") == 47
     assert process.count("data-claim") == 16
+
+
+def test_css_is_injected_properly():
+    status = load_election_status()
+    glossary = build_glossary_page(Language.EN, date(2026, 1, 1), status)
+    coalitions = build_coalitions_page(Language.EN, date(2026, 1, 1), status)
+    process = build_process_page(Language.EN, date(2026, 1, 1), status)
+
+    for page in [glossary, coalitions, process]:
+        assert "{_" not in page
+        assert "<style>" in page
+        assert ".pk-learn-container" in page
+        assert ".pk-eyebrow" in page
+        assert 'class="pk-eyebrow"' in page
+
+    assert ".term-entry" in glossary
+    assert ".coalition" in coalitions
+    assert ".sub-term" in coalitions
+    assert ".sub-note" not in coalitions
+    assert 'class="sub-term"' in coalitions
+    assert 'class="sub-note"' not in coalitions
+    assert ".step" in process
+    assert 'class="strip"' not in process

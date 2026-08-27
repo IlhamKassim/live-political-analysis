@@ -6,43 +6,116 @@ from lpa.config import load_election_status
 from lpa.domain import ElectionStatus
 from lpa.politikku_shell import Language, render_shell
 
-_GLOSSARY_CSS = """
-/* Page-specific layout only — tokens, masthead, table of contents, gloss,
-     prose and colophon come from register-a.css (see that file's header
-     for why it's shared). */
+_LEARN_BASE_CSS = """
+  .pk-learn-container { max-width: 720px; margin: 0 auto; padding: 2rem var(--gutter-mobile); }
+  @media (min-width: 900px) { .pk-learn-container { padding: 4rem var(--gutter-desktop); } }
 
-  .term-entry { padding: clamp(34px, 5vw, 56px) 0 0; border-top: 1px solid var(--line-soft); }
-  .term-entry:first-of-type { border-top: none; }
-  .term-entry h2 {
+  :target { scroll-margin-top: 24px; }
+
+  .opening {
+    margin-bottom: clamp(24px, 4vw, 40px);
+  }
+  .pk-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-secondary);
+  }
+  .opening h1 {
     font-family: var(--serif);
-    font-weight: 400;
+    font-weight: 500;
+    font-size: clamp(32px, 4.5vw, 44px);
+    letter-spacing: -.02em;
+    margin: 8px 0 0;
+  }
+  .lede {
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.62;
+    color: var(--ink-secondary);
+    max-width: 64ch;
+    margin: 12px 0 0;
+  }
+  .toc {
+    list-style: none;
+    padding: 0;
+    margin: 20px 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .toc li { margin: 0; }
+  .toc a {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .04em;
+    color: var(--ink-secondary);
+    text-decoration: none;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 4px 10px;
+  }
+  .toc a:hover {
+    color: var(--ink);
+    border-color: var(--ink-secondary);
+  }
+  .prose p {
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.62;
+    color: var(--ink);
+    margin: 0 0 1em;
+  }
+  .prose p:last-child { margin-bottom: 0; }
+  .prose p a {
+    color: inherit;
+    border-bottom: 1px solid var(--line);
+    text-decoration: none;
+  }
+  .prose p a:hover {
+    border-bottom-color: var(--ink-secondary);
+  }
+  .gloss {
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--ink-secondary);
+    font-size: 15px;
+    margin: 0 0 14px;
+  }
+""".strip()
+
+_GLOSSARY_CSS = f"""{_LEARN_BASE_CSS}
+
+  .term-entry {{ padding: clamp(34px, 5vw, 56px) 0 0; border-top: 1px solid var(--line-soft); }}
+  .opening + .term-entry {{ border-top: none; }}
+  .term-entry h2 {{
+    font-family: var(--serif);
+    font-weight: 500;
     font-size: clamp(26px, 3.4vw, 36px);
     letter-spacing: -.015em;
     margin: 0 0 4px;
-  }
-  .sub-term {
+  }}
+  .sub-term {{
     margin-top: clamp(22px, 3.5vw, 34px);
     padding-left: clamp(16px, 2.5vw, 26px);
     border-left: 2px solid var(--line);
-  }
-  .sub-term h3 {
+  }}
+  .sub-term h3 {{
     font-family: var(--mono);
     font-size: 11.5px;
     letter-spacing: .08em;
     text-transform: uppercase;
     color: var(--ink-secondary);
     margin: 0 0 10px;
-  }
-  .pk-learn-container { max-width: 720px; margin: 0 auto; padding: 2rem var(--gutter-mobile); }
-  @media (min-width: 900px) { .pk-learn-container { padding: 4rem var(--gutter-desktop); } }
-
+  }}
 """.strip()
 
 _GLOSSARY_BODY = """
 <main class="pk-learn-container">
-  <style>{_GLOSSARY_CSS}</style>
 <section class="opening">
-    <div class="eyebrow">What the projection assumes you know</div>
+    <div class="pk-eyebrow">What the projection assumes you know</div>
     <h1>Core terms</h1>
     <p class="lede">
       This page explains, in plain prose, the terms the GE16 projection
@@ -295,36 +368,28 @@ def build_glossary_page(language: Language, updated_at: date, status: ElectionSt
         updated_at=updated_at,
         sources_count=0,
         status=status,
-        body_html=_GLOSSARY_BODY,
+        body_html=f"<style>{_GLOSSARY_CSS}</style>\n{_GLOSSARY_BODY}",
         prefix="/",
     )
 
 
-_COALITIONS_CSS = """
-/* Page-specific layout only — tokens, masthead, prose and colophon come
-     from register-a.css (see that file's header for why it's shared).
+_COALITIONS_CSS = f"""{_LEARN_BASE_CSS}
 
-     A Coalition profile is not a term-definition, so this page does not
-     reuse glossary.html's .term-entry. Each of the five wants the same
-     four hard facts up front (founded, registered, formed from, component
-     parties) and then a short cited history, so the entry is built as a
-     labelled fact table followed by running prose. */
-
-  .coalition {
+  .coalition {{
     padding: clamp(34px, 5vw, 56px) 0 0;
     border-top: 1px solid var(--line-soft);
-  }
-  .opening + .coalition { border-top: none; }
-  .coalition h2 {
+  }}
+  .opening + .coalition {{ border-top: none; }}
+  .coalition h2 {{
     font-family: var(--serif);
-    font-weight: 400;
+    font-weight: 500;
     font-size: clamp(26px, 3.4vw, 36px);
     letter-spacing: -.015em;
     margin: 0 0 4px;
-  }
-  /* The abbreviation carries the coalition's ink from register-a.css, the
+  }}
+  /* The abbreviation carries the coalition's ink, the
      same one the dashboard's chamber uses for that Coalition's Seats. */
-  .coalition h2 .abbr { color: var(--ink-secondary); border-color: var(--line);
+  .coalition h2 .abbr {{ color: var(--ink-secondary); border-color: var(--line);
     font-family: var(--mono);
     font-size: .5em;
     letter-spacing: .08em;
@@ -332,16 +397,11 @@ _COALITIONS_CSS = """
     margin-left: 10px;
     padding: 2px 7px;
     border: 1px solid currentColor;
-  }
-  
-  
-  
-  
-  
+  }}
 
   /* The four structural facts, as a definition list rather than prose —
      they are the part of a Coalition profile a reader scans for. */
-  .facts {
+  .facts {{
     margin: 0 0 clamp(18px, 3vw, 28px);
     padding: 16px 0 4px;
     border-top: 1px solid var(--line);
@@ -349,62 +409,49 @@ _COALITIONS_CSS = """
     display: grid;
     grid-template-columns: minmax(120px, 170px) 1fr;
     gap: 0;
-  }
-  .facts dt {
+  }}
+  .facts dt {{
     font-family: var(--mono);
     font-size: 10.5px;
     letter-spacing: .12em;
     text-transform: uppercase;
     color: var(--muted);
     padding: 0 16px 12px 0;
-  }
-  .facts dd {
+  }}
+  .facts dd {{
     font-family: var(--serif);
     font-size: 15.5px;
     line-height: 1.45;
     color: var(--ink);
     margin: 0;
     padding: 0 0 12px;
-  }
+  }}
 
-  .sub-note {
+  .sub-term {{
     margin-top: clamp(22px, 3.5vw, 34px);
     padding-left: clamp(16px, 2.5vw, 26px);
     border-left: 2px solid var(--line);
-  }
-  .sub-note h3 {
+  }}
+  .sub-term h3 {{
     font-family: var(--mono);
     font-size: 11.5px;
     letter-spacing: .08em;
     text-transform: uppercase;
     color: var(--ink-secondary);
     margin: 0 0 10px;
-  }
+  }}
 
-  .source-list { margin: 0; padding: 0; list-style: none; }
-  .source-list li {
-    font-family: var(--serif);
-    font-size: 13.5px;
-    line-height: 1.55;
-    color: var(--ink-secondary);
-    margin: 0 0 6px;
-  }
-
-  @media (max-width: 560px) {
-    .facts { grid-template-columns: 1fr; }
-    .facts dt { padding-bottom: 4px; }
-    .facts dd { padding-bottom: 16px; }
-  }
-  .pk-learn-container { max-width: 720px; margin: 0 auto; padding: 2rem var(--gutter-mobile); }
-  @media (min-width: 900px) { .pk-learn-container { padding: 4rem var(--gutter-desktop); } }
-
+  @media (max-width: 560px) {{
+    .facts {{ grid-template-columns: 1fr; }}
+    .facts dt {{ padding-bottom: 4px; }}
+    .facts dd {{ padding-bottom: 16px; }}
+  }}
 """.strip()
 
 _COALITIONS_BODY = """
 <main class="pk-learn-container">
-  <style>{_COALITIONS_CSS}</style>
 <section class="opening">
-    <div class="eyebrow">Who the projection is projecting</div>
+    <div class="pk-eyebrow">Who the projection is projecting</div>
     <h1>The five Coalitions</h1>
     <p class="lede">
       Every seat count on this site is reported per Coalition. This page
@@ -486,7 +533,7 @@ _COALITIONS_BODY = """
       fact table above has no Registered row.
     </p>
 
-    <div class="sub-note">
+    <div class="sub-term">
       <h3>The Alliance Party, 1952–1974</h3>
       <p>
         <span data-claim id="alliance-members" data-cite="https://en.wikipedia.org/wiki/Alliance_Party_(Malaysia)?action=raw">The Alliance Party's membership comprised UMNO, MCA and MIC.</span>
@@ -610,22 +657,20 @@ def build_coalitions_page(language: Language, updated_at: date, status: Election
         updated_at=updated_at,
         sources_count=0,
         status=status,
-        body_html=_COALITIONS_BODY,
+        body_html=f"<style>{_COALITIONS_CSS}</style>\n{_COALITIONS_BODY}",
         prefix="/",
     )
 
 
-_PROCESS_CSS = """
-/* Page-specific layout only — tokens, masthead, prose and colophon come
-     from register-a.css (see that file's header for why it's shared). */
+_PROCESS_CSS = f"""{_LEARN_BASE_CSS}
 
-  .step {
+  .step {{
     position: relative;
     padding: clamp(30px, 5vw, 48px) 0 clamp(30px, 5vw, 48px) clamp(52px, 8vw, 76px);
     border-top: 1px solid var(--line-soft);
-  }
-  .opening + .step { border-top: none; padding-top: clamp(10px, 2vw, 18px); }
-  .step-index {
+  }}
+  .opening + .step {{ border-top: none; padding-top: clamp(10px, 2vw, 18px); }}
+  .step-index {{
     position: absolute;
     left: 0;
     top: clamp(32px, 5.4vw, 50px);
@@ -637,28 +682,28 @@ _PROCESS_CSS = """
     text-align: right;
     padding-right: 14px;
     border-right: 2px solid var(--line);
-  }
-  .opening + .step .step-index { top: clamp(12px, 2.4vw, 20px); }
-  .step h2 {
+  }}
+  .opening + .step .step-index {{ top: clamp(12px, 2.4vw, 20px); }}
+  .step h2 {{
     font-family: var(--serif);
-    font-weight: 400;
-    font-size: clamp(24px, 3.2vw, 33px);
+    font-weight: 500;
+    font-size: clamp(26px, 3.4vw, 36px);
     letter-spacing: -.015em;
     margin: 0 0 4px;
-  }
-  .states {
+  }}
+  .states {{
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 0;
     margin: clamp(24px, 4vw, 36px) 0 0;
     border-top: 2px solid var(--ink);
-  }
-  .state-block {
+  }}
+  .state-block {{
     padding: clamp(18px, 3vw, 26px) clamp(16px, 2.5vw, 22px);
     border-right: 1px solid var(--line);
-  }
-  .state-block:last-child { border-right: none; }
-  .state-tag {
+  }}
+  .state-block:last-child {{ border-right: none; }}
+  .state-tag {{
     display: inline-block;
     font-family: var(--mono);
     font-size: 10px;
@@ -668,38 +713,34 @@ _PROCESS_CSS = """
     border: 1px solid var(--line);
     padding: 3px 8px;
     margin: 0 0 12px;
-  }
-  .state-block h3 {
+  }}
+  .state-block h3 {{
     font-family: var(--serif);
     font-weight: 400;
     font-size: 18px;
     letter-spacing: -.01em;
     margin: 0 0 10px;
-  }
-  .state-block p {
+  }}
+  .state-block p {{
     font-family: var(--serif);
     font-size: 14.5px;
     line-height: 1.55;
     color: var(--ink);
     margin: 0 0 .9em;
-  }
-  .state-block p:last-child { margin-bottom: 0; }
+  }}
+  .state-block p:last-child {{ margin-bottom: 0; }}
 
-  @media (max-width: 760px) {
-    .states { grid-template-columns: 1fr; }
-    .state-block { border-right: none; border-bottom: 1px solid var(--line); }
-    .state-block:last-child { border-bottom: none; }
-  }
-  .pk-learn-container { max-width: 720px; margin: 0 auto; padding: 2rem var(--gutter-mobile); }
-  @media (min-width: 900px) { .pk-learn-container { padding: 4rem var(--gutter-desktop); } }
-
+  @media (max-width: 760px) {{
+    .states {{ grid-template-columns: 1fr; }}
+    .state-block {{ border-right: none; border-bottom: 1px solid var(--line); }}
+    .state-block:last-child {{ border-bottom: none; }}
+  }}
 """.strip()
 
 _PROCESS_BODY = """
 <main class="pk-learn-container">
-  <style>{_PROCESS_CSS}</style>
 <section class="opening">
-    <div class="eyebrow">How the election actually unfolds</div>
+    <div class="pk-eyebrow">How the election actually unfolds</div>
     <h1>The GE16 process</h1>
     <p class="lede">
       This dashboard tracks three states for GE16: not called, called with
@@ -761,7 +802,7 @@ _PROCESS_BODY = """
   </section>
 
   <section class="prose step" id="the-three-states">
-    <div class="strip"><div class="eyebrow">What the dashboard actually renders</div></div>
+    <div class="pk-eyebrow">What the dashboard actually renders</div>
     <h2>The three states</h2>
     <p>
       <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="three-states-summary">This dashboard's Election Status is driven by three dates, when the Dewan Rakyat was dissolved, when nomination occurs, and when polling was set, and derives what it displays from which of those three dates are present.</span>
@@ -808,7 +849,7 @@ def build_process_page(language: Language, updated_at: date, status: ElectionSta
         updated_at=updated_at,
         sources_count=0,
         status=status,
-        body_html=_PROCESS_BODY,
+        body_html=f"<style>{_PROCESS_CSS}</style>\n{_PROCESS_BODY}",
         prefix="/",
     )
 
