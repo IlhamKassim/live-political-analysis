@@ -223,12 +223,7 @@ jobs:
         # not shipped when this step was last exercised), so there is no
         # historical set of files at the old path left behind.
         #
-        # continue-on-error: a failure here (e.g. a push rejected by branch
-        # protection) must not take down the actual page deploy that
-        # follows — a day the archive step fails is a worse citation
-        # feature, not a worse site. Untested against this repo's live
-        # branch protection as of this change; watch the first few runs.
-        continue-on-error: true
+        # continues to fail loudly so the owner knows the archive is broken.
         run: |
           shopt -s nullglob
           files=(public/projection/[0-9]*/*/*.html public/projection/ms/[0-9]*/*/*.html)
@@ -244,7 +239,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git commit -m "Archive the dated permalink (${files[*]})"
-          git push
+          if ! git push; then
+            echo "::warning::Git push rejected (likely branch protection). See #128."
+            echo "### ⚠️ Archive Push Failed" >> $GITHUB_STEP_SUMMARY
+            echo "Failed to push the dated permalink archive to \`main\`. See issue #128." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
 
       - name: Export the Projection as JSON/CSV
         env:
