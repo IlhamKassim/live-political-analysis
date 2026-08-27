@@ -147,7 +147,10 @@ def _bill_card(bill: Bill, language: Language) -> str:
 
 
 _BILLS_CSS = """
-  .pk-bills-head { margin-top: 2rem; margin-bottom: 1.5rem; }
+  .pk-container { max-width: 1040px; margin: 0 auto; padding: 2rem var(--gutter-mobile); }
+  @media (min-width: 900px) { .pk-container { padding: 4rem var(--gutter-desktop); } }
+
+  .pk-bills-head { margin-bottom: 1.5rem; }
   .pk-bills-head h1 { font-size: 2rem; font-weight: 700; margin: 0 0 0.5rem 0; color: var(--ink); font-family: var(--serif); }
   .pk-bills-head p { color: var(--ink-secondary); max-width: 720px; line-height: 1.6; margin: 0; }
   .pk-bills-stats { display: flex; gap: 1.5rem; margin-top: 1.25rem; font-size: 0.95rem; }
