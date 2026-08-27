@@ -136,7 +136,7 @@ _GLOSSARY_BODY = """
         <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">News Sentiment is computed with an open-source, self-hosted multilingual sentiment model that runs as local CPU inference, with no external API.</span>
         <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">News Sentiment draws on headlines and articles scraped from major Malaysian outlets, in both English and Bahasa Malaysia: FMT, Malay Mail, NST, The Star, The Vibes, Sinar Daily, Bernama, Berita Harian and Utusan Malaysia.</span>
         <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">News Sentiment is the continuous, day-to-day component of Sentiment.</span>
-        <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">News Sentiment is zero-cost by requirement.</span>
+        <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md" id="claim-26">News Sentiment is zero-cost by default, not requirement.</span>
       </p>
     </div>
 

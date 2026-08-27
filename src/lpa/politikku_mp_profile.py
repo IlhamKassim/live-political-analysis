@@ -934,14 +934,14 @@ def build_all_mp_profile_pages(engine: Engine) -> list[tuple[str, Language, str]
             raise SystemExit(f"No Seat Baseline for {code!r}.")
         if code not in calls_by_code:
             raise SystemExit(f"No Seat Call for {code!r} in the latest Projection.")
-        
+
         baseline = baseline_by_code[code]
         call = calls_by_code[code]
         model = mp_profile_page_model(page, profile, baseline, call, names)
-        
+
         for language in Language:
             pages.append((code, language, render_mp_profile(model, language=language)))
-            
+
     return pages
 
 

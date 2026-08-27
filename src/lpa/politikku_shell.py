@@ -518,7 +518,7 @@ def render_methodology_footer(
     )
     read_methodology = t(language, "Read the full methodology →", "Baca metodologi penuh →")
     what_is_politikku = t(language, "What is PolitikKu? →", "Apakah itu PolitikKu? →")
-    
+
     if language is Language.EN:
         learn_links = (
             '\n    <a class="pk-footer-link" href="/learn/glossary.html">Glossary →</a>'
@@ -527,7 +527,7 @@ def render_methodology_footer(
         )
     else:
         learn_links = ""
-        
+
     factual_heading = html.escape(t(language, factual.heading, factual.heading_ms))
     modelled_heading = html.escape(t(language, modelled.heading, modelled.heading_ms))
     return f"""
