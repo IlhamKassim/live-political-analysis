@@ -20,7 +20,6 @@ figures.
 from __future__ import annotations
 
 import re
-import shutil
 from datetime import date
 from pathlib import Path
 
@@ -88,7 +87,42 @@ def rendered_site(tmp_path_factory) -> Path:
     for font in (REPO_ROOT / "public" / "fonts").iterdir():
         _write(root, f"fonts/{font.name}", "")
     _write(root, "favicon.ico", "")
-    shutil.copytree(REPO_ROOT / "public" / "learn", root / "learn")
+    from lpa.config import load_election_status
+    from lpa.politikku_learn import build_coalitions_page, build_glossary_page, build_process_page
+
+    status = load_election_status()
+    for lang in [Language.EN, Language.MS]:
+        lang_prefix = "ms/" if lang == Language.MS else ""
+        _write(
+            root,
+            f"{lang_prefix}learn/glossary.html",
+            build_glossary_page(lang, date(2026, 1, 1), status),
+        )
+        _write(
+            root,
+            f"{lang_prefix}learn/coalitions.html",
+            build_coalitions_page(lang, date(2026, 1, 1), status),
+        )
+        _write(
+            root,
+            f"{lang_prefix}learn/ge16-process.html",
+            build_process_page(lang, date(2026, 1, 1), status),
+        )
+
+    # Still need to copy the static JS for the learn pages that we haven't touched
+    _write(
+        root,
+        "learn/live-figures.js",
+        (REPO_ROOT / "public" / "learn" / "live-figures.js").read_text(),
+    )
+    _write(
+        root, "learn/register-a.js", (REPO_ROOT / "public" / "learn" / "register-a.js").read_text()
+    )
+    _write(
+        root,
+        "learn/register-a.css",
+        (REPO_ROOT / "public" / "learn" / "register-a.css").read_text(),
+    )
 
     page = _page_model()
     bills = {"D.R.1/2026": _bill("D.R.1/2026", 2026, "Lulus", date(2026, 8, 1))}

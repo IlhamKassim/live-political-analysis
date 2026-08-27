@@ -194,6 +194,12 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m lpa.politikku_sentiment
 
+      - name: Render the PolitikKu learn pages
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m lpa.politikku_learn
+
       - name: Render the PolitikKu lookup index
         # Writes public/data/lookup-index.json, the client-side data the
         # ts/ bundle built above fetches at runtime in the browser — not

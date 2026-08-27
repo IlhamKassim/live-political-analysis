@@ -142,6 +142,54 @@ def _bill_card(bill: Bill, language: Language) -> str:
 """.strip()
 
 
+_BILLS_CSS = """
+  .pk-bills-head { margin-top: 2rem; margin-bottom: 1.5rem; }
+  .pk-bills-head h1 { font-size: 2rem; font-weight: 700; margin: 0 0 0.5rem 0; color: var(--ink); font-family: var(--serif); }
+  .pk-bills-head p { color: var(--ink-secondary); max-width: 720px; line-height: 1.6; margin: 0; }
+  .pk-bills-stats { display: flex; gap: 1.5rem; margin-top: 1.25rem; font-size: 0.95rem; }
+  .pk-bills-stats strong { color: var(--ink); }
+  .pk-bills-stats span { color: var(--ink-secondary); }
+  .pk-bills-section { margin-top: 1rem; margin-bottom: 3rem; }
+  .pk-bill-grid { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+  
+  .pk-bill-card {
+    background: var(--paper);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+  }
+  .pk-bill-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+  .pk-bill-stage { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-secondary); }
+  .pk-bill-card h3 { font-family: var(--serif); font-size: 1.1rem; margin: 0 0 0.5rem 0; line-height: 1.3; }
+  .pk-bill-card h3 a { color: var(--ink); text-decoration: none; }
+  .pk-bill-card h3 a:hover { text-decoration: underline; color: var(--accent); }
+  .pk-bill-summary { font-size: 0.9rem; line-height: 1.5; color: var(--ink-secondary); flex-grow: 1; margin: 0 0 1rem 0; }
+  .pk-bill-note { font-size: 0.85rem; color: var(--ink-secondary); font-style: italic; margin-bottom: 1rem; }
+  .pk-bill-note:empty { display: none; }
+  .pk-bill-footer {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--muted);
+    border-top: 1px solid var(--line-soft);
+    padding-top: 0.75rem;
+    margin-top: auto;
+  }
+  
+  .pk-bill-dot-pass { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: var(--accent); }
+  .pk-bill-dot-committee { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: var(--caution); }
+  .pk-bill-dot-fail { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: var(--ink-secondary); }
+  .pk-bill-dot-progress { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: var(--line-strong); }
+"""
+
+
 def render_bills_page(model: BillsPageModel, language: Language) -> str:
     """Render the full HTML document for the bills tracker page."""
     title = t(
@@ -173,17 +221,18 @@ def render_bills_page(model: BillsPageModel, language: Language) -> str:
     cards = "\n".join(_bill_card(b, language) for b in model.bills)
 
     body_html = f"""
+<style>{_BILLS_CSS}</style>
 <main class="pk-container">
-  <section class="pk-section-head" style="margin-top:2rem;margin-bottom:1.5rem">
-    <h1 style="font-size:2rem;font-weight:700;margin:0 0 0.5rem 0">{heading}</h1>
-    <p style="color:var(--pk-text-muted, #555);max-width:720px;line-height:1.6;margin:0">{subhead}</p>
-    <div style="display:flex;gap:1.5rem;margin-top:1.25rem;font-size:0.95rem">
-      <div><strong>{model.total_bills}</strong> <span style="color:var(--pk-text-muted, #666)">{stat_total}</span></div>
-      <div><strong>{model.passed_bills_count}</strong> <span style="color:var(--pk-text-muted, #666)">{stat_passed}</span></div>
-      <div><strong>{model.committee_bills_count}</strong> <span style="color:var(--pk-text-muted, #666)">{stat_committee}</span></div>
+  <section class="pk-bills-head">
+    <h1>{heading}</h1>
+    <p>{subhead}</p>
+    <div class="pk-bills-stats">
+      <div><strong>{model.total_bills}</strong> <span>{stat_total}</span></div>
+      <div><strong>{model.passed_bills_count}</strong> <span>{stat_passed}</span></div>
+      <div><strong>{model.committee_bills_count}</strong> <span>{stat_committee}</span></div>
     </div>
   </section>
-  <section class="pk-bills" style="margin-top:1rem;margin-bottom:3rem">
+  <section class="pk-bills-section">
     <div class="pk-bill-grid">{cards}</div>
   </section>
 </main>

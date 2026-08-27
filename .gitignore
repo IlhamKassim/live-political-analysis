@@ -61,10 +61,9 @@ public/lookup.js
 public/lookup.js.map
 node_modules/
 
-# public/learn/ is different: hand-authored content pages (#26/#27/#28), not
-# generated. They are tracked so the daily Action's checkout has them to
-# publish alongside the freshly-rendered index.html — see daily.yml's
-# "Upload the page" step, which uploads the whole public/ directory.
+# Generated learn pages (migrated to python renderers)
+public/learn/*.html
+public/ms/learn/*.html
 
 # public/projection/<year>/<month>/<day>.html (#55) is also tracked,
 # deliberately — the path moved with the content in #102/#104, but not the
