@@ -106,7 +106,8 @@ def test_no_nav_link_opts_out_of_language_routing():
     for link in NAV_LINKS:
         en_href = f'href="{link.prefix}{link.href}"'
         assert en_href in en_header
-        assert f'href="{link.prefix}ms/{link.href}"' in ms_header
+        if not link.en_only:
+            assert f'href="{link.prefix}ms/{link.href}"' in ms_header
         assert ms_header.count(en_href) == (1 if en_href == toggle_en_href else 0)
 
 

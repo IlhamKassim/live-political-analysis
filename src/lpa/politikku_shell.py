@@ -184,6 +184,8 @@ class NavLink:
     chamber dashboard at `/` — that page now has a BM sibling
     (`/projection/ms/`), so there is no longer any nav item that has to opt
     out of language routing."""
+    en_only: bool = False
+    """If True, this link is omitted when the site is viewed in BM."""
 
 
 NAV_LINKS: tuple[NavLink, ...] = (
@@ -192,6 +194,9 @@ NAV_LINKS: tuple[NavLink, ...] = (
     NavLink("Bills", "Rang Undang-Undang", BILLS_PAGE, "bills"),
     NavLink("Sentiment", "Sentimen", "sentiment.html", "sentiment"),
     NavLink("Methodology", "Metodologi", METHODOLOGY_PAGE, "methodology"),
+    NavLink("Glossary", "Glosari", "learn/glossary.html", "glossary", en_only=True),
+    NavLink("Coalitions", "Gabungan", "learn/coalitions.html", "coalitions", en_only=True),
+    NavLink("GE16 Process", "Proses PRU16", "learn/ge16-process.html", "process", en_only=True),
 )
 
 
@@ -384,6 +389,7 @@ def render_header(
             current=link.key == active_nav,
         )
         for link in NAV_LINKS
+        if not (link.en_only and language is Language.MS)
     )
     menu_label = t(language, "Menu", "Menu")  # "menu" is standard BM too
     primary_label = t(language, "Primary", "Utama")
@@ -512,6 +518,16 @@ def render_methodology_footer(
     )
     read_methodology = t(language, "Read the full methodology →", "Baca metodologi penuh →")
     what_is_politikku = t(language, "What is PolitikKu? →", "Apakah itu PolitikKu? →")
+    
+    if language is Language.EN:
+        learn_links = (
+            '\n    <a class="pk-footer-link" href="/learn/glossary.html">Glossary →</a>'
+            '\n    <a class="pk-footer-link" href="/learn/coalitions.html">Coalitions →</a>'
+            '\n    <a class="pk-footer-link" href="/learn/ge16-process.html">GE16 Process →</a>'
+        )
+    else:
+        learn_links = ""
+        
     factual_heading = html.escape(t(language, factual.heading, factual.heading_ms))
     modelled_heading = html.escape(t(language, modelled.heading, modelled.heading_ms))
     return f"""
@@ -520,7 +536,7 @@ def render_methodology_footer(
     <div class="pk-footer-heading">{heading}</div>
     <p>{statement}</p>
     <a class="pk-footer-link" href="{href}">{read_methodology}</a>
-    <a class="pk-footer-link" href="{landing_href}">{what_is_politikku}</a>
+    <a class="pk-footer-link" href="{landing_href}">{what_is_politikku}</a>{learn_links}
   </div>
   <div class="pk-footer-col">
     <div class="pk-footer-label">{factual_heading}</div>
