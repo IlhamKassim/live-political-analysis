@@ -643,6 +643,7 @@ def render_shell(
 <link rel="preload" href="{POLITIKKU_PREFIX}fonts/ibm-plex-sans-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="icon" href="{POLITIKKU_PREFIX}favicon.ico">
 <style>{_CSS}</style>
+<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{{"token": "5eadc388fb2a4518b8e846b059fb102c"}}'></script><!-- End Cloudflare Web Analytics -->
 </head>
 <body>
 {header}
