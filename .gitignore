@@ -100,3 +100,7 @@ public/learn/*.pending.json
 # meant to be committed.
 .deepseek-agent-runs/
 public/sitemap.xml
+
+# Sentiment page
+public/sentiment.html
+public/ms/sentiment.html
