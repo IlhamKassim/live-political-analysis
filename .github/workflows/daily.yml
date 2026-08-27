@@ -223,7 +223,17 @@ jobs:
         # not shipped when this step was last exercised), so there is no
         # historical set of files at the old path left behind.
         #
-        # continues to fail loudly so the owner knows the archive is broken.
+        # continue-on-error: unchanged from the original reasoning above — a
+        # failure here (e.g. a push rejected by branch protection, #128)
+        # must not take down the actual page deploy that follows. Dropping
+        # this to make the failure "loud" would skip every step after it
+        # (Configure/Upload/Deploy to GitHub Pages included) on every run
+        # from now on, since the push fails every time until #128's root
+        # cause is actually fixed — turning one broken citation feature
+        # into the whole site never redeploying. The `::warning::` and job
+        # summary lines below are the loud part; this flag is what keeps
+        # that loudness from being also a site outage.
+        continue-on-error: true
         run: |
           shopt -s nullglob
           files=(public/projection/[0-9]*/*/*.html public/projection/ms/[0-9]*/*/*.html)
