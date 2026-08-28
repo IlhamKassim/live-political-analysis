@@ -1,14 +1,12 @@
-"""Ingestion: build `data/bills.json` (issues #80, #106).
+"""Ingestion: build `data/bills.json` (issues #80, #106, #117).
 
 Run by hand, not part of the daily pipeline — a Bill's stage changes on the
 order of days during a sitting and not at all between sittings, and the
 register offers no feed to poll for a diff. #106 scaled this from #80's
-four-Bill pilot to the register's full default view (below) but kept the
-manual cadence: the failure mode here is a page layout change, a PDF whose
-HURAIAN section can't be cleanly excerpted, or a Division that can be named
-but not dated (see `AMBIGUOUS_DIVISIONS`) — all things worth a human glancing
-at the run's printed skip list before `data/bills.json` ships, not something
-a cron job should paper over by shipping whatever it got. See ADR 0010's
+four-Bill pilot to the register's full default view (below). #117 added
+incremental status re-checking and STATUS_OVERRIDES: checking whether active
+bills have progressed takes one fast HTTP request against the register table
+without re-downloading PDFs for already-ingested bills. See ADR 0010's
 Consequences for this call.
 
 ## What is read from where
@@ -26,10 +24,11 @@ Consequences for this call.
 2. **The plain-language summary** — a verbatim excerpt of each Bill's own
    "HURAIAN" (Explanation) section, read from the Bill's own PDF (linked
    from the register). See `lpa.bill_tracker`'s module docstring for why
-   this is a quote and not a paraphrase. A Bill whose PDF has no extractable
-   HURAIAN (a scanned image, most often) is skipped rather than shipped with
-   an invented summary — printed in the run's skip list, not silently
-   dropped.
+   this is a quote and not a paraphrase. Once ingested, summaries are cached
+   and reused during incremental status syncs; only brand-new Bills trigger
+   a PDF download. A Bill whose PDF has no extractable HURAIAN (a scanned
+   image, most often) is skipped rather than shipped with an invented summary
+   — printed in the run's skip list, not silently dropped.
 3. **Division result** — not fetched here at all. Where a Bill's Division
    already appears in `data/mp_profiles.json` (issue #78 read Hansard's full
    name lists and Chair-declared tallies for the 15th Parliament's ten
@@ -117,6 +116,20 @@ AMBIGUOUS_DIVISIONS: dict[str, str] = {
         "date disagrees with the Division's sitting date. Needs a fresh Hansard "
         "check to resolve which date is right, not a guess."
     ),
+}
+
+# D.R. code -> manual status override dict with:
+# stage, stage_date, reason (for unverified["division"]), and optional citation / note.
+# Added by #117: used when a Bill's real-world status moves outside the register's
+# published columns (e.g. Cabinet/Executive withdrawal before the next parliamentary sitting,
+# as with D.R.25/2025).
+STATUS_OVERRIDES: dict[str, dict[str, Any]] = {
+    "D.R.25/2025": {
+        "stage": "Ditarik Balik",
+        "stage_date": "2026-01-23",
+        "division_reason": "Withdrawn by the Cabinet before a vote.",
+        "note": "Withdrawn by Cabinet for rework on 2026-01-23 (announced by Minister Fahmi Fadzil; issue #117).",
+    },
 }
 
 _DATE = re.compile(r"(\d{2})/(\d{2})/(\d{4})")
@@ -288,11 +301,20 @@ def load_division_tallies() -> dict[str, dict[str, Any]]:
 def build_bill(
     code: str, row: dict[str, Any], summary: str, summary_url: str, division: dict[str, Any] | None
 ) -> dict[str, Any]:
+    stage = row["status"]
+    s_date = stage_date(row).isoformat()
+    if code in STATUS_OVERRIDES:
+        override = STATUS_OVERRIDES[code]
+        if "stage" in override:
+            stage = override["stage"]
+        if "stage_date" in override:
+            s_date = override["stage_date"]
+
     entry: dict[str, Any] = {
         "title": row["title"],
         "year": row["year"],
-        "stage": row["status"],
-        "stage_date": stage_date(row).isoformat(),
+        "stage": stage,
+        "stage_date": s_date,
         "summary": summary,
         "summary_source_url": summary_url,
     }
@@ -323,23 +345,26 @@ def _no_division_reason(code: str, row: dict[str, Any]) -> str:
     all, and saying otherwise would be exactly the false-blank failure this
     pipeline's `unverified` discipline exists to prevent.
 
-    Checks `AMBIGUOUS_DIVISIONS` first: a Bill named there does have a real
-    Division (its title is an unambiguous match), just not one this pipeline
-    will attach without a date it can confirm — "passed on a voice vote"
-    would be false for a Bill that in fact went to a Division, so that
-    default is skipped for exactly this case.
+    Checks `STATUS_OVERRIDES` and `AMBIGUOUS_DIVISIONS` first: a Bill named
+    there has a specific status/date handling that supersedes the default
+    register status check.
     """
+    if code in STATUS_OVERRIDES and "division_reason" in STATUS_OVERRIDES[code]:
+        return str(STATUS_OVERRIDES[code]["division_reason"])
     if code in AMBIGUOUS_DIVISIONS:
         return AMBIGUOUS_DIVISIONS[code]
-    if row["status"] == "Lulus":
+    status_str = row.get("status") or ""
+    if status_str == "Lulus":
         return (
             "Not among the 15th Parliament's ten recorded Divisions (see "
             "data/mp_profiles.json and ADR 0009) — this Bill passed on a voice "
             "vote, which Hansard records as a decision with no individual "
             "position taken."
         )
+    if "ditarik balik" in status_str.lower():
+        return "Withdrawn before a vote."
     return (
-        f'Still at the "{row["status"]}" stage per the Bills register — no vote has '
+        f'Still at the "{status_str}" stage per the Bills register — no vote has '
         "been put to the House on this Bill yet, so there is no Division to have "
         "or not have."
     )
@@ -361,24 +386,53 @@ def _fetch_summary_resilient(client: httpx.Client, pdf_path: str) -> tuple[str, 
         return fetch_summary(client, pdf_path)
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.parse_args()
+def load_existing_bills(path: Path = OUTPUT_PATH) -> dict[str, Any]:
+    """Existing bills from data/bills.json, if present."""
+    if path.exists():
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            bills = data.get("bills", {})
+            return dict(bills) if isinstance(bills, dict) else {}
+        except (json.JSONDecodeError, OSError):
+            return {}
+    return {}
 
-    limiter = RateLimiter()
-    with new_client() as client:
-        robots = RobotsPolicy(client=client, limiter=limiter)
-        if not robots.is_allowed(REGISTER_URL):
-            raise SystemExit(f"robots.txt disallows {REGISTER_URL}: {robots.refusal_reason(REGISTER_URL)}")
 
-        limiter.wait_turn(REGISTER_URL, robots.crawl_delay(REGISTER_URL))
-        register = fetch_register(client)
+def sync_bills(
+    register: dict[str, dict[str, Any]],
+    existing_bills: dict[str, Any],
+    divisions_by_subject: dict[str, dict[str, Any]],
+    client: httpx.Client,
+    robots: RobotsPolicy,
+    limiter: RateLimiter,
+    full_rebuild: bool = False,
+) -> tuple[dict[str, Any], list[str], list[str]]:
+    """Sync register rows with existing bills, fetching summaries only for new bills.
 
-        divisions_by_subject = load_division_tallies()
+    Returns (bills_dict, skipped_list, diff_messages).
+    """
+    bills: dict[str, Any] = {}
+    skipped: list[str] = []
+    diffs: list[str] = []
 
-        bills: dict[str, Any] = {}
-        skipped: list[str] = []
-        for code, row in register.items():
+    for code, row in register.items():
+        existing = existing_bills.get(code)
+        if existing is not None and not full_rebuild:
+            # Reuse cached summary and source URL — avoid expensive PDF re-downloads
+            summary = existing.get("summary", "")
+            summary_url = existing.get("summary_source_url", "")
+            if not summary or not summary_url:
+                pdf_url = f"{PARLIMEN}{quote(row['pdf_path'])}"
+                if not robots.is_allowed(pdf_url):
+                    skipped.append(f"{code}: robots.txt disallows {pdf_url}: {robots.refusal_reason(pdf_url)}")
+                    continue
+                limiter.wait_turn(pdf_url, robots.crawl_delay(pdf_url))
+                try:
+                    summary, summary_url = _fetch_summary_resilient(client, row["pdf_path"])
+                except (httpx.HTTPError, ValueError) as error:
+                    skipped.append(f"{code}: {error}")
+                    continue
+        else:
             pdf_url = f"{PARLIMEN}{quote(row['pdf_path'])}"
             if not robots.is_allowed(pdf_url):
                 skipped.append(f"{code}: robots.txt disallows {pdf_url}: {robots.refusal_reason(pdf_url)}")
@@ -393,28 +447,97 @@ def main() -> None:
                 skipped.append(f"{code}: {error}")
                 continue
 
-            division = None
-            if code in BILL_DIVISIONS:
-                division = divisions_by_subject.get(BILL_DIVISIONS[code])
-                if division is None:
-                    raise ValueError(
-                        f"{code}: BILL_DIVISIONS names a subject not found in "
-                        f"{MP_PROFILES_PATH} — the curated mapping may be stale"
-                    )
+        division = None
+        if code in BILL_DIVISIONS:
+            division = divisions_by_subject.get(BILL_DIVISIONS[code])
+            if division is None:
+                raise ValueError(
+                    f"{code}: BILL_DIVISIONS names a subject not found in "
+                    f"{MP_PROFILES_PATH} — the curated mapping may be stale"
+                )
 
-            bills[code] = build_bill(code, row, summary, summary_url, division)
+        bill_entry = build_bill(code, row, summary, summary_url, division)
+        bills[code] = bill_entry
+
+        if existing is None:
+            diffs.append(f"[NEW] {code} ({row['title']}): {bill_entry['stage']} ({bill_entry['stage_date']})")
+        else:
+            old_stage = existing.get("stage")
+            old_date = existing.get("stage_date")
+            new_stage = bill_entry.get("stage")
+            new_date = bill_entry.get("stage_date")
+            if old_stage != new_stage or old_date != new_date:
+                diffs.append(
+                    f"[UPDATED] {code} ({row['title']}): "
+                    f"'{old_stage}' ({old_date}) -> '{new_stage}' ({new_date})"
+                )
+
+    # Retain any older existing bills not present in the register default view
+    for code, existing in existing_bills.items():
+        if code not in bills and not full_rebuild:
+            bills[code] = existing
+
+    return bills, skipped, diffs
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Check register for status updates and print diffs without writing to data/bills.json.",
+    )
+    parser.add_argument(
+        "--full-rebuild",
+        action="store_true",
+        help="Re-download and re-extract PDFs for all bills rather than syncing status incrementally.",
+    )
+    args = parser.parse_args()
+
+    limiter = RateLimiter()
+    with new_client() as client:
+        robots = RobotsPolicy(client=client, limiter=limiter)
+        if not robots.is_allowed(REGISTER_URL):
+            raise SystemExit(f"robots.txt disallows {REGISTER_URL}: {robots.refusal_reason(REGISTER_URL)}")
+
+        limiter.wait_turn(REGISTER_URL, robots.crawl_delay(REGISTER_URL))
+        register = fetch_register(client)
+        divisions_by_subject = load_division_tallies()
+        existing_bills = load_existing_bills()
+
+        bills, skipped, diffs = sync_bills(
+            register=register,
+            existing_bills=existing_bills,
+            divisions_by_subject=divisions_by_subject,
+            client=client,
+            robots=robots,
+            limiter=limiter,
+            full_rebuild=args.full_rebuild,
+        )
+
+    if diffs:
+        print("Status differences detected:")
+        for diff in diffs:
+            print(f"  {diff}")
+    else:
+        print("No status differences found — all bills are up to date.")
+
+    for reason in skipped:
+        print(f"skipped {reason}")
+
+    if args.dry_run:
+        print(f"[dry-run] Checked {len(bills)} Bills ({len(diffs)} changes, {len(skipped)} skipped); no files modified.")
+        return
 
     output = {
         "_comment": [
-            "Bills tracked on the homepage's bill tracker (issues #80, #106).",
+            "Bills tracked on the homepage's bill tracker (issues #80, #106, #117).",
             "See scripts/build_bill_tracker.py, which generated this file, and",
             "ADR 0010 for the method. `stage` is Parliament's own status label,",
             "not a translated or invented one; `summary` is a verbatim excerpt",
             "of the Bill's own explanatory statement, not this pipeline's",
-            "paraphrase. Covers the Bills register's full default view as of",
-            "`_source.retrieved`, minus any Bill whose PDF yielded no clean",
-            "HURAIAN excerpt — see the run's own printed skip list, not",
-            "recorded in this file, for which and why.",
+            "paraphrase. Statuses are re-checked incrementally against the register;",
+            "summaries are cached from previously fetched PDFs.",
         ],
         "_source": {
             "register": {
@@ -435,10 +558,9 @@ def main() -> None:
     }
 
     OUTPUT_PATH.write_text(json.dumps(output, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    for reason in skipped:
-        print(f"skipped {reason}")
-    print(f"wrote {len(bills)} Bills to {OUTPUT_PATH} ({len(skipped)} skipped)")
+    print(f"wrote {len(bills)} Bills to {OUTPUT_PATH} ({len(diffs)} changes, {len(skipped)} skipped)")
 
 
 if __name__ == "__main__":
     main()
+

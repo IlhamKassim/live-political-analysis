@@ -11,7 +11,11 @@ import json
 from datetime import date
 
 import pytest
-from build_bill_tracker import parse_register
+from build_bill_tracker import (
+    build_bill,
+    parse_register,
+    sync_bills,
+)
 
 from lpa.bill_tracker import DivisionResult, missing_fields, unexplained_fields
 from lpa.config import load_bills
@@ -227,3 +231,86 @@ def test_every_shipped_no_division_reason_matches_the_bills_own_stage():
             assert "passed" not in reason, (
                 f"{code}: stage is {bill.stage!r} but reason claims passage"
             )
+
+
+def test_status_overrides_preserve_manual_withdrawal():
+    # D.R.25/2025 was withdrawn by the Cabinet on 2026-01-23 (issue #117)
+    row = {
+        "code": "D.R.25/2025",
+        "year": 2025,
+        "title": "RUU Pembaharuan Semula Bandar 2025",
+        "status": "Bacaan Kali Pertama",
+        "first_reading": "21/08/2025",
+        "second_reading": None,
+        "referred_jkpk": None,
+        "passed": None,
+        "pdf_path": "/files/billindex/pdf/2025/DR/test.pdf",
+    }
+    bill = build_bill("D.R.25/2025", row, "Summary text", "http://example.com/test.pdf#page=1", None)
+    assert bill["stage"] == "Ditarik Balik"
+    assert bill["stage_date"] == "2026-01-23"
+    assert bill["unverified"]["division"] == "Withdrawn by the Cabinet before a vote."
+
+
+def test_sync_bills_reuses_cached_summary_without_network(monkeypatch):
+    register = {
+        "D.R.1/2025": {
+            "code": "D.R.1/2025",
+            "year": 2025,
+            "title": "RUU Satu 2025",
+            "status": "Lulus",
+            "first_reading": "01/01/2025",
+            "second_reading": "02/01/2025",
+            "referred_jkpk": None,
+            "passed": "03/01/2025",
+            "pdf_path": "/files/billindex/pdf/2025/DR/D.R.1/2025.pdf",
+        }
+    }
+    existing = {
+        "D.R.1/2025": {
+            "title": "RUU Satu 2025",
+            "year": 2025,
+            "stage": "Bacaan Kali Pertama",
+            "stage_date": "2025-01-01",
+            "summary": "Existing summary text.",
+            "summary_source_url": "http://example.com/test.pdf#page=1",
+            "division": None,
+            "unverified": {
+                "division": 'Still at the "Bacaan Kali Pertama" stage per the Bills register.'
+            },
+        }
+    }
+
+    class DummyRobots:
+        def is_allowed(self, url):
+            return True
+        def crawl_delay(self, url):
+            return None
+
+    class DummyLimiter:
+        def wait_turn(self, url, delay):
+            pass
+
+    def fail_if_fetch_called(*args, **kwargs):
+        raise AssertionError("PDF fetch should not be called for an existing bill with cached summary")
+
+    monkeypatch.setattr("build_bill_tracker._fetch_summary_resilient", fail_if_fetch_called)
+
+    bills, skipped, diffs = sync_bills(
+        register=register,
+        existing_bills=existing,
+        divisions_by_subject={},
+        client=None,  # type: ignore[arg-type]
+        robots=DummyRobots(),  # type: ignore[arg-type]
+        limiter=DummyLimiter(),  # type: ignore[arg-type]
+        full_rebuild=False,
+    )
+
+    assert "D.R.1/2025" in bills
+    assert bills["D.R.1/2025"]["stage"] == "Lulus"
+    assert bills["D.R.1/2025"]["stage_date"] == "2025-01-03"
+    assert bills["D.R.1/2025"]["summary"] == "Existing summary text."
+    assert len(diffs) == 1
+    assert "UPDATED" in diffs[0]
+    assert skipped == []
+
