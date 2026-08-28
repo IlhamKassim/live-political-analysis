@@ -298,6 +298,7 @@ def _hero(model: HomepageModel, language: Language) -> str:
         "Keputusan Kerusi dijana oleh model dan belum ditentukur terhadap data "
         f'tinjauan — lihat <a href="{methodology}">cara ini berfungsi</a>.',
     )
+    popular_label = t(language, "Popular:", "Popular:")
     return f"""
 <section class="pk-hero">
   <div class="pk-hero-lookup">
@@ -312,6 +313,13 @@ def _hero(model: HomepageModel, language: Language) -> str:
     </form>
     <button type="button" class="pk-locate-btn" data-pk-locate>{use_my_location}</button>
     <p class="pk-privacy-note">{privacy_note}</p>
+    <div class="pk-popular-chips">
+      <span class="pk-popular-label">{popular_label}</span>
+      <button type="button" class="pk-quick-chip" onclick="document.getElementById('pk-lookup-input').value='50480';document.querySelector('[data-pk-lookup-form]').requestSubmit();">50480</button>
+      <button type="button" class="pk-quick-chip" onclick="document.getElementById('pk-lookup-input').value='Tambun';document.querySelector('[data-pk-lookup-form]').requestSubmit();">Tambun</button>
+      <button type="button" class="pk-quick-chip" onclick="document.getElementById('pk-lookup-input').value='Pagoh';document.querySelector('[data-pk-lookup-form]').requestSubmit();">Pagoh</button>
+      <button type="button" class="pk-quick-chip" onclick="document.getElementById('pk-lookup-input').value='Kota Bharu';document.querySelector('[data-pk-lookup-form]').requestSubmit();">Kota Bharu</button>
+    </div>
     <div class="pk-lookup-results" data-pk-lookup-results hidden></div>
     <div class="pk-recent-chips" data-pk-recent-chips hidden>
       <div class="pk-recent-label">{recently_looked_up}</div>
@@ -347,16 +355,13 @@ def _hero(model: HomepageModel, language: Language) -> str:
 def _bill_card(bill: Bill, language: Language) -> str:
     if bill.division is not None:
         d = bill.division
-        footer = f"{d.ayes} AYE · {d.noes} NO"  # Hansard vote codes, not translated — see module docstring
+        division_text = f"{d.ayes} AYE · {d.noes} NO"  # Hansard vote codes, not translated — see module docstring
+        footer = f"{division_text} (Division)"
     else:
         footer = t(language, "No Division — voice vote", "Tiada Undian — undian suara")
     positive = bill.stage == "Lulus"
     dot_class = "pk-dot-positive" if positive else "pk-dot-pending"
-    # EN shows this module's own sourced gloss (`_stage_label`); BM shows the
-    # Bill's own `stage` field unchanged — it is already Parliament's real
-    # Malay word for the stage (e.g. "Lulus"), not a translation this
-    # codebase produces (see the settled `Passed · 2nd reading` row's own
-    # comment in `politikku_i18n.py`).
+    stage_class = "pk-bill-stage-positive" if positive else "pk-bill-stage-pending"
     stage_text = t(language, _stage_label(bill.stage), bill.stage)
     bill_note = t(
         language,
@@ -365,14 +370,17 @@ def _bill_card(bill: Bill, language: Language) -> str:
     )
     return f"""
 <article class="pk-bill-card">
-  <div class="pk-bill-status"><span class="{dot_class}"></span>
-    <span class="pk-bill-stage">{html.escape(stage_text)}</span></div>
+  <div class="pk-bill-status-row">
+    <div class="pk-bill-status {stage_class}"><span class="{dot_class}"></span>
+      <span class="pk-bill-stage">{html.escape(stage_text)}</span></div>
+    <span class="pk-bill-vote-badge">{html.escape(footer)}</span>
+  </div>
   <h3><a href="{html.escape(bill.summary_source_url)}">{html.escape(bill.title)}</a></h3>
   <p class="pk-bill-summary" lang="ms">{html.escape(bill.summary)}</p>
   <div class="pk-bill-note">{bill_note}</div>
   <div class="pk-bill-footer">
     <span>{html.escape(short_date(bill.stage_date))}</span>
-    <span>{html.escape(footer)}</span>
+    <span>Hansard</span>
   </div>
 </article>
 """.strip()
@@ -382,10 +390,6 @@ def _bill_tracker(model: HomepageModel, language: Language) -> str:
     cards = "".join(_bill_card(bill, language) for bill in model.bills)
     heading = t(language, DEWAN_RAKYAT_THIS_WEEK_EN, DEWAN_RAKYAT_THIS_WEEK_MS)
     all_bills = t(language, "All bills →", "Semua rang undang-undang →")
-    # Routed rather than hardcoded (#104): the bills page is still a route
-    # nothing builds yet (`politikku_shell.NAV_LINKS` links the same one),
-    # but a hardcoded `/politikku/bills.html` here would have survived the
-    # cutover as a link into a prefix that no longer exists.
     all_bills_href = html.escape(route(language, BILLS_PAGE))
     return f"""
 <section class="pk-bills">
@@ -526,17 +530,30 @@ _CSS = """
   .pk-lookup-form input {
     flex: 1; height: 52px; padding: 0 14px; font-size: 15px;
     border: 1px solid var(--line-strong); border-radius: var(--radius-md); font-family: var(--sans);
+    background: var(--white); color: var(--ink);
   }
   .pk-search-btn, .pk-locate-btn {
     height: 52px; padding: 0 22px; font-size: 14px; border-radius: var(--radius-md);
-    font-family: var(--sans); cursor: pointer;
+    font-family: var(--sans); cursor: pointer; transition: all .15s ease;
   }
   .pk-search-btn { background: var(--ink); color: var(--paper); border: none; }
+  .pk-search-btn:hover { opacity: .9; }
   .pk-locate-btn {
-    display: block; margin-top: 14px; width: 100%; background: transparent;
+    display: block; margin-top: 14px; width: 100%; max-width: 490px; background: transparent;
     color: var(--ink); border: 1px solid var(--line-strong);
   }
-  .pk-privacy-note { font-size: 12px; color: var(--muted); margin: 8px 0 22px; }
+  .pk-locate-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .pk-privacy-note { font-size: 12px; color: var(--muted); margin: 8px 0 16px; }
+  
+  .pk-popular-chips { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .pk-popular-label { font-family: var(--mono); font-size: 10.5px; color: var(--muted); text-transform: uppercase; }
+  .pk-quick-chip {
+    font-family: var(--sans); font-size: 11.5px; font-weight: 500; color: var(--ink-secondary);
+    background: var(--white); border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+    padding: 3px 8px; cursor: pointer; transition: all .15s ease;
+  }
+  .pk-quick-chip:hover { border-color: var(--accent); color: var(--accent); }
+
   .pk-recent-label {
     font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em;
     text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
@@ -556,9 +573,9 @@ _CSS = """
   }
   .pk-hemicycle-legend li { display: flex; align-items: center; gap: 6px; }
   .pk-swatch { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
-  .pk-swatch-gov { background: #14203a; }
-  .pk-swatch-noise { background: #d6d1c6; }
-  .pk-swatch-nongov { background: #93a0ac; }
+  .pk-swatch-gov { background: var(--data-government); }
+  .pk-swatch-noise { background: var(--data-noise); }
+  .pk-swatch-nongov { background: var(--data-nongovernment); }
   .pk-stat-grid {
     display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 18px 0;
   }
@@ -575,15 +592,23 @@ _CSS = """
   .pk-bill-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 18px; }
   .pk-bill-card {
     background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-lg);
-    padding: 20px; display: flex; flex-direction: column; gap: 10px;
+    padding: 20px; display: flex; flex-direction: column; gap: 12px; transition: border-color .15s ease, box-shadow .15s ease;
   }
-  .pk-bill-status { display: flex; align-items: center; gap: 8px; }
+  .pk-bill-card:hover { border-color: var(--line-strong); box-shadow: 0 4px 12px rgba(0,0,0,.04); }
+  .pk-bill-status-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .pk-bill-status { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: var(--radius-sm); }
+  .pk-bill-status.pk-bill-stage-positive { background: var(--positive-bg); border: 1px solid var(--positive-border); color: var(--accent); }
+  .pk-bill-status.pk-bill-stage-pending { background: var(--caution-bg); border: 1px solid var(--caution-border); color: var(--caution-deep); }
   .pk-dot-positive, .pk-dot-pending { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
   .pk-dot-positive { background: var(--accent); }
   .pk-dot-pending { background: var(--caution); }
   .pk-bill-stage {
     font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
-    color: var(--ink-secondary);
+    font-weight: 500;
+  }
+  .pk-bill-vote-badge {
+    font-family: var(--mono); font-size: 10.5px; color: var(--ink-secondary);
+    background: var(--paper-alt); border: 1px solid var(--line-soft); padding: 2px 6px; border-radius: var(--radius-sm);
   }
   .pk-bill-card h3 { font-family: var(--serif); font-size: 19px; margin: 0; font-weight: 500; }
   .pk-bill-card h3 a { color: var(--ink); }
@@ -608,14 +633,14 @@ _CSS = """
   .pk-sentiment-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .pk-sentiment-table th {
     font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase;
-    color: var(--muted); text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line);
+    color: var(--muted); text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line);
   }
-  .pk-sentiment-table td { padding: 10px 14px; border-bottom: 1px solid var(--line-soft); }
+  .pk-sentiment-table td { padding: 12px 14px; border-bottom: 1px solid var(--line-soft); }
   .pk-coalition small { color: var(--muted); font-family: var(--mono); font-size: 10.5px; }
-  .pk-sentiment-bar { width: 80px; height: 5px; background: var(--line-soft); border-radius: 3px; }
+  .pk-sentiment-bar { width: 80px; height: 6px; background: var(--line-soft); border-radius: 3px; overflow: hidden; }
   .pk-sentiment-fill { height: 100%; background: var(--accent); border-radius: 3px; }
-  .pk-delta-up { color: var(--accent); }
-  .pk-delta-down { color: var(--caution-deep); }
+  .pk-delta-up { color: var(--accent); font-weight: 500; }
+  .pk-delta-down { color: var(--caution-deep); font-weight: 500; }
   .pk-delta-flat, .pk-delta-none { color: var(--muted); }
   .pk-sentiment-footer {
     padding: 10px 14px; font-family: var(--mono); font-size: 11px; color: var(--muted);
@@ -632,11 +657,6 @@ _CSS = """
     .pk-bill-grid { grid-template-columns: 1fr; }
     .pk-bill-grid .pk-bill-card:nth-child(n+3) { display: none; }
     .pk-sentiment { grid-template-columns: 1fr; gap: 20px; }
-    /* Condensed rows (README §2's mobile order): drop the Tone bar — its
-       exact score is still in the bar's own aria-label, never lost, only
-       hidden from a narrow layout that has no room for a fourth column —
-       and let the row scroll horizontally rather than clip if it still
-       doesn't fit (the NOT CALIBRATED tag beside each delta adds width). */
     .pk-sentiment-table-wrap { overflow-x: auto; }
     .pk-sentiment-table th:nth-child(3), .pk-sentiment-table td:nth-child(3) { display: none; }
   }
