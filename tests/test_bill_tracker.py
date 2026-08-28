@@ -246,7 +246,9 @@ def test_status_overrides_preserve_manual_withdrawal():
         "passed": None,
         "pdf_path": "/files/billindex/pdf/2025/DR/test.pdf",
     }
-    bill = build_bill("D.R.25/2025", row, "Summary text", "http://example.com/test.pdf#page=1", None)
+    bill = build_bill(
+        "D.R.25/2025", row, "Summary text", "http://example.com/test.pdf#page=1", None
+    )
     assert bill["stage"] == "Ditarik Balik"
     assert bill["stage_date"] == "2026-01-23"
     assert bill["unverified"]["division"] == "Withdrawn by the Cabinet before a vote."
@@ -284,6 +286,7 @@ def test_sync_bills_reuses_cached_summary_without_network(monkeypatch):
     class DummyRobots:
         def is_allowed(self, url):
             return True
+
         def crawl_delay(self, url):
             return None
 
@@ -292,7 +295,9 @@ def test_sync_bills_reuses_cached_summary_without_network(monkeypatch):
             pass
 
     def fail_if_fetch_called(*args, **kwargs):
-        raise AssertionError("PDF fetch should not be called for an existing bill with cached summary")
+        raise AssertionError(
+            "PDF fetch should not be called for an existing bill with cached summary"
+        )
 
     monkeypatch.setattr("build_bill_tracker._fetch_summary_resilient", fail_if_fetch_called)
 
@@ -313,4 +318,3 @@ def test_sync_bills_reuses_cached_summary_without_network(monkeypatch):
     assert len(diffs) == 1
     assert "UPDATED" in diffs[0]
     assert skipped == []
-
