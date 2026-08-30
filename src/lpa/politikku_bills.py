@@ -92,13 +92,17 @@ def bills_page_model(
 def _bill_card(bill: Bill, language: Language) -> str:
     stage_lower = bill.stage.lower()
     if "lulus" in stage_lower:
-        dot_class = "pk-bill-dot-pass"
+        dot_class = "pk-dot-positive pk-bill-dot-pass"
+        stage_class = "pk-bill-stage-positive"
     elif "jkpk" in stage_lower or "jawatankuasa" in stage_lower:
-        dot_class = "pk-bill-dot-committee"
+        dot_class = "pk-dot-pending pk-bill-dot-committee"
+        stage_class = "pk-bill-stage-pending"
     elif "tidak mendapat undi 2/3" in stage_lower or "ditarik balik" in stage_lower:
-        dot_class = "pk-bill-dot-fail"
+        dot_class = "pk-dot-fail pk-bill-dot-fail"
+        stage_class = "pk-bill-stage-fail"
     else:
-        dot_class = "pk-bill-dot-progress"
+        dot_class = "pk-dot-progress pk-bill-dot-progress"
+        stage_class = "pk-bill-stage-progress"
 
     stage_text = bill.stage
     if language is Language.EN:
@@ -133,67 +137,165 @@ def _bill_card(bill: Bill, language: Language) -> str:
     )
     return f"""
 <article class="pk-bill-card">
-  <div class="pk-bill-status"><span class="{dot_class}"></span>
-    <span class="pk-bill-stage">{html.escape(stage_text)}</span></div>
+  <div class="pk-bill-status-row">
+    <div class="pk-bill-status {stage_class}"><span class="{dot_class}"></span>
+      <span class="pk-bill-stage">{html.escape(stage_text)}</span></div>
+    <span class="pk-bill-vote-badge">{html.escape(footer)}</span>
+  </div>
   <h3><a href="{html.escape(bill.summary_source_url)}" target="_blank" rel="noopener noreferrer">{html.escape(bill.title)}</a></h3>
   <p class="pk-bill-summary" lang="ms">{html.escape(bill.summary)}</p>
   <div class="pk-bill-note">{bill_note}</div>
   <div class="pk-bill-footer">
     <span>{html.escape(short_date(bill.stage_date))}</span>
-    <span>{html.escape(footer)}</span>
+    <span>Hansard</span>
   </div>
 </article>
 """.strip()
 
 
 _BILLS_CSS = """
-  .pk-container { max-width: 1040px; margin: 0 auto; padding: 2rem var(--gutter-mobile); }
-  @media (min-width: 900px) { .pk-container { padding: 4rem var(--gutter-desktop); } }
-
-  .pk-bills-head { margin-bottom: 1.5rem; }
-  .pk-bills-head h1 { font-size: 2rem; font-weight: 700; margin: 0 0 0.5rem 0; color: var(--ink); font-family: var(--serif); }
-  .pk-bills-head p { color: var(--ink-secondary); max-width: 720px; line-height: 1.6; margin: 0; }
-  .pk-bills-stats { display: flex; gap: 1.5rem; margin-top: 1.25rem; font-size: 0.95rem; }
-  .pk-bills-stats strong { color: var(--ink); }
-  .pk-bills-stats span { color: var(--ink-secondary); }
-  .pk-bills-section { margin-top: 1rem; margin-bottom: 3rem; }
-  .pk-bill-grid { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+  .pk-bills-page {
+    background: var(--paper);
+    padding: 38px var(--gutter-desktop);
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+  .pk-bills-head { margin-bottom: 24px; }
+  .pk-bills-head h1 {
+    font-family: var(--serif);
+    font-size: var(--text-h1-desktop);
+    font-weight: 500;
+    line-height: 1.1;
+    margin: 0 0 10px 0;
+    color: var(--ink);
+  }
+  .pk-bills-head p {
+    color: var(--ink-secondary);
+    max-width: 72ch;
+    font-size: 15px;
+    line-height: 1.5;
+    margin: 0;
+  }
+  .pk-bills-stats {
+    display: flex;
+    gap: 24px;
+    margin-top: 18px;
+    font-size: 13px;
+    font-family: var(--mono);
+  }
+  .pk-bills-stats strong { color: var(--ink); font-size: 15px; }
+  .pk-bills-stats span { color: var(--muted); letter-spacing: .04em; text-transform: uppercase; font-size: 11px; }
+  .pk-bills-section { margin-top: 16px; margin-bottom: 40px; }
+  .pk-bill-grid {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
   
   .pk-bill-card {
-    background: var(--paper);
-    border: 1px solid var(--line-soft);
-    border-radius: var(--radius-md);
-    padding: 1.25rem;
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 20px;
     display: flex;
     flex-direction: column;
+    gap: 12px;
+    transition: border-color .15s ease, box-shadow .15s ease;
   }
-  .pk-bill-status {
+  .pk-bill-card:hover {
+    border-color: var(--line-strong);
+    box-shadow: 0 4px 12px rgba(0,0,0,.04);
+  }
+  .pk-bill-status-row {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
   }
-  .pk-bill-stage { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-secondary); }
-  .pk-bill-card h3 { font-family: var(--serif); font-size: 1.1rem; margin: 0 0 0.5rem 0; line-height: 1.3; }
+  .pk-bill-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+  }
+  .pk-bill-status.pk-bill-stage-positive {
+    background: var(--positive-bg);
+    border: 1px solid var(--positive-border);
+    color: var(--accent);
+  }
+  .pk-bill-status.pk-bill-stage-pending {
+    background: var(--caution-bg);
+    border: 1px solid var(--caution-border);
+    color: var(--caution-deep);
+  }
+  .pk-bill-status.pk-bill-stage-fail {
+    background: var(--paper-alt);
+    border: 1px solid var(--line-strong);
+    color: var(--ink-secondary);
+  }
+  .pk-bill-status.pk-bill-stage-progress {
+    background: var(--paper-alt);
+    border: 1px solid var(--line-soft);
+    color: var(--ink-secondary);
+  }
+  .pk-bill-stage {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .pk-bill-vote-badge {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-secondary);
+    background: var(--paper-alt);
+    border: 1px solid var(--line-soft);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+  }
+  .pk-bill-card h3 {
+    font-family: var(--serif);
+    font-size: 19px;
+    margin: 0;
+    font-weight: 500;
+    line-height: 1.3;
+  }
   .pk-bill-card h3 a { color: var(--ink); text-decoration: none; }
-  .pk-bill-card h3 a:hover { text-decoration: underline; color: var(--accent); }
-  .pk-bill-summary { font-size: 0.9rem; line-height: 1.5; color: var(--ink-secondary); flex-grow: 1; margin: 0 0 1rem 0; }
-  .pk-bill-note { font-size: 0.85rem; color: var(--ink-secondary); font-style: italic; margin-bottom: 1rem; }
+  .pk-bill-card h3 a:hover { color: var(--accent); text-decoration: underline; }
+  .pk-bill-summary {
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--ink-secondary);
+    margin: 0;
+    flex-grow: 1;
+  }
+  .pk-bill-note { font-size: 11px; color: var(--muted); font-style: italic; }
   .pk-bill-note:empty { display: none; }
   .pk-bill-footer {
+    margin-top: auto;
+    padding-top: 10px;
+    border-top: 1px solid var(--line-soft);
     display: flex;
     justify-content: space-between;
-    font-size: 0.8rem;
-    color: var(--muted);
-    border-top: 1px solid var(--line-soft);
-    padding-top: 0.75rem;
-    margin-top: auto;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-secondary);
   }
   
-  .pk-bill-dot-pass { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: var(--accent); }
-  .pk-bill-dot-committee { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: var(--caution); }
-  .pk-bill-dot-fail { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: var(--ink-secondary); }
-  .pk-bill-dot-progress { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: var(--line-strong); }
+  .pk-dot-positive, .pk-bill-dot-pass { width: 6px; height: 6px; border-radius: 50%; display: inline-block; background-color: var(--accent); }
+  .pk-dot-pending, .pk-bill-dot-committee { width: 6px; height: 6px; border-radius: 50%; display: inline-block; background-color: var(--caution); }
+  .pk-dot-fail, .pk-bill-dot-fail { width: 6px; height: 6px; border-radius: 50%; display: inline-block; background-color: var(--ink-secondary); }
+  .pk-dot-progress, .pk-bill-dot-progress { width: 6px; height: 6px; border-radius: 50%; display: inline-block; background-color: var(--line-strong); }
+
+  @media (max-width: 900px) {
+    .pk-bills-page { padding: 22px var(--gutter-mobile); }
+    .pk-bills-head h1 { font-size: var(--text-h1-mobile); }
+    .pk-bills-stats { flex-wrap: wrap; gap: 14px; }
+    .pk-bill-grid { grid-template-columns: 1fr; gap: 16px; }
+  }
 """
 
 
@@ -229,7 +331,7 @@ def render_bills_page(model: BillsPageModel, language: Language) -> str:
 
     body_html = f"""
 <style>{_BILLS_CSS}</style>
-<main class="pk-container">
+<div class="pk-bills-page">
   <section class="pk-bills-head">
     <h1>{heading}</h1>
     <p>{subhead}</p>
@@ -242,7 +344,7 @@ def render_bills_page(model: BillsPageModel, language: Language) -> str:
   <section class="pk-bills-section">
     <div class="pk-bill-grid">{cards}</div>
   </section>
-</main>
+</div>
 """.strip()
 
     return render_shell(

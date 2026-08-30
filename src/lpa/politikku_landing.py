@@ -514,11 +514,19 @@ def _search_cta(language: Language) -> str:
     )
     placeholder = t(language, "Postcode or constituency name", POSTCODE_OR_CONSTITUENCY_MS)
     search = t(language, "Search", "Cari")
+    popular_label = t(language, "Popular:", "Popular:")
     return f"""
 <section class="pk-landing-search-cta">
   <div>
     <h2>{heading}</h2>
     <p>{lede}</p>
+    <div class="pk-popular-chips">
+      <span class="pk-popular-label">{popular_label}</span>
+      <button type="button" class="pk-quick-chip" onclick="document.getElementById('pk-landing-lookup-input').value='50480';document.querySelector('.pk-landing-search-cta [data-pk-lookup-form]').requestSubmit();">50480</button>
+      <button type="button" class="pk-quick-chip" onclick="document.getElementById('pk-landing-lookup-input').value='Tambun';document.querySelector('.pk-landing-search-cta [data-pk-lookup-form]').requestSubmit();">Tambun</button>
+      <button type="button" class="pk-quick-chip" onclick="document.getElementById('pk-landing-lookup-input').value='Pagoh';document.querySelector('.pk-landing-search-cta [data-pk-lookup-form]').requestSubmit();">Pagoh</button>
+      <button type="button" class="pk-quick-chip" onclick="document.getElementById('pk-landing-lookup-input').value='Kota Bharu';document.querySelector('.pk-landing-search-cta [data-pk-lookup-form]').requestSubmit();">Kota Bharu</button>
+    </div>
   </div>
   <form class="pk-lookup-form" data-pk-lookup-form>
     <label class="pk-visually-hidden" for="pk-landing-lookup-input">{placeholder}</label>
@@ -587,9 +595,12 @@ _CSS = """
   .pk-landing-cta-primary, .pk-landing-cta-secondary {
     height: 52px; padding: 0 24px; border-radius: var(--radius-lg); font-size: 15px;
     display: inline-flex; align-items: center; text-decoration: none;
+    transition: opacity .15s ease, border-color .15s ease, color .15s ease;
   }
   .pk-landing-cta-primary { background: var(--paper); color: var(--ink); font-weight: 500; }
+  .pk-landing-cta-primary:hover { opacity: .92; }
   .pk-landing-cta-secondary { border: 1px solid rgba(251,250,247,.3); color: var(--on-dark-body); }
+  .pk-landing-cta-secondary:hover { border-color: rgba(251,250,247,.6); color: var(--paper); }
 
   .pk-landing-stats {
     background: var(--paper-alt); border-bottom: 1px solid var(--line);
@@ -605,7 +616,11 @@ _CSS = """
     background: var(--line-soft); border: 1px solid var(--line-soft); border-radius: var(--radius-lg);
     overflow: hidden; margin-top: 22px;
   }
-  .pk-landing-cell { background: var(--white); padding: 24px 20px; display: flex; flex-direction: column; gap: 9px; }
+  .pk-landing-cell {
+    background: var(--white); padding: 24px 20px; display: flex; flex-direction: column; gap: 9px;
+    transition: background .15s ease;
+  }
+  .pk-landing-cell:hover { background: var(--paper); }
   .pk-landing-cell-n { font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
   .pk-landing-cell h3 { font-family: var(--serif); font-weight: 500; font-size: 20px; color: var(--ink); margin: 0; line-height: 1.2; }
   .pk-landing-cell p { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--ink-secondary); }
@@ -623,12 +638,18 @@ _CSS = """
     color: var(--ink); margin: 12px 0 14px; letter-spacing: -.015em;
   }
   .pk-landing-trust-prose p { margin: 0 0 12px; font-size: 14.5px; line-height: 1.6; color: var(--ink-secondary); }
-  .pk-landing-methodology-link { display: inline-block; margin-top: 16px; font-size: 13px; color: var(--accent); }
+  .pk-landing-methodology-link {
+    display: inline-block; margin-top: 16px; font-size: 13px; color: var(--accent);
+    border-bottom: 1px solid rgba(31, 92, 88, .4); transition: border-bottom-color .15s ease;
+  }
+  .pk-landing-methodology-link:hover { border-bottom-color: var(--accent); }
   .pk-landing-trust-cards { display: flex; flex-direction: column; gap: 12px; }
   .pk-trust-card {
     background: var(--paper); border-radius: var(--radius-lg); padding: 18px 20px;
     display: flex; gap: 16px; align-items: flex-start;
+    transition: border-color .15s ease, box-shadow .15s ease;
   }
+  .pk-trust-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.03); }
   .pk-trust-card-fact { border: 1px solid var(--line); }
   .pk-trust-card-model { border: 1px solid var(--caution-border); }
   .pk-pill-fact, .pk-pill-model {
@@ -640,6 +661,15 @@ _CSS = """
   .pk-trust-claim { font-size: 14.5px; color: var(--ink); margin-bottom: 3px; }
   .pk-trust-source { font-size: 12.5px; color: var(--muted); }
 
+  .pk-popular-chips { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+  .pk-popular-label { font-family: var(--mono); font-size: 10.5px; color: var(--muted); text-transform: uppercase; }
+  .pk-quick-chip {
+    font-family: var(--sans); font-size: 11.5px; font-weight: 500; color: var(--ink-secondary);
+    background: var(--white); border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+    padding: 3px 8px; cursor: pointer; transition: border-color .15s ease, color .15s ease;
+  }
+  .pk-quick-chip:hover { border-color: var(--accent); color: var(--accent); }
+
   .pk-landing-search-cta {
     background: var(--paper); border-top: 1px solid var(--line-soft); padding: 44px var(--gutter-desktop);
     display: flex; align-items: center; justify-content: space-between; gap: 40px; flex-wrap: wrap;
@@ -649,12 +679,14 @@ _CSS = """
   .pk-landing-search-cta .pk-lookup-form { display: flex; gap: 10px; flex: 1; min-width: 320px; max-width: 520px; }
   .pk-landing-search-cta input {
     flex: 1; height: 52px; padding: 0 14px; font-size: 15px; border: 1px solid var(--line-strong);
-    border-radius: var(--radius-md); font-family: var(--sans);
+    border-radius: var(--radius-md); font-family: var(--sans); background: var(--white); color: var(--ink);
   }
   .pk-landing-search-cta .pk-search-btn {
     height: 52px; padding: 0 24px; background: var(--ink); color: var(--paper); border: none;
     border-radius: var(--radius-md); font-size: 14.5px; font-weight: 500; cursor: pointer;
+    transition: opacity .15s ease;
   }
+  .pk-landing-search-cta .pk-search-btn:hover { opacity: .9; }
 
   @media (max-width: 900px) {
     .pk-landing-hero { padding: 36px var(--gutter-mobile) 34px; }
