@@ -1,0 +1,114 @@
+# MyPolitik
+
+**Interactive map of every Malaysian Parliament + DUN seat** — click your *kawasan*
+to see the wakil rakyat, party/bloc, GE15 margin, and (soon) a transparently
+computed performance score. Built on the [krackedmaps](https://maps.krackeddevs.com)
+projection so it aligns pixel-for-pixel with the state map.
+
+Self-contained, no build step. `public/` is a static app served by a tiny
+Cloudflare Worker.
+
+```
+npm run data      # rebuild the core data layers (pipeline/01-04 only; 05-15 run standalone)
+npm run dev       # python http.server on :4178  -> http://localhost:4178
+npm run deploy:staging   # wrangler deploy --env staging
+npm run deploy           # prod
+```
+
+## Invariants — read before editing
+
+1. **The projection is FROZEN, copied verbatim from krackedmaps.** `pipeline/01_boundaries.py`
+   hardcodes the exact `PROJECTION` constants (viewBox `0 0 799.85 352.74`, Mercator +
+   Borneo-shift). **Do not recompute bounds from the seat data** — reusing the frozen
+   constants is what keeps MyPolitik aligned with maps.krackeddevs.com (seats could be
+   overlaid on the state map). If krackedmaps ever re-bakes its projection, copy the new
+   constants here; don't derive your own.
+2. **`code_parlimen` (`P.001`…`P.222`) is the universal join key.** DOSM boundaries,
+   GE15 results, and scores all key on it. DUN seats key on `code_state_dun` (`1_N.01`)
+   because `N.xx` repeats across states; each DUN also carries its parent `parlimen`.
+3. **Boundaries are official DOSM** (`dosm-malaysia/data-open`). 222 parlimen, 600 DUN
+   (only 13 states have an assembly — the 3 Federal Territories have none).
+4. **GE15 `party` is normalised to coalition** in `02_results.py` (`COALITION` map): the
+   raw Thevesh ballots mix coalition labels (PH/PN) with component-party labels (DAP/PAS/
+   MUDA). The map colours by `coalition`; the panel still shows the component `party`.
+   Sanity check after a re-bake: PH 82 · PN 74 · BN 30 · GPS 23 · GRS 6 · WARISAN 3 = 222.
+5. **The frontend is data-driven.** `app.js` renders boundaries immediately and lights up
+   the *Parti* / *Skor* modes only when `results-ge15.json` / `scores.json` exist
+   (`loadOptional()`). Adding a data file is enough to enable a mode — no code change.
+6. **Assets dir is `./public`** (not repo root), so `worker.js` / `wrangler.jsonc` are
+   never bundled. No `.assetsignore` needed.
+
+## Data pipeline (`pipeline/`)
+
+| Step | Script | Source | Output |
+|---|---|---|---|
+| 1 | `01_boundaries.py` | DOSM `electoral_0_parlimen` / `electoral_1_dun` | `seats-parlimen.json`, `seats-dun.json` |
+| 2 | `02_results.py` | Thevesh `candidates_ge15` / `results_parlimen_ge15` | `results-ge15.json` |
+| 3 | `03_results_dun.py` | Thevesh `candidates_prn15` (2023 PRN) + MECO (other states) + Bernama/SPR official snapshots via `johor_results.py` / `n9_results.py` | `results-dun.json` |
+| 4 | `04_verified_content.py` | Thevesh candidate CSVs + official SPR/MySPR links + the N9 2026 snapshot via `n9_results.py` | `candidates-ge15.json`, `candidates-dun-prn15.json`, `voting-guide.json` |
+| 5 | `15_hansard.py` | hansard.parlimen.gov.my Digital Hansard (owned scrape) | `hansard-dewan.json` |
+
+(Scripts 05-14 bake further layers standalone — PRN configs, news, state context/econ,
+politicians, gov photos, ADUN portraits, profiles, OG card. `johor_results.py` and
+`n9_results.py` import each election's official Bernama/SPR result and are re-applied
+on every 03/04 rebuild so official rows can't silently regress.)
+
+**DUN coverage: all 600 seats.** `results-dun.json` layers the 2023 six-state PRN, each
+other state's most recent state election from MECO (Sabah 2025, Sarawak 2021, Melaka 2021,
+Perak/Pahang/Perlis 2022), by-election overlays, and the official Bernama/SPR PRN 2026
+results for Johor (56) and Negeri Sembilan (36). Every DUN seat shows its own
+state-election result — there is no parent-Parliament fallback anymore.
+
+Raw downloads are cached in `pipeline/raw/` (delete to refresh).
+
+## Data sources & attribution
+
+- Boundaries: **DOSM** — github.com/dosm-malaysia/data-open (official, WGS84)
+- Election results: **Thevesh** — github.com/Thevesh/analysis-election-msia (peer-reviewed)
+- Candidate rows: **Thevesh / ElectionData.MY** — baked from `candidates_ge15.csv` and
+  `candidates_prn15.csv`; voter-specific lookups link out to official **MySPR Semak**
+- Projection: **krackedmaps** — maps.krackeddevs.com
+- Scores (planned): public **Hansard** (parlimen.gov.my) via **Sinar Project** pardocs
+
+All inputs are public, official records. Scores (step 3) are computed in-house with a
+documented, transparent method — MyPolitik does not mirror any third party's proprietary
+scores.
+
+## Deploy
+
+Public/deploy name is **mypolitik**. Custom domains:
+`mypolitik.xyz` / `www.mypolitik.xyz` (prod), `mypolitik.krackeddevs.com` (prod alias), and
+`staging.mypolitik.krackeddevs.com` (staging).
+
+```bash
+source ~/.kracked/deploy.env        # CLOUDFLARE_API_TOKEN + ACCOUNT_ID
+npx wrangler deploy --env staging   # → staging.mypolitik.krackeddevs.com
+npx wrangler deploy                 # → mypolitik.xyz (prod)
+```
+
+`wrangler.jsonc` sets `run_worker_first: true` so `/api/health` reaches the Worker
+instead of being swallowed by the SPA asset fallback.
+
+## Status
+
+- ✅ **PROD LIVE** — [mypolitik.xyz](https://mypolitik.xyz) + mypolitik.krackeddevs.com
+  (staging: staging.mypolitik.krackeddevs.com). Prod deploy = `npm run deploy` (wrangler; no git-based deploy).
+- ✅ Boundaries (parlimen + DUN), interactive map (hover/click/zoom/select/search/reset)
+- ✅ GE15 results layer: winner, party/bloc choropleth, majority, turnout, runner-up
+- ✅ **State dashboard (bento)** on wide screens: government/economy/key-numbers + seat spotlight
+- ✅ **Politicians directory** (`#politicians`) — 222 MPs + ADUNs, searchable/filterable, Wikidata photos + bios
+- ✅ **PRN Johor 2026 election mode** (concluded; config parked) — countdown, candidates by
+  coalition, per-seat candidate cards, manifesto pledges, live-results seam (`/api/live/johor`
+  + KV). **N9 2026 did NOT use this rig** — its official results were imported post-hoc via
+  `pipeline/n9_results.py`; see `PRN-PLAYBOOK.md` before standing the rig up for a new election
+- ✅ **News** — a Johor-election news strip + a "News" nav entry + a see-all modal (owned static pipeline)
+- ✅ **Controls** (Parliament/DUN · State/Party) live beside the search on desktop and in the
+  mobile menu; **wide-screen sidebar** nav (Map / Politicians / News / PRN / Manifesto pledges / States)
+- ✅ Polish: golden-angle state palette, shareable URL hash, coalition share-bar
+- ✅ i18n: **English default + Bahasa Melayu toggle** (EN/BM, persisted in localStorage).
+  Strings live in `I18N` in `public/i18n.js`; static markup uses `data-i18n` / `data-i18n-ph` / `data-i18n-title`.
+  `public/lib.test.mjs` asserts EN/MS key-set parity.
+- ✅ DUN (PRN) results — **all 600 seats** (2023 six-state PRN + MECO state elections +
+  by-elections + official PRN 2026 Johor and Negeri Sembilan)
+- ✅ **Hansard "In Parliament"** — per-seat Dewan Rakyat activity tab + `#dewan` league table
+- ⏳ Performance scoring from Hansard (own, transparent method)

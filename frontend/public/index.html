@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
+<title>MyPolitik — Map Malaysia's Representatives</title>
+<!-- asset-v:100 -->
+<meta name="description" data-i18n-content="meta_desc" content="Interactive map of every Malaysian Parliament and State (DUN) seat. Click your area to see the representative, party, and performance — public data, computed transparently." />
+<meta name="theme-color" content="#0e0f12" />
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="MyPolitik" />
+<meta property="og:url" content="https://mypolitik.xyz/" />
+<meta property="og:locale" content="en_MY" />
+<meta property="og:title" data-i18n-content="title" content="MyPolitik — Map Malaysia's Representatives" />
+<meta property="og:description" data-i18n-content="meta_desc" content="Interactive map of every Malaysian Parliament and State (DUN) seat. Click your area to see the representative, party, and performance — public data, computed transparently." />
+<meta property="og:image" content="https://mypolitik.xyz/assets/og-card.svg" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" data-i18n-content="title" content="MyPolitik — Map Malaysia's Representatives" />
+<meta name="twitter:description" data-i18n-content="meta_desc" content="Interactive map of every Malaysian Parliament and State (DUN) seat. Click your area to see the representative, party, and performance — public data, computed transparently." />
+<meta name="twitter:image" content="https://mypolitik.xyz/assets/og-card.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/fluid-bg" defer></script>
+<script>
+(() => {
+  // Product is dark-only for now — light mode had unreadable PRN / map chrome.
+  try {
+    document.documentElement.dataset.theme = "dark";
+    localStorage.setItem("mypolitik-theme", "dark");
+  } catch (_) {
+    document.documentElement.dataset.theme = "dark";
+  }
+  // Approximate map band before app.js measures the card — kills the "map under
+  // the final map" flash when --map-h/--map-top jump on first syncMapToCard.
+  try {
+    const vh = window.innerHeight || 700;
+    const top = Math.round(Math.max(12, 0) + 58);
+    const card = Math.round(Math.min(240, Math.max(160, vh * 0.30)));
+    const mapH = Math.max(140, Math.floor(vh - top - card - 28));
+    const root = document.documentElement.style;
+    root.setProperty("--map-top", top + "px");
+    root.setProperty("--map-h", mapH + "px");
+    root.setProperty("--panel-card-max-h", card + "px");
+    if (window.matchMedia && window.matchMedia("(min-width: 640px)").matches) {
+      document.documentElement.classList.add("sb-pref-collapsed");
+    } else if (localStorage.getItem("mp-sb-collapsed") === "1") {
+      document.documentElement.classList.add("sb-pref-collapsed");
+    }
+  } catch (_) {}
+})();
+</script>
+<link rel="stylesheet" href="styles.css?v=163" />
+</head>
+<body>
+<aside id="sidebar" aria-label="Navigation">
+  <div class="sb-top">
+    <button id="sb-brand" class="sb-brand" type="button" data-i18n-aria="home_aria" aria-label="Show the whole map">
+      <span class="brand-symbol">◧</span> <span class="brand-word">My<b>Politik</b></span>
+    </button>
+    <button id="sb-collapse" class="sb-collapse" type="button" aria-label="Toggle sidebar" title="Toggle sidebar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/></svg>
+    </button>
+  </div>
+  <nav class="sb-nav">
+    <button id="sb-map" class="sb-item" type="button" data-i18n-aria="nav_map" aria-label="Map" data-i18n-title="nav_map"><span class="sb-ic"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m8 4 8-2 5 2.5v15l-5-2.5-8 2-5-2.5v-15z"/><path d="M8 4v15"/><path d="M16 2v15"/><path d="M5.7 11.5h4.1"/><path d="M14.2 7.5h4.1"/></svg></span><span class="sb-label" data-i18n="nav_map">Map</span></button>
+    <button id="sb-politicians" class="sb-item" type="button" data-i18n-aria="nav_politicians" aria-label="Politicians" data-i18n-title="nav_politicians"><span class="sb-ic"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/><path d="M16.8 4.4a3.5 3.5 0 0 1 0 5.2"/><path d="M18.7 15.2a6.3 6.3 0 0 1 2.8 5.8"/></svg></span><span class="sb-label" data-i18n="nav_politicians">Politicians</span></button>
+    <button id="sb-dewan" class="sb-item" type="button" data-i18n-aria="nav_dewan" aria-label="Dewan" data-i18n-title="nav_dewan"><span class="sb-ic"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V10M9.5 21V10M14.5 21V10M19 21V10"/><path d="M3 10h18l-9-6-9 6z"/></svg></span><span class="sb-label" data-i18n="nav_dewan">Dewan</span></button>
+  </nav>
+  <div class="sb-section" data-i18n="sidebar_states">States</div>
+  <nav id="sb-states" class="sb-states"></nav>
+  <div id="sb-state-hover-label" class="sb-state-hover-label" role="tooltip" hidden></div>
+  <div class="sb-foot">
+    <button id="sb-about" class="sb-item sb-small" type="button"><span data-i18n="nav_about">About</span></button>
+    <button id="sb-share" class="sb-item sb-small" type="button"><span data-i18n="nav_share">Share</span></button>
+    <div class="seg lang-seg sb-lang" role="group" aria-label="Language">
+      <button data-sb-lang="en">EN</button>
+      <button data-sb-lang="ms">BM</button>
+    </div>
+  </div>
+</aside>
+<div id="app">
+  <header id="topbar">
+    <button id="brand-home" class="brand brand-home" type="button" data-i18n-aria="home_aria" aria-label="Show the whole map" data-i18n-title="home_aria" title="Show the whole map">
+      <span class="mark"><span class="brand-symbol">◧</span> <span class="brand-word">My<b>Politik</b></span></span>
+    </button>
+    <!-- always-on centre title (same slot state names used to occupy) -->
+    <div id="topbar-context" class="topbar-context">
+      <button type="button" id="topbar-title" class="topbar-title" data-i18n-aria="home_aria" aria-label="Show the whole map" title="MyPolitik">
+        <span class="brand-word">My<b>Politik</b></span>
+      </button>
+    </div>
+    <!-- right cluster: bento actions (aligned to grid) + theme (always top-right) + menu -->
+    <div class="topbar-end">
+      <span id="topbar-actions" class="topbar-actions" hidden></span>
+      <div class="seg lang-seg topbar-lang" id="lang" role="tablist" data-i18n-aria="aria_lang" aria-label="Language">
+        <button data-lang="en" class="on" role="tab" aria-selected="true" aria-label="English">EN</button>
+        <button data-lang="ms" role="tab" aria-selected="false" aria-label="Bahasa Melayu">BM</button>
+      </div>
+      <button id="top-theme" class="iconbtn theme-toggle topbar-theme" type="button" data-theme-toggle aria-label="Switch theme" title="Switch theme">
+        <svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.4"/><path d="M12 2.8v2.1"/><path d="M12 19.1v2.1"/><path d="M4.9 4.9l1.5 1.5"/><path d="m17.6 17.6 1.5 1.5"/><path d="M2.8 12h2.1"/><path d="M19.1 12h2.1"/><path d="m4.9 19.1 1.5-1.5"/><path d="m17.6 6.4 1.5-1.5"/></svg>
+        <svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.1 14.3A7.7 7.7 0 0 1 9.7 3.9 8.4 8.4 0 1 0 20.1 14.3z"/></svg>
+      </button>
+      <button id="mobile-menu-btn" class="iconbtn mobile-menu-btn" type="button" data-i18n-aria="mobile_menu_aria" aria-label="Open menu" aria-controls="mobile-menu" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M5 7h14"/><path d="M5 12h14"/><path d="M5 17h14"/></svg>
+      </button>
+    </div>
+    <div id="mobile-menu" class="mobile-menu">
+      <div id="menu-map-controls" class="menu-map-controls" role="group" data-i18n-aria="view_controls_aria" aria-label="View controls"></div>
+      <div class="topicons" role="group" data-i18n-aria="actions_aria" aria-label="Map actions">
+        <button id="top-map" class="iconbtn top-map-btn" type="button" data-i18n-aria="home_aria" aria-label="Show the whole map" data-i18n-title="home_aria" title="Show the whole map">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m8 4 8-2 5 2.5v15l-5-2.5-8 2-5-2.5v-15z"/><path d="M8 4v15"/><path d="M16 2v15"/><path d="M5.7 11.5h4.1"/><path d="M14.2 7.5h4.1"/></svg>
+        </button>
+        <button id="top-politicians" class="iconbtn" type="button" data-i18n-aria="nav_politicians" aria-label="Politicians" data-i18n-title="nav_politicians" title="Politicians">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/><path d="M16.8 4.4a3.5 3.5 0 0 1 0 5.2"/><path d="M18.7 15.2a6.3 6.3 0 0 1 2.8 5.8"/></svg>
+        </button>
+        <button id="top-dewan" class="iconbtn" type="button" data-i18n-aria="nav_dewan" aria-label="Dewan" data-i18n-title="nav_dewan" title="Dewan">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V10M9.5 21V10M14.5 21V10M19 21V10"/><path d="M3 10h18l-9-6-9 6z"/></svg>
+        </button>
+        <button id="top-info" class="iconbtn" type="button" data-i18n-aria="info_aria" aria-label="About MyPolitik" data-i18n-title="info_aria" title="About MyPolitik">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.2"/><circle cx="12" cy="7.6" r="0.7" fill="currentColor" stroke="none"/></svg>
+        </button>
+        <button id="top-share" class="iconbtn" type="button" data-i18n-aria="share_aria" aria-label="Share MyPolitik" data-i18n-title="share_aria" title="Share MyPolitik">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="18" cy="5" r="2.4"/><circle cx="6" cy="12" r="2.4"/><circle cx="18" cy="19" r="2.4"/><path d="M8.1 10.9 15.9 6.1M8.1 13.1l7.8 4.8"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div id="info-card" hidden>
+    <div class="info-head">
+      <h2 data-i18n="info_title">About MyPolitik</h2>
+      <button id="info-close" class="card-back" type="button" aria-label="Close">✕</button>
+    </div>
+    <p class="muted" data-i18n="info_body">MyPolitik maps every Malaysian Parliament and State (DUN) seat. Tap a state, then a district, to see your representative, party, and GE15 result — built from public, official data, shown transparently.</p>
+    <p class="src muted">
+      <span data-i18n="src_sources">Sources</span>:
+      <a href="https://github.com/dosm-malaysia/data-open" target="_blank" rel="noopener">DOSM</a> ·
+      <a href="https://data.gov.my" target="_blank" rel="noopener">data.gov.my</a> ·
+      <a href="https://electiondata.my" target="_blank" rel="noopener">electiondata.my (Thevesh)</a> ·
+      <a href="https://www.spr.gov.my" target="_blank" rel="noopener">SPR</a> ·
+      <a href="https://www.wikidata.org" target="_blank" rel="noopener">Wikipedia / Wikidata</a> ·
+      <span data-i18n="src_proj">Projection</span>: <a href="https://maps.krackeddevs.com" target="_blank" rel="noopener">krackedmaps</a>
+    </p>
+    <p class="src muted" data-i18n="src_own">Plus datasets we build and curate ourselves — by-election overlays, current affiliations, candidate profiles, live counts — every figure linked to its source.</p>
+    <div class="info-footer">
+      <p class="muted info-credit" data-i18n="info_credit">Made by masterofnone, a KD member</p>
+      <a class="kd-logo-link" href="https://krackeddevs.com" target="_blank" rel="noopener" aria-label="KrackedDevs">
+        <img src="assets/kd-logo.png" alt="KrackedDevs" class="kd-logo" width="120" height="51" />
+      </a>
+    </div>
+  </div>
+
+  <main id="stage">
+    <fluid-bg fixed z="-1" hash="#p=0.82,1.65,1.9,0.025,1,15,0,6,20.77,0,0,1.5,0,0,14,0,0,0,0,0,0,0,0,0,0.37,0,0,0,3"></fluid-bg>
+    <svg id="map" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" data-i18n-aria="map_aria" aria-label="Map of Malaysia's electoral seats">
+      <defs>
+        <pattern id="selected-district-lines" patternUnits="userSpaceOnUse" width="4.5" height="4.5" patternTransform="rotate(45)">
+          <path d="M0 0V4.5" stroke="rgba(255,255,255,.86)" stroke-width="1.15" />
+        </pattern>
+        <filter id="state-outline-filter" x="-4%" y="-4%" width="108%" height="108%" color-interpolation-filters="sRGB">
+          <feMorphology in="SourceGraphic" operator="dilate" radius="1.35" result="expanded" />
+          <feComposite in="expanded" in2="SourceGraphic" operator="out" />
+        </filter>
+      </defs>
+      <g id="state-outlines" aria-hidden="true"></g>
+      <g id="seats"></g>
+      <g id="selected-overlay" aria-hidden="true"></g>
+    </svg>
+    <div id="tooltip" hidden></div>
+    <div id="state-label" aria-hidden="true"></div>
+    <button id="reset" hidden aria-label="Show all seats">↺</button>
+    <div id="loading" data-i18n="loading">Loading boundaries…</div>
+  </main>
+
+  <aside id="panel" class="empty">
+    <div id="panel-empty">
+      <div class="search-row">
+        <div class="search-main">
+          <div class="search">
+            <input id="q" type="search" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="results" aria-expanded="false" data-i18n-aria="search_aria" aria-label="Search a seat" data-i18n-ph="search_ph_home" placeholder="Search your seat…" autocomplete="off" spellcheck="false" />
+            <div id="results" class="results" role="listbox" data-i18n-aria="results_aria" aria-label="Search results" hidden></div>
+          </div>
+          <button id="loc-btn" class="loc-fab" type="button" data-i18n-title="find_loc" title="Use my location" aria-label="Use my location">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="2" x2="5" y1="12" y2="12"/><line x1="19" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="5"/><line x1="12" x2="12" y1="19" y2="22"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>
+          </button>
+        </div>
+        <div class="find-actions">
+          <div class="seg chip" id="tier" role="tablist" data-i18n-aria="aria_tier" aria-label="Seat layer">
+            <button data-tier="parlimen" class="on" role="tab" aria-selected="true" data-i18n="tier_parlimen">Parliament</button>
+            <button data-tier="dun" role="tab" aria-selected="false" data-i18n="tier_dun">DUN</button>
+          </div>
+          <div class="seg chip" id="mode" role="tablist" data-i18n-aria="aria_mode" aria-label="Colour mode">
+            <button data-mode="negeri" role="tab" aria-selected="false" data-i18n="mode_negeri">State</button>
+            <button data-mode="parti" class="on" role="tab" aria-selected="true" disabled data-i18n="mode_parti" data-i18n-title="mode_parti_need" title="Needs GE15 data">Party</button>
+          </div>
+        </div>
+      </div>
+      <!-- Bar-only by default; bloc counts (PH 82 · …) reveal on hover / focus. -->
+      <div id="nat-glance" class="nat-glance" hidden tabindex="0" data-i18n-aria="by_bloc" aria-label="Parliament seats by bloc · GE15">
+        <div class="nat-glance-h" data-i18n="by_bloc" hidden>Parliament seats by bloc · GE15</div>
+        <div id="nat-bar" class="sharebar"></div>
+        <div id="nat-key" class="sharebar-key"></div>
+        <div class="nat-glance-maj" data-i18n="simple_majority" hidden>Simple majority = 112 seats</div>
+      </div>
+      <p id="find-status" class="find-status" role="status" aria-live="polite" hidden></p>
+      <details id="empty-more" class="empty-more" hidden>
+        <summary data-i18n="empty_more">Explore</summary>
+        <div id="legend" class="legend"></div>
+        <dl id="summary" class="summary"></dl>
+      </details>
+    </div>
+    <div id="panel-state" hidden>
+      <div class="state-head">
+        <button id="state-back" class="card-back" type="button" data-i18n-aria="home_aria" aria-label="Back">←</button>
+        <div class="state-h"><h2 id="state-name"></h2><span id="state-count" class="muted"></span></div>
+        <button id="map-inspect-toggle" class="share-icon map-inspect-toggle" type="button" aria-pressed="false" data-i18n-aria="map_inspect_aria" aria-label="Expand map" data-i18n-title="map_inspect_aria" title="Expand map">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.2 4H4v4.2"/><path d="M4 4l6.2 6.2"/><path d="M15.8 4H20v4.2"/><path d="M20 4l-6.2 6.2"/><path d="M8.2 20H4v-4.2"/><path d="M4 20l6.2-6.2"/><path d="M15.8 20H20v-4.2"/><path d="M20 20l-6.2-6.2"/></svg>
+        </button>
+        <div id="state-actions" class="state-actions" hidden>
+          <button id="share-link" class="share-icon" type="button" data-i18n-aria="share_btn" aria-label="Share link" data-i18n-title="share_btn" title="Share link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.2 14.8 14.8 9.2"/><path d="M10.4 7.4 11.8 6a4.2 4.2 0 0 1 6 6l-1.4 1.4"/><path d="M13.6 16.6 12.2 18a4.2 4.2 0 0 1-6-6l1.4-1.4"/></svg>
+          </button>
+          <button id="share-card" class="share-icon" type="button" data-i18n-aria="card_btn" aria-label="Download card" data-i18n-title="card_btn" title="Download card">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.4" y="4.4" width="17.2" height="13.8" rx="2.2"/><circle cx="8.1" cy="8.5" r="1.3"/><path d="m4.4 15 4.2-4 3.1 3 1.7-1.6 3.8 3.8"/><path d="M12 19.2v-6"/><path d="m9.7 17 2.3 2.3 2.3-2.3"/></svg>
+          </button>
+          <button id="share-embed" class="share-icon" type="button" data-i18n-aria="embed_btn" aria-label="Embed widget" data-i18n-title="embed_btn" title="Embed widget">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="state-map-wrap">
+        <svg id="state-map" preserveAspectRatio="xMidYMid meet"><g id="state-seats"></g></svg>
+      </div>
+      <div id="state-info"></div>
+      <div id="map-inspect-tray" class="map-inspect-tray" hidden></div>
+    </div>
+    <div id="panel-seat" hidden></div>
+  </aside>
+  <section id="state-bento" aria-label="State dashboard" hidden></section>
+  <section id="politicians-view" aria-label="Politicians directory"></section>
+  <section id="news-view" aria-label="News"></section>
+  <section id="dewan-view" aria-label="Dewan Rakyat activity"></section>
+  <dialog id="pol-modal" class="pol-modal" aria-label="Politician profile"></dialog>
+  <dialog id="candidate-modal" class="pol-modal candidate-modal" aria-label="Candidate profile"></dialog>
+  <dialog id="pledges-modal" class="pol-modal pledges-modal" aria-label="Manifesto pledges"></dialog>
+  <dialog id="card-preview" class="card-preview" aria-labelledby="card-preview-title">
+    <div class="card-preview-shell">
+      <div class="card-preview-head">
+        <h2 id="card-preview-title" data-i18n="card_preview_title">Card preview</h2>
+        <button id="card-preview-close" class="card-preview-close" type="button" data-i18n-aria="card_preview_close" aria-label="Close preview">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><line x1="6" x2="18" y1="6" y2="18"/><line x1="6" x2="18" y1="18" y2="6"/></svg>
+        </button>
+      </div>
+      <div class="card-preview-frame">
+        <img id="card-preview-img" alt="" />
+      </div>
+      <div class="card-preview-actions">
+        <div class="primary-download-row">
+          <button id="card-preview-download" class="preview-download" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v11"/><path d="m7.5 10 4.5 4.5L16.5 10"/><path d="M5 20h14"/></svg>
+            <span data-i18n="card_preview_download">Download PNG</span>
+          </button>
+          <button id="card-preview-copy-img" class="preview-action-btn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <span data-i18n="share_copy_img">Copy image</span>
+          </button>
+        </div>
+        <div class="social-share-row">
+          <button id="card-share-whatsapp" class="social-share-btn btn-whatsapp" type="button" aria-label="Share on WhatsApp">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.301-.15-1.78-.878-2.056-.978-.276-.1-.477-.15-.678.15-.2.3-.777.978-.953 1.179-.176.2-.351.226-.652.075-.301-.15-1.272-.469-2.423-1.496-.895-.799-1.5-1.786-1.676-2.087-.176-.301-.019-.464.132-.614.136-.135.301-.351.452-.527.15-.176.2-.301.301-.502.1-.2.05-.376-.025-.526-.075-.15-.678-1.636-.929-2.242-.244-.59-.493-.51-.678-.52-.176-.008-.376-.01-.577-.01-.2 0-.527.075-.803.376-.276.3-1.054 1.03-1.054 2.51 0 1.48 1.079 2.91 1.23 3.111.15.2 2.124 3.243 5.145 4.547.719.31 1.28.496 1.718.636.722.23 1.378.197 1.898.12.58-.087 1.78-.727 2.03-1.43.25-.703.25-1.305.176-1.43-.075-.126-.276-.201-.577-.352zM12.04 2C6.52 2 2.04 6.48 2.04 12c0 1.87.52 3.62 1.42 5.13L2 22l5.03-1.42C8.5 21.36 10.22 21.84 12.04 21.84c5.52 0 10-4.48 10-10S17.56 2 12.04 2z"/></svg>
+            <span>WhatsApp</span>
+          </button>
+          <button id="card-share-x" class="social-share-btn btn-x" type="button" aria-label="Share on X">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            <span>X</span>
+          </button>
+          <button id="card-share-native" class="social-share-btn btn-native" type="button" aria-label="More share options">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            <span data-i18n="share_native">Share…</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+  <dialog id="embed-modal" class="card-preview embed-modal" aria-labelledby="embed-modal-title">
+    <div class="card-preview-shell embed-shell">
+      <div class="card-preview-head">
+        <h2 id="embed-modal-title" data-i18n="embed_modal_title">Embed seat widget</h2>
+        <button id="embed-modal-close" class="card-preview-close" type="button" data-i18n-aria="card_preview_close" aria-label="Close preview">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><line x1="6" x2="18" y1="6" y2="18"/><line x1="6" x2="18" y1="18" y2="6"/></svg>
+        </button>
+      </div>
+      <p class="embed-modal-desc" data-i18n="embed_modal_desc">Copy and paste this iframe code to embed this interactive seat card on your news site, blog, or article.</p>
+      <div class="embed-preview-box">
+        <iframe id="embed-iframe-preview" title="Widget Preview" loading="lazy"></iframe>
+      </div>
+      <div class="embed-code-wrap">
+        <label for="embed-code-input" class="embed-code-label" data-i18n="embed_code_label">Embed code</label>
+        <textarea id="embed-code-input" class="embed-code-input" readonly rows="3" spellcheck="false"></textarea>
+      </div>
+      <div class="card-preview-actions">
+        <button id="embed-copy-btn" class="preview-download" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          <span data-i18n="embed_copy_btn">Copy embed code</span>
+        </button>
+      </div>
+    </div>
+  </dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+</div>
+<script type="module" src="app.js?v=163"></script>
+</body>
+</html>
+ 

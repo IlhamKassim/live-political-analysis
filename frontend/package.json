@@ -1,0 +1,20 @@
+{
+  "name": "mypolitik",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Interactive map of Malaysia's Parliament + DUN seats — see your wakil rakyat, party, and performance. Public data, computed transparently.",
+  "scripts": {
+    "data": "python3 pipeline/01_boundaries.py && python3 pipeline/02_results.py && python3 pipeline/03_results_dun.py && python3 pipeline/04_verified_content.py",
+    "data:dun": "python3 pipeline/03_results_dun.py",
+    "data:johor-profiles": "python3 pipeline/12_johor_profiles.py",
+    "data:johor-enrich": "python3 pipeline/13_johor_enrich.py",
+    "data:news": "python3 pipeline/06_candidate_news.py",
+    "live:once": "python3 pipeline/live/johor_poller.py --once --phase live",
+    "live:watch": "python3 pipeline/live/johor_poller.py --watch 90 --phase live",
+    "live:campaign": "python3 pipeline/live/johor_poller.py --once --phase campaign",
+    "live:rehearsal": "python3 pipeline/live/johor_poller.py --fixture pipeline/live/fixtures/midcount.json",
+    "dev": "python3 dev-server.py",
+    "deploy:staging": "bash scripts/deploy-staging.sh",
+    "deploy": "wrangler deploy"
+  }
+}

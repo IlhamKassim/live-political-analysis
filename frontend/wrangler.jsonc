@@ -1,0 +1,41 @@
+{
+  // MyPolitik — static map app on Cloudflare Workers (assets) + tiny worker.
+  // Public/deploy name is "mypolitik".
+  "name": "mypolitik",
+  "main": "worker.js",
+  "compatibility_date": "2025-06-01",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "not_found_handling": "single-page-application"
+  },
+  "kv_namespaces": [
+    { "binding": "PRN_LIVE", "id": "1483a2bbf7df441d8b8d07cb36d0f09f" }
+  ],
+  "observability": { "enabled": true },
+  "routes": [
+    { "pattern": "mypolitik.xyz", "custom_domain": true },
+    { "pattern": "www.mypolitik.xyz", "custom_domain": true },
+    { "pattern": "mypolitik.krackeddevs.com", "custom_domain": true }
+  ],
+  "env": {
+    "staging": {
+      "name": "mypolitik-staging",
+      "main": "worker.js",
+      "assets": {
+        "directory": "./public",
+        "binding": "ASSETS",
+        "run_worker_first": true,
+        "not_found_handling": "single-page-application"
+      },
+      "kv_namespaces": [
+        { "binding": "PRN_LIVE", "id": "1483a2bbf7df441d8b8d07cb36d0f09f" }
+      ],
+      "observability": { "enabled": true },
+      "routes": [
+        { "pattern": "staging.mypolitik.krackeddevs.com", "custom_domain": true }
+      ]
+    }
+  }
+}

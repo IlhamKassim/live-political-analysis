@@ -1,0 +1,21 @@
+{
+  "generated_at": "2026-07-11T02:30:00+08:00",
+  "state": "Johor",
+  "status": "caretaker",
+  "note": "Caretaker state executive following the 1 June 2026 dissolution for PRN Johor. Portfolios are the last appointed state executive roster, not post-election appointments.",
+  "source": "Johor State Legislative Assembly, State Executive Council roster (checked February 2026)",
+  "source_url": "https://dewannegeri.johor.gov.my/sammk/",
+  "members": [
+    {"role":"Menteri Besar","name":"Datuk Onn Hafiz Ghazi","party":"UMNO","coalition":"BN","seat_code":"1_N.26","portfolio":"Land revenue and administration, finance, planning, economic development and tourism","since":"2022","photo_url":"assets/politicians/dun/johor/N-26_onnhafizghazi.webp"},
+    {"role":"EXCO","name":"Datuk Zahari Sarip","party":"UMNO","coalition":"BN","seat_code":"1_N.01","portfolio":"Agriculture, agro-based industry and rural development","since":"2022","photo_url":"assets/politicians/dun/johor/N-01_zaharisarip.webp"},
+    {"role":"EXCO","name":"Datuk Mohd Jafni Md Shukor","party":"UMNO","coalition":"BN","seat_code":"1_N.50","portfolio":"Housing and local government","since":"2022","photo_url":""},
+    {"role":"EXCO","name":"K. Raven Kumar","party":"MIC","coalition":"BN","seat_code":"1_N.33","portfolio":"Unity, heritage and culture","since":"2022","photo_url":""},
+    {"role":"EXCO","name":"Khairin-Nisa Ismail @ Md On","party":"UMNO","coalition":"BN","seat_code":"1_N.11","portfolio":"Women, family and community development","since":"2022","photo_url":""},
+    {"role":"EXCO","name":"Mohd Hairi Mad Shah","party":"UMNO","coalition":"BN","seat_code":"1_N.44","portfolio":"Youth, sports, entrepreneur development and cooperatives","since":"2022","photo_url":""},
+    {"role":"EXCO","name":"Datuk Mohd Fared Mohd Khalid","party":"UMNO","coalition":"BN","seat_code":"1_N.17","portfolio":"Islamic religious affairs","since":"2022","photo_url":"assets/politicians/dun/johor/N-17_mohdfaredmohdkhalid.webp"},
+    {"role":"EXCO","name":"Datuk Ling Tian Soon","party":"MCA","coalition":"BN","seat_code":"1_N.19","portfolio":"Health and environment","since":"2022","photo_url":"assets/politicians/dun/johor/N-19_lingtiansoon.webp"},
+    {"role":"EXCO","name":"Datuk Lee Ting Han","party":"MCA","coalition":"BN","seat_code":"1_N.30","portfolio":"Investment, trade, consumer affairs and human resources","since":"2022","photo_url":"assets/politicians/dun/johor/N-30_leetinghan.webp"},
+    {"role":"EXCO","name":"Mohamad Fazli Mohamad Salleh","party":"UMNO","coalition":"BN","seat_code":"1_N.08","portfolio":"Works, transport, infrastructure and communications","since":"2022","photo_url":""},
+    {"role":"EXCO","name":"Aznan Tamin","party":"UMNO","coalition":"BN","seat_code":"1_N.39","portfolio":"Education and information","since":"2024","photo_url":""}
+  ]
+}

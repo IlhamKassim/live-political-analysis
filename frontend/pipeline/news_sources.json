@@ -1,0 +1,65 @@
+[
+  {
+    "id": "fmt-nation",
+    "name": "Free Malaysia Today",
+    "url": "https://cms.freemalaysiatoday.com/category/nation/feed",
+    "lang": "en",
+    "kind": "rss"
+  },
+  {
+    "id": "malaymail-malaysia",
+    "name": "Malay Mail Malaysia",
+    "url": "https://www.malaymail.com/feed/rss/malaysia",
+    "lang": "en",
+    "kind": "rss"
+  },
+  {
+    "id": "malaysiakini-news",
+    "name": "Malaysiakini News",
+    "url": "https://www.malaysiakini.com/rss/en/news",
+    "lang": "en",
+    "kind": "rss"
+  },
+  {
+    "id": "astro-awani",
+    "name": "Astro Awani",
+    "url": "https://www.astroawani.com/rss.xml",
+    "lang": "ms",
+    "kind": "rss"
+  },
+  {
+    "id": "nst-main",
+    "name": "New Straits Times",
+    "url": "https://www.nst.com.my/feed",
+    "lang": "en",
+    "kind": "rss"
+  },
+  {
+    "id": "berita-harian",
+    "name": "Berita Harian",
+    "url": "https://www.bharian.com.my/feed",
+    "lang": "ms",
+    "kind": "rss"
+  },
+  {
+    "id": "harian-metro",
+    "name": "Harian Metro",
+    "url": "https://www.hmetro.com.my/feed",
+    "lang": "ms",
+    "kind": "rss"
+  },
+  {
+    "id": "utusan-politik",
+    "name": "Utusan Malaysia Politik",
+    "url": "https://www.utusan.com.my/category/nasional/politik/feed/",
+    "lang": "ms",
+    "kind": "rss"
+  },
+  {
+    "id": "focus-malaysia-mainstream",
+    "name": "Focus Malaysia Mainstream",
+    "url": "https://focusmalaysia.my/category/mainstream/feed/",
+    "lang": "en",
+    "kind": "rss"
+  }
+]
