@@ -31,6 +31,8 @@ import math
 from dataclasses import dataclass
 from enum import StrEnum
 
+from lpa.public_page import PageModel, Tier
+
 TOTAL_SEATS = 222
 MAJORITY_THRESHOLD = 112
 
@@ -93,6 +95,22 @@ class HemicycleCounts:
                 f"HemicycleCounts must sum to {TOTAL_SEATS} seats, got {total} "
                 f"({self.government_clear} + {self.noise} + {self.nongovernment_clear})"
             )
+
+
+def hemicycle_counts(page: PageModel) -> HemicycleCounts:
+    """The dashboard's per-Seat tiers, tallied into the Government clear /
+    within model noise / Non-government clear split this module draws.
+
+    Moved here from `politikku_homepage.py` when ADR 0014 retired that
+    module — `politikku_projection.py` (which survives) shared this exact
+    computation via import rather than a second copy, so it needed a
+    surviving home too."""
+    government_clear = sum(1 for s in page.seats if s.government and s.tier != Tier.TIGHT)
+    nongovernment_clear = sum(1 for s in page.seats if not s.government and s.tier != Tier.TIGHT)
+    noise = sum(1 for s in page.seats if s.tier == Tier.TIGHT)
+    return HemicycleCounts(
+        government_clear=government_clear, noise=noise, nongovernment_clear=nongovernment_clear
+    )
 
 
 def _row_radii() -> list[float]:

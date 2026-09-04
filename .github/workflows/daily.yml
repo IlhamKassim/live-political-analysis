@@ -122,34 +122,15 @@ jobs:
 
       # The old chamber dashboard's own render step (`python -m
       # lpa.public_page`, which wrote public/index.html and its dated
-      # permalinks) was retired here by #104's cutover: PolitikKu's homepage
-      # now owns public/index.html, and the dashboard's analytical depth is
-      # published by "Render the PolitikKu projection page" below (ADR
-      # 0011). `public_page.py` itself is very much still alive — it is
-      # where `page_model()` and every figure on both pages is computed, and
-      # each PolitikKu step below imports it — it just no longer renders or
-      # publishes a page of its own.
-
-      - name: Render the PolitikKu homepage
-        # #103: first time any of the PolitikKu pages actually ship. Each
-        # module's main() writes both EN and BM in one invocation (the BM
-        # variant alongside the EN one, under ms/) and reads Storage the
-        # same way public_page used to, so it needs the same DATABASE_URL.
-        # Independent of the other PolitikKu steps below — none of these
-        # modules import from one another's CLI or read another's output —
-        # so their order relative to each other doesn't matter; grouped
-        # together here for readability.
-        #
-        # continue-on-error: this wrote public/index.html (the site root)
-        # and was NOT continue-on-error from #104 until the landing-page
-        # cutover below. It now writes public/home.html — a secondary
-        # "Dashboard" nav page, not the site root — so a bad render here is
-        # a worse PolitikKu, not a site that stops updating. The landing
-        # page below inherits the strict treatment this step is giving up.
-        continue-on-error: true
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: python -m lpa.politikku_homepage
+      # permalinks) was retired here by #104's cutover. Its successor,
+      # PolitikKu's own landing/homepage/bills/MP-profile renderers, was in
+      # turn retired by ADR 0014 (the mypolitik-frontend root swap): the
+      # site root and every one of those pages' old URLs are now owned by
+      # "Fold frontend/ into the Pages artifact" and "Generate old-URL
+      # redirect stubs" below. `public_page.py` itself is still alive — it
+      # is where `page_model()` and every figure "Render the PolitikKu
+      # projection page" below uses is computed — it just no longer renders
+      # or publishes a page of its own.
 
       - name: Render the PolitikKu projection and methodology pages
         # #102/#104: the old dashboard's analytical depth, redrawn in
@@ -164,31 +145,6 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m lpa.politikku_projection
-
-      - name: Render the PolitikKu landing page
-        # NOT continue-on-error: this now writes public/index.html, the
-        # site root (the landing-page cutover — every visitor lands here
-        # first, not on the homepage/dashboard). Same reasoning the
-        # homepage step used to state here: that file is gitignored, so a
-        # failed render leaves the uploaded artifact with no root page at
-        # all rather than yesterday's copy, and deploy-pages replaces the
-        # live site wholesale — failing the job instead means the last
-        # good deploy stays up, a day-stale site rather than a rootless one.
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: python -m lpa.politikku_landing
-
-      - name: Render the PolitikKu MP profile pages
-        continue-on-error: true
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: python -m lpa.politikku_mp_profile
-
-      - name: Render the PolitikKu bills tracker
-        continue-on-error: true
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: python -m lpa.politikku_bills
 
       - name: Render the PolitikKu sentiment page
         continue-on-error: true
@@ -291,14 +247,22 @@ jobs:
         run: python -m lpa.telegram_post
 
       - name: Fold frontend/ into the Pages artifact
-        # #134 (Step 5): the merged-in PolitikKu/mypolitik frontend (frontend/)
-        # is a self-contained static app with no build step by design (see
-        # frontend/README.md) — this is a plain file copy, not a build. It
-        # lands under public/app/, a new subpath, so it never touches the
-        # existing root-level public/ content owned by the PolitikKu pages
-        # rendered above (ADR 0011). The Cloudflare Worker deploy originally
-        # planned alongside this is out of scope here — Cloudflare's own
-        # dashboard Git-integration now handles that deploy separately.
+        # #134 (Step 5) originally folded frontend/ in under public/app/ only,
+        # a new subpath alongside the root PolitikKu pages then owned it.
+        # ADR 0014 (the mypolitik-frontend root swap) makes /app/'s content
+        # the site root too: the four PolitikKu renderers that used to own
+        # public/index.html and friends are retired above, so this step now
+        # copies frontend/public/ to BOTH public/ (the root) and public/app/
+        # (kept as a live subpath — it's what the old-URL redirect stubs
+        # below point at). NOT continue-on-error, unlike the original
+        # #134 step: this now writes the site root, the same strictness
+        # `politikku_landing.py`'s render step used to carry for the same
+        # reason — public/ is gitignored, so a failed copy leaves the
+        # uploaded artifact with no root page at all rather than
+        # yesterday's copy, and deploy-pages replaces the live site
+        # wholesale. The Cloudflare Worker deploy originally planned
+        # alongside #134 is out of scope here — Cloudflare's own dashboard
+        # Git-integration handles that deploy separately.
         #
         # Runs BEFORE "Generate sitemap": politikku_sitemap.py auto-discovers
         # every public/**/*.html file, including public/app/index.html and
@@ -310,28 +274,46 @@ jobs:
         run: |
           mkdir -p public/app
           cp -r frontend/public/. public/app/
+          cp -r frontend/public/. public/
 
       - name: Smoke-check the frontend fold-in
         # Loud on purpose (no continue-on-error): a silently-broken copy
-        # would ship a Pages artifact with a dead /app/ subtree, and nobody
-        # would notice until a visitor did. index.html proves the static
-        # app itself copied; data/bills.json proves the data directory
-        # (already present in frontend/public/data from a prior merge step)
-        # came along with it.
+        # would ship a Pages artifact with a dead root and/or /app/ subtree,
+        # and nobody would notice until a visitor did. index.html proves the
+        # static app itself copied at each location; data/bills.json proves
+        # the data directory (already present in frontend/public/data from a
+        # prior merge step) came along with it.
         run: |
           missing=0
-          if [ ! -f public/app/index.html ]; then
-            echo "::error::public/app/index.html is missing — frontend fold-in failed."
-            missing=1
-          fi
-          if [ ! -f public/app/data/bills.json ]; then
-            echo "::error::public/app/data/bills.json is missing — frontend fold-in failed."
-            missing=1
-          fi
+          for dir in public public/app; do
+            if [ ! -f "$dir/index.html" ]; then
+              echo "::error::$dir/index.html is missing — frontend fold-in failed."
+              missing=1
+            fi
+            if [ ! -f "$dir/data/bills.json" ]; then
+              echo "::error::$dir/data/bills.json is missing — frontend fold-in failed."
+              missing=1
+            fi
+          done
           if [ "$missing" -ne 0 ]; then
             exit 1
           fi
-          echo "Frontend fold-in verified: public/app/index.html and public/app/data/bills.json present."
+          echo "Frontend fold-in verified at public/ and public/app/."
+
+      - name: Generate old-URL redirect stubs
+        # ADR 0014: politikku_landing.py/homepage.py/bills.py/mp_profile.py
+        # are retired, but their old URLs (home.html, bills.html, mp/*.html)
+        # are indexed by Google and linked from real bookmarks/backlinks —
+        # this writes a stub HTML page at each old path
+        # (`<meta http-equiv="refresh">`) pointing at its /app/#... equivalent,
+        # so those don't just 404. Must run after the fold-in step above:
+        # it writes into public/, which the fold-in's `cp -r` would
+        # otherwise have already populated from frontend/public/ (no path
+        # collision in practice — frontend/public/ has no bills.html,
+        # home.html, or mp/ of its own — but the ordering keeps that true by
+        # construction rather than by coincidence). Also before "Generate
+        # sitemap" for the same auto-discovery reason as the fold-in step.
+        run: python -m lpa.politikku_redirects
 
       - name: Generate sitemap
         continue-on-error: true

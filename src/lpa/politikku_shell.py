@@ -143,15 +143,11 @@ With `LANDING_PAGE` now empty, this collapses to `POLITIKKU_PREFIX` itself
 (`"/"`) — the landing-page cutover, second verse."""
 
 HOMEPAGE_PAGE = "home.html"
-"""`politikku_homepage.py`'s own page (#74) — the returning-visitor
-dashboard (hemicycle, headline figures, bill tracker and sentiment digest
-snippets) — moved off the site root to make room for the landing page
-above. Before this cutover, `politikku_homepage.py` hardcoded `page_path=""`
-directly rather than reading a constant, because it *was* the root; now it
-needs a real page path like every other non-root page."""
-
-HOMEPAGE_URL = f"{POLITIKKU_PREFIX}{HOMEPAGE_PAGE}"
-"""The English dashboard page's URL, same shape as `LANDING_URL`."""
+"""`politikku_homepage.py`'s own former page path (#74, retired by ADR 0014).
+Kept only as the redirect stub's own old-path key (`politikku_redirects.py`)
+— its content merged into `/app/`, and no nav item or live page links here
+by this path any more (`HOMEPAGE_URL`, which used to, was deleted with the
+nav item)."""
 
 
 class Language(StrEnum):
@@ -205,13 +201,20 @@ class NavLink:
     out of language routing."""
     en_only: bool = False
     """If True, this link is omitted when the site is viewed in BM."""
+    external: str | None = None
+    """When set, the literal href to use in both languages, bypassing
+    `route()`/`prefix` entirely — for a nav item whose target isn't one of
+    this module's own page paths. Added for ADR 0014 (the mypolitik-frontend
+    root swap): "Bills" now points into `/app/`'s own hash-routed view
+    rather than a PolitikKu page, and `/app/` has no `/ms/` route of its own
+    (its language toggle is in-page state, not a URL) for `route()` to
+    build."""
 
 
 NAV_LINKS: tuple[NavLink, ...] = (
     NavLink("Home", "Utama", "", "home"),
-    NavLink("Dashboard", "Papan Pemuka", HOMEPAGE_PAGE, "dashboard"),
     NavLink("Seat Projection", "Unjuran Kerusi", "", "projection", prefix=PROJECTION_PREFIX),
-    NavLink("Bills", "Rang Undang-Undang", BILLS_PAGE, "bills"),
+    NavLink("Bills", "Rang Undang-Undang", BILLS_PAGE, "bills", external="/app/#bills"),
     NavLink("Sentiment", "Sentimen", "sentiment.html", "sentiment"),
     NavLink("Methodology", "Metodologi", METHODOLOGY_PAGE, "methodology"),
     NavLink("Glossary", "Glosari", "learn/glossary.html", "glossary", en_only=True),
@@ -399,7 +402,9 @@ def render_header(
     """
 
     def _nav_href(link: NavLink) -> str:
-        return route(language, link.href, link.prefix)
+        return (
+            link.external if link.external is not None else route(language, link.href, link.prefix)
+        )
 
     links_html = "".join(
         _link(
@@ -783,7 +788,7 @@ _CSS_TEMPLATE = """
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
-  .pk-header :focus-visible, .pk-footer :focus-visible, .pk-landing-hero :focus-visible {
+  .pk-header :focus-visible, .pk-footer :focus-visible {
     outline-color: var(--accent-on-dark);
   }
   body {
@@ -914,82 +919,13 @@ _CSS_TEMPLATE = """
      reused in (this is just a sane block-level default, not a size). */
   .pk-hemicycle { display: block; width: 100%; height: auto; }
 
-  /* Screen-reader-only label text, shared by any page's lookup form —
-     kept here rather than redefined per page (a duplication #74's own
-     review already caught once for a different utility). */
-  .pk-visually-hidden {
-    position: absolute; width: 1px; height: 1px; overflow: hidden;
-    clip: rect(0 0 0 0); white-space: nowrap;
-  }
-
-  /* NOT CALIBRATED tag, reused by any page built on this shell */
-  .pk-tag-modelled {
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: .07em;
-    text-transform: uppercase;
-    color: var(--caution-deep);
-    background: var(--caution-bg);
-    border: 1px solid var(--caution-border);
-    border-radius: var(--radius-sm);
-    padding: 2px 6px;
-  }
-
-  /* The lookup's dynamic results states (#77) — ts/src/dom.ts populates
-     `[data-pk-lookup-results]` (built empty/hidden by #74/#75's own
-     markup) with exactly one of these per `LookupState`. Shared here
-     rather than duplicated per page, the same call already made for
-     `.pk-visually-hidden` above. */
-  .pk-lookup-results { margin-top: 14px; max-width: 490px; }
-  .pk-lookup-skeleton { display: flex; flex-direction: column; gap: 8px; }
-  .pk-lookup-skeleton-bars { display: flex; flex-direction: column; gap: 6px; }
-  .pk-lookup-skeleton-bar {
-    height: 14px; border-radius: var(--radius-sm);
-    background: #e2ded4;
-  }
-  .pk-lookup-skeleton-bar:nth-child(2) { background: #e8e4da; width: 80%; }
-  .pk-lookup-skeleton-bar:nth-child(3) { width: 60%; }
-  .pk-lookup-status { margin: 0; font-size: 12.5px; color: var(--muted); }
-
-  .pk-lookup-ambiguous-heading { margin: 0 0 8px; font-size: 13.5px; color: var(--ink-secondary); }
-  .pk-lookup-candidate-list { display: flex; flex-direction: column; gap: 8px; }
-  .pk-lookup-candidate {
-    display: flex; flex-direction: column; gap: 2px; padding: 10px 14px;
-    border: 1px solid var(--line); border-radius: var(--radius-md);
-    background: var(--white); text-decoration: none;
-    transition: border-color .15s ease, box-shadow .15s ease;
-  }
-  .pk-lookup-candidate:hover { border-color: var(--line-strong); box-shadow: 0 2px 6px rgba(0,0,0,.03); }
-  .pk-lookup-candidate[aria-disabled="true"] { cursor: default; opacity: .75; }
-  .pk-lookup-candidate-code { font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
-  .pk-lookup-candidate-name { font-size: 14px; color: var(--ink); }
-  .pk-lookup-candidate-mp { font-size: 12.5px; color: var(--ink-secondary); }
-  .pk-lookup-footnote { margin: 8px 0 0; font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
-
-  .pk-lookup-not-found { padding: 12px 14px; border: 1px solid #c9a86a; border-radius: var(--radius-md); }
-  /* README: "the input border turns #c9a86a" for a text-query no-match —
-     the field itself, not just the results area below it. Higher
-     specificity than each page's own `.pk-lookup-form input` rule so the
-     colour wins regardless of source order. */
-  .pk-lookup-form input.pk-lookup-input-error { border-color: #c9a86a; }
-  .pk-lookup-no-match-tag {
-    display: inline-block; font-family: var(--mono); font-size: 10px; letter-spacing: .07em;
-    text-transform: uppercase; color: var(--caution-deep); background: var(--caution-bg);
-    border: 1px solid var(--caution-border); border-radius: var(--radius-sm); padding: 2px 6px;
-  }
-  .pk-lookup-no-match-reason { margin: 8px 0; font-size: 13px; color: var(--ink-secondary); }
-  .pk-lookup-routes { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
-  .pk-lookup-routes a { font-size: 13px; }
-
-  .pk-lookup-resolved-link { display: inline-block; font-size: 14.5px; color: var(--accent); }
-  .pk-lookup-resolved-no-profile { margin: 0; font-size: 13.5px; color: var(--ink-secondary); }
-
-  .pk-recent-chip {
-    font-family: var(--sans); font-size: 11.5px; font-weight: 500; color: var(--ink-secondary);
-    background: var(--white); border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
-    padding: 3px 8px; cursor: pointer; transition: border-color .15s ease, color .15s ease;
-  }
-  .pk-recent-chip:hover { border-color: var(--accent); color: var(--accent); }
+  /* ADR 0014 removed the `.pk-lookup-*`/`.pk-visually-hidden`/`.pk-tag-modelled`/
+     `.pk-recent-chip` rules that used to sit here: styling for the postcode
+     search form and its dynamic results, which only ever appeared in
+     `politikku_landing.py`'s/`politikku_homepage.py`'s own body markup —
+     verified dead (grepped for every class this stylesheet defines against
+     the three surviving renderers' source before removing anything) rather
+     than assumed dead just because those two modules were retired. */
 
   @media (max-width: 900px) {
     .pk-header { padding: 0 var(--gutter-mobile); height: 52px; }

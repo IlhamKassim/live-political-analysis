@@ -12,9 +12,13 @@ SITE_URL = "https://politikku.my/"
 def build_sitemap(public_dir: Path) -> str:
     today = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d")
 
-    # Collect all HTML files
+    # Collect all HTML files, except noindex redirect stubs (politikku_redirects.py) —
+    # Google's own guidance is to leave a redirecting URL out of the sitemap entirely,
+    # not list it alongside the canonical page it points to.
     html_files = []
     for path in public_dir.rglob("*.html"):
+        if "noindex" in path.read_text(encoding="utf-8"):
+            continue
         rel_path = path.relative_to(public_dir).as_posix()
         html_files.append(rel_path)
 

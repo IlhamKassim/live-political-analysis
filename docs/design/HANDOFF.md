@@ -1,5 +1,21 @@
 # Public dashboard redesign — handoff
 
+> **Historical — the page this document specifies (`public_page.py`) has
+> not rendered or published since #104's cutover**, well before either ADR
+> below. [ADR 0012](../adr/0012-mypolitik-frontend-supersedes-the-print-register.md)
+> superseded this doc's "print register, not dashboard register" visual
+> direction (item 3/7 below) for anywhere it gets ported into `frontend/`.
+> [ADR 0014](../adr/0014-app-becomes-the-site-root-audience-loses-its-page.md)
+> went further for the site root specifically: `/app/` (`frontend/`'s own
+> visual language) is `politikku.my`'s root now. This document's design
+> direction still lives on in `politikku_shell.py`/`politikku_projection.py`
+> (`/projection/`, ADR 0011) and `politikku_sentiment.py`/`politikku_learn.py`
+> — real, currently-published pages that ported this same print-register
+> language into PolitikKu's own shell rather than rebuilding in
+> `frontend/`'s style — so "historical" here means *this specific module and
+> mockup*, not that the visual language itself is dead. Kept for the
+> reasoning, not as an active spec.
+
 Status as of **10 August 2026**. **Steps 7 and 8 are both done and merged.**
 The page is live at https://ilhamkassim.github.io/live-political-analysis/,
 rendered and republished daily by the same Action that computes the

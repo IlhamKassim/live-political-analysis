@@ -13,9 +13,11 @@ second derivation of them, that the BM route carries BM copy including the
 caveats ADR 0005 makes load-bearing, and that the routing/permalink paths the
 page prints match the files `main` writes.
 
-The 222-Seat fixture is `test_politikku_homepage`'s own: `politikku_hemicycle
-.HemicycleCounts` rejects any chamber that is not exactly 222 real Seats, so a
-hand-sized baseline cannot reach `render_projection` at all.
+The 222-Seat fixture (`_baseline_222`/`NAMES` below) was `test_politikku_homepage`'s
+own until ADR 0014 retired that module — `politikku_hemicycle.HemicycleCounts`
+rejects any chamber that is not exactly 222 real Seats, so a hand-sized
+baseline cannot reach `render_projection` at all, and this is the last
+surviving consumer of that fixture.
 """
 
 from __future__ import annotations
@@ -26,7 +28,6 @@ from datetime import date, timedelta
 
 import pytest
 from fixtures import PH, PN, government_config
-from test_politikku_homepage import NAMES, _baseline_222
 
 from lpa.domain import ElectionStatus, Projection
 from lpa.politikku_projection import (
@@ -63,6 +64,39 @@ NOT_CALLED = ElectionStatus(constitutional_deadline=date(2028, 2, 17), source="x
 TODAY = date(2026, 8, 23)
 """The day `_projection_model`'s own Projection is computed on — a history
 ending here and the rest of the page agree about which day is today."""
+
+NAMES = {"PH": "Pakatan Harapan", "PN": "Perikatan Nasional", "BN": "Barisan Nasional"}
+
+_MARGIN_PATTERN = (
+    {PH: 0.60, PN: 0.40},
+    {PH: 0.55, PN: 0.45},
+    {PH: 0.53, PN: 0.47},
+    {PH: 0.52, PN: 0.48},
+    {PH: 0.45, PN: 0.55},
+    {PH: 0.35, PN: 0.65},
+)
+"""`fixtures.two_coalition_seats()`'s own six margins verbatim (+20pp,
++10pp, +6pp, +4pp PH; +10pp, +30pp PN) — reused rather than re-derived so
+this fixture's tiers are exactly the ones that file's own tests already
+hand-check."""
+
+
+def _baseline_222() -> list:
+    """222 Seats, `_MARGIN_PATTERN` tiled 37 times (222 / 6 is exact).
+
+    `lpa.politikku_hemicycle.HemicycleCounts` fixes the chamber at exactly
+    222 real Seats (`__post_init__` rejects any other total), so any
+    `PageModel` this module's hemicycle tally runs against needs that many
+    — a small hand-sized baseline like `two_coalition_seats()` on its own
+    cannot reach it at all. Tiling keeps every Seat's tier hand-checkable:
+    each block of 6 repeats `_MARGIN_PATTERN` exactly, so 37 blocks give
+    exactly 111 Government-clear (PH, not Tight), 37 Tight (the one +4pp
+    Seat in every block), and 74 Non-government-clear (PN, not Tight) Seats
+    — 111 + 37 + 74 = 222.
+    """
+    from fixtures import seat as _seat
+
+    return [_seat(f"P{i:03d}", "Selangor", **_MARGIN_PATTERN[i % 6]) for i in range(222)]
 
 
 def _projection_model(*, history=(), majority_threshold=112) -> PageModel:
@@ -596,17 +630,40 @@ def test_the_bm_page_leaks_no_english_copy():
 
 
 def test_seat_table_and_too_close_link_to_mp_profile_when_available(monkeypatch):
-    from test_politikku_mp_profile import _profile
+    # Only presence in `load_mp_profiles()`'s mapping matters here — the
+    # seat-table/too-close links this checks fire off `seat_code in
+    # profiles` alone, never a profile field — so the values below are
+    # arbitrary, not a real MPProfile fixture (that lived in
+    # `test_politikku_mp_profile.py`, retired with `politikku_mp_profile.py`
+    # by ADR 0014).
+    from lpa.mp_profile import Contact, GE15Result, MPProfile
 
-    fake_profile = _profile(seat_code="P000")
+    fake_profile = MPProfile(
+        seat_code="P000",
+        name="YB Tuan Contoh",
+        coalition=PH,
+        term_start=date(2022, 12, 19),
+        ge15=GE15Result(
+            votes=141568,
+            majority=69701,
+            vote_share=0.5795055896451363,
+            valid_votes=244291,
+            runner_up_votes=71867,
+            runner_up_coalition=PN,
+            electors=303430,
+            turnout=0.8133506904393105,
+            source_url="https://example.org/ge15",
+        ),
+        contact=Contact(),
+    )
     monkeypatch.setattr("lpa.config.load_mp_profiles", lambda: {"P000": fake_profile})
 
     model = _projection_model()
     en_body = render_projection_body(model, Language.EN)
     ms_body = render_projection_body(model, Language.MS)
 
-    assert '<a href="/mp/P000.html">' in en_body
-    assert '<a href="/ms/mp/P000.html">' in ms_body
+    assert '<a href="/app/#parlimen/parti/P000">' in en_body
+    assert '<a href="/app/#parlimen/parti/P000">' in ms_body
 
 
 def test_cite_section_renders_download_buttons_in_both_languages():

@@ -9,7 +9,7 @@ from datetime import date
 
 from lpa.domain import ElectionStatus
 from lpa.politikku_shell import (
-    HOMEPAGE_URL,
+    HOMEPAGE_PAGE,
     LANDING_URL,
     MP_PROFILE_DIR,
     NAV_LINKS,
@@ -55,7 +55,7 @@ def test_the_active_nav_link_is_the_only_one_marked_current():
     # visible at a time via CSS), so the active link's aria-current appears
     # twice, plus once more for the current EN toggle link.
     assert header.count('aria-current="page"') == 3
-    assert '<a class="active" href="/bills.html" aria-current="page">Bills</a>' in header
+    assert '<a class="active" href="/app/#bills" aria-current="page">Bills</a>' in header
     # The nav renders twice (desktop + mobile disclosure); "active" must
     # land on Bills in both renderings and nowhere else.
     assert header.count('class="active"') == 2
@@ -77,23 +77,38 @@ def test_the_projection_nav_item_points_at_politikkus_own_projection_page():
 
 def test_a_localized_nav_link_stays_in_bm_not_just_the_toggle():
     # #81's own requirement ("persisted... drives /ms/ routes") extends to
-    # in-site navigation: a BM page's Bills nav item must stay in BM, not
-    # silently drop back to the EN route.
+    # in-site navigation: a BM page's Sentiment nav item must stay in BM, not
+    # silently drop back to the EN route. (Not Bills: ADR 0014 made that nav
+    # item an `external` link into /app/, which has no /ms/ route of its own
+    # — see the next test.)
     header = render_header(active_nav="home", language=Language.MS, page_path="")
-    # Nav renders twice (desktop + mobile) — the Bills nav link (not the
+    # Nav renders twice (desktop + mobile) — the Sentiment nav link (not the
     # toggle) must be the /ms/ route in both, and the plain EN route must
     # appear nowhere except the toggle's own EN link.
-    assert header.count('">Rang Undang-Undang</a>') == 2
-    assert 'href="/ms/bills.html">Rang Undang-Undang</a>' in header
-    assert 'href="/bills.html">Rang Undang-Undang</a>' not in header
+    assert header.count('">Sentimen</a>') == 2
+    assert 'href="/ms/sentiment.html">Sentimen</a>' in header
+    assert 'href="/sentiment.html">Sentimen</a>' not in header
+
+
+def test_an_external_nav_link_uses_the_same_href_in_both_languages():
+    # ADR 0014 (the mypolitik-frontend root swap): "Bills" now points into
+    # /app/'s own hash-routed view, which has no /ms/ route for `route()` to
+    # build — `NavLink.external` bypasses language routing entirely rather
+    # than producing a wrong /ms/app/#bills guess.
+    en_header = render_header(active_nav="home", language=Language.EN, page_path="")
+    ms_header = render_header(active_nav="home", language=Language.MS, page_path="")
+    assert en_header.count('href="/app/#bills">Bills</a>') == 2
+    assert ms_header.count('href="/app/#bills">Rang Undang-Undang</a>') == 2
 
 
 def test_no_nav_link_opts_out_of_language_routing():
     # The `localized: bool` flag `NavLink.prefix` replaced existed for one
     # item only — the un-translated chamber dashboard at `/`, which #102
     # replaced with a page that has a real BM sibling. So there is no longer
-    # any nav item whose BM href is its EN href: every link, whichever route
-    # family it hangs off, goes through `/ms/` from a BM page.
+    # any *routed* nav item whose BM href is its EN href: every link that
+    # isn't `external` (ADR 0014's escape hatch for a target outside this
+    # module's own route families — see the `external`-specific test) goes
+    # through `/ms/` from a BM page.
     en_header = render_header(active_nav="home", language=Language.EN, page_path="")
     ms_header = render_header(active_nav="home", language=Language.MS, page_path="")
     # The one EN route a BM header is allowed to carry is the language
@@ -105,6 +120,8 @@ def test_no_nav_link_opts_out_of_language_routing():
     toggle_en_href = f'href="{route(Language.EN, "")}"'
     assert ms_header.count(toggle_en_href) == 1
     for link in NAV_LINKS:
+        if link.external is not None:
+            continue
         en_href = f'href="{link.prefix}{link.href}"'
         assert en_href in en_header
         if not link.en_only:
@@ -129,11 +146,14 @@ def test_politikku_is_served_from_the_site_root():
     assert route(Language.MS, "") == "/ms/"
     # Landing-page cutover: the landing page IS the site root now, not a
     # page linked from it — `landing_url`/`LANDING_URL` collapse to the
-    # prefix itself. `HOMEPAGE_PAGE`/`HOMEPAGE_URL` are what moved instead.
+    # prefix itself, and since ADR 0014 the site root is `/app/`'s content
+    # (the frontend fold-in step, not any Python renderer). `HOMEPAGE_PAGE`
+    # is what moved off the root before that (#104) and was retired outright
+    # by ADR 0014 — kept only as `politikku_redirects.py`'s old-path key.
     assert landing_url() == "/"
     assert landing_url(Language.MS) == "/ms/"
     assert LANDING_URL == "/"
-    assert HOMEPAGE_URL == "/home.html"
+    assert HOMEPAGE_PAGE == "home.html"
     assert route(Language.EN, f"{MP_PROFILE_DIR}/P.102.html") == "/mp/P.102.html"
     assert route(Language.MS, f"{MP_PROFILE_DIR}/P.102.html") == "/ms/mp/P.102.html"
 

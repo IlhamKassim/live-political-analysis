@@ -78,8 +78,7 @@ from datetime import date
 from sqlalchemy.engine import Engine
 
 from lpa.domain import Coalition
-from lpa.politikku_hemicycle import Palette, render_hemicycle
-from lpa.politikku_homepage import hemicycle_counts
+from lpa.politikku_hemicycle import Palette, hemicycle_counts, render_hemicycle
 from lpa.politikku_i18n import (
     GE16_SEAT_PROJECTION_EN,
     GE16_SEAT_PROJECTION_MS,
@@ -752,12 +751,17 @@ def _too_close_section(model: PageModel, language: Language) -> str:
     from lpa.config import load_mp_profiles
 
     profiles = load_mp_profiles()
-    prefix = "/ms/mp/" if language is Language.MS else "/mp/"
 
     def _seat_name(seat_code: str, seat_name: str) -> str:
+        # ADR 0014: MP Profile pages are retired; this links straight into
+        # /app/'s own seat-select view (`#parlimen/parti/<code>`, matching
+        # lib.js's encodeHash) rather than the old `/mp/<code>.html` path,
+        # which now only exists as a redirect stub. /app/ has no /ms/ route
+        # of its own, so this is the same href in both languages — the same
+        # reasoning `politikku_shell`'s "Bills" nav item now follows.
         escaped_name = html.escape(seat_name)
         if seat_code in profiles:
-            url = html.escape(f"{prefix}{seat_code}.html")
+            url = html.escape(f"/app/#parlimen/parti/{seat_code}")
             return f'<a href="{url}">{escaped_name}</a>'
         return escaped_name
 
@@ -921,12 +925,17 @@ def _seat_table_section(model: PageModel, language: Language) -> str:
     from lpa.config import load_mp_profiles
 
     profiles = load_mp_profiles()
-    prefix = "/ms/mp/" if language is Language.MS else "/mp/"
 
     def _seat_name(seat_code: str, seat_name: str) -> str:
+        # ADR 0014: MP Profile pages are retired; this links straight into
+        # /app/'s own seat-select view (`#parlimen/parti/<code>`, matching
+        # lib.js's encodeHash) rather than the old `/mp/<code>.html` path,
+        # which now only exists as a redirect stub. /app/ has no /ms/ route
+        # of its own, so this is the same href in both languages — the same
+        # reasoning `politikku_shell`'s "Bills" nav item now follows.
         escaped_name = html.escape(seat_name)
         if seat_code in profiles:
-            url = html.escape(f"{prefix}{seat_code}.html")
+            url = html.escape(f"/app/#parlimen/parti/{seat_code}")
             return f'<a href="{url}">{escaped_name}</a>'
         return escaped_name
 
