@@ -1,0 +1,7 @@
+# Cloudflare Web Analytics beacon token in src/lpa/politikku_shell.py — a
+# public, intentionally-embedded-in-every-page analytics ID (like a Google
+# Analytics tracking ID), not a credential. Already carries an inline
+# `gitleaks:allow` comment in the current file, but gitleaks-action scans
+# full commit history on push, and the historical commit below (2026-08-27,
+# unrelated to any later work) predates that suppression comment existing.
+ab15872fba27cfe5a88c5ba96e25259f406cf17c:src/lpa/politikku_shell.py:generic-api-key:646

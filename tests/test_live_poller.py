@@ -15,21 +15,21 @@ import poller
 
 def test_norm_code():
     by_code = {"1_N.01": {}, "1_N.02": {}, "4_N.01": {}, "13_N.82": {}, "P.001": {}}
-    
+
     # Explicit canonical codes
     assert poller.norm_code("1_N.01", prefix="1_", by_code=by_code) == "1_N.01"
     assert poller.norm_code("4_N.01", prefix="4_", by_code=by_code) == "4_N.01"
-    
+
     # Johor DUN numbers
     assert poller.norm_code("N.01", prefix="1_", by_code=by_code) == "1_N.01"
     assert poller.norm_code("N01", prefix="1_", by_code=by_code) == "1_N.01"
     assert poller.norm_code("N1", prefix="1_", by_code=by_code) == "1_N.01"
     assert poller.norm_code(1, prefix="1_", by_code=by_code) == "1_N.01"
-    
+
     # Other states DUN numbers
     assert poller.norm_code("N.01", prefix="4_", by_code=by_code) == "4_N.01"
     assert poller.norm_code("N.82", prefix="13_", by_code=by_code) == "13_N.82"
-    
+
     # Parliamentary codes
     assert poller.norm_code("P.001", prefix="", by_code=by_code) == "P.001"
     assert poller.norm_code("P001", prefix="", by_code=by_code) == "P.001"
@@ -58,10 +58,55 @@ def test_load_election_config_custom_fallback():
 
 def test_merge_state_machine():
     readings = [
-        ("manual", {"1_N.01": {"status": "official", "coalition": "BN", "party": "UMNO", "name": "Winner A", "majority": "1000"}}),
-        ("sinar", {"1_N.02": {"status": "won", "coalition": "PH", "party": "DAP", "name": "Leader B", "majority": "500", "votes": 5000}}),
-        ("thestar", {"1_N.02": {"status": "leading", "coalition": "PH", "party": "DAP", "name": "Leader B", "majority": "500"}}),
-        ("thestar", {"1_N.03": {"status": "won", "coalition": "PN", "party": "PAS", "name": "Leader C", "majority": "200"}}),
+        (
+            "manual",
+            {
+                "1_N.01": {
+                    "status": "official",
+                    "coalition": "BN",
+                    "party": "UMNO",
+                    "name": "Winner A",
+                    "majority": "1000",
+                }
+            },
+        ),
+        (
+            "sinar",
+            {
+                "1_N.02": {
+                    "status": "won",
+                    "coalition": "PH",
+                    "party": "DAP",
+                    "name": "Leader B",
+                    "majority": "500",
+                    "votes": 5000,
+                }
+            },
+        ),
+        (
+            "thestar",
+            {
+                "1_N.02": {
+                    "status": "leading",
+                    "coalition": "PH",
+                    "party": "DAP",
+                    "name": "Leader B",
+                    "majority": "500",
+                }
+            },
+        ),
+        (
+            "thestar",
+            {
+                "1_N.03": {
+                    "status": "won",
+                    "coalition": "PN",
+                    "party": "PAS",
+                    "name": "Leader C",
+                    "majority": "200",
+                }
+            },
+        ),
     ]
     merged = poller.merge(readings)
 
@@ -85,12 +130,11 @@ def test_publish_and_fixture_run():
 
     with tempfile.TemporaryDirectory() as tmpdir:
         out_file = Path(tmpdir) / "live-test.json"
-        
+
         # Test running poller with --fixture
-        rc = poller.main("prn16-johor", argv=[
-            "--fixture", str(fixture_path),
-            "--out", str(out_file)
-        ])
+        rc = poller.main(
+            "prn16-johor", argv=["--fixture", str(fixture_path), "--out", str(out_file)]
+        )
         assert rc == 0
         assert out_file.is_file()
 
@@ -112,11 +156,8 @@ def test_johor_poller_wrapper():
     fixture_path = LIVE_DIR / "fixtures" / "midcount.json"
     with tempfile.TemporaryDirectory() as tmpdir:
         out_file = Path(tmpdir) / "live-wrapper-test.json"
-        
-        rc = johor_poller.main(argv=[
-            "--fixture", str(fixture_path),
-            "--out", str(out_file)
-        ])
+
+        rc = johor_poller.main(argv=["--fixture", str(fixture_path), "--out", str(out_file)])
         assert rc == 0
         assert out_file.is_file()
 
