@@ -1,5 +1,14 @@
 # UI/UX improvement brief — for Antigravity
 
+> **Retired, superseded by [ADR 0012](../adr/0012-mypolitik-frontend-supersedes-the-print-register.md).**
+> This brief was written to prioritize work *within* the print-register
+> visual direction (`docs/design/HANDOFF.md`), which that ADR retires in
+> favor of `mypolitik`'s existing frontend design system. None of the
+> workstreams below describe real remaining work once the direction itself
+> has changed — see `docs/design/mypolitik-new-views-spec.md` for the
+> design reference that replaces this file going forward. Kept for its
+> historical reasoning, not as an active brief.
+
 Status as of **29 August 2026**. This file is the brief for prioritized
 UI/UX work on the public PolitikKu site. Read it, then `CONTEXT.md`, before
 touching any visual or layout code.
