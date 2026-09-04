@@ -180,6 +180,7 @@ function setLang(l) {
   if (document.body.classList.contains("news-open")) openNewsPage();    // news full page
   if (document.body.classList.contains("dewan-open")) renderDewanPage(); // Hansard league table
   if (document.body.classList.contains("bills-open")) renderBillsPage(); // Bill tracker
+  if (document.body.classList.contains("sentiment-open")) renderSentimentPage(); // Sentiment digest
   if (PLEDGES_MODAL && PLEDGES_MODAL.open) openPledgesModal();
 }
 
@@ -330,6 +331,11 @@ async function loadOptional() {
     // parliamentary bills register and division votes (ADR 0010)
     const bl = await fetch("data/bills.json");
     if (bl.ok) state.bills = await bl.json();
+  } catch (_) {}
+  try {
+    // political news sentiment analysis across monitored outlets
+    const st = await fetch("data/sentiment.json");
+    if (st.ok) state.sentiment = await st.json();
   } catch (_) {}
   return state;
 }
@@ -969,6 +975,7 @@ async function openPoliticians() {
   closeNewsPage({ silent: true });     // the directory and the news page are mutually exclusive
   closeDewanPage({ silent: true });    // …and so is the Dewan activity page
   closeBillsPage({ silent: true });    // …and so is the Bill tracker page
+  closeSentimentPage({ silent: true }); // …and so is the Sentiment digest page
   if (state.prnMode) closePrnMode();   // leave the election dashboard before the directory takes over
   if (!state.data.parlimen) { try { await loadTier("parlimen"); } catch (_) {} }
   if (polTier !== "parlimen" && polTier !== "pledges" && !state.data.dun) {
@@ -4335,18 +4342,20 @@ function syncSidebar() {
   const pol = document.body.classList.contains("politicians-open");
   const dw = document.body.classList.contains("dewan-open");
   const bl = document.body.classList.contains("bills-open");
-  sb.querySelector("#sb-map")?.classList.toggle("on", !state.openState && !pol && !dw && !bl);
+  const st = document.body.classList.contains("sentiment-open");
+  sb.querySelector("#sb-map")?.classList.toggle("on", !state.openState && !pol && !dw && !bl && !st);
   sb.querySelector("#sb-politicians")?.classList.toggle("on", pol);
   sb.querySelector("#sb-dewan")?.classList.toggle("on", dw);
   sb.querySelector("#sb-bills")?.classList.toggle("on", bl);
+  sb.querySelector("#sb-sentiment")?.classList.toggle("on", st);
   // live election is highlighted on its state row (e.g. Johor), not a separate PRN nav item
   const e = liveElection();
   sb.querySelectorAll("[data-sb-state]").forEach((b) => {
-    const isOpen = !pol && !dw && !bl && state.openState === b.dataset.sbState;
+    const isOpen = !pol && !dw && !bl && !st && state.openState === b.dataset.sbState;
     const isLiveState = !!(e && e.state === b.dataset.sbState);
     b.classList.toggle("on", isOpen);
     b.classList.toggle("is-election", isLiveState);
-    b.classList.toggle("is-prn-on", isLiveState && !!state.prnMode && !pol && !bl);
+    b.classList.toggle("is-prn-on", isLiveState && !!state.prnMode && !pol && !bl && !st);
   });
   sb.querySelectorAll("[data-sb-lang]").forEach((b) =>
     b.classList.toggle("on", b.dataset.sbLang === lang));
@@ -4357,6 +4366,7 @@ async function sidebarOpenState(name) {
   closePoliticians({ silent: true });
   closeDewanPage({ silent: true });
   closeBillsPage({ silent: true });
+  closeSentimentPage({ silent: true });
   hideInfo();
   // live election state (Johor) → open the PRN dashboard; other states open normally
   const e = liveElection();
@@ -4456,11 +4466,12 @@ document.getElementById("sidebar")?.addEventListener("click", (ev) => {
     return;
   }
   if (ev.target.closest("#sb-brand") || ev.target.closest("#sb-map")) {
-    closePoliticians({ silent: true }); closeNewsPage({ silent: true }); closeDewanPage({ silent: true }); closeBillsPage({ silent: true }); hideInfo(); backToControls(); syncSidebar(); return;
+    closePoliticians({ silent: true }); closeNewsPage({ silent: true }); closeDewanPage({ silent: true }); closeBillsPage({ silent: true }); closeSentimentPage({ silent: true }); hideInfo(); backToControls(); syncSidebar(); return;
   }
   if (ev.target.closest("#sb-politicians")) { hideInfo(); openPoliticians(); setTimeout(syncSidebar, 60); return; }
   if (ev.target.closest("#sb-dewan")) { hideInfo(); openDewanPage(); setTimeout(syncSidebar, 60); return; }
   if (ev.target.closest("#sb-bills")) { hideInfo(); openBillsPage(); setTimeout(syncSidebar, 60); return; }
+  if (ev.target.closest("#sb-sentiment")) { hideInfo(); openSentimentPage(); setTimeout(syncSidebar, 60); return; }
   if (ev.target.closest("#sb-about")) { showInfo(); return; }
   if (ev.target.closest("#sb-share")) { shareApp(); return; }
   const st = ev.target.closest("[data-sb-state]");
@@ -4521,6 +4532,7 @@ document.getElementById("sidebar")?.addEventListener("click", (ev) => {
   if (bootHash === "#news") openNewsPage();   // deep-linked news page
   if (bootHash === "#dewan" && state.hansard) await openDewanPage();   // deep-linked Dewan activity
   if (bootHash === "#bills") await openBillsPage();   // deep-linked Bill tracker
+  if (bootHash === "#sentiment") await openSentimentPage();   // deep-linked Sentiment digest
   maybeShowHint();   // fresh visit, nothing selected → nudge that seats are tappable
   try { syncMapToCard(); } catch (_) {}
   // body.sb-collapsed is set above; drop the html pre-paint hint
@@ -4549,7 +4561,7 @@ async function shareApp() {
     else { await navigator.clipboard.writeText(url); showToast("share_ok"); }
   } catch (e) { /* user cancelled */ }
 }
-function showWholeMap() { hideInfo(); closeBillsPage({ silent: true }); backToControls(); }
+function showWholeMap() { hideInfo(); closeBillsPage({ silent: true }); closeSentimentPage({ silent: true }); backToControls(); }
 document.getElementById("brand-home")?.addEventListener("click", showWholeMap);
 document.getElementById("topbar-title")?.addEventListener("click", showWholeMap);
 document.getElementById("top-map")?.addEventListener("click", showWholeMap);
@@ -4558,6 +4570,7 @@ document.getElementById("top-share")?.addEventListener("click", shareApp);
 document.getElementById("top-politicians")?.addEventListener("click", () => openPoliticians());
 document.getElementById("top-dewan")?.addEventListener("click", () => openDewanPage());
 document.getElementById("top-bills")?.addEventListener("click", () => openBillsPage());
+document.getElementById("top-sentiment")?.addEventListener("click", () => openSentimentPage());
 // mobile-menu nav parity with the wide-screen sidebar (each shown only when relevant)
 POL_VIEW?.addEventListener("click", (e) => {
   if (e.target.closest("a")) return;   // a social-icon link — let it open, don't pop the profile
@@ -4587,6 +4600,8 @@ window.addEventListener("popstate", () => {
   else if (document.body.classList.contains("dewan-open")) closeDewanPage({ silent: true });
   if (location.hash === "#bills") { openBillsPage(); }
   else if (document.body.classList.contains("bills-open")) closeBillsPage({ silent: true });
+  if (location.hash === "#sentiment") { openSentimentPage(); }
+  else if (document.body.classList.contains("sentiment-open")) closeSentimentPage({ silent: true });
 });
 
 /* ===== Dewan activity page: the Hansard league table (its own full page) ===== */
@@ -4727,6 +4742,7 @@ async function openDewanPage() {
   closePoliticians({ silent: true });
   closeNewsPage({ silent: true });
   closeBillsPage({ silent: true });
+  closeSentimentPage({ silent: true });
   if (state.prnMode) closePrnMode();
   if (!state.data.parlimen) { try { await loadTier("parlimen"); } catch (_) {} }
   document.body.classList.add("dewan-open");
@@ -4927,6 +4943,7 @@ async function openBillsPage() {
   closePoliticians({ silent: true });
   closeNewsPage({ silent: true });
   closeDewanPage({ silent: true });
+  closeSentimentPage({ silent: true });
   if (state.prnMode) closePrnMode();
   document.body.classList.add("bills-open");
   renderBillsPage();
@@ -4955,6 +4972,142 @@ BILLS_VIEW?.addEventListener("click", (e) => {
     billsSort = sortBtn.dataset.billsSort;
     BILLS_VIEW.querySelectorAll("[data-bills-sort]").forEach((b) => setOn(b, b === sortBtn));
     renderBillsRows((document.getElementById("bills-search") || {}).value || "");
+    return;
+  }
+});
+
+/* ===== News sentiment tracker view ===== */
+const SENTIMENT_VIEW = document.getElementById("sentiment-view");
+
+function renderSentimentPage() {
+  const data = state.sentiment;
+  if (!SENTIMENT_VIEW || !data) return;
+
+  const totalArticles = data.total_articles || 0;
+  const sourcesCount = data.sources_count || (data.sources ? data.sources.length : 0);
+  const updatedDate = data.computed_at || "";
+  const coalitions = data.coalitions || [];
+  const history = data.history || [];
+  const sourcesList = (data.sources || []).join(", ");
+
+  SENTIMENT_VIEW.innerHTML = `
+    <div class="pol-dir dewan-page sentiment-page">
+      <div class="pol-dir-head">
+        <button class="pol-back" type="button" data-sentiment-back>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+          <span>${esc(t("pol_back"))}</span>
+        </button>
+        <h1>${esc(t("sentiment_page_title"))}</h1>
+        <p class="pol-dir-sub">${esc(t("sentiment_page_sub"))}</p>
+      </div>
+      <div class="dewan-tiles">
+        <div class="dewan-tile"><span class="muted">${esc(t("sentiment_tile_articles"))}</span><b class="mono">${totalArticles}</b></div>
+        <div class="dewan-tile"><span class="muted">${esc(t("sentiment_tile_sources"))}</span><b class="mono">${sourcesCount}</b></div>
+        <div class="dewan-tile"><span class="muted">${esc(t("sentiment_tile_updated"))}</span><b class="mono">${esc(updatedDate)}</b></div>
+      </div>
+      <dl class="sentiment-table rows">
+        ${coalitions.map((c) => {
+          const score = typeof c.score === "number" ? c.score : 0;
+          const delta = typeof c.delta === "number" ? c.delta : 0;
+          const scoreStr = (score >= 0 ? "+" : "") + score.toFixed(2);
+          let deltaArrow = "→";
+          let deltaClass = "sent-delta-flat";
+          if (delta > 0.005) {
+            deltaArrow = "↑";
+            deltaClass = "sent-delta-up";
+          } else if (delta < -0.005) {
+            deltaArrow = "↓";
+            deltaClass = "sent-delta-down";
+          }
+          const deltaStr = `${deltaArrow} ${(delta >= 0 ? "+" : "") + delta.toFixed(2)}`;
+          // Normalized [ -1.0, +1.0 ] to [ 0%, 100% ]
+          const pct = Math.max(0, Math.min(100, ((score + 1) / 2) * 100));
+          const color = partyColor(c.coalition);
+
+          // 14-run history
+          const histItems = history.map((h) => {
+            const val = h.scores ? h.scores[c.coalition] : undefined;
+            if (val === undefined || val === null) return "";
+            const fVal = (val >= 0 ? "+" : "") + Number(val).toFixed(2);
+            return `<span class="sent-hist-item" title="${esc(h.computed_at)}: ${fVal}">${fVal}</span>`;
+          }).join("");
+
+          return `
+            <dt>
+              <span class="pill" style="${pillStyle(color)}">${esc(c.coalition)}</span>
+              <span class="sent-coalition-name">${esc(c.coalition_name || c.coalition)}</span>
+              <span class="sent-articles muted">${esc(t("sentiment_articles_count", { n: c.article_count || 0 }))}</span>
+            </dt>
+            <dd>
+              <div class="sent-score-header">
+                <div class="sent-score-val mono">
+                  <span class="sent-score-num">${scoreStr}</span>
+                  <span class="sent-delta ${deltaClass}" title="${esc(t("sentiment_delta_7d"))}">
+                    ${deltaStr}
+                    <span class="sent-delta-label muted">(${esc(t("sentiment_delta_7d"))})</span>
+                  </span>
+                </div>
+              </div>
+              <div class="sent-bar-wrap">
+                <div class="sharebar sent-bar" aria-label="${esc(c.coalition)}: ${scoreStr}">
+                  <span style="background:${color};width:${pct.toFixed(1)}%"></span>
+                  <div class="sent-bar-neutral" title="0.0"></div>
+                </div>
+                <div class="sent-bar-labels muted mono">
+                  <span>-1.0</span>
+                  <span>0.0</span>
+                  <span>+1.0</span>
+                </div>
+              </div>
+              ${histItems ? `
+                <div class="sent-history-block">
+                  <span class="sent-history-title muted">${esc(t("sentiment_history_14d"))}</span>
+                  <div class="sent-history-row mono">${histItems}</div>
+                </div>
+              ` : ""}
+            </dd>
+          `;
+        }).join("")}
+      </dl>
+      <div class="note dewan-page-note">${esc(t("sentiment_page_method"))}</div>
+      ${sourcesList ? `<p class="pol-dir-src">${esc(t("sentiment_sources_list", { sources: sourcesList }))}</p>` : ""}
+    </div>
+  `;
+}
+
+async function openSentimentPage() {
+  if (!state.sentiment) {
+    try {
+      const res = await fetch("data/sentiment.json");
+      if (res.ok) state.sentiment = await res.json();
+    } catch (_) {}
+  }
+  if (!state.sentiment) return;
+  closePoliticians({ silent: true });
+  closeNewsPage({ silent: true });
+  closeDewanPage({ silent: true });
+  closeBillsPage({ silent: true });
+  if (state.prnMode) closePrnMode();
+  document.body.classList.add("sentiment-open");
+  renderSentimentPage();
+  syncSidebar();
+  if (location.hash !== "#sentiment") history.pushState(null, "", "#sentiment");
+  SENTIMENT_VIEW.querySelector(".pol-dir")?.scrollTo?.(0, 0);
+}
+
+function closeSentimentPage(options = {}) {
+  if (!document.body.classList.contains("sentiment-open")) return;
+  document.body.classList.remove("sentiment-open");
+  if (SENTIMENT_VIEW) SENTIMENT_VIEW.innerHTML = "";
+  syncSidebar();
+  if (!options.silent) writeHash();
+}
+
+SENTIMENT_VIEW?.addEventListener("click", (e) => {
+  if (e.target.closest("[data-sentiment-back]")) {
+    closeSentimentPage({ silent: true });
+    backToControls();
+    syncSidebar();
     return;
   }
 });
@@ -6133,6 +6286,8 @@ async function openPrnMode() {
   if (!e || (state.prnMode && state.openState === e.state)) return;
   const gen = ++prnOpenGen;
   closeNewsPage({ silent: true });
+  closeBillsPage({ silent: true });
+  closeSentimentPage({ silent: true });
   const preSel = state.selected;   // openStateCard clears the selection — keep it for the bento spotlight
   // Hide map while swapping Parliament → DUN so the national DUN recolour never flashes
   document.body.classList.add("tier-switching");
@@ -7517,6 +7672,7 @@ async function openNewsPage() {
   closeNewsPage({ silent: true });
   closeDewanPage({ silent: true });
   closeBillsPage({ silent: true });
+  closeSentimentPage({ silent: true });
   if (liveElection()) {
     await openPrnMode();
     requestAnimationFrame(() => {
@@ -8137,6 +8293,8 @@ function openStateCard(name) {
     return;
   }
   closeNewsPage({ silent: true });   // opening a state leaves the news full page (no overlap)
+  closeBillsPage({ silent: true });
+  closeSentimentPage({ silent: true });
   // cancel a pending home→Parliament rebuild so it doesn't yank the layer mid-open
   if (homeTierResetTimer) { clearTimeout(homeTierResetTimer); homeTierResetTimer = null; }
   clearTimeout(stateExitTimer);
