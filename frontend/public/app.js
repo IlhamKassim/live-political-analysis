@@ -5675,7 +5675,7 @@ function stateContextHTML(name) {
    Data: public/data/prn16-johor.json (config + SPR-confirmed candidates, baked by
    pipeline/05_prn16_johor.py). Live results arrive later via /api/live/johor. */
 function liveElection() {
-  return (state.prn16 && state.prn16.election) || null;
+  return (state.prn16 && (state.prn16.election || state.prn16._election_concluded)) || null;
 }
 function prnActiveForState(name) {
   const e = liveElection();
@@ -6032,10 +6032,12 @@ function prnLiveStats() {
   }
   // poller may not set .declared — always derive from seats
   if (live && live.declared == null) live.declared = declared;
+  const total = (e && e.total_seats) || (live && live.total_seats) || (Object.keys(seats).length || 56);
+  const majority = (e && e.majority) || (live && live.majority) || (total ? Math.floor(total / 2) + 1 : 29);
   return {
     e, live, seats, declared, leading, won, lead,
-    majority: (e && e.majority) || 29,
-    total: (e && e.total_seats) || 56,
+    majority,
+    total,
   };
 }
 function prnLiveStatusMeta(lr) {
@@ -6069,12 +6071,24 @@ function snapshotPrnLiveStatuses(live) {
 async function refreshPrnLive() {
   clearTimeout(prnLiveTimer);
   // No live election → never poll the live endpoint. Without this a concluded
-  // election still fetched stale /api/live/johor data and fired seat-call toasts
-  // ("N.xx · Leading · BN") on the normal map.
-  if (!liveElection()) { state.prnLive = null; prnFlashCodes = []; return; }
+  // election still fetched stale live data and fired seat-call toasts on the normal map.
+  const e = liveElection();
+  if (!e) { state.prnLive = null; prnFlashCodes = []; return; }
   let live = null;
+  const eid = e.id || (e.state ? `prn16-${e.state.toLowerCase()}` : "johor");
+  const stateSlug = (e.state || "").toLowerCase().replace(/\s+/g, "-");
   const localHost = ["", "localhost", "127.0.0.1", "::1"].includes(location.hostname);
-  const urls = localHost ? ["data/live-johor.json", "/api/live/johor"] : ["/api/live/johor", "data/live-johor.json"];
+  const candUrls = [
+    `/api/live/${eid}`,
+    `data/live-${eid}.json`,
+  ];
+  if (stateSlug && !candUrls.includes(`data/live-${stateSlug}.json`)) {
+    candUrls.push(`data/live-${stateSlug}.json`);
+  }
+  if (!candUrls.includes("data/live-johor.json")) {
+    candUrls.push("data/live-johor.json");
+  }
+  const urls = localHost ? [candUrls[1], candUrls[0], ...candUrls.slice(2)] : candUrls;
   for (const url of urls) {
     try {
       const r = await fetch(url, { cache: "no-store" });
@@ -6098,7 +6112,7 @@ async function refreshPrnLive() {
       const f = flashes[flashes.length - 1];
       const meta = prnLiveStatusMeta({ status: f.status });
       showToast("prn_live_flash", {
-        code: (f.code || "").replace(/^1_/, ""),
+        code: (f.code || "").replace(/^\d+_/, ""),
         status: meta.label,
         coal: f.coal || "—",
       });
@@ -6293,7 +6307,7 @@ function bentoLiveTableHTML(name) {
   ).join("");
 
   const rows = seats.map((s) => {
-    const lr = liveSeats[s.code] || liveSeats[String(s.code).replace(/^1_/, "")] || null;
+    const lr = liveSeats[s.code] || liveSeats[String(s.code).replace(/^\d+_/, "")] || null;
     const st = prnLiveStatusMeta(lr);
     const coal = (lr && (lr.coalition || lr.party)) || "";
     if (!liveSeatMatchesFilter(lr, st, filter)) return "";
@@ -6305,7 +6319,7 @@ function bentoLiveTableHTML(name) {
     const sw = col ? `<span class="sw" style="background:${col.bg}"></span>` : "";
     const sel = s.code === bentoSeat ? " is-sel" : "";
     const flash = (prnFlashCodes || []).includes(s.code) ? " just-called" : "";
-    const codeLabel = s.dun_code || s.code.replace(/^1_/, "");
+    const codeLabel = s.dun_code || s.code.replace(/^\d+_/, "");
     return `<tr class="bento-live-row st-${st.key}${sel}${flash}" data-code="${esc(s.code)}" tabindex="0" role="button">
       <td class="col-code mono">${esc(codeLabel)}</td>
       <td class="col-seat"><span class="bento-live-cell">${esc(s.name)}</span></td>
@@ -6482,14 +6496,16 @@ function bentoSpotlightHTML() {
   return stateSpotlightHTML();
 }
 
-// Resolve a seat's live row under either "1_N.01" or "N.01" keys.
+// Resolve a seat's live row under either prefixed ("1_N.01") or bare ("N.01") keys.
 function prnLiveForSeat(code) {
   const seats = state.prnLive && state.prnLive.seats;
   if (!seats || !code) return null;
   if (seats[code]) return seats[code];
-  const bare = String(code).replace(/^1_/, "");
+  const bare = String(code).replace(/^\d+_/, "");
   if (seats[bare]) return seats[bare];
-  if (seats["1_" + bare]) return seats["1_" + bare];
+  for (const k of Object.keys(seats)) {
+    if (k.endsWith("_" + bare) || k.replace(/^\d+_/, "") === bare) return seats[k];
+  }
   return null;
 }
 function prnCandNameKey(s) {

@@ -9,6 +9,7 @@ This server sends no-store on everything, so every reload gets fresh code. Dev o
 import functools
 import http.server
 import os
+import re
 import socket
 import socketserver
 
@@ -18,7 +19,21 @@ PORT = int(os.environ.get("PORT", "4178"))
 
 class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
     def rewrite_api_path(self):
-        if self.path.split("?", 1)[0] == "/api/live/johor":
+        req_path = self.path.split("?", 1)[0]
+        m = re.match(r"^/api/live/([a-zA-Z0-9_-]+)$", req_path)
+        if m:
+            eid = m.group(1)
+            candidates = [f"/data/live-{eid}.json"]
+            if "-" in eid:
+                suffix = eid.split("-", 1)[1]
+                candidates.append(f"/data/live-{suffix}.json")
+            if eid == "johor":
+                candidates.append("/data/live-prn16-johor.json")
+            for cand in candidates:
+                disk_path = os.path.join(ROOT, cand.lstrip("/"))
+                if os.path.isfile(disk_path):
+                    self.path = cand
+                    return
             self.path = "/data/live-johor.json"
 
     def do_GET(self):
