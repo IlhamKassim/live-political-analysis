@@ -13,6 +13,8 @@ import {
   resultKey, displayCode, tallyCoalitions, stateHues, swatchTextColor,
   competitivenessFromMajorityPct, withCurrentAffiliation, seatViewBox,
   getRepPhotoUrl, formatSocialShareText, buildEmbedCode,
+  isModelledKind, trustTagText, trustTagHTML,
+  calculateHemicycleSlots, orderProjectionSeatsForHemicycle, buildHemicycleSVG,
 } from "./lib.js";
 import { I18N } from "./i18n.js";
 
@@ -1129,5 +1131,120 @@ test("buildEmbedCode: produces responsive iframe tag with seat URL", () => {
   assert.match(code, /loading="lazy"/);
 
   assert.equal(buildEmbedCode(null), "");
+});
+
+test("isModelledKind: correctly detects modelled flags and objects", () => {
+  assert.equal(isModelledKind(true), true);
+  assert.equal(isModelledKind("MODEL"), true);
+  assert.equal(isModelledKind("model"), true);
+  assert.equal(isModelledKind({ modelled_number: true }), true);
+  assert.equal(isModelledKind({ kind: "MODEL" }), true);
+  assert.equal(isModelledKind({ kind: "model" }), true);
+
+  assert.equal(isModelledKind(false), false);
+  assert.equal(isModelledKind(null), false);
+  assert.equal(isModelledKind(undefined), false);
+  assert.equal(isModelledKind("FACT"), false);
+  assert.equal(isModelledKind("fact"), false);
+  assert.equal(isModelledKind({ modelled_number: false }), false);
+  assert.equal(isModelledKind({ kind: "FACT" }), false);
+  assert.equal(isModelledKind(0), false);
+  assert.equal(isModelledKind(""), false);
+});
+
+test("trustTagText: exact strings match I18N and politikku_i18n.py specification", () => {
+  assert.equal(trustTagText("en"), "NOT CALIBRATED");
+  assert.equal(trustTagText("ms"), "BELUM DITENTUKUR");
+  assert.equal(trustTagText(), "NOT CALIBRATED");
+  assert.equal(trustTagText("en"), I18N.en.not_calibrated);
+  assert.equal(trustTagText("ms"), I18N.ms.not_calibrated);
+});
+
+test("trustTagHTML: renders inline pill for modelled values, empty/plain for facts", () => {
+  // Gating without value: modelled returns pill, fact returns empty string
+  assert.equal(trustTagHTML(true, null, "en"), '<span class="pill pill-model">NOT CALIBRATED</span>');
+  assert.equal(trustTagHTML(true, null, "ms"), '<span class="pill pill-model">BELUM DITENTUKUR</span>');
+  assert.equal(trustTagHTML("MODEL", null, "en"), '<span class="pill pill-model">NOT CALIBRATED</span>');
+  assert.equal(trustTagHTML(false, null, "en"), "");
+  assert.equal(trustTagHTML("FACT", null, "en"), "");
+  assert.equal(trustTagHTML(null, null, "en"), "");
+  assert.equal(trustTagHTML(undefined, null, "ms"), "");
+
+  // Inline beside value
+  assert.equal(trustTagHTML(true, 112, "en"), '112 <span class="pill pill-model">NOT CALIBRATED</span>');
+  assert.equal(trustTagHTML("MODEL", "54%", "ms"), '54% <span class="pill pill-model">BELUM DITENTUKUR</span>');
+  assert.equal(trustTagHTML(true, 0, "en"), '0 <span class="pill pill-model">NOT CALIBRATED</span>');
+
+  // Value with factual flag returns unadorned value
+  assert.equal(trustTagHTML(false, 112, "en"), "112");
+  assert.equal(trustTagHTML("FACT", "PH", "ms"), "PH");
+  assert.equal(trustTagHTML(null, 0, "en"), "0");
+
+  // Options object
+  assert.equal(
+    trustTagHTML({ kind: "MODEL" }, { value: 82, lang: "ms" }),
+    '82 <span class="pill pill-model">BELUM DITENTUKUR</span>'
+  );
+  assert.equal(
+    trustTagHTML({ kind: "FACT" }, { value: 82, lang: "ms" }),
+    "82"
+  );
+});
+
+test("calculateHemicycleSlots: produces exactly 222 seats across 7 rows sorted left to right", () => {
+  const slots = calculateHemicycleSlots(222, 7, 84, 176, 220, 205);
+  assert.equal(slots.length, 222);
+
+  // Sorted left-to-right (descending angle from pi to 0)
+  for (let i = 1; i < slots.length; i++) {
+    assert.ok(slots[i - 1].angle >= slots[i].angle, `angle at ${i - 1} should be >= angle at ${i}`);
+  }
+  assert.equal(slots[0].angle, Math.PI);
+  assert.equal(slots[slots.length - 1].angle, 0);
+
+  // All coordinates are finite and inside viewBox
+  for (const s of slots) {
+    assert.ok(Number.isFinite(s.x) && s.x >= 0 && s.x <= 440);
+    assert.ok(Number.isFinite(s.y) && s.y >= 0 && s.y <= 240);
+  }
+});
+
+test("orderProjectionSeatsForHemicycle: groups Government Coalition first, Non-gov second", () => {
+  const testSeats = [
+    { code: "P.001", coalition: "PN", margin: 0.2 },
+    { code: "P.002", coalition: "PH", margin: 0.3 },
+    { code: "P.003", coalition: "BN", margin: 0.1 },
+    { code: "P.004", coalition: "WARISAN", margin: 0.05 },
+    { code: "P.005", coalition: "GPS", margin: 0.4 },
+  ];
+  const ordered = orderProjectionSeatsForHemicycle(testSeats, ["PH", "BN", "GPS", "GRS"]);
+  assert.equal(ordered.length, 5);
+  // Government first
+  assert.deepEqual(ordered.slice(0, 3).map((s) => s.coalition), ["PH", "BN", "GPS"]);
+  // Non-government second
+  assert.deepEqual(ordered.slice(3).map((s) => s.coalition), ["WARISAN", "PN"]);
+});
+
+test("buildHemicycleSVG: generates 222-dot SVG chart with threshold line and bilingual labels", () => {
+  const projection = JSON.parse(
+    readFileSync(fileURLToPath(new URL("./data/projection.json", import.meta.url)), "utf8")
+  );
+  assert.equal(projection.seats.length, 222);
+
+  // English render
+  const svgEn = buildHemicycleSVG(projection.seats, { lang: "en" });
+  assert.match(svgEn, /^<svg/);
+  assert.match(svgEn, /112 — Majority/);
+  assert.match(svgEn, /Government \(146\)/);
+  assert.match(svgEn, /Non-government \(76\)/);
+  assert.equal((svgEn.match(/class="hemicycle-dot"/g) || []).length, 222);
+  assert.match(svgEn, /data-proj-seat="P\.001"/);
+
+  // Bahasa Melayu render
+  const svgMs = buildHemicycleSVG(projection.seats, { lang: "ms" });
+  assert.match(svgMs, /112 — Majoriti/);
+  assert.match(svgMs, /Kerajaan \(146\)/);
+  assert.match(svgMs, /Bukan kerajaan \(76\)/);
+  assert.match(svgMs, /kerusi kerajaan/);
 });
 

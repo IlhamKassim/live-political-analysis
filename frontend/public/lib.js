@@ -515,3 +515,157 @@ export function buildEmbedCode(seat, tier = "parlimen", options = {}) {
   return `<iframe src="${embedUrl}" width="${width}" height="${height}" style="border:1px solid rgba(255,255,255,0.12);border-radius:14px;max-width:540px;width:100%;display:block;" title="${title}" loading="lazy"></iframe>`;
 }
 
+// Check if an input represents a modelled value (boolean true, "MODEL", or object with modelled_number/kind).
+export function isModelledKind(kindOrBool) {
+  if (kindOrBool === true) return true;
+  if (!kindOrBool) return false;
+  if (typeof kindOrBool === "string") {
+    return kindOrBool.trim().toUpperCase() === "MODEL";
+  }
+  if (typeof kindOrBool === "object") {
+    if (kindOrBool.modelled_number === true) return true;
+    if (typeof kindOrBool.kind === "string" && kindOrBool.kind.trim().toUpperCase() === "MODEL") return true;
+  }
+  return false;
+}
+
+// Canonical text for the uncalibrated model tag (bilingual, matches politikku_i18n.py).
+export function trustTagText(lang = "en") {
+  return lang === "ms" ? "BELUM DITENTUKUR" : "NOT CALIBRATED";
+}
+
+// Inline trust tag component. Returns the tag markup beside the value only when modelled,
+// or empty string (or plain value) when factual/unmodelled.
+export function trustTagHTML(kindOrBool, valueOrOptions = null, maybeLang = "en") {
+  let val = valueOrOptions;
+  let l = maybeLang;
+  if (valueOrOptions && typeof valueOrOptions === "object" && ("value" in valueOrOptions || "lang" in valueOrOptions)) {
+    val = valueOrOptions.value ?? null;
+    l = valueOrOptions.lang || maybeLang || "en";
+  }
+  const isModelled = isModelledKind(kindOrBool);
+  const hasValue = val !== null && val !== undefined;
+  if (!isModelled) {
+    return hasValue ? String(val) : "";
+  }
+  const tag = `<span class="pill pill-model">${trustTagText(l)}</span>`;
+  return hasValue ? `${val} ${tag}` : tag;
+}
+
+// Calculate 222 hemicycle chamber slots in 7 rows, sorted left-to-right (descending angle).
+export function calculateHemicycleSlots(totalSeats = 222, rows = 7, rInner = 84, rOuter = 176, cx = 220, cy = 205) {
+  const rowRadii = [];
+  for (let i = 0; i < rows; i++) {
+    rowRadii.push(rInner + ((rOuter - rInner) * i) / (rows - 1));
+  }
+  const weight = rowRadii.reduce((a, b) => a + b, 0);
+  const counts = rowRadii.map((r) => Math.floor((totalSeats * r) / weight));
+  const allocated = counts.reduce((a, b) => a + b, 0);
+  counts[counts.length - 1] += totalSeats - allocated;
+
+  const slots = [];
+  for (let rIdx = 0; rIdx < rows; rIdx++) {
+    const radius = rowRadii[rIdx];
+    const count = counts[rIdx];
+    for (let i = 0; i < count; i++) {
+      const t = count === 1 ? 0.5 : i / (count - 1);
+      const angle = Math.PI - t * Math.PI;
+      slots.push({ angle, radius });
+    }
+  }
+  slots.sort((a, b) => b.angle - a.angle);
+  return slots.map((s) => ({
+    angle: s.angle,
+    radius: s.radius,
+    x: Number((cx + Math.cos(s.angle) * s.radius).toFixed(1)),
+    y: Number((cy - Math.sin(s.angle) * s.radius).toFixed(1)),
+  }));
+}
+
+// Order 222 projected seats for the hemicycle: Government Coalition on left, Non-government on right.
+export function orderProjectionSeatsForHemicycle(seats = [], governmentCoalitions = ["PH", "BN", "GPS", "GRS"]) {
+  const govSet = new Set((governmentCoalitions || []).map((c) => String(c).toUpperCase()));
+  const govSeats = [];
+  const nonGovSeats = [];
+
+  for (const s of seats) {
+    const coal = (s.coalition || "").toUpperCase();
+    if (govSet.has(coal)) {
+      govSeats.push(s);
+    } else {
+      nonGovSeats.push(s);
+    }
+  }
+
+  const coalOrder = ["PH", "BN", "GPS", "GRS", "WARISAN", "KDM", "PBM", "BEBAS", "PN"];
+  const sortFn = (a, b) => {
+    const ai = coalOrder.indexOf((a.coalition || "").toUpperCase());
+    const bi = coalOrder.indexOf((b.coalition || "").toUpperCase());
+    if (ai !== bi) return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    return (b.margin || 0) - (a.margin || 0);
+  };
+
+  govSeats.sort(sortFn);
+  nonGovSeats.sort(sortFn);
+
+  return [...govSeats, ...nonGovSeats];
+}
+
+// Generate the SVG markup for the 222-seat hemicycle chamber.
+export function buildHemicycleSVG(seats = [], options = {}) {
+  const total = seats.length || 222;
+  const lang = options.lang || "en";
+  const govCoals = options.governmentCoalitions || ["PH", "BN", "GPS", "GRS"];
+  const govSet = new Set(govCoals.map((c) => String(c).toUpperCase()));
+  const govCount = seats.filter((s) => govSet.has((s.coalition || "").toUpperCase())).length;
+  const nonGovCount = total - govCount;
+
+  const slots = calculateHemicycleSlots(total, 7, 84, 176, 220, 205);
+  const orderedSeats = orderProjectionSeatsForHemicycle(seats, govCoals);
+
+  const dots = slots.map((slot, i) => {
+    const seat = orderedSeats[i] || {};
+    const code = seat.code || "";
+    const name = seat.name || "";
+    const state = seat.state || "";
+    const coal = seat.coalition || "";
+    const margin = Number.isFinite(seat.margin) ? (seat.margin * 100).toFixed(1) + "%" : "";
+    const color = partyColor(coal);
+    const tip = `${code} ${name} (${state}) — ${coal} ${margin}`.trim();
+    return `<circle cx="${slot.x}" cy="${slot.y}" r="3.6" fill="${color}" class="hemicycle-dot" data-proj-seat="${code}"><title>${tip}</title></circle>`;
+  }).join("");
+
+  // Threshold line between slot 111 and 112 (1-based seat 112)
+  let thresholdMarkup = "";
+  if (slots.length >= 112) {
+    const tAngle = (slots[111].angle + slots[112].angle) / 2;
+    const x1 = (220 + 64 * Math.cos(tAngle)).toFixed(1);
+    const y1 = (205 - 64 * Math.sin(tAngle)).toFixed(1);
+    const x2 = (220 + 192 * Math.cos(tAngle)).toFixed(1);
+    const y2 = (205 - 192 * Math.sin(tAngle)).toFixed(1);
+    const threshLabel = lang === "ms" ? "112 — Majoriti" : "112 — Majority";
+    const textAnchor = Number(x2) > 220 ? "start" : "end";
+    const textX = Number(x2) > 220 ? (Number(x2) + 6).toFixed(1) : (Number(x2) - 6).toFixed(1);
+    const textY = (Number(y2) - 4).toFixed(1);
+
+    thresholdMarkup = `
+      <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--line, rgba(255,255,255,0.2))" stroke-width="1.5" stroke-dasharray="3,3" />
+      <circle cx="${x2}" cy="${y2}" r="2.5" fill="var(--ink-faint, #888)" />
+      <text x="${textX}" y="${textY}" font-family="var(--mono)" font-size="10" font-weight="700" fill="var(--ink-faint, #aaa)" text-anchor="${textAnchor}">${threshLabel}</text>
+    `;
+  }
+
+  const govLabel = lang === "ms" ? "Kerajaan" : "Government";
+  const nonGovLabel = lang === "ms" ? "Bukan kerajaan" : "Non-government";
+  const centerSub = lang === "ms" ? "kerusi kerajaan" : "government seats";
+
+  return `<svg viewBox="0 0 440 235" class="hemicycle-svg" role="img" aria-label="Dewan Rakyat hemicycle projection" style="display:block;width:100%;max-width:540px;margin:0 auto">
+    ${thresholdMarkup}
+    <g class="hemicycle-dots">${dots}</g>
+    <text x="14" y="222" font-size="11" font-weight="600" fill="var(--ink-faint, #888)">${govLabel} (${govCount})</text>
+    <text x="426" y="222" font-size="11" font-weight="600" fill="var(--ink-faint, #888)" text-anchor="end">${nonGovLabel} (${nonGovCount})</text>
+    <text x="220" y="184" font-size="28" font-weight="800" font-family="var(--mono)" fill="var(--ink, #fff)" text-anchor="middle">${govCount}</text>
+    <text x="220" y="199" font-size="9" font-weight="700" letter-spacing="0.06em" text-transform="uppercase" fill="var(--ink-faint, #888)" text-anchor="middle">${centerSub}</text>
+  </svg>`;
+}
+
