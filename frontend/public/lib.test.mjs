@@ -14,6 +14,7 @@ import {
   competitivenessFromMajorityPct, withCurrentAffiliation, seatViewBox,
   getRepPhotoUrl, formatSocialShareText, buildEmbedCode,
   isModelledKind, trustTagText, trustTagHTML,
+  calculateHemicycleSlots, orderProjectionSeatsForHemicycle, buildHemicycleSVG,
 } from "./lib.js";
 import { I18N } from "./i18n.js";
 
@@ -1188,5 +1189,62 @@ test("trustTagHTML: renders inline pill for modelled values, empty/plain for fac
     trustTagHTML({ kind: "FACT" }, { value: 82, lang: "ms" }),
     "82"
   );
+});
+
+test("calculateHemicycleSlots: produces exactly 222 seats across 7 rows sorted left to right", () => {
+  const slots = calculateHemicycleSlots(222, 7, 84, 176, 220, 205);
+  assert.equal(slots.length, 222);
+
+  // Sorted left-to-right (descending angle from pi to 0)
+  for (let i = 1; i < slots.length; i++) {
+    assert.ok(slots[i - 1].angle >= slots[i].angle, `angle at ${i - 1} should be >= angle at ${i}`);
+  }
+  assert.equal(slots[0].angle, Math.PI);
+  assert.equal(slots[slots.length - 1].angle, 0);
+
+  // All coordinates are finite and inside viewBox
+  for (const s of slots) {
+    assert.ok(Number.isFinite(s.x) && s.x >= 0 && s.x <= 440);
+    assert.ok(Number.isFinite(s.y) && s.y >= 0 && s.y <= 240);
+  }
+});
+
+test("orderProjectionSeatsForHemicycle: groups Government Coalition first, Non-gov second", () => {
+  const testSeats = [
+    { code: "P.001", coalition: "PN", margin: 0.2 },
+    { code: "P.002", coalition: "PH", margin: 0.3 },
+    { code: "P.003", coalition: "BN", margin: 0.1 },
+    { code: "P.004", coalition: "WARISAN", margin: 0.05 },
+    { code: "P.005", coalition: "GPS", margin: 0.4 },
+  ];
+  const ordered = orderProjectionSeatsForHemicycle(testSeats, ["PH", "BN", "GPS", "GRS"]);
+  assert.equal(ordered.length, 5);
+  // Government first
+  assert.deepEqual(ordered.slice(0, 3).map((s) => s.coalition), ["PH", "BN", "GPS"]);
+  // Non-government second
+  assert.deepEqual(ordered.slice(3).map((s) => s.coalition), ["WARISAN", "PN"]);
+});
+
+test("buildHemicycleSVG: generates 222-dot SVG chart with threshold line and bilingual labels", () => {
+  const projection = JSON.parse(
+    readFileSync(fileURLToPath(new URL("./data/projection.json", import.meta.url)), "utf8")
+  );
+  assert.equal(projection.seats.length, 222);
+
+  // English render
+  const svgEn = buildHemicycleSVG(projection.seats, { lang: "en" });
+  assert.match(svgEn, /^<svg/);
+  assert.match(svgEn, /112 — Majority/);
+  assert.match(svgEn, /Government \(146\)/);
+  assert.match(svgEn, /Non-government \(76\)/);
+  assert.equal((svgEn.match(/class="hemicycle-dot"/g) || []).length, 222);
+  assert.match(svgEn, /data-proj-seat="P\.001"/);
+
+  // Bahasa Melayu render
+  const svgMs = buildHemicycleSVG(projection.seats, { lang: "ms" });
+  assert.match(svgMs, /112 — Majoriti/);
+  assert.match(svgMs, /Kerajaan \(146\)/);
+  assert.match(svgMs, /Bukan kerajaan \(76\)/);
+  assert.match(svgMs, /kerusi kerajaan/);
 });
 
