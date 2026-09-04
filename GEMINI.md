@@ -66,6 +66,6 @@ Issues live on GitHub (`IlhamKassim/live-political-analysis`) managed via the `g
 - **Context & Quota Status Bar**: Every response must conclude with a standardized context and quota status bar footer so the user can always see current session token usage and remaining CLI quota, formatted as:
   `---`
   `[Context: <used>% (~<tokens>k / <max>k tokens) | <Model>] [Quota Remaining: 5h: <pct>% | Weekly: <pct>%]`
-- **UI/UX Improvement Work**: Prioritized, token-constrained UI/UX tasks for
-  the public site live in `docs/design/ui-ux-brief.md` — read it before any
-  visual/layout change.
+- **UI/UX Improvement Work**: `mypolitik`'s frontend design system
+  (`docs/design/mypolitik-new-views-spec.md`) is the surviving visual
+  direction — see ADR 0012. `docs/design/ui-ux-brief.md` is retired.
