@@ -85,10 +85,11 @@ _Avoid_: Act (a Bill only becomes an Act once it receives royal assent, which is
 
 **Audience**:
 Younger Malaysians who first encounter this project's content secondhand — a shared Seat Call card, a screenshot, a repost — rather than by navigating to the dashboard directly, and who are not already politically engaged. The target for #22 (site-literacy) and #23 (shareable cards). Distinct from an Engaged Reader, who would seek the dashboard out regardless.
+**As of the mypolitik-frontend root swap (ADR 0014), Audience has no dedicated served surface.** PolitikKu's old homepage/landing — postcode lookup and all — was Audience's on-ramp; the root now serves `/app/`, built for Engaged Reader. #40's Telegram Seat Call cards, Audience's actual discovery channel, still link to the root by deliberate choice, so a card click now lands Audience on Engaged-Reader content with no postcode lookup. This is a known, accepted gap, not an oversight — named here so it isn't mistaken for one.
 _Avoid_: Users, readers (both too generic — use Audience when the younger, secondhand-discovery reader is specifically meant)
 
 **Engaged Reader**:
-A reader who already follows Malaysian politics and comes to this site by deliberate navigation, not secondhand discovery — the counterpart Audience is explicitly defined against. Served by the `/projection/` detail page (the full seat ledger, sensitivity table, Majority-margin trend, per-state rollup, methodology, and the dated-permalink citation archive — see ADR 0011), not by PolitikKu's homepage/landing, which target Audience instead.
+A reader who already follows Malaysian politics and comes to this site by deliberate navigation, not secondhand discovery — the counterpart Audience is explicitly defined against. Served by the `/projection/` detail page (the full seat ledger, sensitivity table, Majority-margin trend, per-state rollup, methodology, and the dated-permalink citation archive — see ADR 0011) **and, as of the mypolitik-frontend root swap (ADR 0014), by the site root (`/app/`) itself** — PolitikKu's homepage/landing no longer holds that role.
 _Avoid_: Power user (implies technical sophistication is the distinguishing trait, when it's political engagement)
 
 **Return Trigger**:
