@@ -19,10 +19,15 @@ name: Daily pipeline
 
 on:
   schedule:
-    # 15:00 UTC is 23:00 in Malaysia — late in the Malaysian day, so the
-    # snapshot sees nearly all of the coverage it is dated for. The pipeline
-    # dates snapshots by the Malaysian day, not UTC (see MALAYSIA_TIME).
-    - cron: "0 15 * * *"
+    # Hourly, at 7 minutes past the hour rather than the exact top of the
+    # hour — this repo's cron-scheduling convention, to avoid piling onto
+    # the thundering herd of jobs GitHub's shared runners see at :00. The
+    # pipeline still dates snapshots by the Malaysian day, not UTC (see
+    # MALAYSIA_TIME): every run within the same Malaysian day just corrects
+    # that day's row rather than adding a second one, and the
+    # concurrency group below (same reasoning as before, now firing far
+    # more often) is what makes that safe.
+    - cron: "7 * * * *"
   workflow_dispatch:
 
 # Two runs writing the same day's row would race for it. Later wins, because
@@ -288,6 +293,41 @@ jobs:
       - name: Generate sitemap
         continue-on-error: true
         run: python -m lpa.politikku_sitemap
+
+      - name: Fold frontend/ into the Pages artifact
+        # #134 (Step 5): the merged-in PolitikKu/mypolitik frontend (frontend/)
+        # is a self-contained static app with no build step by design (see
+        # frontend/README.md) — this is a plain file copy, not a build. It
+        # lands under public/app/, a new subpath, so it never touches the
+        # existing root-level public/ content owned by the PolitikKu pages
+        # rendered above (ADR 0011). The Cloudflare Worker deploy originally
+        # planned alongside this is out of scope here — Cloudflare's own
+        # dashboard Git-integration now handles that deploy separately.
+        run: |
+          mkdir -p public/app
+          cp -r frontend/public/. public/app/
+
+      - name: Smoke-check the frontend fold-in
+        # Loud on purpose (no continue-on-error): a silently-broken copy
+        # would ship a Pages artifact with a dead /app/ subtree, and nobody
+        # would notice until a visitor did. index.html proves the static
+        # app itself copied; data/bills.json proves the data directory
+        # (already present in frontend/public/data from a prior merge step)
+        # came along with it.
+        run: |
+          missing=0
+          if [ ! -f public/app/index.html ]; then
+            echo "::error::public/app/index.html is missing — frontend fold-in failed."
+            missing=1
+          fi
+          if [ ! -f public/app/data/bills.json ]; then
+            echo "::error::public/app/data/bills.json is missing — frontend fold-in failed."
+            missing=1
+          fi
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+          echo "Frontend fold-in verified: public/app/index.html and public/app/data/bills.json present."
 
       - name: Configure Pages
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b
