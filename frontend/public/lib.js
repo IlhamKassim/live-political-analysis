@@ -1,4 +1,4 @@
-// MyPolitik — pure, DOM-free logic shared by the app and the test suite.
+// PolitikKu — pure, DOM-free logic shared by the app and the test suite.
 // Everything here must run unchanged in the browser AND under `node --test`,
 // so: no `document`, no `window`, no `location` — inputs in, values out.
 
@@ -465,7 +465,7 @@ export function getRepPhotoUrl(seat, result, politicians, govPhotos) {
 // Generate social share copy and URL for Twitter/X, WhatsApp, etc.
 // Pure: returns structured { title, text, url }.
 export function formatSocialShareText(seat, result, tier = "parlimen", lang = "ms", baseUrl = "https://mypolitik.my") {
-  if (!seat || typeof seat !== "object") return { title: "MyPolitik", text: "MyPolitik — Interactive map of Malaysia's electoral seats", url: baseUrl };
+  if (!seat || typeof seat !== "object") return { title: "PolitikKu", text: "PolitikKu — Interactive map of Malaysia's electoral seats", url: baseUrl };
   const name = seat.name || seat.code || "";
   const code = tier === "parlimen" ? (seat.code || "") : (seat.dun_code || seat.code || "");
   const yb = result && result.name ? result.name : null;
@@ -478,23 +478,23 @@ export function formatSocialShareText(seat, result, tier = "parlimen", lang = "m
   let text = "";
   if (lang === "en") {
     if (yb) {
-      text = `See who represents ${code} ${name} on MyPolitik: ${yb} ${party}`.trim();
+      text = `See who represents ${code} ${name} on PolitikKu: ${yb} ${party}`.trim();
       if (maj) text += ` · Majority: ${maj} votes`;
     } else {
-      text = `Explore ${code} ${name} electoral data and boundaries on MyPolitik`;
+      text = `Explore ${code} ${name} electoral data and boundaries on PolitikKu`;
     }
   } else {
     if (yb) {
-      text = `Ketahui wakil rakyat kawasan ${code} ${name} di MyPolitik: ${yb} ${party}`.trim();
+      text = `Ketahui wakil rakyat kawasan ${code} ${name} di PolitikKu: ${yb} ${party}`.trim();
       if (maj) text += ` · Majoriti: ${maj} undi`;
     } else {
-      text = `Terokai data pilihan raya dan sempadan ${code} ${name} di MyPolitik`;
+      text = `Terokai data pilihan raya dan sempadan ${code} ${name} di PolitikKu`;
     }
   }
   text += ` 📍`;
 
   return {
-    title: `${code} ${name} — MyPolitik`,
+    title: `${code} ${name} — PolitikKu`,
     text,
     url,
   };
@@ -510,7 +510,7 @@ export function buildEmbedCode(seat, tier = "parlimen", options = {}) {
   const height = options.height || 360;
   const embedPath = baseUrl ? `${baseUrl}/embed.html` : "embed.html";
   const embedUrl = `${embedPath}#${tier}/parti/${code}`;
-  const title = `${seat.name || code} - MyPolitik`;
+  const title = `${seat.name || code} - PolitikKu`;
 
   return `<iframe src="${embedUrl}" width="${width}" height="${height}" style="border:1px solid rgba(255,255,255,0.12);border-radius:14px;max-width:540px;width:100%;display:block;" title="${title}" loading="lazy"></iframe>`;
 }

@@ -608,7 +608,7 @@ body.state-open #map { overflow: visible; }
   background: none; border: 0; flex-wrap: nowrap;
   padding: max(12px, env(safe-area-inset-top)) 14px 10px;
   pointer-events: none;
-  /* room for absolute-centred MyPolitik title */
+  /* room for absolute-centred PolitikKu title */
   min-height: calc(max(12px, env(safe-area-inset-top)) + 44px + 10px);
 }
 #topbar > * { pointer-events: auto; }
@@ -849,7 +849,7 @@ body.state-open #map { overflow: visible; }
   background: none; border: 0; overflow: visible;
   padding: 0 12px calc(12px + env(safe-area-inset-bottom));
 }
-/* empty home search card: bottom air matches topbar air above the MyPolitik logo
+/* empty home search card: bottom air matches topbar air above the PolitikKu logo
    (topbar uses max(12px, safe-area-inset-top) above the brand border) */
 #panel.empty {
   padding-bottom: max(12px, env(safe-area-inset-bottom));
@@ -3773,7 +3773,7 @@ body.dewan-open #stage, body.dewan-open #panel,
 body.bills-open #stage, body.bills-open #panel,
 body.sentiment-open #stage, body.sentiment-open #panel,
 body.projection-open #stage, body.projection-open #panel { display: none; }
-/* directory pages hide map chrome; keep centre MyPolitik title + theme/lang cluster */
+/* directory pages hide map chrome; keep centre PolitikKu title + theme/lang cluster */
 body.politicians-open #brand-home,
 body.politicians-open #mobile-menu-btn,
 body.politicians-open #mobile-menu,
@@ -5478,7 +5478,7 @@ html[data-theme="light"] .bento-gov-emblem-pane {
   flex: 0 0 auto;
   min-width: 0;
 }
-/* permanent centre title — always "MyPolitik", same pill slot state titles used */
+/* permanent centre title — always "PolitikKu", same pill slot state titles used */
 .topbar-context {
   position: absolute;
   left: 50%;

@@ -1,4 +1,4 @@
-// MyPolitik — Cloudflare Worker. Serves the static map app + a health probe.
+// PolitikKu — Cloudflare Worker. Serves the static map app + a health probe.
 //
 // Step 5 of the PolitikKu x mypolitik merge (ADR 0013): the main site now
 // lives on GitHub Pages (politikku.my), not this Worker, so the live-mode
@@ -30,7 +30,7 @@ export default {
       return Response.redirect(url.toString(), 301);
     }
     if (url.pathname === "/api/health") {
-      return Response.json({ ok: true, app: "mypolitik", ts: Date.now() });
+      return Response.json({ ok: true, app: "politikku", ts: Date.now() });
     }
     const liveMatch = url.pathname.match(/^\/api\/live\/([a-zA-Z0-9_-]+)$/);
     if (liveMatch) {

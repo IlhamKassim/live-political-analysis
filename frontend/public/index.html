@@ -3,20 +3,20 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
-<title>MyPolitik — Map Malaysia's Representatives</title>
+<title>PolitikKu — Map Malaysia's Representatives</title>
 <!-- asset-v:100 -->
 <meta name="description" data-i18n-content="meta_desc" content="Interactive map of every Malaysian Parliament and State (DUN) seat. Click your area to see the representative, party, and performance — public data, computed transparently." />
 <meta name="theme-color" content="#0e0f12" />
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
 <meta property="og:type" content="website" />
-<meta property="og:site_name" content="MyPolitik" />
+<meta property="og:site_name" content="PolitikKu" />
 <meta property="og:url" content="https://mypolitik.xyz/" />
 <meta property="og:locale" content="en_MY" />
-<meta property="og:title" data-i18n-content="title" content="MyPolitik — Map Malaysia's Representatives" />
+<meta property="og:title" data-i18n-content="title" content="PolitikKu — Map Malaysia's Representatives" />
 <meta property="og:description" data-i18n-content="meta_desc" content="Interactive map of every Malaysian Parliament and State (DUN) seat. Click your area to see the representative, party, and performance — public data, computed transparently." />
 <meta property="og:image" content="https://mypolitik.xyz/assets/og-card.svg" />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" data-i18n-content="title" content="MyPolitik — Map Malaysia's Representatives" />
+<meta name="twitter:title" data-i18n-content="title" content="PolitikKu — Map Malaysia's Representatives" />
 <meta name="twitter:description" data-i18n-content="meta_desc" content="Interactive map of every Malaysian Parliament and State (DUN) seat. Click your area to see the representative, party, and performance — public data, computed transparently." />
 <meta name="twitter:image" content="https://mypolitik.xyz/assets/og-card.svg" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -57,7 +57,7 @@
 <aside id="sidebar" aria-label="Navigation">
   <div class="sb-top">
     <button id="sb-brand" class="sb-brand" type="button" data-i18n-aria="home_aria" aria-label="Show the whole map">
-      <span class="brand-symbol">◧</span> <span class="brand-word">My<b>Politik</b></span>
+      <span class="brand-symbol">◧</span> <span class="brand-word">Politik<b>Ku</b></span>
     </button>
     <button id="sb-collapse" class="sb-collapse" type="button" aria-label="Toggle sidebar" title="Toggle sidebar">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/></svg>
@@ -86,12 +86,12 @@
 <div id="app">
   <header id="topbar">
     <button id="brand-home" class="brand brand-home" type="button" data-i18n-aria="home_aria" aria-label="Show the whole map" data-i18n-title="home_aria" title="Show the whole map">
-      <span class="mark"><span class="brand-symbol">◧</span> <span class="brand-word">My<b>Politik</b></span></span>
+      <span class="mark"><span class="brand-symbol">◧</span> <span class="brand-word">Politik<b>Ku</b></span></span>
     </button>
     <!-- always-on centre title (same slot state names used to occupy) -->
     <div id="topbar-context" class="topbar-context">
-      <button type="button" id="topbar-title" class="topbar-title" data-i18n-aria="home_aria" aria-label="Show the whole map" title="MyPolitik">
-        <span class="brand-word">My<b>Politik</b></span>
+      <button type="button" id="topbar-title" class="topbar-title" data-i18n-aria="home_aria" aria-label="Show the whole map" title="PolitikKu">
+        <span class="brand-word">Politik<b>Ku</b></span>
       </button>
     </div>
     <!-- right cluster: bento actions (aligned to grid) + theme (always top-right) + menu -->
@@ -130,10 +130,10 @@
         <button id="top-sentiment" class="iconbtn" type="button" data-i18n-aria="nav_sentiment" aria-label="Sentiment" data-i18n-title="nav_sentiment" title="Sentiment">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
         </button>
-        <button id="top-info" class="iconbtn" type="button" data-i18n-aria="info_aria" aria-label="About MyPolitik" data-i18n-title="info_aria" title="About MyPolitik">
+        <button id="top-info" class="iconbtn" type="button" data-i18n-aria="info_aria" aria-label="About PolitikKu" data-i18n-title="info_aria" title="About PolitikKu">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.2"/><circle cx="12" cy="7.6" r="0.7" fill="currentColor" stroke="none"/></svg>
         </button>
-        <button id="top-share" class="iconbtn" type="button" data-i18n-aria="share_aria" aria-label="Share MyPolitik" data-i18n-title="share_aria" title="Share MyPolitik">
+        <button id="top-share" class="iconbtn" type="button" data-i18n-aria="share_aria" aria-label="Share PolitikKu" data-i18n-title="share_aria" title="Share PolitikKu">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="18" cy="5" r="2.4"/><circle cx="6" cy="12" r="2.4"/><circle cx="18" cy="19" r="2.4"/><path d="M8.1 10.9 15.9 6.1M8.1 13.1l7.8 4.8"/></svg>
         </button>
       </div>
@@ -142,10 +142,10 @@
 
   <div id="info-card" hidden>
     <div class="info-head">
-      <h2 data-i18n="info_title">About MyPolitik</h2>
+      <h2 data-i18n="info_title">About PolitikKu</h2>
       <button id="info-close" class="card-back" type="button" aria-label="Close">✕</button>
     </div>
-    <p class="muted" data-i18n="info_body">MyPolitik maps every Malaysian Parliament and State (DUN) seat. Tap a state, then a district, to see your representative, party, and GE15 result — built from public, official data, shown transparently.</p>
+    <p class="muted" data-i18n="info_body">PolitikKu maps every Malaysian Parliament and State (DUN) seat. Tap a state, then a district, to see your representative, party, and GE15 result — built from public, official data, shown transparently.</p>
     <p class="src muted">
       <span data-i18n="src_sources">Sources</span>:
       <a href="https://github.com/dosm-malaysia/data-open" target="_blank" rel="noopener">DOSM</a> ·

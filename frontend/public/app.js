@@ -1,4 +1,4 @@
-// MyPolitik — interactive map of Malaysia's electoral seats.
+// PolitikKu — interactive map of Malaysia's electoral seats.
 // Data-driven: boundaries render now; GE15 results + scores light up the
 // "Parti"/"Skor" modes and panel rows as soon as their JSON exists.
 
@@ -3039,7 +3039,7 @@ async function drawSeatCard(seat) {
   ctx.strokeRect(82, 94, 16, 26);
   ctx.fillStyle = "#e8edf3";
   ctx.font = "700 44px 'Redaction 20', Georgia, 'Times New Roman', serif";
-  ctx.fillText("MyPolitik", 116, 116);
+  ctx.fillText("PolitikKu", 116, 116);
   ctx.fillStyle = "#6f8498";
   ctx.font = "500 22px 'JetBrains Mono', monospace";
   ctx.textAlign = "right";
@@ -3207,7 +3207,7 @@ async function drawSeatCard(seat) {
   // footer: provenance
   ctx.fillStyle = "#7d8da0";
   ctx.font = "500 24px 'Space Grotesk', system-ui, sans-serif";
-  ctx.fillText("MyPolitik / public electoral data", 72, CARD_H - 80);
+  ctx.fillText("PolitikKu / public electoral data", 72, CARD_H - 80);
   ctx.fillStyle = "#5d6b7d";
   ctx.font = "400 22px 'Space Grotesk', system-ui, sans-serif";
   if (r) ctx.fillText(resultSourceText(r, ownDun), 72, CARD_H - 46);
@@ -3223,7 +3223,7 @@ let cardPreviewSeat = null;
 let cardPreviewReturnTo = null;
 
 function cardFileName(seat) {
-  return `mypolitik-${(seat.code || "seat").replace(/[^\w.-]/g, "_")}.png`;
+  return `politikku-${(seat.code || "seat").replace(/[^\w.-]/g, "_")}.png`;
 }
 function clearCardPreviewURL() {
   if (cardPreviewURL) URL.revokeObjectURL(cardPreviewURL);
@@ -3264,7 +3264,7 @@ function downloadCardPreview() {
   const url = URL.createObjectURL(cardPreviewBlob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = cardPreviewName || "mypolitik-card.png";
+  a.download = cardPreviewName || "politikku-card.png";
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -4576,7 +4576,7 @@ async function shareApp() {
   hideInfo();
   const url = location.origin + location.pathname;
   try {
-    if (navigator.share) await navigator.share({ title: "MyPolitik", url });
+    if (navigator.share) await navigator.share({ title: "PolitikKu", url });
     else { await navigator.clipboard.writeText(url); showToast("share_ok"); }
   } catch (e) { /* user cancelled */ }
 }
@@ -7973,7 +7973,7 @@ function stateCrestHTML(name) {
   return stateEmblemHTML(name, "bento-crest");
 }
 
-// Dashboard actions live in the nav bar on wide screens. Centre "MyPolitik" title
+// Dashboard actions live in the nav bar on wide screens. Centre "PolitikKu" title
 // is permanent (topbar-context) — only the right-side actions swap for PRN/close.
 function renderBentoChrome() {
   const actEl = document.getElementById("topbar-actions");

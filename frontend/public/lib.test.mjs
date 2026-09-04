@@ -1107,7 +1107,7 @@ test("formatSocialShareText: generates bilingual share text with deep-link", () 
   const seat = { code: "P.121", name: "Lembah Pantai" };
   const res = { name: "Fahmi Fadzil", coalition: "PH", majority: 13912 };
   const en = formatSocialShareText(seat, res, "parlimen", "en", "https://mypolitik.my");
-  assert.equal(en.title, "P.121 Lembah Pantai — MyPolitik");
+  assert.equal(en.title, "P.121 Lembah Pantai — PolitikKu");
   assert.match(en.text, /Fahmi Fadzil \(PH\)/);
   assert.match(en.text, /Majority: 13,912 votes/);
   assert.equal(en.url, "https://mypolitik.my/#parlimen/parti/P.121");
@@ -1126,7 +1126,7 @@ test("buildEmbedCode: produces responsive iframe tag with seat URL", () => {
   const code = buildEmbedCode(seat, "parlimen", { baseUrl: "https://mypolitik.my" });
   assert.match(code, /^<iframe/);
   assert.match(code, /src="https:\/\/mypolitik\.my\/embed\.html#parlimen\/parti\/P\.121"/);
-  assert.match(code, /title="Lembah Pantai - MyPolitik"/);
+  assert.match(code, /title="Lembah Pantai - PolitikKu"/);
   assert.match(code, /width="100%"/);
   assert.match(code, /loading="lazy"/);
 

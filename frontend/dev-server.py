@@ -69,5 +69,5 @@ class Server(socketserver.ThreadingTCPServer):
 if __name__ == "__main__":
     handler = functools.partial(NoCacheHandler, directory=ROOT)
     with Server(("", PORT), handler) as httpd:
-        print(f"MyPolitik dev server (no-cache) -> http://localhost:{PORT}")
+        print(f"PolitikKu dev server (no-cache) -> http://localhost:{PORT}")
         httpd.serve_forever()

@@ -103,7 +103,7 @@ and treat the richer fields as a v2 follow-up. Flagging for a decision,
 not deciding silently — this is real backend work, not frontend wiring.
 
 **Render**: coalition totals as a `.sharebar` (party-colored, matches
-mypolitik's existing GE15-results sharebar visually) + `.bento-tile`s for
+PolitikKu's existing GE15-results sharebar visually) + `.bento-tile`s for
 majority/government_majority. Per-seat calls in a `.rows` table or reuse
 the map's own seat-click panel pattern (a seat's projected call could
 render in the same panel slot as its GE15 result, toggled by a "GE16
@@ -163,7 +163,7 @@ something the frontend builder should invent a shape for on their own.
 **Render** (once the export exists): `.rows` table, one row per coalition,
 score as a horizontal bar (reuse `.sharebar`'s visual language, single-bar
 variant) with a delta arrow (↑/↓/→) in mono next to it. History as a
-small trend line or sparkline — check whether mypolitik has any existing
+small trend line or sparkline — check whether PolitikKu has any existing
 sparkline component before building a new one (none was found in this
 session's UI survey; if still true when this is built, keep it simple —
 a row of small numbers is acceptable, an elaborate new chart component is

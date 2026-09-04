@@ -1,4 +1,4 @@
-// MyPolitik — standalone embed widget logic.
+// PolitikKu — standalone embed widget logic.
 // Zero dependencies, fast asynchronous data loading.
 
 import { decodeHash, partyColor, swatchTextColor, getRepPhotoUrl, resultKey, displayCode } from "./lib.js";
@@ -123,7 +123,7 @@ function renderWidget(seat, result, polData, tier, lang) {
     <div class="widget-footer">
       <a href="${deepLink}" target="_blank" rel="noopener noreferrer" class="brand-link">
         <span class="brand-mark"></span>
-        <span>MyPolitik</span>
+        <span>PolitikKu</span>
       </a>
       <a href="${deepLink}" target="_blank" rel="noopener noreferrer" class="cta-btn">
         <span>${esc(t("embed_explore_cta", lang))}</span>
