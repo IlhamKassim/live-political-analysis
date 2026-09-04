@@ -63,6 +63,9 @@ Issues live on GitHub (`IlhamKassim/live-political-analysis`) managed via the `g
 - **Civic Education Content**: Any page under `public/learn/` must be verified using `python -m lpa.citation_check public/learn/<page>.html` before it counts as done (`.agents/skills/citation-check/SKILL.md`).
 - **Mechanical Task Delegation**: Spec-pinned, mechanical code-writing and test boilerplate can be delegated to `scripts/deepseek_agent.py` in an isolated git worktree (`.agents/skills/deepseek-agent/SKILL.md`).
 - **Session & Context Monitoring**: Inspect active token context and session metrics anytime via `python scripts/session_status.py` (`.agents/skills/session-status/SKILL.md`).
+- **Context & Quota Status Bar**: Every response must conclude with a standardized context and quota status bar footer so the user can always see current session token usage and remaining CLI quota, formatted as:
+  `---`
+  `[Context: <used>% (~<tokens>k / <max>k tokens) | <Model>] [Quota Remaining: 5h: <pct>% | Weekly: <pct>%]`
 - **UI/UX Improvement Work**: Prioritized, token-constrained UI/UX tasks for
   the public site live in `docs/design/ui-ux-brief.md` — read it before any
   visual/layout change.
