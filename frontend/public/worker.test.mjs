@@ -76,6 +76,28 @@ test("worker: GET /api/live/<unknown> returns campaign default", async () => {
   assert.equal(data.election, "prn17-melaka");
 });
 
+test("worker: GET /api/live/:electionId echoes an allowed Origin in CORS headers", async () => {
+  // Step 5 (ADR 0013): the main site now fetches this cross-origin from
+  // politikku.my, so the response needs an explicit allow-list match, not
+  // just a working fetch.
+  const req = new Request("https://politikku.ilhamkassim2003.workers.dev/api/live/prn17-melaka", {
+    headers: { origin: "https://politikku.my" },
+  });
+  const resp = await worker.fetch(req, makeEnv(new MemoryKV()));
+  assert.equal(resp.status, 200);
+  assert.equal(resp.headers.get("access-control-allow-origin"), "https://politikku.my");
+  assert.equal(resp.headers.get("vary"), "origin");
+});
+
+test("worker: GET /api/live/:electionId omits CORS headers for a disallowed Origin", async () => {
+  const req = new Request("https://politikku.ilhamkassim2003.workers.dev/api/live/prn17-melaka", {
+    headers: { origin: "https://evil.example" },
+  });
+  const resp = await worker.fetch(req, makeEnv(new MemoryKV()));
+  assert.equal(resp.status, 200);
+  assert.equal(resp.headers.get("access-control-allow-origin"), null);
+});
+
 test("worker: PUT /api/live/:electionId rejects unauthorized requests", async () => {
   const kv = new MemoryKV();
   const env = makeEnv(kv, "secret-key");

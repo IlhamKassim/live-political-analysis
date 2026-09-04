@@ -1,4 +1,23 @@
 // MyPolitik — Cloudflare Worker. Serves the static map app + a health probe.
+//
+// Step 5 of the PolitikKu x mypolitik merge (ADR 0013): the main site now
+// lives on GitHub Pages (politikku.my), not this Worker, so the live-mode
+// GET below is a cross-origin fetch from the browser and needs an explicit
+// CORS allow-list — echoing back a matched Origin, never a wildcard, since
+// a wildcard would also authorize any other site to read live results
+// through a visitor's browser.
+const ALLOWED_LIVE_ORIGINS = new Set([
+  "https://politikku.my",
+  "https://www.politikku.my",
+  "http://localhost:4178", // frontend/dev-server.py's default port
+]);
+
+function liveCorsHeaders(request) {
+  const origin = request.headers.get("origin");
+  if (!origin || !ALLOWED_LIVE_ORIGINS.has(origin)) return {};
+  return { "access-control-allow-origin": origin, vary: "origin" };
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -85,7 +104,10 @@ export default {
         }
       }
       return Response.json(live || { phase: "campaign", election: electionId }, {
-        headers: { "cache-control": "public, max-age=5, stale-while-revalidate=15" },
+        headers: {
+          "cache-control": "public, max-age=5, stale-while-revalidate=15",
+          ...liveCorsHeaders(request),
+        },
       });
     }
     // Never let the edge/browser serve a stale HTML entry: the document is tiny and

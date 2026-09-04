@@ -1,7 +1,23 @@
 {
-  // MyPolitik — static map app on Cloudflare Workers (assets) + tiny worker.
-  // Public/deploy name is "mypolitik".
-  "name": "mypolitik",
+  // Deployed as "politikku" under the project's own Cloudflare account
+  // (github.com/IlhamKassim/live-political-analysis), not KrackedDevs'
+  // original mypolitik.xyz/mypolitik.krackeddevs.com account this file was
+  // inherited from via the merge (git subtree). Per Step 5 of the merge
+  // (ADR 0013), the main site is served by GitHub Pages, not this Worker —
+  // this Worker is API-only now (election-night live mode), reached at its
+  // plain workers.dev address (politikku.ilhamkassim2003.workers.dev); a
+  // branded live.politikku.my address is deferred, see issue #133.
+  //
+  // The `assets` block below is kept even though production traffic no
+  // longer goes through it — it costs nothing to leave in and gives this
+  // Worker's own workers.dev URL a working preview of the frontend on its
+  // own, useful for checking a deploy in isolation from the Pages site.
+  //
+  // No custom-domain `routes` here: KrackedDevs' original mypolitik.xyz/
+  // mypolitik.krackeddevs.com routes lived in their own separate Cloudflare
+  // account and zones — this account has no access to them, and dropping
+  // them here has no effect on their still-independent deployment.
+  "name": "politikku",
   "main": "worker.js",
   "compatibility_date": "2025-06-01",
   "assets": {
@@ -11,31 +27,7 @@
     "not_found_handling": "single-page-application"
   },
   "kv_namespaces": [
-    { "binding": "PRN_LIVE", "id": "1483a2bbf7df441d8b8d07cb36d0f09f" }
+    { "binding": "PRN_LIVE", "id": "04237004fc9f47369477cba9ef3d73a7" }
   ],
-  "observability": { "enabled": true },
-  "routes": [
-    { "pattern": "mypolitik.xyz", "custom_domain": true },
-    { "pattern": "www.mypolitik.xyz", "custom_domain": true },
-    { "pattern": "mypolitik.krackeddevs.com", "custom_domain": true }
-  ],
-  "env": {
-    "staging": {
-      "name": "mypolitik-staging",
-      "main": "worker.js",
-      "assets": {
-        "directory": "./public",
-        "binding": "ASSETS",
-        "run_worker_first": true,
-        "not_found_handling": "single-page-application"
-      },
-      "kv_namespaces": [
-        { "binding": "PRN_LIVE", "id": "1483a2bbf7df441d8b8d07cb36d0f09f" }
-      ],
-      "observability": { "enabled": true },
-      "routes": [
-        { "pattern": "staging.mypolitik.krackeddevs.com", "custom_domain": true }
-      ]
-    }
-  }
+  "observability": { "enabled": true }
 }
