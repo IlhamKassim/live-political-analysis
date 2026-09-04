@@ -1,0 +1,77 @@
+{
+ "election": "prn16-johor",
+ "note": "Coalition platforms for PRN Johor 2026, faithfully summarised from published manifestos / credible reporting. PN remains pending — no full manifesto released.",
+ "coalitions": {
+  "PH": {
+   "title": "Johor Untuk Semua ~ 10-point manifesto",
+   "source": "https://www.thestar.com.my/news/nation/2026/07/03/johor-polls-pakatan-unveils-10-point-manifesto",
+   "pledges": [
+    "250,000 new high-paying jobs; raise median wage 30%",
+    "80,000 affordable homes in five years",
+    "First-home deposit aid up to RM8,000; rent-to-own scheme",
+    "Johor Health Scheme covering up to RM100,000 yearly",
+    "RM1 billion SME fund; RM500 million Johor Youth Fund",
+    "RM50 monthly transport pass; RM1,000 per newborn",
+    "Gigabit internet and AI labs in all schools by 2030",
+    "Halve Malaysia–Singapore checkpoint waits by integrating RTS Link, ETS, Bas.My and smart mobility systems"
+   ]
+  },
+  "BN": {
+   "title": "TEKAD BN Johor ~ 63 pledges, 6 pillars",
+   "source": "https://prnjohor.com/wp-content/uploads/2026/06/Manifesto-BN-JOHOR.pdf",
+   "pledges": [
+    "200,000 jobs, incl. 100,000 premium-income for Johoreans",
+    "RM100 million fund for subsidised home ownership",
+    "RM100 million Johor Youth Education Fund",
+    "Strengthen Bantuan Kasih Johor cash aid, better targeted",
+    "Housing rental deposit scheme for young people",
+    "Continue first-home and housing rental assistance",
+    "Semarak Isya' programme in every state constituency",
+    "Boost SME participation in strategic supply chains"
+   ]
+  },
+  "PN": {
+   "pending": true,
+   "as_of": "10 Jul 2026",
+   "note": "As of 10 Jul 2026, PN had not published a formal multi-point manifesto comparable to PH/BN for PRN Johor 2026. Campaign messaging focused on leadership and seat-level canvassing rather than a single state manifesto. This block stays pending rather than inventing pledges.",
+   "sources": [
+    "https://www.nst.com.my/amp/news/regional/2026/07/1480205/johor-polls-pn-unlikely-unveil-manifesto-focus-targeted-offer"
+   ]
+  },
+  "BERSAMA": {
+   "title": "Aku Janji Khidmat ~ 5 service pledges",
+   "note": "BERSAMA (Rafizi Ramli's new party) contested 15 seats and offered signed service pledges rather than a full manifesto.",
+   "source": "https://www.sinarharian.com.my/article/785814/berita/politik/prn-johor-bersama-umum-lima-aku-janji-khidmat",
+   "sources": [
+    "https://www.sinarharian.com.my/article/785814/berita/politik/prn-johor-bersama-umum-lima-aku-janji-khidmat",
+    "https://www.malaysiakini.com/news/778528",
+    "https://www.bharian.com.my/berita/nasional/2026/06/1580284/prn-johor-bersama-tawar-5-aku-janji-mahu-semak-dan-imbang-yang"
+   ],
+   "pledges": [
+    "Monthly mobile complaint counters, a digital platform and public forums",
+    "Serve as a constructive opposition that proposes solutions, not just criticism",
+    "Defend homeownership and protect traditional and heritage villages from over-development",
+    "Push an integrated bus network with first and last-mile links in JB",
+    "Strengthen checks and balances: watch state finances and curb leakage"
+   ]
+  },
+  "MUDA-PSM": {
+   "title": "Progressive Bloc ~ MUDA & PSM",
+   "note": "MUDA and PSM contested as an alliance with separate platforms, not one combined manifesto.",
+   "source": "https://www.thestar.com.my/news/nation/2026/07/03/johor-polls-psm-reveals-manifesto-focused-on-housing-jobs-and-environment",
+   "sources": [
+    "https://www.thestar.com.my/news/nation/2026/07/03/johor-polls-psm-reveals-manifesto-focused-on-housing-jobs-and-environment",
+    "https://www.freemalaysiatoday.com/category/bahasa/tempatan/2026/06/28/mansuh-undang-undang-lantik-wakil-rakyat-tidak-dipilih-jadi-keutamaan-muda",
+    "https://www.malaymail.com/news/malaysia/2026/06/15/muda-psm-form-progressive-bloc-for-johor-and-n-sembilan-state-polls-says-joint-statement/223856"
+   ],
+   "pledges": [
+    "MUDA: abolish the law allowing up to 5 appointed, unelected assembly members",
+    "PSM: affordable housing with rent control pegged to household income",
+    "PSM: transit and starter homes for young families",
+    "PSM: create enough jobs for the roughly 200,000 youths who graduate yearly",
+    "PSM: tighter environmental rules for factories and data centres; keep rivers clean",
+    "PSM: balanced north and south development, with more jobs in northern Johor"
+   ]
+  }
+ }
+}

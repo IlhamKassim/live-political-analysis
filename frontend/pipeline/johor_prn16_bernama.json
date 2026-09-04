@@ -1,0 +1,2579 @@
+{
+  "election": "PRN Johor 2026",
+  "election_id": "prn16-johor",
+  "source": "Bernama official results; source: SPR",
+  "source_url": "https://prn.bernama.com/johor/keputusan/official/index.php",
+  "source_updated": "2026-07-12T00:58:33+08:00",
+  "retrieved_at": "2026-07-12T11:58:13+08:00",
+  "source_sha256": "b0835b86043d413c2035716a6fbbb198a68b9fecb75ae8c58eb6e8a9ca7e156b",
+  "tally": {
+    "BN": 48,
+    "PH": 8
+  },
+  "seats": {
+    "1_N.01": {
+      "ncode": "N.01",
+      "name": "Buloh Kasap",
+      "electorate": 28973,
+      "majority": 8600,
+      "votes_cast": 19771,
+      "turnout": 68.24,
+      "rejected_ballots": 228,
+      "unreturned_ballots": 35,
+      "candidates": [
+        {
+          "name": "Datuk Zahari Sarip",
+          "source_name": "Zahari Sarip",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 14054,
+          "winner": true,
+          "sex": "M",
+          "age": 59
+        },
+        {
+          "name": "Noraziah Mohd Razit",
+          "source_name": "Noraziah Mohd Razit",
+          "party": "PKR",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 5454,
+          "winner": false,
+          "sex": "F",
+          "age": 42
+        }
+      ]
+    },
+    "1_N.02": {
+      "ncode": "N.02",
+      "name": "Jementah",
+      "electorate": 41137,
+      "majority": 913,
+      "votes_cast": 27374,
+      "turnout": 66.54,
+      "rejected_ballots": 303,
+      "unreturned_ballots": 33,
+      "candidates": [
+        {
+          "name": "Saifullah Abdul Wahab",
+          "source_name": "Saifullah Abdul Wahab",
+          "party": "PAS",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 2907,
+          "winner": false,
+          "sex": "M",
+          "age": 36
+        },
+        {
+          "name": "See Ann Giap",
+          "source_name": "See Ann Giap",
+          "party": "MCA",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 12522,
+          "winner": true,
+          "sex": "M",
+          "age": 34
+        },
+        {
+          "name": "Ng Kor Sim",
+          "source_name": "Ng Kor Sim",
+          "party": "DAP",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 11609,
+          "winner": false,
+          "sex": "F",
+          "age": 42
+        }
+      ]
+    },
+    "1_N.03": {
+      "ncode": "N.03",
+      "name": "Pemanis",
+      "electorate": 30458,
+      "majority": 8380,
+      "votes_cast": 21612,
+      "turnout": 70.96,
+      "rejected_ballots": 279,
+      "unreturned_ballots": 38,
+      "candidates": [
+        {
+          "name": "Anuar Abd Manap",
+          "source_name": "Anuar Abd.manap",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 14506,
+          "winner": true,
+          "sex": "M",
+          "age": 49
+        },
+        {
+          "name": "Dr A Ariventharan",
+          "source_name": "Ariventharan Anandan",
+          "party": "MIPP",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 663,
+          "winner": false,
+          "sex": "M",
+          "age": 41
+        },
+        {
+          "name": "Jalex Lee En Xiang",
+          "source_name": "Lee En Xiang",
+          "party": "PKR",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 6126,
+          "winner": false,
+          "sex": "M",
+          "age": 34
+        }
+      ]
+    },
+    "1_N.04": {
+      "ncode": "N.04",
+      "name": "Kemelah",
+      "electorate": 35365,
+      "majority": 3838,
+      "votes_cast": 23802,
+      "turnout": 67.3,
+      "rejected_ballots": 283,
+      "unreturned_ballots": 26,
+      "candidates": [
+        {
+          "name": "K Raven Kumar",
+          "source_name": "Raven Kumar Krishnasamy",
+          "party": "MIC",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 11893,
+          "winner": true,
+          "sex": "M",
+          "age": 44
+        },
+        {
+          "name": "Mohd Afif Abd Hamid",
+          "source_name": "Mohd Afif Abd Hamid",
+          "party": "AMANAH",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 8055,
+          "winner": false,
+          "sex": "M",
+          "age": 36
+        },
+        {
+          "name": "Uzzair Ismail",
+          "source_name": "Uzzair Ismail",
+          "party": "BERSATU",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 3545,
+          "winner": false,
+          "sex": "M",
+          "age": 42
+        }
+      ]
+    },
+    "1_N.05": {
+      "ncode": "N.05",
+      "name": "Tenang",
+      "electorate": 22616,
+      "majority": 3394,
+      "votes_cast": 14785,
+      "turnout": 65.37,
+      "rejected_ballots": 189,
+      "unreturned_ballots": 16,
+      "candidates": [
+        {
+          "name": "Siti Aisyah Zobir",
+          "source_name": "Siti Aisyah Zobir",
+          "party": "BEBAS",
+          "coalition": "OTHERS",
+          "source_party": "BEBAS",
+          "votes": 164,
+          "winner": false,
+          "sex": "F",
+          "age": 36
+        },
+        {
+          "name": "Normala Sudirman",
+          "source_name": "Normala Sudirman",
+          "party": "PAS",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 1412,
+          "winner": false,
+          "sex": "F",
+          "age": 53
+        },
+        {
+          "name": "Elia Nadira Sabudin",
+          "source_name": "Elia Nadira Sabudin",
+          "party": "AMANAH",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 4805,
+          "winner": false,
+          "sex": "F",
+          "age": 42
+        },
+        {
+          "name": "Mohd Azahar Ibrahim",
+          "source_name": "Mohd Azahar Ibrahim",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 8199,
+          "winner": true,
+          "sex": "M",
+          "age": 54
+        }
+      ]
+    },
+    "1_N.06": {
+      "ncode": "N.06",
+      "name": "Bekok",
+      "electorate": 27317,
+      "majority": 4263,
+      "votes_cast": 16486,
+      "turnout": 60.35,
+      "rejected_ballots": 266,
+      "unreturned_ballots": 23,
+      "candidates": [
+        {
+          "name": "Tan Chong",
+          "source_name": "Tan Chong",
+          "party": "MCA",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 10230,
+          "winner": true,
+          "sex": "M",
+          "age": 61
+        },
+        {
+          "name": "Tay Yok Jiuen",
+          "source_name": "Tay Yok Jiuen",
+          "party": "DAP",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 5967,
+          "winner": false,
+          "sex": "F",
+          "age": 54
+        }
+      ]
+    },
+    "1_N.07": {
+      "ncode": "N.07",
+      "name": "Bukit Kepong",
+      "electorate": 37683,
+      "majority": 10761,
+      "votes_cast": 26988,
+      "turnout": 71.62,
+      "rejected_ballots": 278,
+      "unreturned_ballots": 32,
+      "candidates": [
+        {
+          "name": "C Subramani",
+          "source_name": "Subramani Chami",
+          "party": "PKR",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 4667,
+          "winner": false,
+          "sex": "M",
+          "age": 59
+        },
+        {
+          "name": "Ahmad Syar’e Yusof",
+          "source_name": "Ahmad Syar'e Yusof",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 16386,
+          "winner": true,
+          "sex": "M",
+          "age": 51
+        },
+        {
+          "name": "Datuk Dr Sahrudin Jamal",
+          "source_name": "Sahruddin Jamal",
+          "party": "BERSATU",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 5625,
+          "winner": false,
+          "sex": "M",
+          "age": 51
+        }
+      ]
+    },
+    "1_N.08": {
+      "ncode": "N.08",
+      "name": "Bukit Pasir",
+      "electorate": 34142,
+      "majority": 7600,
+      "votes_cast": 24936,
+      "turnout": 73.04,
+      "rejected_ballots": 224,
+      "unreturned_ballots": 0,
+      "candidates": [
+        {
+          "name": "Mohd Idzharruddin Mohd Nasirruddin",
+          "source_name": "Mohd Idzharruddin Mohd Nasirruddin",
+          "party": "BERSATU",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 3872,
+          "winner": false,
+          "sex": "M",
+          "age": 34
+        },
+        {
+          "name": "Kapt (B) Muhd Najib Lep",
+          "source_name": "Najib Lep",
+          "party": "AMANAH",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 6620,
+          "winner": false,
+          "sex": "M",
+          "age": 63
+        },
+        {
+          "name": "Mohamad Fazli Mohamad Salleh",
+          "source_name": "Mohamad Fazli Mohamad Salleh",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 14220,
+          "winner": true,
+          "sex": "M",
+          "age": 39
+        }
+      ]
+    },
+    "1_N.09": {
+      "ncode": "N.09",
+      "name": "Gambir",
+      "electorate": 30326,
+      "majority": 6734,
+      "votes_cast": 22244,
+      "turnout": 73.35,
+      "rejected_ballots": 215,
+      "unreturned_ballots": 21,
+      "candidates": [
+        {
+          "name": "Sahrihan Jani",
+          "source_name": "Sahrihan Jani",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 13427,
+          "winner": true,
+          "sex": "M",
+          "age": 48
+        },
+        {
+          "name": "Mohd Nor Mohd Yusof",
+          "source_name": "Mohd Nor Mohd Yusof",
+          "party": "PKR",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 6693,
+          "winner": false,
+          "sex": "M",
+          "age": 49
+        },
+        {
+          "name": "Suraya Sulaiman",
+          "source_name": "Suraya Sulaiman",
+          "party": "PEJUANG",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 1888,
+          "winner": false,
+          "sex": "F",
+          "age": 45
+        }
+      ]
+    },
+    "1_N.10": {
+      "ncode": "N.10",
+      "name": "Tangkak",
+      "electorate": 36955,
+      "majority": 3182,
+      "votes_cast": 25177,
+      "turnout": 68.13,
+      "rejected_ballots": 298,
+      "unreturned_ballots": 41,
+      "candidates": [
+        {
+          "name": "Datuk Haw Chin Teck",
+          "source_name": "Haw Chin Teck",
+          "party": "MCA",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 14010,
+          "winner": true,
+          "sex": "M",
+          "age": 55
+        },
+        {
+          "name": "Ee Chin Li",
+          "source_name": "Ee Chin Li",
+          "party": "DAP",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 10828,
+          "winner": false,
+          "sex": "M",
+          "age": 44
+        }
+      ]
+    },
+    "1_N.11": {
+      "ncode": "N.11",
+      "name": "Serom",
+      "electorate": 40172,
+      "majority": 9406,
+      "votes_cast": 28959,
+      "turnout": 72.09,
+      "rejected_ballots": 251,
+      "unreturned_ballots": 32,
+      "candidates": [
+        {
+          "name": "Nadhirah Afiqah Abdull Rahim",
+          "source_name": "Nadhirah Afiqah Abdull Rahim",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 17213,
+          "winner": true,
+          "sex": "F",
+          "age": 32
+        },
+        {
+          "name": "Mahfidz Omar",
+          "source_name": "Mahfidz Omar",
+          "party": "BERSATU",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 3656,
+          "winner": false,
+          "sex": "M",
+          "age": 61
+        },
+        {
+          "name": "Ahmad Nazari Abd Hamid",
+          "source_name": "Ahmad Nazari Abd Hamid",
+          "party": "AMANAH",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 7807,
+          "winner": false,
+          "sex": "M",
+          "age": 67
+        }
+      ]
+    },
+    "1_N.12": {
+      "ncode": "N.12",
+      "name": "Bentayan",
+      "electorate": 34205,
+      "majority": 6112,
+      "votes_cast": 21963,
+      "turnout": 64.21,
+      "rejected_ballots": 219,
+      "unreturned_ballots": 22,
+      "candidates": [
+        {
+          "name": "Ng Yak Howe",
+          "source_name": "Ng Yak Howe",
+          "party": "DAP",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 13917,
+          "winner": true,
+          "sex": "M",
+          "age": 52
+        },
+        {
+          "name": "Chua Lee Huat",
+          "source_name": "Chua Lee Huat",
+          "party": "MCA",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 7805,
+          "winner": false,
+          "sex": "M",
+          "age": 54
+        }
+      ]
+    },
+    "1_N.13": {
+      "ncode": "N.13",
+      "name": "Simpang Jeram",
+      "electorate": 41975,
+      "majority": 170,
+      "votes_cast": 29869,
+      "turnout": 71.16,
+      "rejected_ballots": 297,
+      "unreturned_ballots": 269,
+      "candidates": [
+        {
+          "name": "Nazri Abd Rahman",
+          "source_name": "Nazri Abdul Rahman",
+          "party": "AMANAH",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 12022,
+          "winner": true,
+          "sex": "M",
+          "age": 59
+        },
+        {
+          "name": "Datuk Azman Ismail",
+          "source_name": "Azman Ismail",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 11852,
+          "winner": false,
+          "sex": "M",
+          "age": 50
+        },
+        {
+          "name": "Ainie Haziqah Shafii",
+          "source_name": "Nurainie Haziqah Shafii",
+          "party": "MUDA",
+          "coalition": "MUDA-PSM",
+          "source_party": "MUDA",
+          "votes": 1467,
+          "winner": false,
+          "sex": "F",
+          "age": 35
+        },
+        {
+          "name": "Arshed Yahya@Awang",
+          "source_name": "Arshed Yahya",
+          "party": "PAS",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 3962,
+          "winner": false,
+          "sex": "M",
+          "age": 55
+        }
+      ]
+    },
+    "1_N.14": {
+      "ncode": "N.14",
+      "name": "Bukit Naning",
+      "electorate": 23002,
+      "majority": 3610,
+      "votes_cast": 17555,
+      "turnout": 76.32,
+      "rejected_ballots": 174,
+      "unreturned_ballots": 23,
+      "candidates": [
+        {
+          "name": "S Jegnanaathan",
+          "source_name": "Jeganathan Subramaniam",
+          "party": "BEBAS",
+          "coalition": "OTHERS",
+          "source_party": "BEBAS",
+          "votes": 586,
+          "winner": false,
+          "sex": "M",
+          "age": 57
+        },
+        {
+          "name": "Md Ysahrudin Kusni",
+          "source_name": "Md Ysahrudin Kusni",
+          "party": "PKR",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 5564,
+          "winner": false,
+          "sex": "M",
+          "age": 46
+        },
+        {
+          "name": "Mohd Ghazali Sabari",
+          "source_name": "Mohd Ghazali Sabari @ Atan",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 9174,
+          "winner": true,
+          "sex": "M",
+          "age": 41
+        },
+        {
+          "name": "Iskandar Md Alias",
+          "source_name": "Iskandar Md Alias",
+          "party": "BERSAMA",
+          "coalition": "BERSAMA",
+          "source_party": "BERSAMA",
+          "votes": 138,
+          "winner": false,
+          "sex": "M",
+          "age": 60
+        },
+        {
+          "name": "Mohd Radzi Amin",
+          "source_name": "Mohd Radzi Amin",
+          "party": "BERSATU",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 1896,
+          "winner": false,
+          "sex": "M",
+          "age": 48
+        }
+      ]
+    },
+    "1_N.15": {
+      "ncode": "N.15",
+      "name": "Maharani",
+      "electorate": 40040,
+      "majority": 2143,
+      "votes_cast": 27565,
+      "turnout": 68.84,
+      "rejected_ballots": 382,
+      "unreturned_ballots": 33,
+      "candidates": [
+        {
+          "name": "Mohamad Anuar Hayan",
+          "source_name": "Mohamad Anuar Hayan",
+          "party": "PAS",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 5658,
+          "winner": false,
+          "sex": "M",
+          "age": 60
+        },
+        {
+          "name": "Datuk Ashari Md Sarip",
+          "source_name": "Ashari Md.sarip",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 10570,
+          "winner": true,
+          "sex": "M",
+          "age": 56
+        },
+        {
+          "name": "Muhammad Amir Fiqri",
+          "source_name": "Muhammad Amir Fiqri Mustapha",
+          "party": "MUDA",
+          "coalition": "MUDA-PSM",
+          "source_party": "MUDA",
+          "votes": 2495,
+          "winner": false,
+          "sex": "M",
+          "age": 30
+        },
+        {
+          "name": "Muhammad Taqiuddin Cheman",
+          "source_name": "Muhammad Taqiuddin Cheman",
+          "party": "AMANAH",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 8427,
+          "winner": false,
+          "sex": "M",
+          "age": 37
+        }
+      ]
+    },
+    "1_N.16": {
+      "ncode": "N.16",
+      "name": "Sungai Balang",
+      "electorate": 31039,
+      "majority": 8926,
+      "votes_cast": 23082,
+      "turnout": 74.36,
+      "rejected_ballots": 185,
+      "unreturned_ballots": 27,
+      "candidates": [
+        {
+          "name": "Selamat Takim",
+          "source_name": "Selamat Takim",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 13908,
+          "winner": true,
+          "sex": "M",
+          "age": 61
+        },
+        {
+          "name": "Muhammad Amin Sailan",
+          "source_name": "Muhammad Amin Sailan @ Sazali",
+          "party": "PAS",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 3980,
+          "winner": false,
+          "sex": "M",
+          "age": 36
+        },
+        {
+          "name": "Ayna Soraya Badaruddin",
+          "source_name": "Ayna Soraya Badaruddin",
+          "party": "PKR",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 4982,
+          "winner": false,
+          "sex": "F",
+          "age": 31
+        }
+      ]
+    },
+    "1_N.17": {
+      "ncode": "N.17",
+      "name": "Semerah",
+      "electorate": 47431,
+      "majority": 15663,
+      "votes_cast": 35098,
+      "turnout": 74.0,
+      "rejected_ballots": 386,
+      "unreturned_ballots": 57,
+      "candidates": [
+        {
+          "name": "Mohd Fared Mohd Khalid",
+          "source_name": "Mohd Fared Mohd Khalid",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 23206,
+          "winner": true,
+          "sex": "M",
+          "age": 47
+        },
+        {
+          "name": "Halim Kepol",
+          "source_name": "Othman Kepol",
+          "party": "PAS",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 3906,
+          "winner": false,
+          "sex": "M",
+          "age": 61
+        },
+        {
+          "name": "Mohd Khuzzan Abu Bakar",
+          "source_name": "Mohd Khuzzan Abu Bakar",
+          "party": "PKR",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 7543,
+          "winner": false,
+          "sex": "M",
+          "age": 57
+        }
+      ]
+    },
+    "1_N.18": {
+      "ncode": "N.18",
+      "name": "Sri Medan",
+      "electorate": 33875,
+      "majority": 15814,
+      "votes_cast": 26869,
+      "turnout": 79.32,
+      "rejected_ballots": 229,
+      "unreturned_ballots": 50,
+      "candidates": [
+        {
+          "name": "Ahmad Rosdi Bahari",
+          "source_name": "Ahmad Rosdi Bahari",
+          "party": "PAS",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 4276,
+          "winner": false,
+          "sex": "M",
+          "age": 51
+        },
+        {
+          "name": "Datuk Zulkurnain Kamisan",
+          "source_name": "Zulkurnain Kamisan",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 20090,
+          "winner": true,
+          "sex": "M",
+          "age": 52
+        },
+        {
+          "name": "Hishamudin@Misrin Ishak",
+          "source_name": "Hishamuddin @ Misrin Hj.ishak",
+          "party": "PKR",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 2224,
+          "winner": false,
+          "sex": "M",
+          "age": 65
+        }
+      ]
+    },
+    "1_N.19": {
+      "ncode": "N.19",
+      "name": "Yong Peng",
+      "electorate": 34023,
+      "majority": 4603,
+      "votes_cast": 22925,
+      "turnout": 67.38,
+      "rejected_ballots": 246,
+      "unreturned_ballots": 22,
+      "candidates": [
+        {
+          "name": "Ling Tian Soon",
+          "source_name": "Ling Tian Soon",
+          "party": "MCA",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 13630,
+          "winner": true,
+          "sex": "M",
+          "age": 42
+        },
+        {
+          "name": "Yong Hui Yi",
+          "source_name": "Yong Hui Yi",
+          "party": "DAP",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 9027,
+          "winner": false,
+          "sex": "F",
+          "age": 30
+        }
+      ]
+    },
+    "1_N.20": {
+      "ncode": "N.20",
+      "name": "Semarang",
+      "electorate": 28753,
+      "majority": 14679,
+      "votes_cast": 22516,
+      "turnout": 78.31,
+      "rejected_ballots": 206,
+      "unreturned_ballots": 36,
+      "candidates": [
+        {
+          "name": "Muhammad Syafiq Abdul Aziz",
+          "source_name": "Muhammad Syafiq A Aziz",
+          "party": "BERSATU",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 2695,
+          "winner": false,
+          "sex": "M",
+          "age": 37
+        },
+        {
+          "name": "Datuk Samsolbari Jamali",
+          "source_name": "Samsolbari Jamali",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 17374,
+          "winner": true,
+          "sex": "M",
+          "age": 65
+        },
+        {
+          "name": "Ramli Abd Hamid",
+          "source_name": "Ramli Abd Hamid",
+          "party": "AMANAH",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 2205,
+          "winner": false,
+          "sex": "M",
+          "age": 64
+        }
+      ]
+    },
+    "1_N.21": {
+      "ncode": "N.21",
+      "name": "Parit Yaani",
+      "electorate": 44741,
+      "majority": 7620,
+      "votes_cast": 31983,
+      "turnout": 71.48,
+      "rejected_ballots": 231,
+      "unreturned_ballots": 42,
+      "candidates": [
+        {
+          "name": "Datuk Mohamad Najib Samuri",
+          "source_name": "Mohamad Najib Samuri",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 19665,
+          "winner": true,
+          "sex": "M",
+          "age": 44
+        },
+        {
+          "name": "Md Ezam Md Taslim",
+          "source_name": "Md.ezam Taslim",
+          "party": "AMANAH",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 12045,
+          "winner": false,
+          "sex": "M",
+          "age": 49
+        }
+      ]
+    },
+    "1_N.22": {
+      "ncode": "N.22",
+      "name": "Parit Raja",
+      "electorate": 38159,
+      "majority": 13576,
+      "votes_cast": 28846,
+      "turnout": 75.59,
+      "rejected_ballots": 248,
+      "unreturned_ballots": 53,
+      "candidates": [
+        {
+          "name": "Shazwan Dzainal Abidin",
+          "source_name": "Shazwan Zdainal Abidin",
+          "party": "DAP",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 6176,
+          "winner": false,
+          "sex": "M",
+          "age": 42
+        },
+        {
+          "name": "Dr Mohamed Maliki Mohamed Rapiee",
+          "source_name": "Mohamed Maliki Mohamed Rapiee",
+          "party": "BERSATU",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 2617,
+          "winner": false,
+          "sex": "M",
+          "age": 52
+        },
+        {
+          "name": "Nor Rashidah Ramli",
+          "source_name": "Nor Rashidah Ramli",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 19752,
+          "winner": true,
+          "sex": "F",
+          "age": 47
+        }
+      ]
+    },
+    "1_N.23": {
+      "ncode": "N.23",
+      "name": "Penggaram",
+      "electorate": 70294,
+      "majority": 4137,
+      "votes_cast": 45497,
+      "turnout": 64.72,
+      "rejected_ballots": 523,
+      "unreturned_ballots": 67,
+      "candidates": [
+        {
+          "name": "Felicia Poh Rui Ling",
+          "source_name": "Felicia Poh Rui Ling",
+          "party": "DAP",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 24522,
+          "winner": true,
+          "sex": "F",
+          "age": 28
+        },
+        {
+          "name": "Boo Chin Liong",
+          "source_name": "Boo Chin Liong",
+          "party": "MCA",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 20385,
+          "winner": false,
+          "sex": "M",
+          "age": 65
+        }
+      ]
+    },
+    "1_N.24": {
+      "ncode": "N.24",
+      "name": "Senggarang",
+      "electorate": 38576,
+      "majority": 7916,
+      "votes_cast": 28172,
+      "turnout": 73.03,
+      "rejected_ballots": 405,
+      "unreturned_ballots": 31,
+      "candidates": [
+        {
+          "name": "Datuk Mohd Rashid Hasnon",
+          "source_name": "Mohd Rashid Hasnon",
+          "party": "BERSATU",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 2058,
+          "winner": false,
+          "sex": "M",
+          "age": 66
+        },
+        {
+          "name": "Onn Abu Bakar",
+          "source_name": "Onn Abu Bakar",
+          "party": "PKR",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 8881,
+          "winner": false,
+          "sex": "M",
+          "age": 62
+        },
+        {
+          "name": "Mohd Yusla Ismail",
+          "source_name": "Mohd Yusla Ismail",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 16797,
+          "winner": true,
+          "sex": "M",
+          "age": 58
+        }
+      ]
+    },
+    "1_N.25": {
+      "ncode": "N.25",
+      "name": "Rengit",
+      "electorate": 27608,
+      "majority": 10817,
+      "votes_cast": 20828,
+      "turnout": 75.44,
+      "rejected_ballots": 233,
+      "unreturned_ballots": 21,
+      "candidates": [
+        {
+          "name": "Syed Mohamad Syed Alwi",
+          "source_name": "Syed Mohamad Syed Alwi",
+          "party": "BERSATU",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 1739,
+          "winner": false,
+          "sex": "M",
+          "age": 55
+        },
+        {
+          "name": "Zaidi Japar",
+          "source_name": "Zaidi Japar",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 14826,
+          "winner": true,
+          "sex": "M",
+          "age": 57
+        },
+        {
+          "name": "Mohamed Yazid Bakri",
+          "source_name": "Mohamad Yazid Bakri",
+          "party": "AMANAH",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 4009,
+          "winner": false,
+          "sex": "M",
+          "age": 54
+        }
+      ]
+    },
+    "1_N.26": {
+      "ncode": "N.26",
+      "name": "Machap",
+      "electorate": 35206,
+      "majority": 15375,
+      "votes_cast": 25710,
+      "turnout": 73.03,
+      "rejected_ballots": 295,
+      "unreturned_ballots": 26,
+      "candidates": [
+        {
+          "name": "Nur Hafiz Roslan",
+          "source_name": "Muhammad Nur Hafiz Roslan",
+          "party": "AMANAH",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 5007,
+          "winner": false,
+          "sex": "M",
+          "age": 41
+        },
+        {
+          "name": "Datuk Onn Hafiz Ghazi",
+          "source_name": "Onn Hafiz Ghazi",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 20382,
+          "winner": true,
+          "sex": "M",
+          "age": 48
+        }
+      ]
+    },
+    "1_N.27": {
+      "ncode": "N.27",
+      "name": "Layang-Layang",
+      "electorate": 25181,
+      "majority": 7912,
+      "votes_cast": 17479,
+      "turnout": 69.41,
+      "rejected_ballots": 219,
+      "unreturned_ballots": 21,
+      "candidates": [
+        {
+          "name": "Guna Balakrishnan",
+          "source_name": "Guna Balakrishnan",
+          "party": "PKR",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 3667,
+          "winner": false,
+          "sex": "M",
+          "age": 40
+        },
+        {
+          "name": "Abd Mutalip Abd Rahim",
+          "source_name": "Abd Mutalip Abd Rahim",
+          "party": "BERSATU",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 1993,
+          "winner": false,
+          "sex": "M",
+          "age": 56
+        },
+        {
+          "name": "Chua Jian Boon",
+          "source_name": "Chua Jian Boon",
+          "party": "MCA",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 11579,
+          "winner": true,
+          "sex": "M",
+          "age": 32
+        }
+      ]
+    },
+    "1_N.28": {
+      "ncode": "N.28",
+      "name": "Mengkibol",
+      "electorate": 68457,
+      "majority": 4213,
+      "votes_cast": 43919,
+      "turnout": 64.16,
+      "rejected_ballots": 486,
+      "unreturned_ballots": 110,
+      "candidates": [
+        {
+          "name": "Yap Zhi Peng",
+          "source_name": "Yap Zhi Peng",
+          "party": "MCA",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 19555,
+          "winner": false,
+          "sex": "M",
+          "age": 35
+        },
+        {
+          "name": "Chu Poh Yee",
+          "source_name": "Chu Poh Yee",
+          "party": "DAP",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 23768,
+          "winner": true,
+          "sex": "F",
+          "age": 32
+        }
+      ]
+    },
+    "1_N.29": {
+      "ncode": "N.29",
+      "name": "Mahkota",
+      "electorate": 67562,
+      "majority": 16645,
+      "votes_cast": 46143,
+      "turnout": 68.3,
+      "rejected_ballots": 388,
+      "unreturned_ballots": 58,
+      "candidates": [
+        {
+          "name": "Abd Hamid Ali",
+          "source_name": "Abd Hamid Ali",
+          "party": "BERSAMA",
+          "coalition": "BERSAMA",
+          "source_party": "BERSAMA",
+          "votes": 1546,
+          "winner": false,
+          "sex": "M",
+          "age": 55
+        },
+        {
+          "name": "Syed Hussien Syed Abdullah",
+          "source_name": "Syed Hussien Syed Abdullah",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 30398,
+          "winner": true,
+          "sex": "M",
+          "age": 42
+        },
+        {
+          "name": "Dr Ahmad Zuhan Md Zain",
+          "source_name": "Mohd Zuhan Mohd Zain @ Zakaria",
+          "party": "AMANAH",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 13753,
+          "winner": false,
+          "sex": "M",
+          "age": 47
+        }
+      ]
+    },
+    "1_N.30": {
+      "ncode": "N.30",
+      "name": "Paloh",
+      "electorate": 25419,
+      "majority": 6199,
+      "votes_cast": 17141,
+      "turnout": 67.43,
+      "rejected_ballots": 289,
+      "unreturned_ballots": 13,
+      "candidates": [
+        {
+          "name": "G Kamaleswaren",
+          "source_name": "Kamaleswaren Ganabathi",
+          "party": "BEBAS",
+          "coalition": "OTHERS",
+          "source_party": "BEBAS",
+          "votes": 105,
+          "winner": false,
+          "sex": "M",
+          "age": 44
+        },
+        {
+          "name": "Dr Ruban Arumugam",
+          "source_name": "Ruban Arumugam",
+          "party": "DAP",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 4982,
+          "winner": false,
+          "sex": "M",
+          "age": 42
+        },
+        {
+          "name": "Lee Ting Han",
+          "source_name": "Lee Ting Han",
+          "party": "MCA",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 11181,
+          "winner": true,
+          "sex": "M",
+          "age": 35
+        },
+        {
+          "name": "D S Jeevakumar",
+          "source_name": "Jeevakumar Dayalan",
+          "party": "MIPP",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 571,
+          "winner": false,
+          "sex": "M",
+          "age": 40
+        }
+      ]
+    },
+    "1_N.31": {
+      "ncode": "N.31",
+      "name": "Kahang",
+      "electorate": 29814,
+      "majority": 12013,
+      "votes_cast": 21521,
+      "turnout": 72.18,
+      "rejected_ballots": 243,
+      "unreturned_ballots": 18,
+      "candidates": [
+        {
+          "name": "V Rugendran",
+          "source_name": "Rugendran Vellayan",
+          "party": "MIC",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 15251,
+          "winner": true,
+          "sex": "M",
+          "age": 29
+        },
+        {
+          "name": "Mohd Sabri Abd Kadir",
+          "source_name": "Mohd Sabri Abd Kadir",
+          "party": "AMANAH",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 3238,
+          "winner": false,
+          "sex": "M",
+          "age": 70
+        },
+        {
+          "name": "Mazlan Bujang",
+          "source_name": "Mazlan Bujang",
+          "party": "PAS",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 2771,
+          "winner": false,
+          "sex": "M",
+          "age": 60
+        }
+      ]
+    },
+    "1_N.32": {
+      "ncode": "N.32",
+      "name": "Endau",
+      "electorate": 28767,
+      "majority": 3545,
+      "votes_cast": 18744,
+      "turnout": 65.16,
+      "rejected_ballots": 244,
+      "unreturned_ballots": 41,
+      "candidates": [
+        {
+          "name": "Hasnul Hakimi Hussein",
+          "source_name": "Hasnul Hakimi Hussien",
+          "party": "PAS",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 5984,
+          "winner": false,
+          "sex": "M",
+          "age": 30
+        },
+        {
+          "name": "Jati Awang",
+          "source_name": "Jati Awang",
+          "party": "ASLI",
+          "coalition": "OTHERS",
+          "source_party": "ASLI",
+          "votes": 394,
+          "winner": false,
+          "sex": "M",
+          "age": 52
+        },
+        {
+          "name": "Saiful Nizam Samat",
+          "source_name": "Saiful Nizam Samat",
+          "party": "PKR",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 2552,
+          "winner": false,
+          "sex": "M",
+          "age": 42
+        },
+        {
+          "name": "Alwiyah Talib",
+          "source_name": "Alwiyah Talib",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 9529,
+          "winner": true,
+          "sex": "F",
+          "age": 64
+        }
+      ]
+    },
+    "1_N.33": {
+      "ncode": "N.33",
+      "name": "Tenggaroh",
+      "electorate": 39001,
+      "majority": 15258,
+      "votes_cast": 26147,
+      "turnout": 67.04,
+      "rejected_ballots": 378,
+      "unreturned_ballots": 64,
+      "candidates": [
+        {
+          "name": "Muhamad Amerul Muhamad",
+          "source_name": "Muhamad Amerul Muhamad",
+          "party": "BERSATU",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 3912,
+          "winner": false,
+          "sex": "M",
+          "age": 34
+        },
+        {
+          "name": "Mohd Youzaimi Yusof",
+          "source_name": "Mohd Youzaimi Yusof",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 19170,
+          "winner": true,
+          "sex": "M",
+          "age": 52
+        },
+        {
+          "name": "Md Yusof Dawam",
+          "source_name": "Md Yusof Dawam",
+          "party": "PKR",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 2623,
+          "winner": false,
+          "sex": "M",
+          "age": 64
+        }
+      ]
+    },
+    "1_N.34": {
+      "ncode": "N.34",
+      "name": "Panti",
+      "electorate": 41407,
+      "majority": 18948,
+      "votes_cast": 30223,
+      "turnout": 72.99,
+      "rejected_ballots": 378,
+      "unreturned_ballots": 32,
+      "candidates": [
+        {
+          "name": "Dr Muhammad Naqib Md Ghazali",
+          "source_name": "Muhammad Naqib Md Ghazali",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 22823,
+          "winner": true,
+          "sex": "M",
+          "age": 41
+        },
+        {
+          "name": "Alias Rasman",
+          "source_name": "Mohamad Alias Rasman",
+          "party": "BERSATU",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 3115,
+          "winner": false,
+          "sex": "M",
+          "age": 34
+        },
+        {
+          "name": "Ahmad Daniel Sharudin",
+          "source_name": "Ahmad Daniel Sharudin",
+          "party": "AMANAH",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 3875,
+          "winner": false,
+          "sex": "M",
+          "age": 54
+        }
+      ]
+    },
+    "1_N.35": {
+      "ncode": "N.35",
+      "name": "Pasir Raja",
+      "electorate": 29818,
+      "majority": 12446,
+      "votes_cast": 21537,
+      "turnout": 72.23,
+      "rejected_ballots": 251,
+      "unreturned_ballots": 17,
+      "candidates": [
+        {
+          "name": "Datuk Seri Dr Adham Baba",
+          "source_name": "Adham Baba",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 15931,
+          "winner": true,
+          "sex": "M",
+          "age": 63
+        },
+        {
+          "name": "Yuhanita Yunan",
+          "source_name": "Yuhanita Yunan",
+          "party": "PAS",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 1853,
+          "winner": false,
+          "sex": "F",
+          "age": 50
+        },
+        {
+          "name": "Mohd Fakharuddin Moslim",
+          "source_name": "Mohd Fakharuddin Moslim",
+          "party": "PKR",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 3485,
+          "winner": false,
+          "sex": "M",
+          "age": 37
+        }
+      ]
+    },
+    "1_N.36": {
+      "ncode": "N.36",
+      "name": "Sedili",
+      "electorate": 29090,
+      "majority": 16213,
+      "votes_cast": 22344,
+      "turnout": 76.81,
+      "rejected_ballots": 265,
+      "unreturned_ballots": 19,
+      "candidates": [
+        {
+          "name": "Amirul Huzni Onn",
+          "source_name": "Amirul Huzni Onn",
+          "party": "AMANAH",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 693,
+          "winner": false,
+          "sex": "M",
+          "age": 28
+        },
+        {
+          "name": "Muszaidee Makmor",
+          "source_name": "Muszaide Makmor",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 18790,
+          "winner": true,
+          "sex": "M",
+          "age": 53
+        },
+        {
+          "name": "Rasman Ithnain",
+          "source_name": "Rasman Ithnain",
+          "party": "BERSATU",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 2577,
+          "winner": false,
+          "sex": "M",
+          "age": 58
+        }
+      ]
+    },
+    "1_N.37": {
+      "ncode": "N.37",
+      "name": "Johor Lama",
+      "electorate": 32716,
+      "majority": 16344,
+      "votes_cast": 24126,
+      "turnout": 73.74,
+      "rejected_ballots": 274,
+      "unreturned_ballots": 23,
+      "candidates": [
+        {
+          "name": "Aisah Esa",
+          "source_name": "Aisah Esa",
+          "party": "BERSATU",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 2097,
+          "winner": false,
+          "sex": "F",
+          "age": 51
+        },
+        {
+          "name": "Danish Hossman Abd Rahman",
+          "source_name": "Danish Hossman Abd Rahman",
+          "party": "PKR",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 2694,
+          "winner": false,
+          "sex": "M",
+          "age": 23
+        },
+        {
+          "name": "Norlizah Noh",
+          "source_name": "Norlizah Noh",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 19038,
+          "winner": true,
+          "sex": "F",
+          "age": 43
+        }
+      ]
+    },
+    "1_N.38": {
+      "ncode": "N.38",
+      "name": "Penawar",
+      "electorate": 31112,
+      "majority": 15776,
+      "votes_cast": 23633,
+      "turnout": 75.96,
+      "rejected_ballots": 213,
+      "unreturned_ballots": 23,
+      "candidates": [
+        {
+          "name": "Fauziah Misri",
+          "source_name": "Fauziah Misri",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 19213,
+          "winner": true,
+          "sex": "F",
+          "age": 49
+        },
+        {
+          "name": "Mohd Sawaludin Salleh",
+          "source_name": "Mohd Sawaludin Salleh",
+          "party": "AMANAH",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 747,
+          "winner": false,
+          "sex": "M",
+          "age": 45
+        },
+        {
+          "name": "Fairulnizar Rahmat",
+          "source_name": "Fairulnizar Rahmat",
+          "party": "BERSATU",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 3437,
+          "winner": false,
+          "sex": "M",
+          "age": 47
+        }
+      ]
+    },
+    "1_N.39": {
+      "ncode": "N.39",
+      "name": "Tanjung Surat",
+      "electorate": 26943,
+      "majority": 15642,
+      "votes_cast": 19649,
+      "turnout": 72.93,
+      "rejected_ballots": 328,
+      "unreturned_ballots": 17,
+      "candidates": [
+        {
+          "name": "Faizul Abdul Ghani",
+          "source_name": "Faizul Abdul Ghani",
+          "party": "PKR",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 1831,
+          "winner": false,
+          "sex": "M",
+          "age": 56
+        },
+        {
+          "name": "Aznan Tamin",
+          "source_name": "Aznan Tamin",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 17473,
+          "winner": true,
+          "sex": "M",
+          "age": 41
+        }
+      ]
+    },
+    "1_N.40": {
+      "ncode": "N.40",
+      "name": "Tiram",
+      "electorate": 117496,
+      "majority": 28255,
+      "votes_cast": 84244,
+      "turnout": 71.7,
+      "rejected_ballots": 1041,
+      "unreturned_ballots": 74,
+      "candidates": [
+        {
+          "name": "Datuk Abdul Halim Suleiman",
+          "source_name": "Abdul Halim Suleiman",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 49965,
+          "winner": true,
+          "sex": "M",
+          "age": 63
+        },
+        {
+          "name": "Nor Zulaila Abd Ghani",
+          "source_name": "Nor Zulaila Abd.ghani",
+          "party": "DAP",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 21710,
+          "winner": false,
+          "sex": "F",
+          "age": 37
+        },
+        {
+          "name": "Dr Harith Fakhrudin Abdul Malek",
+          "source_name": "Harith Fakhrudin Abdul Malek",
+          "party": "BERSAMA",
+          "coalition": "BERSAMA",
+          "source_party": "BERSAMA",
+          "votes": 2229,
+          "winner": false,
+          "sex": "M",
+          "age": 40
+        },
+        {
+          "name": "Khirul-Muntanazar bin Ismail",
+          "source_name": "Khirul-muntanazar Ismail",
+          "party": "PAS",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 9225,
+          "winner": false,
+          "sex": "M",
+          "age": 53
+        }
+      ]
+    },
+    "1_N.41": {
+      "ncode": "N.41",
+      "name": "Puteri Wangsa",
+      "electorate": 128723,
+      "majority": 5744,
+      "votes_cast": 87046,
+      "turnout": 67.62,
+      "rejected_ballots": 612,
+      "unreturned_ballots": 90,
+      "candidates": [
+        {
+          "name": "Nicholas Paul Vincent",
+          "source_name": "Nicholas Paul Vincent",
+          "party": "BERSAMA",
+          "coalition": "BERSAMA",
+          "source_party": "BERSAMA",
+          "votes": 2332,
+          "winner": false,
+          "sex": "M",
+          "age": 35
+        },
+        {
+          "name": "Wang Wee Siong",
+          "source_name": "Wang Wee Siong",
+          "party": "BEBAS",
+          "coalition": "OTHERS",
+          "source_party": "BEBAS",
+          "votes": 227,
+          "winner": false,
+          "sex": "M",
+          "age": 48
+        },
+        {
+          "name": "Dr Maszlee Malik",
+          "source_name": "Maszlee Malik",
+          "party": "PKR",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 41821,
+          "winner": true,
+          "sex": "M",
+          "age": 51
+        },
+        {
+          "name": "Rashifa Aljunied",
+          "source_name": "Sharifah Rashifa Syed Abdul Rashid Aljunied",
+          "party": "MUDA",
+          "coalition": "MUDA-PSM",
+          "source_party": "MUDA",
+          "votes": 5887,
+          "winner": false,
+          "sex": "F",
+          "age": 26
+        },
+        {
+          "name": "Teow Chia Ling",
+          "source_name": "Teow Chia Ling",
+          "party": "MCA",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 36077,
+          "winner": false,
+          "sex": "F",
+          "age": 42
+        }
+      ]
+    },
+    "1_N.42": {
+      "ncode": "N.42",
+      "name": "Johor Jaya",
+      "electorate": 97685,
+      "majority": 7268,
+      "votes_cast": 67676,
+      "turnout": 69.28,
+      "rejected_ballots": 715,
+      "unreturned_ballots": 41,
+      "candidates": [
+        {
+          "name": "Lim Hun Peaw",
+          "source_name": "Lim Hun Peaw",
+          "party": "BEBAS",
+          "coalition": "OTHERS",
+          "source_party": "BEBAS",
+          "votes": 195,
+          "winner": false,
+          "sex": "M",
+          "age": 53
+        },
+        {
+          "name": "Lau Yi Leong",
+          "source_name": "Lau Yi Leong",
+          "party": "BERSAMA",
+          "coalition": "BERSAMA",
+          "source_party": "BERSAMA",
+          "votes": 2051,
+          "winner": false,
+          "sex": "M",
+          "age": 33
+        },
+        {
+          "name": "Chan San San",
+          "source_name": "Chan San San",
+          "party": "MCA",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 35971,
+          "winner": true,
+          "sex": "F",
+          "age": 46
+        },
+        {
+          "name": "Lee Wern Yiing",
+          "source_name": "Lee Wern Yiing",
+          "party": "DAP",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 28703,
+          "winner": false,
+          "sex": "F",
+          "age": 29
+        }
+      ]
+    },
+    "1_N.43": {
+      "ncode": "N.43",
+      "name": "Permas",
+      "electorate": 113963,
+      "majority": 29505,
+      "votes_cast": 80108,
+      "turnout": 70.29,
+      "rejected_ballots": 859,
+      "unreturned_ballots": 87,
+      "candidates": [
+        {
+          "name": "Baharudin Mohamed Taib",
+          "source_name": "Baharudin Mohamed Taib",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 51274,
+          "winner": true,
+          "sex": "M",
+          "age": 61
+        },
+        {
+          "name": "Sharon Teo Siew Hui",
+          "source_name": "Teo Siew Hui",
+          "party": "AMANAH",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 21769,
+          "winner": false,
+          "sex": "F",
+          "age": 36
+        },
+        {
+          "name": "Dr Zamil Najwah",
+          "source_name": "Zamil Najwah Arbain",
+          "party": "BERSAMA",
+          "coalition": "BERSAMA",
+          "source_party": "BERSAMA",
+          "votes": 3147,
+          "winner": false,
+          "sex": "M",
+          "age": 52
+        },
+        {
+          "name": "T Vela",
+          "source_name": "Vela Tebakumaran",
+          "party": "MIPP",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 2972,
+          "winner": false,
+          "sex": "M",
+          "age": 36
+        }
+      ]
+    },
+    "1_N.44": {
+      "ncode": "N.44",
+      "name": "Larkin",
+      "electorate": 76662,
+      "majority": 20282,
+      "votes_cast": 50749,
+      "turnout": 66.2,
+      "rejected_ballots": 496,
+      "unreturned_ballots": 34,
+      "candidates": [
+        {
+          "name": "Norsinah Abu",
+          "source_name": "Nor Sinah Haji Abu",
+          "party": "BERSAMA",
+          "coalition": "BERSAMA",
+          "source_party": "BERSAMA",
+          "votes": 2737,
+          "winner": false,
+          "sex": "F",
+          "age": 58
+        },
+        {
+          "name": "Suhaizan Kaiat",
+          "source_name": "Suhaizan Kaiat",
+          "party": "AMANAH",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 13600,
+          "winner": false,
+          "sex": "M",
+          "age": 53
+        },
+        {
+          "name": "Mohd Hairi Mad Shah",
+          "source_name": "Mohd Hairi Mad Shah",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 33882,
+          "winner": true,
+          "sex": "M",
+          "age": 42
+        }
+      ]
+    },
+    "1_N.45": {
+      "ncode": "N.45",
+      "name": "Stulang",
+      "electorate": 60029,
+      "majority": 623,
+      "votes_cast": 37524,
+      "turnout": 62.51,
+      "rejected_ballots": 394,
+      "unreturned_ballots": 23,
+      "candidates": [
+        {
+          "name": "Andrew Chen Kah Eng",
+          "source_name": "Chen Kah Eng",
+          "party": "DAP",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 17560,
+          "winner": true,
+          "sex": "M",
+          "age": 50
+        },
+        {
+          "name": "Stanley Tan Boon Heng",
+          "source_name": "Tan Boon Heng",
+          "party": "BERSAMA",
+          "coalition": "BERSAMA",
+          "source_party": "BERSAMA",
+          "votes": 1372,
+          "winner": false,
+          "sex": "M",
+          "age": 53
+        },
+        {
+          "name": "Lim Chin Eng @ Roland Lim",
+          "source_name": "Lim Chin Eng",
+          "party": "BERSATU",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 1238,
+          "winner": false,
+          "sex": "M",
+          "age": 73
+        },
+        {
+          "name": "Bong Seng Heng",
+          "source_name": "Bong Seng Heng",
+          "party": "MCA",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 16937,
+          "winner": false,
+          "sex": "M",
+          "age": 45
+        }
+      ]
+    },
+    "1_N.46": {
+      "ncode": "N.46",
+      "name": "Perling",
+      "electorate": 109992,
+      "majority": 1611,
+      "votes_cast": 69053,
+      "turnout": 62.78,
+      "rejected_ballots": 675,
+      "unreturned_ballots": 57,
+      "candidates": [
+        {
+          "name": "Pannir Selvam",
+          "source_name": "Pannir Selvam",
+          "party": "MIC",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 33468,
+          "winner": true,
+          "sex": "M",
+          "age": 54
+        },
+        {
+          "name": "Alan Tee Boon Tsong",
+          "source_name": "Tee Boon Tsong",
+          "party": "DAP",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 31857,
+          "winner": false,
+          "sex": "M",
+          "age": 46
+        },
+        {
+          "name": "Boo Wei Han",
+          "source_name": "Boo Wei Han",
+          "party": "BERSAMA",
+          "coalition": "BERSAMA",
+          "source_party": "BERSAMA",
+          "votes": 2996,
+          "winner": false,
+          "sex": "M",
+          "age": 45
+        }
+      ]
+    },
+    "1_N.47": {
+      "ncode": "N.47",
+      "name": "Kempas",
+      "electorate": 64244,
+      "majority": 14953,
+      "votes_cast": 43695,
+      "turnout": 68.01,
+      "rejected_ballots": 504,
+      "unreturned_ballots": 35,
+      "candidates": [
+        {
+          "name": "Datuk Ramlee Bohani",
+          "source_name": "Ramlee Bohani",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 28146,
+          "winner": true,
+          "sex": "M",
+          "age": 64
+        },
+        {
+          "name": "Muhammad Faezuddin Mohd Puad",
+          "source_name": "Muhammad Faezuddin Mohd Puad",
+          "party": "PKR",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 13193,
+          "winner": false,
+          "sex": "M",
+          "age": 34
+        },
+        {
+          "name": "Salamahafifi Mohd Yusnaieny",
+          "source_name": "Salamahafifi Mohd Yusnaieny",
+          "party": "BERSAMA",
+          "coalition": "BERSAMA",
+          "source_party": "BERSAMA",
+          "votes": 1817,
+          "winner": false,
+          "sex": "F",
+          "age": 33
+        }
+      ]
+    },
+    "1_N.48": {
+      "ncode": "N.48",
+      "name": "Skudai",
+      "electorate": 106805,
+      "majority": 15280,
+      "votes_cast": 68640,
+      "turnout": 64.27,
+      "rejected_ballots": 785,
+      "unreturned_ballots": 58,
+      "candidates": [
+        {
+          "name": "Tan Hiang Kee",
+          "source_name": "Tan Hiang Kee",
+          "party": "MCA",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 24541,
+          "winner": false,
+          "sex": "F",
+          "age": 42
+        },
+        {
+          "name": "Kartiyaini Jeyapalan",
+          "source_name": "Kartiyaini Jeyapalan",
+          "party": "DAP",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 39821,
+          "winner": true,
+          "sex": "F",
+          "age": 37
+        },
+        {
+          "name": "Eugene Chua",
+          "source_name": "Eugene Chua Meng Chong",
+          "party": "BERSAMA",
+          "coalition": "BERSAMA",
+          "source_party": "BERSAMA",
+          "votes": 2471,
+          "winner": false,
+          "sex": "M",
+          "age": 47
+        },
+        {
+          "name": "Amir Syafiq Ameer Soekre",
+          "source_name": "Amir Syafiq Ameer Soekre",
+          "party": "PSM",
+          "coalition": "MUDA-PSM",
+          "source_party": "PSM",
+          "votes": 964,
+          "winner": false,
+          "sex": "M",
+          "age": 39
+        }
+      ]
+    },
+    "1_N.49": {
+      "ncode": "N.49",
+      "name": "Kota Iskandar",
+      "electorate": 132579,
+      "majority": 21206,
+      "votes_cast": 91607,
+      "turnout": 69.1,
+      "rejected_ballots": 997,
+      "unreturned_ballots": 92,
+      "candidates": [
+        {
+          "name": "S Anna Pravina",
+          "source_name": "Anna Pravina Segaran",
+          "party": "MIPP",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 3249,
+          "winner": false,
+          "sex": "F",
+          "age": 27
+        },
+        {
+          "name": "Dzulkefly Ahmad",
+          "source_name": "Dzulkefly Ahmad",
+          "party": "AMANAH",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 31686,
+          "winner": false,
+          "sex": "M",
+          "age": 60
+        },
+        {
+          "name": "Datuk Pandak Ahmad",
+          "source_name": "Pandak Ahmad",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 52892,
+          "winner": true,
+          "sex": "M",
+          "age": 63
+        },
+        {
+          "name": "Sahrudin Omar",
+          "source_name": "Sahrudin Omar @ Kassim",
+          "party": "BERSAMA",
+          "coalition": "BERSAMA",
+          "source_party": "BERSAMA",
+          "votes": 2691,
+          "winner": false,
+          "sex": "M",
+          "age": 50
+        }
+      ]
+    },
+    "1_N.50": {
+      "ncode": "N.50",
+      "name": "Bukit Permai",
+      "electorate": 44819,
+      "majority": 12721,
+      "votes_cast": 32940,
+      "turnout": 73.5,
+      "rejected_ballots": 366,
+      "unreturned_ballots": 22,
+      "candidates": [
+        {
+          "name": "Muhammad Aidil Riduan Mohd Yusof",
+          "source_name": "Muhammad Aidil Riduan Mohd Yusof",
+          "party": "BERSAMA",
+          "coalition": "BERSAMA",
+          "source_party": "BERSAMA",
+          "votes": 792,
+          "winner": false,
+          "sex": "M",
+          "age": 28
+        },
+        {
+          "name": "Datuk Mohd Jafni Md Shukor",
+          "source_name": "Mohd Jafni Md Shukor",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 21870,
+          "winner": true,
+          "sex": "M",
+          "age": 54
+        },
+        {
+          "name": "Mohamad Shafwan Ani",
+          "source_name": "Mohamad Shafwan Ani",
+          "party": "DAP",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 9149,
+          "winner": false,
+          "sex": "M",
+          "age": 33
+        },
+        {
+          "name": "M Lina Manoh",
+          "source_name": "Lina Manoh Manogaran",
+          "party": "MIPP",
+          "coalition": "PN",
+          "source_party": "PN",
+          "votes": 741,
+          "winner": false,
+          "sex": "F",
+          "age": 40
+        }
+      ]
+    },
+    "1_N.51": {
+      "ncode": "N.51",
+      "name": "Bukit Batu",
+      "electorate": 49963,
+      "majority": 174,
+      "votes_cast": 35888,
+      "turnout": 71.83,
+      "rejected_ballots": 441,
+      "unreturned_ballots": 16,
+      "candidates": [
+        {
+          "name": "R Kumaran",
+          "source_name": "Kumaran Rama Krishnan",
+          "party": "MIC",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 16899,
+          "winner": true,
+          "sex": "M",
+          "age": 55
+        },
+        {
+          "name": "Kamaruzaman Ali",
+          "source_name": "Kamaruzaman Ali",
+          "party": "BEBAS",
+          "coalition": "OTHERS",
+          "source_party": "BEBAS",
+          "votes": 599,
+          "winner": false,
+          "sex": "M",
+          "age": 63
+        },
+        {
+          "name": "G Tamili",
+          "source_name": "Tamili Gopalakrishnan",
+          "party": "BERSAMA",
+          "coalition": "BERSAMA",
+          "source_party": "BERSAMA",
+          "votes": 821,
+          "winner": false,
+          "sex": "F",
+          "age": 29
+        },
+        {
+          "name": "Arthur Chiong Sen Sern",
+          "source_name": "Chiong Sen Sern",
+          "party": "PKR",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 16725,
+          "winner": false,
+          "sex": "M",
+          "age": 36
+        },
+        {
+          "name": "M Premanand",
+          "source_name": "Premanand Maniam @ Supramaniam",
+          "party": "MUDA",
+          "coalition": "MUDA-PSM",
+          "source_party": "MUDA",
+          "votes": 387,
+          "winner": false,
+          "sex": "M",
+          "age": 53
+        }
+      ]
+    },
+    "1_N.52": {
+      "ncode": "N.52",
+      "name": "Senai",
+      "electorate": 66635,
+      "majority": 3595,
+      "votes_cast": 46575,
+      "turnout": 69.9,
+      "rejected_ballots": 450,
+      "unreturned_ballots": 30,
+      "candidates": [
+        {
+          "name": "Tai Chee Chee",
+          "source_name": "Tai Chee Chee",
+          "party": "MCA",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 20412,
+          "winner": false,
+          "sex": "F",
+          "age": 31
+        },
+        {
+          "name": "Wong Bor Yang",
+          "source_name": "Wong Bor Yang",
+          "party": "DAP",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 24007,
+          "winner": true,
+          "sex": "M",
+          "age": 39
+        },
+        {
+          "name": "Dr Tew Chian How",
+          "source_name": "Tew Chian How",
+          "party": "BERSAMA",
+          "coalition": "BERSAMA",
+          "source_party": "BERSAMA",
+          "votes": 1676,
+          "winner": false,
+          "sex": "M",
+          "age": 37
+        }
+      ]
+    },
+    "1_N.53": {
+      "ncode": "N.53",
+      "name": "Benut",
+      "electorate": 28798,
+      "majority": 15701,
+      "votes_cast": 21564,
+      "turnout": 74.88,
+      "rejected_ballots": 239,
+      "unreturned_ballots": 42,
+      "candidates": [
+        {
+          "name": "Datuk Mohd Sumali Reduan",
+          "source_name": "Mohd Sumali Reduan",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 18492,
+          "winner": true,
+          "sex": "M",
+          "age": 54
+        },
+        {
+          "name": "Abd Razak Ismail",
+          "source_name": "Abdul Razak Ismail",
+          "party": "AMANAH",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 2791,
+          "winner": false,
+          "sex": "M",
+          "age": 36
+        }
+      ]
+    },
+    "1_N.54": {
+      "ncode": "N.54",
+      "name": "Pulai Sebatang",
+      "electorate": 47651,
+      "majority": 13590,
+      "votes_cast": 33522,
+      "turnout": 70.35,
+      "rejected_ballots": 308,
+      "unreturned_ballots": 52,
+      "candidates": [
+        {
+          "name": "Haniff@Ghazali Hosman",
+          "source_name": "Haniff @ Ghazali Hosman",
+          "party": "PKR",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 9786,
+          "winner": false,
+          "sex": "M",
+          "age": 46
+        },
+        {
+          "name": "Hasrunizah Hassan",
+          "source_name": "Hasrunizah Hassan",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 23376,
+          "winner": true,
+          "sex": "F",
+          "age": 49
+        }
+      ]
+    },
+    "1_N.55": {
+      "ncode": "N.55",
+      "name": "Pekan Nanas",
+      "electorate": 37556,
+      "majority": 12281,
+      "votes_cast": 28065,
+      "turnout": 74.73,
+      "rejected_ballots": 424,
+      "unreturned_ballots": 20,
+      "candidates": [
+        {
+          "name": "Yeo Tung Siong",
+          "source_name": "Yeo Tung Siong",
+          "party": "DAP",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 7670,
+          "winner": false,
+          "sex": "M",
+          "age": 47
+        },
+        {
+          "name": "Tan Eng Meng",
+          "source_name": "Tan Eng Meng",
+          "party": "MCA",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 19951,
+          "winner": true,
+          "sex": "M",
+          "age": 64
+        }
+      ]
+    },
+    "1_N.56": {
+      "ncode": "N.56",
+      "name": "Kukup",
+      "electorate": 34968,
+      "majority": 11354,
+      "votes_cast": 25778,
+      "turnout": 73.72,
+      "rejected_ballots": 313,
+      "unreturned_ballots": 21,
+      "candidates": [
+        {
+          "name": "Mohd Israk Abdullah",
+          "source_name": "Md Israk Abdullah",
+          "party": "UMNO",
+          "coalition": "BN",
+          "source_party": "BN",
+          "votes": 18399,
+          "winner": true,
+          "sex": "M",
+          "age": 55
+        },
+        {
+          "name": "Cheah Chee Hong",
+          "source_name": "Cheah Chee Hong",
+          "party": "PKR",
+          "coalition": "PH",
+          "source_party": "PH",
+          "votes": 7045,
+          "winner": false,
+          "sex": "M",
+          "age": 48
+        }
+      ]
+    }
+  }
+}

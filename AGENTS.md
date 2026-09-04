@@ -8,3 +8,4 @@ See [GEMINI.md](file:///Users/hamboii/code/live-political-analysis/GEMINI.md) fo
 3. **Safety**: Never push, open PRs, or perform destructive git actions. Local commits only when requested.
 4. **Verification**: Verify all changes with `.venv/bin/pytest` before claiming completion.
 5. **Model Tiering**: Cheap model (`flash`/`inherit`) by default; escalate to `pro` only for visual design, sensitive political editorial judgment, security/correctness-critical engineering, or irreversible operations (`docs/agents/model-effort.md`).
+6. **Context Bar**: Conclude every response with the standardized context and quota status bar footer (`[Context: ... | <Model>] [Quota Remaining: ...]`).
