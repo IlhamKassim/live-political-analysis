@@ -320,7 +320,30 @@ async function loadOptional() {
     const hd = await fetch("data/hansard-dewan.json");
     if (hd.ok) state.hansard = await hd.json();
   } catch (_) {}
+  try {
+    // merged MP profiles: bio + legislative (voting record, contact, bills) per P.xxx
+    const mp = await fetch("data/mp-profiles-merged.json");
+    if (mp.ok) state.mpProfiles = await mp.json();
+  } catch (_) {}
   return state;
+}
+
+/** Merged MP profile (bio + legislative) for a seat code or seat object. */
+function mpProfileFor(codeOrSeat) {
+  const code = typeof codeOrSeat === "string" ? codeOrSeat : (codeOrSeat && codeOrSeat.code);
+  if (!code) return null;
+  return (state.mpProfiles && state.mpProfiles.mps && state.mpProfiles.mps[code]) || null;
+}
+/** Legislative record (votes, bills, contact) for a seat code or seat object. */
+function mpLegislativeFor(codeOrSeat) {
+  const p = mpProfileFor(codeOrSeat);
+  return (p && p.legislative) || null;
+}
+/** Render a styled vote pill (Aye / No / Abstain / Absent). */
+function votePillHTML(vote) {
+  const v = String(vote || "").toLowerCase();
+  const label = t("vote_" + v) || v;
+  return `<span class="vote-pill vote-${esc(v)}">${esc(label)}</span>`;
 }
 
 /** Johor DUN seat context row (electorate, bye-election, competitiveness). */
@@ -421,6 +444,8 @@ function politicianFor(seat) {
   // parliament: the full MP roster (P.xxx). DUN: seat portraits bound to the current
   // winner — never the parent MP, who is a different person than the ADUN.
   if (state.tier === "parlimen") {
+    const prof = mpProfileFor(seat);
+    if (prof && prof.bio) return prof.bio;
     return (state.politicians && state.politicians.mps && state.politicians.mps[seat.code]) || null;
   }
   return adunPoliticianFor(seat.code);
@@ -516,14 +541,24 @@ function socialLinksHTML(socials, source, opts = {}) {
 // ---- Politicians directory (browsable roster of all MPs) ----
 const POL_VIEW = document.getElementById("politicians-view");
 function politicianList() {
-  const mps = (state.politicians && state.politicians.mps) || {};
+  const mps = (state.mpProfiles && state.mpProfiles.mps)
+    ? Object.fromEntries(Object.entries(state.mpProfiles.mps).map(([c, v]) => [c, v.bio || v]))
+    : (state.politicians && state.politicians.mps) || {};
   const pd = state.data.parlimen;
   return Object.entries(mps).map(([code, m]) => {
     const seat = pd && pd.byCode.get(code);
     const current = withCurrentAffiliation(m, currentAffiliationFor({ code }, "parlimen"));
+    const leg = mpLegislativeFor(code);
+    const ge15Coalition = leg && leg.coalition ? normPartyLabel(leg.coalition) : "";
+    const divisionsCount = leg && leg.divisions ? leg.divisions.length : 0;
+    const billsCount = leg && leg.bills_sponsored ? leg.bills_sponsored.length : 0;
     return { code, name: current.name || m.name,
              party: normPartyLabel(current.party) || current.current_bloc || current.party,
              coalition: normPartyLabel(current.coalition) || current.current_bloc || current.coalition,
+             ge15Coalition,
+             divisionsCount,
+             billsCount,
+             hasLegislative: !!leg,
              photo: m.photo,
              socials: m.socials, socials_source: m.socials_source,
              vacated: !!m.vacated || !!current.vacant_since,
@@ -749,6 +784,12 @@ function renderPoliticianGrid() {
           ? `${p.code} · ${p.seatName}  ﹢  ${p.alsoDun.dunCode} · ${p.alsoDun.seatName}`
           : `${p.dunCode || p.code} · ${p.seatName}`;
         const partyBadge = normPartyLabel(p.party || p.coalition) || p.party || p.coalition || "";
+        const coalDiff = (p.ge15Coalition && p.coalition && p.ge15Coalition !== p.coalition)
+          ? `<div class="pol-card-coal-diff" title="${esc(t("coalition_diff_note", { ge15: p.ge15Coalition, current: p.coalition }))}">GE15: ${esc(p.ge15Coalition)}</div>`
+          : "";
+        const legLine = p.hasLegislative && (p.divisionsCount > 0 || p.billsCount > 0)
+          ? `<div class="pol-card-leg">${t("pol_divisions_count", { n: p.divisionsCount })}${p.billsCount > 0 ? ` · ${t("pol_bills_count", { n: p.billsCount })}` : ""}</div>`
+          : '<div class="pol-card-leg-spacer"></div>';
         return `
         <div class="pol-card" tabindex="0" role="button" data-pol-code="${esc(p.code)}" aria-label="${esc(p.name)}, ${esc(seatLine)}${p.vacated ? `, ${esc(t("pol_seat_vacant"))}` : ""}">
           <div class="pol-card-photo">
@@ -757,6 +798,8 @@ function renderPoliticianGrid() {
           </div>
           <div class="pol-card-name">${esc(p.name)}${p.vacated ? ` <span class="pol-card-vacant">${esc(t("pol_seat_vacant"))}</span>` : ""}</div>
           <div class="pol-card-seat" title="${esc(seatLine)}">${esc(seatLine)}</div>
+          ${coalDiff}
+          ${legLine}
           ${p.socials ? socialLinksHTML(p.socials, p.socials_source, { compact: true, max: 4 }) : '<div class="pol-card-socials-spacer"></div>'}
         </div>`;
       }).join("")
@@ -1026,8 +1069,10 @@ function politicianSourcesHTML(links, notes) {
   return `${pills ? `<div class="cand-source-links">${pills}</div>` : ""}${lines}`;
 }
 function mpBentoBundle(code) {
-  const m = state.politicians && state.politicians.mps && state.politicians.mps[code];
+  const prof = mpProfileFor(code);
+  const m = (prof && prof.bio) || (state.politicians && state.politicians.mps && state.politicians.mps[code]);
   if (!m) return null;
+  const leg = mpLegislativeFor(code);
   const seat = state.data.parlimen && state.data.parlimen.byCode.get(code);
   const r = (state.results && state.results[code]) || null;
   const current = seat ? currentRepresentationFor(seat, "parlimen") : r;
@@ -1060,18 +1105,73 @@ function mpBentoBundle(code) {
   roleLines.push(t(vacant ? "pol_former_mandate_mp" : "pol_mandate_mp", { s: seatLabel }));
   if (gov) roleLines.push(`${gov.displayTitle}, ${seat.state}${gov.caretaker ? ` (${t("ctx_caretaker")})` : ""}`);
   if (dual) roleLines.push(t("pol_also_adun", { c: dual.dunCode, s: dual.seatName }));
+  if (leg && leg.coalition && (currentBloc || m.coalition) &&
+      normPartyLabel(leg.coalition) !== normPartyLabel(currentBloc || m.coalition)) {
+    roleLines.push(t("coalition_diff_note", { ge15: leg.coalition, current: currentBloc || m.coalition }));
+  }
   const links = [
     m.wikipedia && m.wikipedia.en ? { label: "Wikipedia (EN)", url: m.wikipedia.en.url } : null,
     m.wikipedia && m.wikipedia.ms ? { label: "Wikipedia (BM)", url: m.wikipedia.ms.url } : null,
     m.wikidata ? { label: "Wikidata", url: m.wikidata } : null,
+    leg && leg.contact && leg.contact.profile_url ? { label: t("leg_official_profile"), url: leg.contact.profile_url } : null,
     vacant && m.vacancy_source ? { label: m.vacancy_source.label, url: m.vacancy_source.url } : null,
   ];
   const notes = [
     r ? resultSourceText(r, false) : "",
     t("pol_src_roster"),
+    leg ? t("leg_source_note") : "",
     gov && state.stateCtx && state.stateCtx.checked ? t("pol_src_govrole", { d: state.stateCtx.checked }) : "",
     m.photo_credit ? t("pol_photo_by", { credit: m.photo_credit }) : "",
   ];
+
+  let contactHTML = "";
+  if (leg && leg.contact) {
+    const c = leg.contact;
+    const items = [];
+    if (c.phone) items.push(`<li><b>${esc(t("leg_phone"))}:</b> <a href="tel:${esc(c.phone)}">${esc(c.phone)}</a></li>`);
+    if (c.email) items.push(`<li><b>${esc(t("leg_email"))}:</b> <a href="mailto:${esc(c.email)}">${esc(c.email)}</a></li>`);
+    if (c.address) items.push(`<li><b>${esc(t("leg_service_centre"))}:</b> <span>${esc(c.address)}</span></li>`);
+    if (c.profile_url) items.push(`<li><b>${esc(t("leg_official_profile"))}:</b> <a href="${esc(c.profile_url)}" target="_blank" rel="noopener">${esc(t("leg_official_profile"))} ↗</a></li>`);
+    if (items.length) contactHTML = `<ul class="cand-list leg-contact-list">${items.join("")}</ul>`;
+  }
+
+  let legislativeHTML = "";
+  if (leg && leg.divisions && leg.divisions.length > 0) {
+    const counts = { aye: 0, no: 0, abstain: 0, absent: 0 };
+    for (const d of leg.divisions) {
+      const v = String(d.vote || "").toLowerCase();
+      if (counts[v] !== undefined) counts[v]++;
+    }
+    const breakdown = t("leg_votes_breakdown", {
+      aye: counts.aye,
+      no: counts.no,
+      abstain: counts.abstain,
+      absent: counts.absent,
+    });
+    const votesList = leg.divisions.map((d) => `
+      <li class="bento-vote-item">
+        <div class="bento-vote-head">
+          ${votePillHTML(d.vote)}
+          <span class="mono muted" style="font-size:11px">${esc(d.sitting_date)}</span>
+        </div>
+        <div class="bento-vote-subj">${esc(d.subject)}</div>
+        ${d.hansard_url ? `<div style="margin-top:2px"><a href="${esc(d.hansard_url)}" target="_blank" rel="noopener" class="muted" style="font-size:11px">Hansard ↗</a></div>` : ""}
+      </li>
+    `).join("");
+    legislativeHTML = `
+      <div class="bento-leg-summary">
+        <div class="bento-leg-stat"><b>${leg.divisions.length}</b> <span class="muted">${esc(t("leg_divisions"))}</span></div>
+        <p class="muted" style="font-size:12px;margin:3px 0 8px">${esc(breakdown)}</p>
+      </div>
+      <ul class="bento-votes-list">${votesList}</ul>
+    `;
+  }
+
+  let billsHTML = "";
+  if (leg && leg.bills_sponsored && leg.bills_sponsored.length > 0) {
+    billsHTML = `<ul class="cand-list leg-bills-list">${leg.bills_sponsored.map((b) => `<li>${esc(b)}</li>`).join("")}</ul>`;
+  }
+
   return {
     code,
     kicker: `${esc(t("kicker_parlimen"))} · ${esc(code)}`,
@@ -1085,7 +1185,9 @@ function mpBentoBundle(code) {
     bgHTML: bio ? `<p>${esc(bio.extract)}</p><a class="yb-bio-more" href="${esc(bio.url)}" target="_blank" rel="noopener">Wikipedia →</a>` : "",
     profile: null,
     education: m.education || "",
-    contactHTML: "",
+    contactHTML,
+    legislativeHTML,
+    billsHTML,
     prnNewsHTML: "",
     newsNames: [m.name, r && r.name ? titleCaseName(r.name) : ""].filter(Boolean),
     sourcesHTML: politicianSourcesHTML(links, notes),
@@ -1231,7 +1333,9 @@ function politicianBentoHTML(b) {
       ${track ? candidateModalTileHTML("cand-track", t("profile_track_record"), track) : ""}
       ${electionHistory ? candidateModalTileHTML("cand-election", t("profile_election_history"), electionHistory) : ""}
       ${education ? candidateModalTileHTML("cand-education", t("profile_education"), education) : ""}
-      ${b.contactHTML ? candidateModalTileHTML("cand-contact", "Contact", b.contactHTML) : ""}
+      ${b.legislativeHTML ? candidateModalTileHTML("cand-legislative", t("leg_parliamentary_record"), b.legislativeHTML) : ""}
+      ${b.billsHTML ? candidateModalTileHTML("cand-bills", t("leg_bills_sponsored"), b.billsHTML) : ""}
+      ${b.contactHTML ? candidateModalTileHTML("cand-contact", t("leg_contact"), b.contactHTML) : ""}
       <section class="cand-tile cand-news" data-pol-news-slot hidden></section>
       ${candidateModalTileHTML("cand-sources", t("profile_sources"), b.sourcesHTML)}
     </div>
@@ -2207,6 +2311,12 @@ function ybCardHTML(seat, r, partyLabel, blocUnit, polOverride, opts = {}) {
     const pill = bloc ? `<span class="pill" style="${pillStyle(partyColor(bloc))}">${esc(bloc)}</span>` : "";
     blocUnit = `<span class="bloc-unit">${partyLabel && pill ? "· " : ""}${pill}</span>`;
   }
+  const leg = (opts.tier === "parlimen" || state.tier === "parlimen") ? mpLegislativeFor(seat) : null;
+  const currentBloc = current && (current.current_bloc || current.coalition || (r && r.coalition));
+  const coalDiff = (leg && leg.coalition && currentBloc &&
+    normPartyLabel(leg.coalition) !== normPartyLabel(currentBloc))
+    ? `<div class="yb-coalition-note">${esc(t("coalition_diff_note", { ge15: leg.coalition, current: currentBloc }))}</div>`
+    : "";
   const ybName = current && current.name ? current.name : (pol && pol.name ? pol.name : r.name);
   const ybBallot = pol && pol.ballot_name && namekeyLoose(pol.ballot_name) !== namekeyLoose(ybName) ? pol.ballot_name : "";
   // Do not infer an exact age from year-only Wikidata dates.
@@ -2240,6 +2350,7 @@ function ybCardHTML(seat, r, partyLabel, blocUnit, polOverride, opts = {}) {
              <strong>${esc(ybName)}</strong>
              ${ybBallot ? `<span class="yb-ballot muted">${esc(ybBallot)}</span>` : ""}
              <p>${partyLabel ? partyLabel + " " : ""}${blocUnit}</p>
+             ${coalDiff}
              ${ybMeta.length ? `<p class="yb-meta muted">${ybMeta.join(" · ")}</p>` : ""}
            </div>
          </div>
@@ -2253,9 +2364,101 @@ function ybCardHTML(seat, r, partyLabel, blocUnit, polOverride, opts = {}) {
              <span class="yb-kicker">${esc(t("card_current_yb"))}</span>
              <strong>${esc(r.name)}</strong>
              <p>${partyLabel ? partyLabel + " " : ""}${blocUnit}</p>
+             ${coalDiff}
            </div>
          </div>
        </div>`;
+}
+
+function legislativeRecordHTML(seat) {
+  if (state.tier !== "parlimen") return "";
+  const leg = mpLegislativeFor(seat);
+  if (!leg) return "";
+
+  const rows = [];
+  let detailsHTML = "";
+
+  if (leg.divisions && leg.divisions.length > 0) {
+    const counts = { aye: 0, no: 0, abstain: 0, absent: 0 };
+    for (const d of leg.divisions) {
+      const v = String(d.vote || "").toLowerCase();
+      if (counts[v] !== undefined) counts[v]++;
+    }
+    const breakdown = t("leg_votes_breakdown", {
+      aye: counts.aye,
+      no: counts.no,
+      abstain: counts.abstain,
+      absent: counts.absent,
+    });
+    rows.push(`<dt>${esc(t("leg_divisions"))}</dt><dd class="mono">${esc(t("leg_divisions_desc", { n: leg.divisions.length }))} <span class="muted">(${esc(breakdown)})</span></dd>`);
+
+    const latest = leg.divisions[0];
+    if (latest) {
+      rows.push(`
+        <dt>${esc(t("leg_latest_vote"))}</dt>
+        <dd class="leg-vote-dd">
+          <div class="leg-vote-header">
+            ${votePillHTML(latest.vote)}
+            <span class="mono leg-vote-date muted">${esc(latest.sitting_date)}</span>
+          </div>
+          <div class="leg-vote-subj">${esc(latest.subject)}</div>
+          ${latest.hansard_url ? `<div class="leg-vote-meta"><a href="${esc(latest.hansard_url)}" target="_blank" rel="noopener">Hansard ↗</a></div>` : ""}
+        </dd>
+      `);
+    }
+
+    const items = leg.divisions.map((d) => `
+      <li class="leg-div-item">
+        <div class="leg-div-item-head">
+          ${votePillHTML(d.vote)}
+          <span class="mono leg-vote-date muted">${esc(d.sitting_date)}</span>
+        </div>
+        <div class="leg-div-item-title">${esc(d.subject)}</div>
+        ${d.hansard_url ? `<div class="leg-vote-meta"><a href="${esc(d.hansard_url)}" target="_blank" rel="noopener">Hansard ↗</a></div>` : ""}
+      </li>
+    `).join("");
+
+    detailsHTML = `
+      <details class="leg-divisions-details">
+        <summary>${esc(t("leg_all_divisions"))} (${leg.divisions.length})</summary>
+        <ul class="leg-divisions-list">${items}</ul>
+      </details>
+    `;
+  }
+
+  if (leg.bills_sponsored && leg.bills_sponsored.length > 0) {
+    const billsList = leg.bills_sponsored.map((b) => `<li>${esc(b)}</li>`).join("");
+    rows.push(`
+      <dt>${esc(t("leg_bills_sponsored"))}</dt>
+      <dd><ul class="leg-bills-list">${billsList}</ul></dd>
+    `);
+  }
+
+  if (leg.contact) {
+    if (leg.contact.phone) {
+      rows.push(`<dt>${esc(t("leg_phone"))}</dt><dd class="mono"><a href="tel:${esc(leg.contact.phone)}">${esc(leg.contact.phone)}</a></dd>`);
+    }
+    if (leg.contact.email) {
+      rows.push(`<dt>${esc(t("leg_email"))}</dt><dd class="mono"><a href="mailto:${esc(leg.contact.email)}">${esc(leg.contact.email)}</a></dd>`);
+    }
+    if (leg.contact.address) {
+      rows.push(`<dt>${esc(t("leg_service_centre"))}</dt><dd class="leg-address">${esc(leg.contact.address)}</dd>`);
+    }
+    if (leg.contact.profile_url) {
+      rows.push(`<dt>${esc(t("leg_official_profile"))}</dt><dd><a href="${esc(leg.contact.profile_url)}" target="_blank" rel="noopener">${esc(t("leg_official_profile"))} ↗</a></dd>`);
+    }
+  }
+
+  if (!rows.length && !detailsHTML) return "";
+
+  return `
+    <div class="seat-legislative">
+      <div class="state-info-h muted">${esc(t("leg_parliamentary_record"))}</div>
+      <dl class="rows">${rows.join("")}</dl>
+      ${detailsHTML}
+      <div class="note">${esc(t("leg_source_note"))}</div>
+    </div>
+  `;
 }
 
 function seatCardHTML(seat, options = {}) {
@@ -2324,6 +2527,7 @@ function seatCardHTML(seat, options = {}) {
         ${ybCard}
         ${metrics.length ? `<div class="seat-metrics">${metrics.join("")}</div>` : ""}
       </div>
+      ${legislativeRecordHTML(seat)}
       ${sc ? `<dl class="rows seat-score-row"><dt>${t("score")}</dt><dd class="mono"><b style="color:var(--accent-2)">${sc.score.toFixed(1)}</b> · ${esc(sc.grade || "")}</dd></dl>` : ""}
       ${resultSource}
       ${dunNote}
