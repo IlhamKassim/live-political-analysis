@@ -5167,9 +5167,17 @@ body.projection-open #topbar .topbar-context { pointer-events: auto; }
 .bento-spot-runner { font-size: 12px; margin-top: 4px; }
 .bento-spot-result { margin-top: 10px; }
 
-/* the politicians directory overlay covers the dashboard; it returns on close */
+/* every full-page overlay covers the state dashboard; it returns on close.
+   Only politicians-open had this rule until the merge that added Dewan,
+   Bills, Sentiment, and Projection surfaced the same gap for all of them —
+   opening any of these while a state's dashboard was open left it visibly
+   bleeding through underneath at desktop widths. */
 @media (min-width: 1000px) {
-  body.politicians-open #state-bento { display: none; }
+  body.politicians-open #state-bento,
+  body.dewan-open #state-bento,
+  body.bills-open #state-bento,
+  body.sentiment-open #state-bento,
+  body.projection-open #state-bento { display: none; }
 }
 
 /* leadership tile: large state identity · current MB/KM/Premier */
