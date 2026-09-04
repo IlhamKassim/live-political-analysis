@@ -1,0 +1,2782 @@
+{
+  "schema_version": 1,
+  "computed_at": "2026-08-23",
+  "coalition_seat_totals": {
+    "PN": 69,
+    "BN": 41,
+    "PH": 75,
+    "BEBAS": 2,
+    "WARISAN": 3,
+    "GTA": 0,
+    "PRM": 0,
+    "MUDA": 0,
+    "PBM": 1,
+    "PUR": 0,
+    "PSM": 0,
+    "GRS": 7,
+    "KDM": 1,
+    "GPS": 23,
+    "PBK": 0,
+    "SEDAR": 0,
+    "PSB": 0,
+    "PBDS": 0
+  },
+  "government_majority": true,
+  "seats": [
+    {
+      "code": "P.001",
+      "name": "Padang Besar",
+      "state": "Perlis",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.2679827874568371
+    },
+    {
+      "code": "P.002",
+      "name": "Kangar",
+      "state": "Perlis",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.15515250926103857
+    },
+    {
+      "code": "P.003",
+      "name": "Arau",
+      "state": "Perlis",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.4879810274746838
+    },
+    {
+      "code": "P.004",
+      "name": "Langkawi",
+      "state": "Kedah",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.2763768011253304
+    },
+    {
+      "code": "P.005",
+      "name": "Jerlun",
+      "state": "Kedah",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.3835574269712458
+    },
+    {
+      "code": "P.006",
+      "name": "Kubang Pasu",
+      "state": "Kedah",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.3751121036207543
+    },
+    {
+      "code": "P.007",
+      "name": "Padang Terap",
+      "state": "Kedah",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.21699071857379415
+    },
+    {
+      "code": "P.008",
+      "name": "Pokok Sena",
+      "state": "Kedah",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.35744198093029855
+    },
+    {
+      "code": "P.009",
+      "name": "Alor Setar",
+      "state": "Kedah",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.12526181281586019
+    },
+    {
+      "code": "P.010",
+      "name": "Kuala Kedah",
+      "state": "Kedah",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.2756391102235228
+    },
+    {
+      "code": "P.011",
+      "name": "Pendang",
+      "state": "Kedah",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.4056545139904869
+    },
+    {
+      "code": "P.012",
+      "name": "Jerai",
+      "state": "Kedah",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.3950788643266552
+    },
+    {
+      "code": "P.013",
+      "name": "Sik",
+      "state": "Kedah",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.4176049871815874
+    },
+    {
+      "code": "P.014",
+      "name": "Merbok",
+      "state": "Kedah",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.20128595242514496
+    },
+    {
+      "code": "P.015",
+      "name": "Sungai Petani",
+      "state": "Kedah",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.012395971314642429
+    },
+    {
+      "code": "P.016",
+      "name": "Baling",
+      "state": "Kedah",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.2588118417532894
+    },
+    {
+      "code": "P.017",
+      "name": "Padang Serai",
+      "state": "Kedah",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.17416225296840748
+    },
+    {
+      "code": "P.018",
+      "name": "Kulim-Bandar Baharu",
+      "state": "Kedah",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.18198261941170663
+    },
+    {
+      "code": "P.019",
+      "name": "Tumpat",
+      "state": "Kelantan",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.32413801919659924
+    },
+    {
+      "code": "P.020",
+      "name": "Pengkalan Chepa",
+      "state": "Kelantan",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.4839425935736036
+    },
+    {
+      "code": "P.021",
+      "name": "Kota Bharu",
+      "state": "Kelantan",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.2862017790208813
+    },
+    {
+      "code": "P.022",
+      "name": "Pasir Mas",
+      "state": "Kelantan",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.4632404813158236
+    },
+    {
+      "code": "P.023",
+      "name": "Rantau Panjang",
+      "state": "Kelantan",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.33264039182560057
+    },
+    {
+      "code": "P.024",
+      "name": "Kubang Kerian",
+      "state": "Kelantan",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.4937040554687234
+    },
+    {
+      "code": "P.025",
+      "name": "Bachok",
+      "state": "Kelantan",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.32609716033839753
+    },
+    {
+      "code": "P.026",
+      "name": "Ketereh",
+      "state": "Kelantan",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.35930079635912504
+    },
+    {
+      "code": "P.027",
+      "name": "Tanah Merah",
+      "state": "Kelantan",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.6302459874154259
+    },
+    {
+      "code": "P.028",
+      "name": "Pasir Puteh",
+      "state": "Kelantan",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.35118090663374324
+    },
+    {
+      "code": "P.029",
+      "name": "Machang",
+      "state": "Kelantan",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.14753104591359661
+    },
+    {
+      "code": "P.030",
+      "name": "Jeli",
+      "state": "Kelantan",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.28184841054995086
+    },
+    {
+      "code": "P.031",
+      "name": "Kuala Krai",
+      "state": "Kelantan",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.38114995320025596
+    },
+    {
+      "code": "P.032",
+      "name": "Gua Musang",
+      "state": "Kelantan",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.005134234764662959
+    },
+    {
+      "code": "P.033",
+      "name": "Besut",
+      "state": "Terengganu",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.21029089936264478
+    },
+    {
+      "code": "P.034",
+      "name": "Setiu",
+      "state": "Terengganu",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.21598005314188867
+    },
+    {
+      "code": "P.035",
+      "name": "Kuala Nerus",
+      "state": "Terengganu",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.33137540182956743
+    },
+    {
+      "code": "P.036",
+      "name": "Kuala Terengganu",
+      "state": "Terengganu",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.41543037517904563
+    },
+    {
+      "code": "P.037",
+      "name": "Marang",
+      "state": "Terengganu",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.37432314340811024
+    },
+    {
+      "code": "P.038",
+      "name": "Hulu Terengganu",
+      "state": "Terengganu",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.21013069636292103
+    },
+    {
+      "code": "P.039",
+      "name": "Dungun",
+      "state": "Terengganu",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.36539715941619577
+    },
+    {
+      "code": "P.040",
+      "name": "Kemaman",
+      "state": "Terengganu",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.23196054609031846
+    },
+    {
+      "code": "P.041",
+      "name": "Kepala Batas",
+      "state": "Pulau Pinang",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.03287287997877214
+    },
+    {
+      "code": "P.042",
+      "name": "Tasek Gelugor",
+      "state": "Pulau Pinang",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.17416583934187846
+    },
+    {
+      "code": "P.043",
+      "name": "Bagan",
+      "state": "Pulau Pinang",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.7274163044951492
+    },
+    {
+      "code": "P.044",
+      "name": "Permatang Pauh",
+      "state": "Pulau Pinang",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.05650981345874401
+    },
+    {
+      "code": "P.045",
+      "name": "Bukit Mertajam",
+      "state": "Pulau Pinang",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.6261664874403827
+    },
+    {
+      "code": "P.046",
+      "name": "Batu Kawan",
+      "state": "Pulau Pinang",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.5911157951018726
+    },
+    {
+      "code": "P.047",
+      "name": "Nibong Tebal",
+      "state": "Pulau Pinang",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.2093785566318735
+    },
+    {
+      "code": "P.048",
+      "name": "Bukit Bendera",
+      "state": "Pulau Pinang",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.6861086905385789
+    },
+    {
+      "code": "P.049",
+      "name": "Tanjong",
+      "state": "Pulau Pinang",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.7588220286450135
+    },
+    {
+      "code": "P.050",
+      "name": "Jelutong",
+      "state": "Pulau Pinang",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.5501174505223184
+    },
+    {
+      "code": "P.051",
+      "name": "Bukit Gelugor",
+      "state": "Pulau Pinang",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.7374979706470324
+    },
+    {
+      "code": "P.052",
+      "name": "Bayan Baru",
+      "state": "Pulau Pinang",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.3931129378699166
+    },
+    {
+      "code": "P.053",
+      "name": "Balik Pulau",
+      "state": "Pulau Pinang",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.028582319813282575
+    },
+    {
+      "code": "P.054",
+      "name": "Gerik",
+      "state": "Perak",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.03130242545263068
+    },
+    {
+      "code": "P.055",
+      "name": "Lenggong",
+      "state": "Perak",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.040281888882163386
+    },
+    {
+      "code": "P.056",
+      "name": "Larut",
+      "state": "Perak",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.21520618438095712
+    },
+    {
+      "code": "P.057",
+      "name": "Parit Buntar",
+      "state": "Perak",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.09822699942567797
+    },
+    {
+      "code": "P.058",
+      "name": "Bagan Serai",
+      "state": "Perak",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.28833407926677285
+    },
+    {
+      "code": "P.059",
+      "name": "Bukit Gantang",
+      "state": "Perak",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.16984128937584075
+    },
+    {
+      "code": "P.060",
+      "name": "Taiping",
+      "state": "Perak",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.3051568242098896
+    },
+    {
+      "code": "P.061",
+      "name": "Padang Rengas",
+      "state": "Perak",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.09350425266651657
+    },
+    {
+      "code": "P.062",
+      "name": "Sungai Siput",
+      "state": "Perak",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.03107142855344741
+    },
+    {
+      "code": "P.063",
+      "name": "Tambun",
+      "state": "Perak",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.0337756383285287
+    },
+    {
+      "code": "P.064",
+      "name": "Ipoh Timor",
+      "state": "Perak",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.5542613756060759
+    },
+    {
+      "code": "P.065",
+      "name": "Ipoh Barat",
+      "state": "Perak",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.7189473930897069
+    },
+    {
+      "code": "P.066",
+      "name": "Batu Gajah",
+      "state": "Perak",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.7189287122764336
+    },
+    {
+      "code": "P.067",
+      "name": "Kuala Kangsar",
+      "state": "Perak",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.0912920792910506
+    },
+    {
+      "code": "P.068",
+      "name": "Beruas",
+      "state": "Perak",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.46649106734798546
+    },
+    {
+      "code": "P.069",
+      "name": "Parit",
+      "state": "Perak",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.04892703401859305
+    },
+    {
+      "code": "P.070",
+      "name": "Kampar",
+      "state": "Perak",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.2367578200779885
+    },
+    {
+      "code": "P.071",
+      "name": "Gopeng",
+      "state": "Perak",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.26592361284168275
+    },
+    {
+      "code": "P.072",
+      "name": "Tapah",
+      "state": "Perak",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.11860713534147538
+    },
+    {
+      "code": "P.073",
+      "name": "Pasir Salak",
+      "state": "Perak",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.07928421797671376
+    },
+    {
+      "code": "P.074",
+      "name": "Lumut",
+      "state": "Perak",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.0034015145847562933
+    },
+    {
+      "code": "P.075",
+      "name": "Bagan Datuk",
+      "state": "Perak",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.013010830758933556
+    },
+    {
+      "code": "P.076",
+      "name": "Teluk Intan",
+      "state": "Perak",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.24025710983430598
+    },
+    {
+      "code": "P.077",
+      "name": "Tanjong Malim",
+      "state": "Perak",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.054669588677341896
+    },
+    {
+      "code": "P.078",
+      "name": "Cameron Highlands",
+      "state": "Pahang",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.14137463823493396
+    },
+    {
+      "code": "P.079",
+      "name": "Lipis",
+      "state": "Pahang",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.17924110798529297
+    },
+    {
+      "code": "P.080",
+      "name": "Raub",
+      "state": "Pahang",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.07847447603447527
+    },
+    {
+      "code": "P.081",
+      "name": "Jerantut",
+      "state": "Pahang",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.11278924947380559
+    },
+    {
+      "code": "P.082",
+      "name": "Indera Mahkota",
+      "state": "Pahang",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.08618586584337895
+    },
+    {
+      "code": "P.083",
+      "name": "Kuantan",
+      "state": "Pahang",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.038506709464644406
+    },
+    {
+      "code": "P.084",
+      "name": "Paya Besar",
+      "state": "Pahang",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.029766333171760362
+    },
+    {
+      "code": "P.085",
+      "name": "Pekan",
+      "state": "Pahang",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.10474753547274235
+    },
+    {
+      "code": "P.086",
+      "name": "Maran",
+      "state": "Pahang",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.035836485671477736
+    },
+    {
+      "code": "P.087",
+      "name": "Kuala Krau",
+      "state": "Pahang",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.01295106358007947
+    },
+    {
+      "code": "P.088",
+      "name": "Temerloh",
+      "state": "Pahang",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.0609727730039602
+    },
+    {
+      "code": "P.089",
+      "name": "Bentong",
+      "state": "Pahang",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.005696261718491524
+    },
+    {
+      "code": "P.090",
+      "name": "Bera",
+      "state": "Pahang",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.2852240761508966
+    },
+    {
+      "code": "P.091",
+      "name": "Rompin",
+      "state": "Pahang",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.01299350723094167
+    },
+    {
+      "code": "P.092",
+      "name": "Sabak Bernam",
+      "state": "Selangor",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.11495565548758757
+    },
+    {
+      "code": "P.093",
+      "name": "Sungai Besar",
+      "state": "Selangor",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.0494981085381182
+    },
+    {
+      "code": "P.094",
+      "name": "Hulu Selangor",
+      "state": "Selangor",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.008950719223386083
+    },
+    {
+      "code": "P.095",
+      "name": "Tanjong Karang",
+      "state": "Selangor",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.034077325758239185
+    },
+    {
+      "code": "P.096",
+      "name": "Kuala Selangor",
+      "state": "Selangor",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.006901848959946499
+    },
+    {
+      "code": "P.097",
+      "name": "Selayang",
+      "state": "Selangor",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.16693666240045202
+    },
+    {
+      "code": "P.098",
+      "name": "Gombak",
+      "state": "Selangor",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.08080767300165143
+    },
+    {
+      "code": "P.099",
+      "name": "Ampang",
+      "state": "Selangor",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.288205996490375
+    },
+    {
+      "code": "P.100",
+      "name": "Pandan",
+      "state": "Selangor",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.42165116524107515
+    },
+    {
+      "code": "P.101",
+      "name": "Hulu Langat",
+      "state": "Selangor",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.11277795243647087
+    },
+    {
+      "code": "P.102",
+      "name": "Bangi",
+      "state": "Selangor",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.28930712885359977
+    },
+    {
+      "code": "P.103",
+      "name": "Puchong",
+      "state": "Selangor",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.47478523035352804
+    },
+    {
+      "code": "P.104",
+      "name": "Subang",
+      "state": "Selangor",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.6507520906912624
+    },
+    {
+      "code": "P.105",
+      "name": "Petaling Jaya",
+      "state": "Selangor",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.35075675245264804
+    },
+    {
+      "code": "P.106",
+      "name": "Damansara",
+      "state": "Selangor",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.716612237339247
+    },
+    {
+      "code": "P.107",
+      "name": "Sungai Buloh",
+      "state": "Selangor",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.016094144289686918
+    },
+    {
+      "code": "P.108",
+      "name": "Shah Alam",
+      "state": "Selangor",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.1371719949774533
+    },
+    {
+      "code": "P.109",
+      "name": "Kapar",
+      "state": "Selangor",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.07078669623532763
+    },
+    {
+      "code": "P.110",
+      "name": "Klang",
+      "state": "Selangor",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.5642412650012558
+    },
+    {
+      "code": "P.111",
+      "name": "Kota Raja",
+      "state": "Selangor",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.3782602929627061
+    },
+    {
+      "code": "P.112",
+      "name": "Kuala Langat",
+      "state": "Selangor",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.01099386678889469
+    },
+    {
+      "code": "P.113",
+      "name": "Sepang",
+      "state": "Selangor",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.06872251680368952
+    },
+    {
+      "code": "P.114",
+      "name": "Kepong",
+      "state": "W.P. Kuala Lumpur",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.8404271154154751
+    },
+    {
+      "code": "P.115",
+      "name": "Batu",
+      "state": "W.P. Kuala Lumpur",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.2591846538196723
+    },
+    {
+      "code": "P.116",
+      "name": "Wangsa Maju",
+      "state": "W.P. Kuala Lumpur",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.22711130629175985
+    },
+    {
+      "code": "P.117",
+      "name": "Segambut",
+      "state": "W.P. Kuala Lumpur",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.6990906259668048
+    },
+    {
+      "code": "P.118",
+      "name": "Setiawangsa",
+      "state": "W.P. Kuala Lumpur",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.16661164308713716
+    },
+    {
+      "code": "P.119",
+      "name": "Titiwangsa",
+      "state": "W.P. Kuala Lumpur",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.08084943535451494
+    },
+    {
+      "code": "P.120",
+      "name": "Bukit Bintang",
+      "state": "W.P. Kuala Lumpur",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.7320603328331469
+    },
+    {
+      "code": "P.121",
+      "name": "Lembah Pantai",
+      "state": "W.P. Kuala Lumpur",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.1767676106748136
+    },
+    {
+      "code": "P.122",
+      "name": "Seputeh",
+      "state": "W.P. Kuala Lumpur",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.7642024770312641
+    },
+    {
+      "code": "P.123",
+      "name": "Cheras",
+      "state": "W.P. Kuala Lumpur",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.7580164731936969
+    },
+    {
+      "code": "P.124",
+      "name": "Bandar Tun Razak",
+      "state": "W.P. Kuala Lumpur",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.10941357209348318
+    },
+    {
+      "code": "P.125",
+      "name": "Putrajaya",
+      "state": "W.P. Putrajaya",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.05457336547482933
+    },
+    {
+      "code": "P.126",
+      "name": "Jelebu",
+      "state": "Negeri Sembilan",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.18402582979299753
+    },
+    {
+      "code": "P.127",
+      "name": "Jempol",
+      "state": "Negeri Sembilan",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.08632065294364544
+    },
+    {
+      "code": "P.128",
+      "name": "Seremban",
+      "state": "Negeri Sembilan",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.25412842288447396
+    },
+    {
+      "code": "P.129",
+      "name": "Kuala Pilah",
+      "state": "Negeri Sembilan",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.13799765999979308
+    },
+    {
+      "code": "P.130",
+      "name": "Rasah",
+      "state": "Negeri Sembilan",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.5135152270213807
+    },
+    {
+      "code": "P.131",
+      "name": "Rembau",
+      "state": "Negeri Sembilan",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.1866161265132203
+    },
+    {
+      "code": "P.132",
+      "name": "Port Dickson",
+      "state": "Negeri Sembilan",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.28981925540740017
+    },
+    {
+      "code": "P.133",
+      "name": "Tampin",
+      "state": "Negeri Sembilan",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.02561098939247447
+    },
+    {
+      "code": "P.134",
+      "name": "Masjid Tanah",
+      "state": "Melaka",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.07207532530667088
+    },
+    {
+      "code": "P.135",
+      "name": "Alor Gajah",
+      "state": "Melaka",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.007507637867181338
+    },
+    {
+      "code": "P.136",
+      "name": "Tangga Batu",
+      "state": "Melaka",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.09240092826939628
+    },
+    {
+      "code": "P.137",
+      "name": "Hang Tuah Jaya",
+      "state": "Melaka",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.08678497952512321
+    },
+    {
+      "code": "P.138",
+      "name": "Kota Melaka",
+      "state": "Melaka",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.38088704950963476
+    },
+    {
+      "code": "P.139",
+      "name": "Jasin",
+      "state": "Melaka",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.004353538648407929
+    },
+    {
+      "code": "P.140",
+      "name": "Segamat",
+      "state": "Johor",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.028087090557658623
+    },
+    {
+      "code": "P.141",
+      "name": "Sekijang",
+      "state": "Johor",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.10374022236970837
+    },
+    {
+      "code": "P.142",
+      "name": "Labis",
+      "state": "Johor",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.058342792210097805
+    },
+    {
+      "code": "P.143",
+      "name": "Pagoh",
+      "state": "Johor",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.047308725079574454
+    },
+    {
+      "code": "P.144",
+      "name": "Ledang",
+      "state": "Johor",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.018402913375598406
+    },
+    {
+      "code": "P.145",
+      "name": "Bakri",
+      "state": "Johor",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.12260369065426396
+    },
+    {
+      "code": "P.146",
+      "name": "Muar",
+      "state": "Johor",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.027039420458292274
+    },
+    {
+      "code": "P.147",
+      "name": "Parit Sulong",
+      "state": "Johor",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.27260857058371274
+    },
+    {
+      "code": "P.148",
+      "name": "Ayer Hitam",
+      "state": "Johor",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.20272755137652626
+    },
+    {
+      "code": "P.149",
+      "name": "Sri Gading",
+      "state": "Johor",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.07452009616321298
+    },
+    {
+      "code": "P.150",
+      "name": "Batu Pahat",
+      "state": "Johor",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.06997228573235148
+    },
+    {
+      "code": "P.151",
+      "name": "Simpang Renggam",
+      "state": "Johor",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.18062611450614774
+    },
+    {
+      "code": "P.152",
+      "name": "Kluang",
+      "state": "Johor",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.1354535160615598
+    },
+    {
+      "code": "P.153",
+      "name": "Sembrong",
+      "state": "Johor",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.4042367119452512
+    },
+    {
+      "code": "P.154",
+      "name": "Mersing",
+      "state": "Johor",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.19102769665718128
+    },
+    {
+      "code": "P.155",
+      "name": "Tenggara",
+      "state": "Johor",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.29864299569044084
+    },
+    {
+      "code": "P.156",
+      "name": "Kota Tinggi",
+      "state": "Johor",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.4171493142357926
+    },
+    {
+      "code": "P.157",
+      "name": "Pengerang",
+      "state": "Johor",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.3598785997401473
+    },
+    {
+      "code": "P.158",
+      "name": "Tebrau",
+      "state": "Johor",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.17581513429275897
+    },
+    {
+      "code": "P.159",
+      "name": "Pasir Gudang",
+      "state": "Johor",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.08635727633887658
+    },
+    {
+      "code": "P.160",
+      "name": "Johor Bahru",
+      "state": "Johor",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.02968649472495949
+    },
+    {
+      "code": "P.161",
+      "name": "Pulai",
+      "state": "Johor",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.1420788378972765
+    },
+    {
+      "code": "P.162",
+      "name": "Iskandar Puteri",
+      "state": "Johor",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.2257079846621997
+    },
+    {
+      "code": "P.163",
+      "name": "Kulai",
+      "state": "Johor",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.17170335352427019
+    },
+    {
+      "code": "P.164",
+      "name": "Pontian",
+      "state": "Johor",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.267401488711848
+    },
+    {
+      "code": "P.165",
+      "name": "Tanjung Piai",
+      "state": "Johor",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.24139434221531414
+    },
+    {
+      "code": "P.166",
+      "name": "Labuan",
+      "state": "W.P. Labuan",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.016396117213284378
+    },
+    {
+      "code": "P.167",
+      "name": "Kudat",
+      "state": "Sabah",
+      "coalition": "BEBAS",
+      "coalition_name": "Independents",
+      "margin": 0.019548116723707987
+    },
+    {
+      "code": "P.168",
+      "name": "Kota Marudu",
+      "state": "Sabah",
+      "coalition": "KDM",
+      "coalition_name": "Parti Kesejahteraan Demokratik Masyarakat",
+      "margin": 0.13682034442488833
+    },
+    {
+      "code": "P.169",
+      "name": "Kota Belud",
+      "state": "Sabah",
+      "coalition": "WARISAN",
+      "coalition_name": "Parti Warisan",
+      "margin": 0.08030285851512925
+    },
+    {
+      "code": "P.170",
+      "name": "Tuaran",
+      "state": "Sabah",
+      "coalition": "GRS",
+      "coalition_name": "Gabungan Rakyat Sabah",
+      "margin": 0.019645772899593517
+    },
+    {
+      "code": "P.171",
+      "name": "Sepanggar",
+      "state": "Sabah",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.09512442745021682
+    },
+    {
+      "code": "P.172",
+      "name": "Kota Kinabalu",
+      "state": "Sabah",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.5263919217135662
+    },
+    {
+      "code": "P.173",
+      "name": "Putatan",
+      "state": "Sabah",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.0076664799710649545
+    },
+    {
+      "code": "P.174",
+      "name": "Penampang",
+      "state": "Sabah",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.2771525123591092
+    },
+    {
+      "code": "P.175",
+      "name": "Papar",
+      "state": "Sabah",
+      "coalition": "GRS",
+      "coalition_name": "Gabungan Rakyat Sabah",
+      "margin": 0.29768002407041555
+    },
+    {
+      "code": "P.176",
+      "name": "Kimanis",
+      "state": "Sabah",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.10157145574730331
+    },
+    {
+      "code": "P.177",
+      "name": "Beaufort",
+      "state": "Sabah",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.08980609360560643
+    },
+    {
+      "code": "P.178",
+      "name": "Sipitang",
+      "state": "Sabah",
+      "coalition": "GRS",
+      "coalition_name": "Gabungan Rakyat Sabah",
+      "margin": 0.18084597527651375
+    },
+    {
+      "code": "P.179",
+      "name": "Ranau",
+      "state": "Sabah",
+      "coalition": "GRS",
+      "coalition_name": "Gabungan Rakyat Sabah",
+      "margin": 0.37816804671475746
+    },
+    {
+      "code": "P.180",
+      "name": "Keningau",
+      "state": "Sabah",
+      "coalition": "GRS",
+      "coalition_name": "Gabungan Rakyat Sabah",
+      "margin": 0.16705488261832696
+    },
+    {
+      "code": "P.181",
+      "name": "Tenom",
+      "state": "Sabah",
+      "coalition": "BEBAS",
+      "coalition_name": "Independents",
+      "margin": 0.042016280394199246
+    },
+    {
+      "code": "P.182",
+      "name": "Pensiangan",
+      "state": "Sabah",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.1499706647050672
+    },
+    {
+      "code": "P.183",
+      "name": "Beluran",
+      "state": "Sabah",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.045867059467532056
+    },
+    {
+      "code": "P.184",
+      "name": "Libaran",
+      "state": "Sabah",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.28038578617201504
+    },
+    {
+      "code": "P.185",
+      "name": "Batu Sapi",
+      "state": "Sabah",
+      "coalition": "GRS",
+      "coalition_name": "Gabungan Rakyat Sabah",
+      "margin": 0.19784018085529848
+    },
+    {
+      "code": "P.186",
+      "name": "Sandakan",
+      "state": "Sabah",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.34374247799290136
+    },
+    {
+      "code": "P.187",
+      "name": "Kinabatangan",
+      "state": "Sabah",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.15106999710663005
+    },
+    {
+      "code": "P.188",
+      "name": "Lahad Datu",
+      "state": "Sabah",
+      "coalition": "WARISAN",
+      "coalition_name": "Parti Warisan",
+      "margin": 0.07080436657629596
+    },
+    {
+      "code": "P.189",
+      "name": "Semporna",
+      "state": "Sabah",
+      "coalition": "WARISAN",
+      "coalition_name": "Parti Warisan",
+      "margin": 0.4996826356176217
+    },
+    {
+      "code": "P.190",
+      "name": "Tawau",
+      "state": "Sabah",
+      "coalition": "GRS",
+      "coalition_name": "Gabungan Rakyat Sabah",
+      "margin": 0.09683333083140139
+    },
+    {
+      "code": "P.191",
+      "name": "Kalabakan",
+      "state": "Sabah",
+      "coalition": "BN",
+      "coalition_name": "Barisan Nasional",
+      "margin": 0.18539892792200907
+    },
+    {
+      "code": "P.192",
+      "name": "Mas Gading",
+      "state": "Sarawak",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.17656950430422186
+    },
+    {
+      "code": "P.193",
+      "name": "Santubong",
+      "state": "Sarawak",
+      "coalition": "GPS",
+      "coalition_name": "Gabungan Parti Sarawak",
+      "margin": 0.7469694406926707
+    },
+    {
+      "code": "P.194",
+      "name": "Petra Jaya",
+      "state": "Sarawak",
+      "coalition": "GPS",
+      "coalition_name": "Gabungan Parti Sarawak",
+      "margin": 0.5980430704567186
+    },
+    {
+      "code": "P.195",
+      "name": "Bandar Kuching",
+      "state": "Sarawak",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.4570662149259664
+    },
+    {
+      "code": "P.196",
+      "name": "Stampin",
+      "state": "Sarawak",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.09879105601565541
+    },
+    {
+      "code": "P.197",
+      "name": "Kota Samarahan",
+      "state": "Sarawak",
+      "coalition": "GPS",
+      "coalition_name": "Gabungan Parti Sarawak",
+      "margin": 0.5341187877263895
+    },
+    {
+      "code": "P.198",
+      "name": "Puncak Borneo",
+      "state": "Sarawak",
+      "coalition": "GPS",
+      "coalition_name": "Gabungan Parti Sarawak",
+      "margin": 0.2598949155652332
+    },
+    {
+      "code": "P.199",
+      "name": "Serian",
+      "state": "Sarawak",
+      "coalition": "GPS",
+      "coalition_name": "Gabungan Parti Sarawak",
+      "margin": 0.4167437757509298
+    },
+    {
+      "code": "P.200",
+      "name": "Batang Sadong",
+      "state": "Sarawak",
+      "coalition": "GPS",
+      "coalition_name": "Gabungan Parti Sarawak",
+      "margin": 0.6637473717288609
+    },
+    {
+      "code": "P.201",
+      "name": "Batang Lupar",
+      "state": "Sarawak",
+      "coalition": "GPS",
+      "coalition_name": "Gabungan Parti Sarawak",
+      "margin": 0.5307237571045118
+    },
+    {
+      "code": "P.202",
+      "name": "Sri Aman",
+      "state": "Sarawak",
+      "coalition": "GPS",
+      "coalition_name": "Gabungan Parti Sarawak",
+      "margin": 0.12486985502607051
+    },
+    {
+      "code": "P.203",
+      "name": "Lubok Antu",
+      "state": "Sarawak",
+      "coalition": "GPS",
+      "coalition_name": "Gabungan Parti Sarawak",
+      "margin": 0.003217762721859696
+    },
+    {
+      "code": "P.204",
+      "name": "Betong",
+      "state": "Sarawak",
+      "coalition": "GPS",
+      "coalition_name": "Gabungan Parti Sarawak",
+      "margin": 0.4226466560054038
+    },
+    {
+      "code": "P.205",
+      "name": "Saratok",
+      "state": "Sarawak",
+      "coalition": "PN",
+      "coalition_name": "Perikatan Nasional",
+      "margin": 0.2857980456285502
+    },
+    {
+      "code": "P.206",
+      "name": "Tanjong Manis",
+      "state": "Sarawak",
+      "coalition": "GPS",
+      "coalition_name": "Gabungan Parti Sarawak",
+      "margin": 0.7307837221315618
+    },
+    {
+      "code": "P.207",
+      "name": "Igan",
+      "state": "Sarawak",
+      "coalition": "GPS",
+      "coalition_name": "Gabungan Parti Sarawak",
+      "margin": 0.8638331950768108
+    },
+    {
+      "code": "P.208",
+      "name": "Sarikei",
+      "state": "Sarawak",
+      "coalition": "GPS",
+      "coalition_name": "Gabungan Parti Sarawak",
+      "margin": 0.10014681584626167
+    },
+    {
+      "code": "P.209",
+      "name": "Julau",
+      "state": "Sarawak",
+      "coalition": "PBM",
+      "coalition_name": "Parti Bangsa Malaysia",
+      "margin": 0.061567156479074125
+    },
+    {
+      "code": "P.210",
+      "name": "Kanowit",
+      "state": "Sarawak",
+      "coalition": "GPS",
+      "coalition_name": "Gabungan Parti Sarawak",
+      "margin": 0.01161650745236309
+    },
+    {
+      "code": "P.211",
+      "name": "Lanang",
+      "state": "Sarawak",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.2200718506067123
+    },
+    {
+      "code": "P.212",
+      "name": "Sibu",
+      "state": "Sarawak",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.11946786703883489
+    },
+    {
+      "code": "P.213",
+      "name": "Mukah",
+      "state": "Sarawak",
+      "coalition": "GPS",
+      "coalition_name": "Gabungan Parti Sarawak",
+      "margin": 0.5645598155887349
+    },
+    {
+      "code": "P.214",
+      "name": "Selangau",
+      "state": "Sarawak",
+      "coalition": "GPS",
+      "coalition_name": "Gabungan Parti Sarawak",
+      "margin": 0.1720839538603799
+    },
+    {
+      "code": "P.215",
+      "name": "Kapit",
+      "state": "Sarawak",
+      "coalition": "GPS",
+      "coalition_name": "Gabungan Parti Sarawak",
+      "margin": 0.5636596514046575
+    },
+    {
+      "code": "P.216",
+      "name": "Hulu Rajang",
+      "state": "Sarawak",
+      "coalition": "GPS",
+      "coalition_name": "Gabungan Parti Sarawak",
+      "margin": 0.3199324297653512
+    },
+    {
+      "code": "P.217",
+      "name": "Bintulu",
+      "state": "Sarawak",
+      "coalition": "GPS",
+      "coalition_name": "Gabungan Parti Sarawak",
+      "margin": 0.3155722311330066
+    },
+    {
+      "code": "P.218",
+      "name": "Sibuti",
+      "state": "Sarawak",
+      "coalition": "GPS",
+      "coalition_name": "Gabungan Parti Sarawak",
+      "margin": 0.3456624413570006
+    },
+    {
+      "code": "P.219",
+      "name": "Miri",
+      "state": "Sarawak",
+      "coalition": "PH",
+      "coalition_name": "Pakatan Harapan",
+      "margin": 0.08050398808347764
+    },
+    {
+      "code": "P.220",
+      "name": "Baram",
+      "state": "Sarawak",
+      "coalition": "GPS",
+      "coalition_name": "Gabungan Parti Sarawak",
+      "margin": 0.24553293827128625
+    },
+    {
+      "code": "P.221",
+      "name": "Limbang",
+      "state": "Sarawak",
+      "coalition": "GPS",
+      "coalition_name": "Gabungan Parti Sarawak",
+      "margin": 0.5048122262167434
+    },
+    {
+      "code": "P.222",
+      "name": "Lawas",
+      "state": "Sarawak",
+      "coalition": "GPS",
+      "coalition_name": "Gabungan Parti Sarawak",
+      "margin": 0.31056978889081843
+    }
+  ],
+  "caveat": "Two constants in the Swing Model were set by judgement, not fitted to data. Treat every figure here as a direction, not a forecast. Every Seat's call is arithmetic against its GE15 result under a state-uniform swing, never a bespoke judgement about that constituency.",
+  "sensitivity_table": [
+    {
+      "sentiment_sensitivity": 0.05,
+      "government_seat_total": 145
+    },
+    {
+      "sentiment_sensitivity": 0.1,
+      "government_seat_total": 146
+    },
+    {
+      "sentiment_sensitivity": 0.2,
+      "government_seat_total": 147
+    }
+  ],
+  "state_rollup": [
+    {
+      "state": "Johor",
+      "seats": 26,
+      "baseline_totals": [
+        {
+          "coalition": "BN",
+          "seats": 9
+        },
+        {
+          "coalition": "MUDA",
+          "seats": 1
+        },
+        {
+          "coalition": "PH",
+          "seats": 14
+        },
+        {
+          "coalition": "PN",
+          "seats": 2
+        }
+      ],
+      "projected_totals": [
+        {
+          "coalition": "BN",
+          "seats": 17
+        },
+        {
+          "coalition": "PH",
+          "seats": 9
+        }
+      ],
+      "swing": [
+        {
+          "coalition": "BN",
+          "swing": 0.1286712244497875
+        },
+        {
+          "coalition": "GPS",
+          "swing": -0.0009935197823002634
+        },
+        {
+          "coalition": "GRS",
+          "swing": 0.011803274367824801
+        },
+        {
+          "coalition": "PH",
+          "swing": -0.011455194148404218
+        },
+        {
+          "coalition": "PN",
+          "swing": -0.1129873228144843
+        }
+      ],
+      "signal_active": true
+    },
+    {
+      "state": "Kedah",
+      "seats": 15,
+      "baseline_totals": [
+        {
+          "coalition": "PH",
+          "seats": 1
+        },
+        {
+          "coalition": "PN",
+          "seats": 14
+        }
+      ],
+      "projected_totals": [
+        {
+          "coalition": "PH",
+          "seats": 1
+        },
+        {
+          "coalition": "PN",
+          "seats": 14
+        }
+      ],
+      "swing": [
+        {
+          "coalition": "BN",
+          "swing": 0.0041938534695262104
+        },
+        {
+          "coalition": "GPS",
+          "swing": -0.001987039564600527
+        },
+        {
+          "coalition": "GRS",
+          "swing": 0.023606548735649602
+        },
+        {
+          "coalition": "PH",
+          "swing": -0.0004948513452139533
+        },
+        {
+          "coalition": "PN",
+          "swing": -0.00430663132598494
+        }
+      ],
+      "signal_active": false
+    },
+    {
+      "state": "Kelantan",
+      "seats": 14,
+      "baseline_totals": [
+        {
+          "coalition": "PN",
+          "seats": 14
+        }
+      ],
+      "projected_totals": [
+        {
+          "coalition": "BN",
+          "seats": 1
+        },
+        {
+          "coalition": "PN",
+          "seats": 13
+        }
+      ],
+      "swing": [
+        {
+          "coalition": "BN",
+          "swing": 0.0041938534695262104
+        },
+        {
+          "coalition": "GPS",
+          "swing": -0.001987039564600527
+        },
+        {
+          "coalition": "GRS",
+          "swing": 0.023606548735649602
+        },
+        {
+          "coalition": "PH",
+          "swing": -0.0004948513452139533
+        },
+        {
+          "coalition": "PN",
+          "swing": -0.00430663132598494
+        }
+      ],
+      "signal_active": false
+    },
+    {
+      "state": "Melaka",
+      "seats": 6,
+      "baseline_totals": [
+        {
+          "coalition": "PH",
+          "seats": 3
+        },
+        {
+          "coalition": "PN",
+          "seats": 3
+        }
+      ],
+      "projected_totals": [
+        {
+          "coalition": "BN",
+          "seats": 1
+        },
+        {
+          "coalition": "PH",
+          "seats": 3
+        },
+        {
+          "coalition": "PN",
+          "seats": 2
+        }
+      ],
+      "swing": [
+        {
+          "coalition": "BN",
+          "swing": 0.0041938534695262104
+        },
+        {
+          "coalition": "GPS",
+          "swing": -0.001987039564600527
+        },
+        {
+          "coalition": "GRS",
+          "swing": 0.023606548735649602
+        },
+        {
+          "coalition": "PH",
+          "swing": -0.0004948513452139533
+        },
+        {
+          "coalition": "PN",
+          "swing": -0.00430663132598494
+        }
+      ],
+      "signal_active": false
+    },
+    {
+      "state": "Negeri Sembilan",
+      "seats": 8,
+      "baseline_totals": [
+        {
+          "coalition": "BN",
+          "seats": 5
+        },
+        {
+          "coalition": "PH",
+          "seats": 3
+        }
+      ],
+      "projected_totals": [
+        {
+          "coalition": "BN",
+          "seats": 5
+        },
+        {
+          "coalition": "PH",
+          "seats": 3
+        }
+      ],
+      "swing": [
+        {
+          "coalition": "BN",
+          "swing": 0.0041938534695262104
+        },
+        {
+          "coalition": "GPS",
+          "swing": -0.001987039564600527
+        },
+        {
+          "coalition": "GRS",
+          "swing": 0.023606548735649602
+        },
+        {
+          "coalition": "PH",
+          "swing": -0.0004948513452139533
+        },
+        {
+          "coalition": "PN",
+          "swing": -0.00430663132598494
+        }
+      ],
+      "signal_active": false
+    },
+    {
+      "state": "Pahang",
+      "seats": 14,
+      "baseline_totals": [
+        {
+          "coalition": "BN",
+          "seats": 5
+        },
+        {
+          "coalition": "PH",
+          "seats": 2
+        },
+        {
+          "coalition": "PN",
+          "seats": 7
+        }
+      ],
+      "projected_totals": [
+        {
+          "coalition": "BN",
+          "seats": 5
+        },
+        {
+          "coalition": "PH",
+          "seats": 2
+        },
+        {
+          "coalition": "PN",
+          "seats": 7
+        }
+      ],
+      "swing": [
+        {
+          "coalition": "BN",
+          "swing": 0.0041938534695262104
+        },
+        {
+          "coalition": "GPS",
+          "swing": -0.001987039564600527
+        },
+        {
+          "coalition": "GRS",
+          "swing": 0.023606548735649602
+        },
+        {
+          "coalition": "PH",
+          "swing": -0.0004948513452139533
+        },
+        {
+          "coalition": "PN",
+          "swing": -0.00430663132598494
+        }
+      ],
+      "signal_active": false
+    },
+    {
+      "state": "Perak",
+      "seats": 24,
+      "baseline_totals": [
+        {
+          "coalition": "BN",
+          "seats": 3
+        },
+        {
+          "coalition": "PH",
+          "seats": 11
+        },
+        {
+          "coalition": "PN",
+          "seats": 10
+        }
+      ],
+      "projected_totals": [
+        {
+          "coalition": "BN",
+          "seats": 4
+        },
+        {
+          "coalition": "PH",
+          "seats": 11
+        },
+        {
+          "coalition": "PN",
+          "seats": 9
+        }
+      ],
+      "swing": [
+        {
+          "coalition": "BN",
+          "swing": 0.0041938534695262104
+        },
+        {
+          "coalition": "GPS",
+          "swing": -0.001987039564600527
+        },
+        {
+          "coalition": "GRS",
+          "swing": 0.023606548735649602
+        },
+        {
+          "coalition": "PH",
+          "swing": -0.0004948513452139533
+        },
+        {
+          "coalition": "PN",
+          "swing": -0.00430663132598494
+        }
+      ],
+      "signal_active": false
+    },
+    {
+      "state": "Perlis",
+      "seats": 3,
+      "baseline_totals": [
+        {
+          "coalition": "PN",
+          "seats": 3
+        }
+      ],
+      "projected_totals": [
+        {
+          "coalition": "PN",
+          "seats": 3
+        }
+      ],
+      "swing": [
+        {
+          "coalition": "BN",
+          "swing": 0.0041938534695262104
+        },
+        {
+          "coalition": "GPS",
+          "swing": -0.001987039564600527
+        },
+        {
+          "coalition": "GRS",
+          "swing": 0.023606548735649602
+        },
+        {
+          "coalition": "PH",
+          "swing": -0.0004948513452139533
+        },
+        {
+          "coalition": "PN",
+          "swing": -0.00430663132598494
+        }
+      ],
+      "signal_active": false
+    },
+    {
+      "state": "Pulau Pinang",
+      "seats": 13,
+      "baseline_totals": [
+        {
+          "coalition": "PH",
+          "seats": 10
+        },
+        {
+          "coalition": "PN",
+          "seats": 3
+        }
+      ],
+      "projected_totals": [
+        {
+          "coalition": "PH",
+          "seats": 10
+        },
+        {
+          "coalition": "PN",
+          "seats": 3
+        }
+      ],
+      "swing": [
+        {
+          "coalition": "BN",
+          "swing": 0.0041938534695262104
+        },
+        {
+          "coalition": "GPS",
+          "swing": -0.001987039564600527
+        },
+        {
+          "coalition": "GRS",
+          "swing": 0.023606548735649602
+        },
+        {
+          "coalition": "PH",
+          "swing": -0.0004948513452139533
+        },
+        {
+          "coalition": "PN",
+          "swing": -0.00430663132598494
+        }
+      ],
+      "signal_active": false
+    },
+    {
+      "state": "Sabah",
+      "seats": 25,
+      "baseline_totals": [
+        {
+          "coalition": "BEBAS",
+          "seats": 2
+        },
+        {
+          "coalition": "BN",
+          "seats": 7
+        },
+        {
+          "coalition": "GRS",
+          "seats": 6
+        },
+        {
+          "coalition": "KDM",
+          "seats": 1
+        },
+        {
+          "coalition": "PH",
+          "seats": 5
+        },
+        {
+          "coalition": "PN",
+          "seats": 1
+        },
+        {
+          "coalition": "WARISAN",
+          "seats": 3
+        }
+      ],
+      "projected_totals": [
+        {
+          "coalition": "BEBAS",
+          "seats": 2
+        },
+        {
+          "coalition": "BN",
+          "seats": 7
+        },
+        {
+          "coalition": "GRS",
+          "seats": 7
+        },
+        {
+          "coalition": "KDM",
+          "seats": 1
+        },
+        {
+          "coalition": "PH",
+          "seats": 4
+        },
+        {
+          "coalition": "PN",
+          "seats": 1
+        },
+        {
+          "coalition": "WARISAN",
+          "seats": 3
+        }
+      ],
+      "swing": [
+        {
+          "coalition": "BN",
+          "swing": 0.0041938534695262104
+        },
+        {
+          "coalition": "GPS",
+          "swing": -0.001987039564600527
+        },
+        {
+          "coalition": "GRS",
+          "swing": 0.023606548735649602
+        },
+        {
+          "coalition": "PH",
+          "swing": -0.0004948513452139533
+        },
+        {
+          "coalition": "PN",
+          "swing": -0.00430663132598494
+        }
+      ],
+      "signal_active": false
+    },
+    {
+      "state": "Sarawak",
+      "seats": 31,
+      "baseline_totals": [
+        {
+          "coalition": "GPS",
+          "seats": 23
+        },
+        {
+          "coalition": "PBM",
+          "seats": 1
+        },
+        {
+          "coalition": "PH",
+          "seats": 6
+        },
+        {
+          "coalition": "PN",
+          "seats": 1
+        }
+      ],
+      "projected_totals": [
+        {
+          "coalition": "GPS",
+          "seats": 23
+        },
+        {
+          "coalition": "PBM",
+          "seats": 1
+        },
+        {
+          "coalition": "PH",
+          "seats": 6
+        },
+        {
+          "coalition": "PN",
+          "seats": 1
+        }
+      ],
+      "swing": [
+        {
+          "coalition": "BN",
+          "swing": 0.0041938534695262104
+        },
+        {
+          "coalition": "GPS",
+          "swing": -0.001987039564600527
+        },
+        {
+          "coalition": "GRS",
+          "swing": 0.023606548735649602
+        },
+        {
+          "coalition": "PH",
+          "swing": -0.0004948513452139533
+        },
+        {
+          "coalition": "PN",
+          "swing": -0.00430663132598494
+        }
+      ],
+      "signal_active": false
+    },
+    {
+      "state": "Selangor",
+      "seats": 22,
+      "baseline_totals": [
+        {
+          "coalition": "PH",
+          "seats": 16
+        },
+        {
+          "coalition": "PN",
+          "seats": 6
+        }
+      ],
+      "projected_totals": [
+        {
+          "coalition": "PH",
+          "seats": 16
+        },
+        {
+          "coalition": "PN",
+          "seats": 6
+        }
+      ],
+      "swing": [
+        {
+          "coalition": "BN",
+          "swing": 0.0041938534695262104
+        },
+        {
+          "coalition": "GPS",
+          "swing": -0.001987039564600527
+        },
+        {
+          "coalition": "GRS",
+          "swing": 0.023606548735649602
+        },
+        {
+          "coalition": "PH",
+          "swing": -0.0004948513452139533
+        },
+        {
+          "coalition": "PN",
+          "swing": -0.00430663132598494
+        }
+      ],
+      "signal_active": false
+    },
+    {
+      "state": "Terengganu",
+      "seats": 8,
+      "baseline_totals": [
+        {
+          "coalition": "PN",
+          "seats": 8
+        }
+      ],
+      "projected_totals": [
+        {
+          "coalition": "PN",
+          "seats": 8
+        }
+      ],
+      "swing": [
+        {
+          "coalition": "BN",
+          "swing": 0.0041938534695262104
+        },
+        {
+          "coalition": "GPS",
+          "swing": -0.001987039564600527
+        },
+        {
+          "coalition": "GRS",
+          "swing": 0.023606548735649602
+        },
+        {
+          "coalition": "PH",
+          "swing": -0.0004948513452139533
+        },
+        {
+          "coalition": "PN",
+          "swing": -0.00430663132598494
+        }
+      ],
+      "signal_active": false
+    },
+    {
+      "state": "W.P. Kuala Lumpur",
+      "seats": 11,
+      "baseline_totals": [
+        {
+          "coalition": "BN",
+          "seats": 1
+        },
+        {
+          "coalition": "PH",
+          "seats": 10
+        }
+      ],
+      "projected_totals": [
+        {
+          "coalition": "BN",
+          "seats": 1
+        },
+        {
+          "coalition": "PH",
+          "seats": 10
+        }
+      ],
+      "swing": [
+        {
+          "coalition": "BN",
+          "swing": 0.0041938534695262104
+        },
+        {
+          "coalition": "GPS",
+          "swing": -0.001987039564600527
+        },
+        {
+          "coalition": "GRS",
+          "swing": 0.023606548735649602
+        },
+        {
+          "coalition": "PH",
+          "swing": -0.0004948513452139533
+        },
+        {
+          "coalition": "PN",
+          "swing": -0.00430663132598494
+        }
+      ],
+      "signal_active": false
+    },
+    {
+      "state": "W.P. Labuan",
+      "seats": 1,
+      "baseline_totals": [
+        {
+          "coalition": "PN",
+          "seats": 1
+        }
+      ],
+      "projected_totals": [
+        {
+          "coalition": "PN",
+          "seats": 1
+        }
+      ],
+      "swing": [
+        {
+          "coalition": "BN",
+          "swing": 0.0041938534695262104
+        },
+        {
+          "coalition": "GPS",
+          "swing": -0.001987039564600527
+        },
+        {
+          "coalition": "GRS",
+          "swing": 0.023606548735649602
+        },
+        {
+          "coalition": "PH",
+          "swing": -0.0004948513452139533
+        },
+        {
+          "coalition": "PN",
+          "swing": -0.00430663132598494
+        }
+      ],
+      "signal_active": false
+    },
+    {
+      "state": "W.P. Putrajaya",
+      "seats": 1,
+      "baseline_totals": [
+        {
+          "coalition": "PN",
+          "seats": 1
+        }
+      ],
+      "projected_totals": [
+        {
+          "coalition": "PN",
+          "seats": 1
+        }
+      ],
+      "swing": [
+        {
+          "coalition": "BN",
+          "swing": 0.0041938534695262104
+        },
+        {
+          "coalition": "GPS",
+          "swing": -0.001987039564600527
+        },
+        {
+          "coalition": "GRS",
+          "swing": 0.023606548735649602
+        },
+        {
+          "coalition": "PH",
+          "swing": -0.0004948513452139533
+        },
+        {
+          "coalition": "PN",
+          "swing": -0.00430663132598494
+        }
+      ],
+      "signal_active": false
+    }
+  ],
+  "trend": [
+    {
+      "day": "2026-07-23",
+      "government_seats": 150,
+      "margin": 38
+    },
+    {
+      "day": "2026-07-24",
+      "government_seats": 151,
+      "margin": 39
+    },
+    {
+      "day": "2026-07-25",
+      "government_seats": 150,
+      "margin": 38
+    },
+    {
+      "day": "2026-07-26",
+      "government_seats": 151,
+      "margin": 39
+    },
+    {
+      "day": "2026-07-27",
+      "government_seats": 151,
+      "margin": 39
+    },
+    {
+      "day": "2026-07-28",
+      "government_seats": 150,
+      "margin": 38
+    },
+    {
+      "day": "2026-07-29",
+      "government_seats": 150,
+      "margin": 38
+    },
+    {
+      "day": "2026-07-30",
+      "government_seats": 146,
+      "margin": 34
+    },
+    {
+      "day": "2026-07-31",
+      "government_seats": 147,
+      "margin": 35
+    },
+    {
+      "day": "2026-08-01",
+      "government_seats": 146,
+      "margin": 34
+    },
+    {
+      "day": "2026-08-02",
+      "government_seats": 146,
+      "margin": 34
+    },
+    {
+      "day": "2026-08-03",
+      "government_seats": 146,
+      "margin": 34
+    },
+    {
+      "day": "2026-08-04",
+      "government_seats": 146,
+      "margin": 34
+    },
+    {
+      "day": "2026-08-05",
+      "government_seats": 146,
+      "margin": 34
+    },
+    {
+      "day": "2026-08-06",
+      "government_seats": 142,
+      "margin": 30
+    },
+    {
+      "day": "2026-08-07",
+      "government_seats": 147,
+      "margin": 35
+    },
+    {
+      "day": "2026-08-08",
+      "government_seats": 142,
+      "margin": 30
+    },
+    {
+      "day": "2026-08-09",
+      "government_seats": 146,
+      "margin": 34
+    },
+    {
+      "day": "2026-08-10",
+      "government_seats": 146,
+      "margin": 34
+    },
+    {
+      "day": "2026-08-11",
+      "government_seats": 146,
+      "margin": 34
+    },
+    {
+      "day": "2026-08-12",
+      "government_seats": 146,
+      "margin": 34
+    },
+    {
+      "day": "2026-08-13",
+      "government_seats": 149,
+      "margin": 37
+    },
+    {
+      "day": "2026-08-14",
+      "government_seats": 151,
+      "margin": 39
+    },
+    {
+      "day": "2026-08-15",
+      "government_seats": 150,
+      "margin": 38
+    },
+    {
+      "day": "2026-08-16",
+      "government_seats": 150,
+      "margin": 38
+    },
+    {
+      "day": "2026-08-17",
+      "government_seats": 146,
+      "margin": 34
+    },
+    {
+      "day": "2026-08-18",
+      "government_seats": 147,
+      "margin": 35
+    },
+    {
+      "day": "2026-08-19",
+      "government_seats": 146,
+      "margin": 34
+    },
+    {
+      "day": "2026-08-20",
+      "government_seats": 146,
+      "margin": 34
+    },
+    {
+      "day": "2026-08-21",
+      "government_seats": 146,
+      "margin": 34
+    },
+    {
+      "day": "2026-08-22",
+      "government_seats": 146,
+      "margin": 34
+    },
+    {
+      "day": "2026-08-23",
+      "government_seats": 146,
+      "margin": 34
+    }
+  ]
+}

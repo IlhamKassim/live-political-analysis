@@ -32,6 +32,7 @@ from typing import Any
 from sqlalchemy.engine import Engine
 
 from lpa.domain import Coalition, Projection, SeatBaseline
+from lpa.public_page import StateRollupRow, TrendReading
 
 SCHEMA_VERSION = 1
 
@@ -47,6 +48,9 @@ def export_model(
     projection: Projection,
     baseline: Sequence[SeatBaseline],
     names: Mapping[Coalition, str],
+    sensitivity_table: Sequence[tuple[float, int]] = (),
+    state_rollup: Sequence[StateRollupRow] = (),
+    trend: Sequence[TrendReading] = (),
 ) -> dict[str, Any]:
     """Build the export payload as a plain, JSON-serializable dict.
 
@@ -54,6 +58,21 @@ def export_model(
     without a matching Baseline Seat is a Storage inconsistency the export
     surfaces rather than papers over — `seat_call_card.build_all_cards`
     raises on the same condition.
+
+    `sensitivity_table`, `state_rollup`, and `trend` default to empty rather
+    than being required, so every existing caller (and every existing test)
+    that only cares about the per-Seat ledger keeps working unchanged; only
+    `build_export` — which builds a full `PageModel` via `public_page.
+    page_model` the way `public_page.build_page` does — passes them. They
+    are `PageModel`'s own computed values, not re-derived here: this
+    function only reshapes them into plain, JSON-serializable structures,
+    the same way it already does for `seats`.
+
+    `trend` is carried exactly as `PageModel.trend` computed it — 0, 1, or
+    several readings — never padded or faked to look like a trend line. The
+    frontend applies the same "need >= 2 readings to plot a line" rule
+    `PageModel.trend_is_plotted`/`trend_is_joined` state, rather than this
+    export deciding that for it.
     """
     baseline_by_code = {seat.code: seat for seat in baseline}
     seats = []
@@ -78,6 +97,37 @@ def export_model(
         "government_majority": projection.government_majority,
         "seats": seats,
         "caveat": CAVEAT,
+        "sensitivity_table": [
+            {"sentiment_sensitivity": value, "government_seat_total": total}
+            for value, total in sensitivity_table
+        ],
+        "state_rollup": [
+            {
+                "state": row.state,
+                "seats": row.seats,
+                "baseline_totals": [
+                    {"coalition": coalition, "seats": count}
+                    for coalition, count in row.baseline_totals
+                ],
+                "projected_totals": [
+                    {"coalition": coalition, "seats": count}
+                    for coalition, count in row.projected_totals
+                ],
+                "swing": [
+                    {"coalition": coalition, "swing": swing} for coalition, swing in row.swing
+                ],
+                "signal_active": row.signal_active,
+            }
+            for row in state_rollup
+        ],
+        "trend": [
+            {
+                "day": reading.day.isoformat(),
+                "government_seats": reading.government_seats,
+                "margin": reading.margin,
+            }
+            for reading in trend
+        ],
     }
 
 
@@ -105,9 +155,28 @@ def to_csv(payload: Mapping[str, Any]) -> str:
 
 
 def build_export(engine: Engine) -> tuple[str, str]:
-    """Read Storage and return `(json_body, csv_body)` for the latest Projection."""
-    from lpa.config import coalition_names, load_coalition_config
-    from lpa.storage import load_projections, load_seat_baselines
+    """Read Storage and return `(json_body, csv_body)` for the latest Projection.
+
+    Builds a full `PageModel` via `public_page.page_model` — the same
+    construction `public_page.build_page` uses — so the sensitivity table,
+    per-state rollup, and Majority-margin trend the export carries are the
+    identical numbers the public page states, never a second derivation of
+    them that could drift from the first.
+    """
+    from lpa.config import (
+        coalition_names,
+        load_coalition_config,
+        load_election_status,
+        load_state_election_signals,
+        swing_model_config,
+    )
+    from lpa.public_page import page_model
+    from lpa.storage import (
+        load_projections,
+        load_seat_baselines,
+        load_sentiment_snapshots,
+        load_state_swing,
+    )
 
     projections = load_projections(engine)
     if not projections:
@@ -116,8 +185,30 @@ def build_export(engine: Engine) -> tuple[str, str]:
     if not baseline:
         raise SystemExit("No Seat Baseline in Storage. Run `python -m lpa.baseline_loader` first.")
 
-    names = coalition_names(load_coalition_config())
-    payload = export_model(projections[-1], baseline, names)
+    config = load_coalition_config()
+    names = coalition_names(config)
+    snapshots = load_sentiment_snapshots(engine)
+    latest_sentiment = snapshots[-1].sentiment if snapshots else None
+    model = page_model(
+        projection=projections[-1],
+        baseline=baseline,
+        status=load_election_status(),
+        config=swing_model_config(config),
+        names=names,
+        sentiment=latest_sentiment,
+        state_election_signals=load_state_election_signals(),
+        total_seats=config["total_seats"],
+        state_swing=load_state_swing(engine, projections[-1].computed_at),
+        history=projections,
+    )
+    payload = export_model(
+        projections[-1],
+        baseline,
+        names,
+        sensitivity_table=model.sensitivity_table,
+        state_rollup=model.state_rollup,
+        trend=model.trend,
+    )
     return to_json(payload), to_csv(payload)
 
 

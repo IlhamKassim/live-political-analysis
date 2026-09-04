@@ -14,6 +14,7 @@ import pytest
 
 from lpa.domain import Projection, SeatBaseline, SeatCall
 from lpa.public_export import CAVEAT, SCHEMA_VERSION, export_model, to_csv, to_json
+from lpa.public_page import StateRollupRow, TrendReading
 
 PH = "PH"
 PN = "PN"
@@ -100,3 +101,76 @@ def test_the_csv_export_omits_whole_projection_fields():
     body = to_csv(payload)
     assert "schema_version" not in body
     assert CAVEAT not in body
+
+
+# ── the new fields (#135) ──────────────────────────────────────────────────
+
+
+def test_the_sensitivity_table_defaults_to_empty_and_serializes_named_rows():
+    payload = export_model(projection(), BASELINE, NAMES)
+    assert payload["sensitivity_table"] == []
+
+    payload = export_model(
+        projection(), BASELINE, NAMES, sensitivity_table=[(0.05, 110), (0.10, 112), (0.20, 118)]
+    )
+    assert payload["sensitivity_table"] == [
+        {"sentiment_sensitivity": 0.05, "government_seat_total": 110},
+        {"sentiment_sensitivity": 0.10, "government_seat_total": 112},
+        {"sentiment_sensitivity": 0.20, "government_seat_total": 118},
+    ]
+
+
+def test_the_state_rollup_serializes_each_rows_coalition_breakdowns():
+    row = StateRollupRow(
+        state="Selangor",
+        seats=22,
+        baseline_totals=((PH, 15), (PN, 7)),
+        projected_totals=((PH, 16), (PN, 6)),
+        swing=((PH, 0.02), (PN, -0.02)),
+        signal_active=True,
+    )
+    payload = export_model(projection(), BASELINE, NAMES, state_rollup=[row])
+    [state] = payload["state_rollup"]
+    assert state == {
+        "state": "Selangor",
+        "seats": 22,
+        "baseline_totals": [{"coalition": PH, "seats": 15}, {"coalition": PN, "seats": 7}],
+        "projected_totals": [{"coalition": PH, "seats": 16}, {"coalition": PN, "seats": 6}],
+        "swing": [{"coalition": PH, "swing": 0.02}, {"coalition": PN, "swing": -0.02}],
+        "signal_active": True,
+    }
+
+
+def test_the_trend_carries_however_many_readings_exist_without_padding():
+    payload = export_model(projection(), BASELINE, NAMES)
+    assert payload["trend"] == []
+
+    readings = [
+        TrendReading(day=date(2026, 8, 19), government_seats=110, margin=-2),
+        TrendReading(day=date(2026, 8, 20), government_seats=112, margin=0),
+    ]
+    payload = export_model(projection(), BASELINE, NAMES, trend=readings)
+    assert payload["trend"] == [
+        {"day": "2026-08-19", "government_seats": 110, "margin": -2},
+        {"day": "2026-08-20", "government_seats": 112, "margin": 0},
+    ]
+
+
+def test_the_json_export_round_trips_the_new_fields_too():
+    row = StateRollupRow(
+        state="Johor",
+        seats=26,
+        baseline_totals=((PN, 26),),
+        projected_totals=((PN, 26),),
+        swing=(),
+        signal_active=False,
+    )
+    payload = export_model(
+        projection(),
+        BASELINE,
+        NAMES,
+        sensitivity_table=[(0.10, 112)],
+        state_rollup=[row],
+        trend=[TrendReading(day=date(2026, 8, 20), government_seats=112, margin=0)],
+    )
+    assert json.loads(to_json(payload)) == payload
