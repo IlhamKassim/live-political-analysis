@@ -67,6 +67,7 @@
     <button id="sb-map" class="sb-item" type="button" data-i18n-aria="nav_map" aria-label="Map" data-i18n-title="nav_map"><span class="sb-ic"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m8 4 8-2 5 2.5v15l-5-2.5-8 2-5-2.5v-15z"/><path d="M8 4v15"/><path d="M16 2v15"/><path d="M5.7 11.5h4.1"/><path d="M14.2 7.5h4.1"/></svg></span><span class="sb-label" data-i18n="nav_map">Map</span></button>
     <button id="sb-politicians" class="sb-item" type="button" data-i18n-aria="nav_politicians" aria-label="Politicians" data-i18n-title="nav_politicians"><span class="sb-ic"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/><path d="M16.8 4.4a3.5 3.5 0 0 1 0 5.2"/><path d="M18.7 15.2a6.3 6.3 0 0 1 2.8 5.8"/></svg></span><span class="sb-label" data-i18n="nav_politicians">Politicians</span></button>
     <button id="sb-dewan" class="sb-item" type="button" data-i18n-aria="nav_dewan" aria-label="Dewan" data-i18n-title="nav_dewan"><span class="sb-ic"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V10M9.5 21V10M14.5 21V10M19 21V10"/><path d="M3 10h18l-9-6-9 6z"/></svg></span><span class="sb-label" data-i18n="nav_dewan">Dewan</span></button>
+    <button id="sb-bills" class="sb-item" type="button" data-i18n-aria="nav_bills" aria-label="Bills" data-i18n-title="nav_bills"><span class="sb-ic"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg></span><span class="sb-label" data-i18n="nav_bills">Bills</span></button>
   </nav>
   <div class="sb-section" data-i18n="sidebar_states">States</div>
   <nav id="sb-states" class="sb-states"></nav>
@@ -117,6 +118,9 @@
         </button>
         <button id="top-dewan" class="iconbtn" type="button" data-i18n-aria="nav_dewan" aria-label="Dewan" data-i18n-title="nav_dewan" title="Dewan">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V10M9.5 21V10M14.5 21V10M19 21V10"/><path d="M3 10h18l-9-6-9 6z"/></svg>
+        </button>
+        <button id="top-bills" class="iconbtn" type="button" data-i18n-aria="nav_bills" aria-label="Bills" data-i18n-title="nav_bills" title="Bills">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
         </button>
         <button id="top-info" class="iconbtn" type="button" data-i18n-aria="info_aria" aria-label="About MyPolitik" data-i18n-title="info_aria" title="About MyPolitik">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.2"/><circle cx="12" cy="7.6" r="0.7" fill="currentColor" stroke="none"/></svg>
@@ -242,6 +246,7 @@
   <section id="politicians-view" aria-label="Politicians directory"></section>
   <section id="news-view" aria-label="News"></section>
   <section id="dewan-view" aria-label="Dewan Rakyat activity"></section>
+  <section id="bills-view" aria-label="Bill tracker"></section>
   <dialog id="pol-modal" class="pol-modal" aria-label="Politician profile"></dialog>
   <dialog id="candidate-modal" class="pol-modal candidate-modal" aria-label="Candidate profile"></dialog>
   <dialog id="pledges-modal" class="pol-modal pledges-modal" aria-label="Manifesto pledges"></dialog>

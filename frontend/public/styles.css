@@ -1390,6 +1390,154 @@ button.dewan-tr:hover { background: var(--surface-hover, var(--bg-2)); }
 .bento-spot-dewan { margin-top: 10px; }
 .dewan-spot-link { color: var(--accent-2); font-size: 11px; text-decoration: none; white-space: nowrap; }
 .dewan-spot-link:hover { text-decoration: underline; }
+
+/* ===== Parliamentary bills tracker ===== */
+.bills-page { max-width: 900px; margin: 0 auto; }
+.bills-controls { flex-wrap: wrap; }
+.bills-sorts { flex: 0 0 auto; }
+.bills-table.rows {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.bills-table.rows dt,
+.bills-table.rows dd {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+.bills-table.rows dt {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  border-right: 1px solid var(--line);
+  color: var(--ink-dim);
+  font-size: 11.5px;
+  background: var(--surface-soft, var(--bg));
+}
+.bills-table.rows dd {
+  margin: 0;
+  text-align: left;
+  font-size: 13.5px;
+}
+.bills-table.rows dt:last-of-type,
+.bills-table.rows dd:last-of-type {
+  border-bottom: 0;
+}
+.bill-code {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.bill-date {
+  font-size: 11px;
+}
+.bill-expandable {
+  width: 100%;
+}
+.bill-summary-trigger {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+.bill-summary-trigger::-webkit-details-marker {
+  display: none;
+}
+.bill-title-text {
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ink);
+}
+.bill-toggle-indicator {
+  font-size: 11px;
+  color: var(--ink-dim);
+  transition: transform .15s ease;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+.bill-expandable[open] .bill-toggle-indicator {
+  transform: rotate(180deg);
+}
+.bill-expanded-content {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in oklab, var(--line) 60%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.bill-huraian {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--ink-dim);
+}
+.bill-huraian-p {
+  margin: 0 0 6px;
+  color: var(--ink);
+}
+.bill-source-p {
+  margin: 0;
+  font-size: 11px;
+}
+.bill-source-p a {
+  color: var(--accent-2);
+  text-decoration: none;
+}
+.bill-source-p a:hover {
+  text-decoration: underline;
+}
+.bill-division-box {
+  margin-top: 2px;
+}
+.bill-division-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 6px;
+}
+.bill-division-rows.rows {
+  margin-top: 4px;
+}
+.bill-division-rows.rows dt {
+  font-size: 11.5px;
+  background: transparent;
+}
+.bill-division-rows.rows dd {
+  font-size: 12.5px;
+  text-align: right;
+}
+.bill-voice-vote-note {
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+}
+@media (max-width: 680px) {
+  .bills-table.rows {
+    grid-template-columns: 1fr;
+  }
+  .bills-table.rows dt {
+    border-right: 0;
+    border-bottom: 0;
+    padding-bottom: 4px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .bills-table.rows dd {
+    padding-top: 4px;
+  }
+}
 .seat-overview {
   display: grid;
   gap: 10px;
@@ -3455,11 +3603,12 @@ body.searching .results {
 .yb-credit { font-size: 10.5px; margin: 0; }
 
 /* ===== Politicians directory ===== */
-#politicians-view, #news-view, #dewan-view { display: none; }
-body.politicians-open #politicians-view, body.news-open #news-view, body.dewan-open #dewan-view { display: block; }
+#politicians-view, #news-view, #dewan-view, #bills-view { display: none; }
+body.politicians-open #politicians-view, body.news-open #news-view, body.dewan-open #dewan-view, body.bills-open #bills-view { display: block; }
 body.politicians-open #stage, body.politicians-open #panel,
 body.news-open #stage, body.news-open #panel,
-body.dewan-open #stage, body.dewan-open #panel { display: none; }
+body.dewan-open #stage, body.dewan-open #panel,
+body.bills-open #stage, body.bills-open #panel { display: none; }
 /* directory pages hide map chrome; keep centre MyPolitik title + theme/lang cluster */
 body.politicians-open #brand-home,
 body.politicians-open #mobile-menu-btn,
@@ -3472,10 +3621,15 @@ body.news-open #topbar-actions,
 body.dewan-open #brand-home,
 body.dewan-open #mobile-menu-btn,
 body.dewan-open #mobile-menu,
-body.dewan-open #topbar-actions { display: none !important; }
+body.dewan-open #topbar-actions,
+body.bills-open #brand-home,
+body.bills-open #mobile-menu-btn,
+body.bills-open #mobile-menu,
+body.bills-open #topbar-actions { display: none !important; }
 body.politicians-open #topbar,
 body.news-open #topbar,
-body.dewan-open #topbar {
+body.dewan-open #topbar,
+body.bills-open #topbar {
   display: flex;
   align-items: center;
   background: transparent;
@@ -3487,7 +3641,9 @@ body.politicians-open #topbar .topbar-context,
 body.news-open #topbar .topbar-end,
 body.news-open #topbar .topbar-context,
 body.dewan-open #topbar .topbar-end,
-body.dewan-open #topbar .topbar-context { pointer-events: auto; }
+body.dewan-open #topbar .topbar-context,
+body.bills-open #topbar .topbar-end,
+body.bills-open #topbar .topbar-context { pointer-events: auto; }
 /* news full page: a readable single column of headlines (reuses the .pol-dir shell) */
 .news-page { max-width: 760px; margin: 0 auto; }
 .news-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 2px; }
@@ -5292,7 +5448,7 @@ html[data-theme="light"] .bento-news .muted {
   #topbar .topicons { display: none; }
   body.politicians-open #politicians-view { left: 232px; }
   body.politicians-open .pol-dir { left: 232px; }
-  body.dewan-open .pol-dir { left: 232px; }
+  body.dewan-open .pol-dir, body.bills-open .pol-dir { left: 232px; }
 }
 .sb-brand {
   display: flex; align-items: center; gap: 6px;
@@ -5477,7 +5633,7 @@ html[data-theme="light"] .sb-state.is-map-hover .sb-state-emblem::after {
   body.sb-collapsed #topbar { left: 60px; }
   body.sb-collapsed.politicians-open #politicians-view { left: 60px; }
   body.sb-collapsed.politicians-open .pol-dir { left: 60px; }
-  body.sb-collapsed.dewan-open .pol-dir { left: 60px; }
+  body.sb-collapsed.dewan-open .pol-dir, body.sb-collapsed.bills-open .pol-dir { left: 60px; }
   body.sb-collapsed .sb-brand,
   body.sb-collapsed .sb-label,
   body.sb-collapsed .sb-section,
