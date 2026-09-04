@@ -45,7 +45,9 @@ def test_the_export_carries_the_schema_version_and_run_date():
 
 
 def test_a_coalition_row_carries_its_score_articles_and_delta():
-    rows = (SentimentPageRow(coalition=PH, name="unused", article_count=12, score=0.31, delta=0.04),)
+    rows = (
+        SentimentPageRow(coalition=PH, name="unused", article_count=12, score=0.31, delta=0.04),
+    )
     payload = export_model(model(rows=rows), NAMES)
     [row] = payload["coalitions"]
     assert row == {
@@ -58,7 +60,9 @@ def test_a_coalition_row_carries_its_score_articles_and_delta():
 
 
 def test_a_coalition_the_names_map_does_not_know_falls_back_to_its_code():
-    rows = (SentimentPageRow(coalition="IND", name="unused", article_count=1, score=0.0, delta=None),)
+    rows = (
+        SentimentPageRow(coalition="IND", name="unused", article_count=1, score=0.0, delta=None),
+    )
     payload = export_model(model(rows=rows), NAMES)
     assert payload["coalitions"][0]["coalition_name"] == "IND"
 
@@ -103,9 +107,7 @@ def test_shorter_history_than_the_limit_is_carried_in_full():
 
 
 def test_sources_and_counts_are_carried_verbatim():
-    payload = export_model(
-        model(sources=("The Star", "Malaysiakini"), total_articles=42), NAMES
-    )
+    payload = export_model(model(sources=("The Star", "Malaysiakini"), total_articles=42), NAMES)
     assert payload["sources"] == ["The Star", "Malaysiakini"]
     assert payload["sources_count"] == 2
     assert payload["total_articles"] == 42
