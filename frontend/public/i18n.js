@@ -387,6 +387,7 @@ export const I18N = {
     pol_divisions_count: "{n} votes",
     pol_bills_count: "{n} bills",
     coalition_diff_note: "GE15 ballot: {ge15} · Current: {current}",
+    not_calibrated: "NOT CALIBRATED",
   },
   ms: {
     tap_district: "Ketik kawasan untuk lihat wakil rakyatnya",
@@ -772,5 +773,6 @@ export const I18N = {
     pol_divisions_count: "{n} undian",
     pol_bills_count: "{n} RUU",
     coalition_diff_note: "Undian GE15: {ge15} · Terkini: {current}",
+    not_calibrated: "BELUM DITENTUKUR",
   },
 };

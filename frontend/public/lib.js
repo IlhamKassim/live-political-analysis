@@ -515,3 +515,40 @@ export function buildEmbedCode(seat, tier = "parlimen", options = {}) {
   return `<iframe src="${embedUrl}" width="${width}" height="${height}" style="border:1px solid rgba(255,255,255,0.12);border-radius:14px;max-width:540px;width:100%;display:block;" title="${title}" loading="lazy"></iframe>`;
 }
 
+// Check if an input represents a modelled value (boolean true, "MODEL", or object with modelled_number/kind).
+export function isModelledKind(kindOrBool) {
+  if (kindOrBool === true) return true;
+  if (!kindOrBool) return false;
+  if (typeof kindOrBool === "string") {
+    return kindOrBool.trim().toUpperCase() === "MODEL";
+  }
+  if (typeof kindOrBool === "object") {
+    if (kindOrBool.modelled_number === true) return true;
+    if (typeof kindOrBool.kind === "string" && kindOrBool.kind.trim().toUpperCase() === "MODEL") return true;
+  }
+  return false;
+}
+
+// Canonical text for the uncalibrated model tag (bilingual, matches politikku_i18n.py).
+export function trustTagText(lang = "en") {
+  return lang === "ms" ? "BELUM DITENTUKUR" : "NOT CALIBRATED";
+}
+
+// Inline trust tag component. Returns the tag markup beside the value only when modelled,
+// or empty string (or plain value) when factual/unmodelled.
+export function trustTagHTML(kindOrBool, valueOrOptions = null, maybeLang = "en") {
+  let val = valueOrOptions;
+  let l = maybeLang;
+  if (valueOrOptions && typeof valueOrOptions === "object" && ("value" in valueOrOptions || "lang" in valueOrOptions)) {
+    val = valueOrOptions.value ?? null;
+    l = valueOrOptions.lang || maybeLang || "en";
+  }
+  const isModelled = isModelledKind(kindOrBool);
+  const hasValue = val !== null && val !== undefined;
+  if (!isModelled) {
+    return hasValue ? String(val) : "";
+  }
+  const tag = `<span class="pill pill-model">${trustTagText(l)}</span>`;
+  return hasValue ? `${val} ${tag}` : tag;
+}
+

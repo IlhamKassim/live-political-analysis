@@ -375,6 +375,16 @@ body.state-open #state-label {
 
 .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600;
   font-family: var(--mono); color: #0b0e13; }
+.pill-model {
+  font-size: 10px;
+  padding: 1px 7px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  background: color-mix(in oklab, #ffd166 18%, transparent);
+  color: #ffd166;
+  border: 1px solid color-mix(in oklab, #ffd166 40%, transparent);
+  vertical-align: middle;
+}
 .placeholder { color: var(--ink-faint); font-style: italic; font-size: 13px; }
 
 .note { margin-top: 18px; padding: 11px 12px; background: var(--bg); border: 1px solid var(--line);
@@ -5915,6 +5925,11 @@ html[data-theme="light"] .vote-pill.vote-absent {
   background: rgba(0, 0, 0, .06);
   color: #555;
   border-color: rgba(0, 0, 0, .15);
+}
+html[data-theme="light"] .pill-model {
+  background: color-mix(in oklab, #b45309 12%, transparent);
+  color: #b45309;
+  border-color: color-mix(in oklab, #b45309 35%, transparent);
 }
 html[data-theme="light"] .yb-coalition-note,
 html[data-theme="light"] .pol-card-coal-diff {

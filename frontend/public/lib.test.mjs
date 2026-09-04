@@ -13,6 +13,7 @@ import {
   resultKey, displayCode, tallyCoalitions, stateHues, swatchTextColor,
   competitivenessFromMajorityPct, withCurrentAffiliation, seatViewBox,
   getRepPhotoUrl, formatSocialShareText, buildEmbedCode,
+  isModelledKind, trustTagText, trustTagHTML,
 } from "./lib.js";
 import { I18N } from "./i18n.js";
 
@@ -1129,5 +1130,63 @@ test("buildEmbedCode: produces responsive iframe tag with seat URL", () => {
   assert.match(code, /loading="lazy"/);
 
   assert.equal(buildEmbedCode(null), "");
+});
+
+test("isModelledKind: correctly detects modelled flags and objects", () => {
+  assert.equal(isModelledKind(true), true);
+  assert.equal(isModelledKind("MODEL"), true);
+  assert.equal(isModelledKind("model"), true);
+  assert.equal(isModelledKind({ modelled_number: true }), true);
+  assert.equal(isModelledKind({ kind: "MODEL" }), true);
+  assert.equal(isModelledKind({ kind: "model" }), true);
+
+  assert.equal(isModelledKind(false), false);
+  assert.equal(isModelledKind(null), false);
+  assert.equal(isModelledKind(undefined), false);
+  assert.equal(isModelledKind("FACT"), false);
+  assert.equal(isModelledKind("fact"), false);
+  assert.equal(isModelledKind({ modelled_number: false }), false);
+  assert.equal(isModelledKind({ kind: "FACT" }), false);
+  assert.equal(isModelledKind(0), false);
+  assert.equal(isModelledKind(""), false);
+});
+
+test("trustTagText: exact strings match I18N and politikku_i18n.py specification", () => {
+  assert.equal(trustTagText("en"), "NOT CALIBRATED");
+  assert.equal(trustTagText("ms"), "BELUM DITENTUKUR");
+  assert.equal(trustTagText(), "NOT CALIBRATED");
+  assert.equal(trustTagText("en"), I18N.en.not_calibrated);
+  assert.equal(trustTagText("ms"), I18N.ms.not_calibrated);
+});
+
+test("trustTagHTML: renders inline pill for modelled values, empty/plain for facts", () => {
+  // Gating without value: modelled returns pill, fact returns empty string
+  assert.equal(trustTagHTML(true, null, "en"), '<span class="pill pill-model">NOT CALIBRATED</span>');
+  assert.equal(trustTagHTML(true, null, "ms"), '<span class="pill pill-model">BELUM DITENTUKUR</span>');
+  assert.equal(trustTagHTML("MODEL", null, "en"), '<span class="pill pill-model">NOT CALIBRATED</span>');
+  assert.equal(trustTagHTML(false, null, "en"), "");
+  assert.equal(trustTagHTML("FACT", null, "en"), "");
+  assert.equal(trustTagHTML(null, null, "en"), "");
+  assert.equal(trustTagHTML(undefined, null, "ms"), "");
+
+  // Inline beside value
+  assert.equal(trustTagHTML(true, 112, "en"), '112 <span class="pill pill-model">NOT CALIBRATED</span>');
+  assert.equal(trustTagHTML("MODEL", "54%", "ms"), '54% <span class="pill pill-model">BELUM DITENTUKUR</span>');
+  assert.equal(trustTagHTML(true, 0, "en"), '0 <span class="pill pill-model">NOT CALIBRATED</span>');
+
+  // Value with factual flag returns unadorned value
+  assert.equal(trustTagHTML(false, 112, "en"), "112");
+  assert.equal(trustTagHTML("FACT", "PH", "ms"), "PH");
+  assert.equal(trustTagHTML(null, 0, "en"), "0");
+
+  // Options object
+  assert.equal(
+    trustTagHTML({ kind: "MODEL" }, { value: 82, lang: "ms" }),
+    '82 <span class="pill pill-model">BELUM DITENTUKUR</span>'
+  );
+  assert.equal(
+    trustTagHTML({ kind: "FACT" }, { value: 82, lang: "ms" }),
+    "82"
+  );
 });
 

@@ -6,7 +6,8 @@ import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSe
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues, swatchTextColor,
   competitivenessFromMajorityPct, withCurrentAffiliation, seatViewBox,
-  getRepPhotoUrl, formatSocialShareText, buildEmbedCode } from "./lib.js?v=145";
+  getRepPhotoUrl, formatSocialShareText, buildEmbedCode,
+  isModelledKind, trustTagText, trustTagHTML } from "./lib.js?v=145";
 import { I18N } from "./i18n.js?v=153";
 
 const SVG = document.getElementById("map");
@@ -104,6 +105,10 @@ function t(key, params) {
   let s = (I18N[lang] && I18N[lang][key]) ?? I18N.en[key] ?? key;
   if (params) for (const k in params) s = s.split(`{${k}}`).join(params[k]);
   return s;
+}
+
+function trustTag(kindOrBool, value = null) {
+  return trustTagHTML(kindOrBool, value, lang);
 }
 
 function syncThemeControls() {
