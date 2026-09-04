@@ -290,10 +290,6 @@ jobs:
           TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
         run: python -m lpa.telegram_post
 
-      - name: Generate sitemap
-        continue-on-error: true
-        run: python -m lpa.politikku_sitemap
-
       - name: Fold frontend/ into the Pages artifact
         # #134 (Step 5): the merged-in PolitikKu/mypolitik frontend (frontend/)
         # is a self-contained static app with no build step by design (see
@@ -303,6 +299,14 @@ jobs:
         # rendered above (ADR 0011). The Cloudflare Worker deploy originally
         # planned alongside this is out of scope here — Cloudflare's own
         # dashboard Git-integration now handles that deploy separately.
+        #
+        # Runs BEFORE "Generate sitemap": politikku_sitemap.py auto-discovers
+        # every public/**/*.html file, including public/app/index.html and
+        # public/app/embed.html once they exist — but only if they already
+        # exist when it scans. Folding frontend/ in first is what makes
+        # /app/ show up in sitemap.xml at all; the reverse order silently
+        # produced a sitemap with no /app/ entries, caught by a user asking
+        # why the new frontend wasn't showing up for Google.
         run: |
           mkdir -p public/app
           cp -r frontend/public/. public/app/
@@ -328,6 +332,10 @@ jobs:
             exit 1
           fi
           echo "Frontend fold-in verified: public/app/index.html and public/app/data/bills.json present."
+
+      - name: Generate sitemap
+        continue-on-error: true
+        run: python -m lpa.politikku_sitemap
 
       - name: Configure Pages
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b
