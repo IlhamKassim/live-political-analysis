@@ -6079,7 +6079,7 @@ async function refreshPrnLive() {
   const stateSlug = (e.state || "").toLowerCase().replace(/\s+/g, "-");
   const localHost = ["", "localhost", "127.0.0.1", "::1"].includes(location.hostname);
   const candUrls = [
-    `/api/live/${eid}`,
+    `https://politikku.ilhamkassim2003.workers.dev/api/live/${eid}`,
     `data/live-${eid}.json`,
   ];
   if (stateSlug && !candUrls.includes(`data/live-${stateSlug}.json`)) {
