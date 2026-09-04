@@ -13,7 +13,10 @@ export default {
     if (url.pathname === "/api/health") {
       return Response.json({ ok: true, app: "mypolitik", ts: Date.now() });
     }
-    if (url.pathname === "/api/live/johor") {
+    const liveMatch = url.pathname.match(/^\/api\/live\/([a-zA-Z0-9_-]+)$/);
+    if (liveMatch) {
+      const electionId = liveMatch[1];
+      const kvStore = env.LIVE_ELECTIONS || env.PRN_LIVE;
       if (request.method === "PUT") {
         const expected = env.LIVE_PUBLISH_TOKEN;
         const supplied = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "")
@@ -21,7 +24,7 @@ export default {
         if (!expected || supplied !== expected) {
           return Response.json({ error: "unauthorized" }, { status: 401 });
         }
-        if (!env.PRN_LIVE) {
+        if (!kvStore) {
           return Response.json({ error: "live store unavailable" }, { status: 503 });
         }
         let body;
@@ -31,28 +34,57 @@ export default {
         } catch (_) {
           return Response.json({ error: "invalid live payload" }, { status: 400 });
         }
-        if (!body || typeof body !== "object" || body.election !== "prn16-johor" || !body.seats || typeof body.seats !== "object") {
+        const matchesElection = body && typeof body === "object" && (
+          body.election === electionId ||
+          (electionId === "johor" && body.election === "prn16-johor") ||
+          (typeof body.election === "string" && body.election.endsWith(`-${electionId}`))
+        );
+        if (!matchesElection || !body.seats || typeof body.seats !== "object") {
           return Response.json({ error: "invalid live payload" }, { status: 422 });
         }
-        await env.PRN_LIVE.put("johor", JSON.stringify(body), { expirationTtl: 900 });
+        await kvStore.put(electionId, JSON.stringify(body), { expirationTtl: 900 });
+        if (electionId === "prn16-johor") {
+          try { await kvStore.put("johor", JSON.stringify(body), { expirationTtl: 900 }); } catch (_) {}
+        } else if (electionId === "johor") {
+          try { await kvStore.put("prn16-johor", JSON.stringify(body), { expirationTtl: 900 }); } catch (_) {}
+        }
         return Response.json({ ok: true, updated: body.updated || null });
       }
-      // PRN16 Johor live state, in preference order:
-      // 1. KV (binding PRN_LIVE, key "johor") — instant no-deploy publishing, if bound;
-      // 2. the baked asset /data/live-johor.json — the poller republishes it via a
-      //    ~15s `wrangler deploy` each cycle (works with the deploy-scoped token);
-      // 3. campaign default.
+      // Live state for electionId, in preference order:
+      // 1. KV (binding LIVE_ELECTIONS / PRN_LIVE, key electionId)
+      // 2. Baked asset /data/live-<electionId>.json (or /data/live-<suffix>.json fallback)
+      // 3. Campaign default
       let live = null;
       try {
-        if (env.PRN_LIVE) live = await env.PRN_LIVE.get("johor", { type: "json" });
+        if (kvStore) {
+          live = await kvStore.get(electionId, { type: "json" });
+          if (!live && electionId === "johor") {
+            live = await kvStore.get("prn16-johor", { type: "json" });
+          } else if (!live && electionId === "prn16-johor") {
+            live = await kvStore.get("johor", { type: "json" });
+          }
+        }
       } catch (_) {}
-      if (!live) {
-        try {
-          const a = await env.ASSETS.fetch(new URL("/data/live-johor.json", url.origin));
-          if (a.ok) live = await a.json();
-        } catch (_) {}
+      if (!live && env.ASSETS) {
+        const candidatePaths = [`/data/live-${electionId}.json`];
+        if (electionId.includes("-")) {
+          const suffix = electionId.split("-").slice(1).join("-");
+          candidatePaths.push(`/data/live-${suffix}.json`);
+        }
+        if (electionId === "johor") {
+          candidatePaths.push("/data/live-prn16-johor.json");
+        }
+        for (const p of candidatePaths) {
+          try {
+            const a = await env.ASSETS.fetch(new URL(p, url.origin));
+            if (a.ok) {
+              live = await a.json();
+              break;
+            }
+          } catch (_) {}
+        }
       }
-      return Response.json(live || { phase: "campaign" }, {
+      return Response.json(live || { phase: "campaign", election: electionId }, {
         headers: { "cache-control": "public, max-age=5, stale-while-revalidate=15" },
       });
     }

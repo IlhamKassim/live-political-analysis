@@ -1,0 +1,19 @@
+{
+  "id": "prn16-johor",
+  "aliases": ["johor", "prn16"],
+  "name": "PRN Johor 2026",
+  "state": "Johor",
+  "tier": "dun",
+  "state_code": 1,
+  "seat_prefix": "1_",
+  "total_seats": 56,
+  "majority": 29,
+  "master_file": "public/data/prn16-johor.json",
+  "out_file": "public/data/live-johor.json",
+  "manual_csv": "pipeline/live/manual.csv",
+  "sinar_urls": "pipeline/live/sinar_urls.txt",
+  "sinar_cache": "pipeline/raw/sinar_undian",
+  "thestar_url_env": "THESTAR_URL",
+  "myundi_url_env": "MYUNDI_URL",
+  "api_route": "/api/live/prn16-johor"
+}
