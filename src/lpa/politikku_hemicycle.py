@@ -42,8 +42,8 @@ _CX, _CY = 200.0, 196.0
 _DOT_RADIUS = 3.5
 VIEW_BOX = "0 0 400 214"
 
-_THRESHOLD_STROKE = "#b9b3a5"
-_THRESHOLD_LABEL_FILL = "#8a9099"
+_THRESHOLD_STROKE = "var(--line-strong)"
+_THRESHOLD_LABEL_FILL = "var(--muted)"
 
 
 class Palette(StrEnum):
@@ -63,14 +63,14 @@ class Palette(StrEnum):
 
 _FILL: dict[Palette, dict[str, str]] = {
     Palette.LIGHT: {
-        "government": "#14203a",
-        "noise": "#d6d1c6",
-        "nongovernment": "#93a0ac",
+        "government": "var(--data-government)",
+        "noise": "var(--data-noise)",
+        "nongovernment": "var(--data-nongovernment)",
     },
     Palette.DARK_BAND: {
-        "government": "#fbfaf7",
-        "noise": "#3d4a63",
-        "nongovernment": "#8792a6",
+        "government": "var(--data-government)",
+        "noise": "var(--data-noise)",
+        "nongovernment": "var(--data-nongovernment)",
     },
 }
 
@@ -192,7 +192,7 @@ def render_hemicycle(
             f'<line x1="{_CX:.0f}" y1="16" x2="{_CX:.0f}" y2="200" '
             f'stroke="{_THRESHOLD_STROKE}" stroke-width="1" stroke-dasharray="3 3"></line>'
             f'<text x="{_CX:.0f}" y="211" text-anchor="middle" '
-            'font-family="IBM Plex Mono, monospace" font-size="9.5" '
+            'font-family="var(--mono, monospace)" font-size="9.5" '
             f'fill="{_THRESHOLD_LABEL_FILL}" letter-spacing="0.06em">'
             f"{html.escape(majority_label)}</text>"
         )

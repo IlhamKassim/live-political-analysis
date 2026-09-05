@@ -11,15 +11,14 @@ from lpa.domain import ElectionStatus
 from lpa.politikku_dewan import (
     PAGE_DIR,
     build_and_write_dewan_pages,
+    coalition_pill_style,
     dewan_page_model,
     format_dewan_date,
     load_dewan_data,
     main,
-    party_color,
     pill_style,
     render_dewan_body,
     render_dewan_page,
-    swatch_text_color,
 )
 from lpa.politikku_shell import Language
 
@@ -198,21 +197,19 @@ def test_dewan_model_ties_in_turns_preserves_stability():
 # ── Color & Formatting Helpers ─────────────────────────────────────────────
 
 
-def test_party_color_and_pill_style():
-    assert party_color("PH") == "#d7263d"
-    assert party_color("ph") == "#d7263d"
-    assert party_color("UNKNOWN_PARTY") == "#5d6b7d"
-    assert party_color("") == "#5d6b7d"
-    assert party_color(None) == "#5d6b7d"
+def test_coalition_pill_style():
+    style = coalition_pill_style()
+    assert "var(--paper-alt)" in style
+    assert "var(--line-strong)" in style
+    assert "var(--ink-secondary)" in style
 
-    # White text on dark red
-    assert swatch_text_color("#d7263d") == "#fff"
-    # Dark text on bright blue (BN)
-    assert swatch_text_color("#1f9bd6") == "#05070c"
+    gov_style = coalition_pill_style(is_government=True)
+    assert "var(--data-government)" in gov_style
+    assert "var(--paper)" in gov_style
 
-    style = pill_style("#d7263d")
-    assert "background:#d7263d" in style
-    assert "color:#fff" in style
+    # pill_style alias behaves identically
+    assert pill_style() == style
+    assert pill_style(True) == gov_style
 
 
 def test_format_dewan_date():
@@ -239,8 +236,8 @@ def test_render_dewan_body_contains_key_elements_and_classes():
     # Shell elements matching app.js DOM contract
     assert '<section id="dewan-view"' in body
     assert 'class="pol-dir dewan-page"' in body
-    assert 'class="pol-back"' in body
-    assert "data-dewan-back" in body
+    assert 'class="pol-back"' not in body
+    assert "data-dewan-back" not in body
     assert "<h1>Dewan Rakyat activity</h1>" in body
     assert 'class="dewan-tiles"' in body
     assert 'class="pol-dir-controls dewan-controls"' in body

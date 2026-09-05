@@ -32,70 +32,22 @@ from lpa.politikku_shell import (
 
 PAGE_DIR = "dewan"
 
-# Palette colors and contrast logic mirroring frontend/public/lib.js
-COALITION_COLORS: dict[str, str] = {
-    "PH": "#d7263d",
-    "PN": "#15387c",
-    "BN": "#1f9bd6",
-    "GPS": "#b8332e",
-    "GRS": "#e8772e",
-    "WARISAN": "#16a085",
-    "KDM": "#8e44ad",
-    "PBM": "#6c7a89",
-    "BEBAS": "#8a97a6",
-    "STAR": "#b08a1f",
-    "UPKO": "#2e8b57",
-    "PSB": "#9b4d8a",
-}
+
+def coalition_pill_style(is_government: bool = False) -> str:
+    """Generate CSS style attribute string for coalition badge pills.
+
+    Retires coalition palette colors per #149: coalition is identified by its LABEL,
+    not its hue. The one permitted exception: a pill marking the Government
+    Coalition may use --data-government.
+    """
+    if is_government:
+        return "background:var(--data-government);border:1px solid var(--data-government);color:var(--paper);"
+    return "background:var(--paper-alt);border:1px solid var(--line-strong);color:var(--ink-secondary);"
 
 
-def party_color(p: str | None) -> str:
-    """Map coalition or party name to swatch color."""
-    return COALITION_COLORS.get((p or "").upper(), "#5d6b7d")
-
-
-def _hex_to_rgb(hex_code: str) -> tuple[int, int, int] | None:
-    s = hex_code.strip().removeprefix("#")
-    if len(s) == 3:
-        s = "".join(c + c for c in s)
-    if len(s) != 6:
-        return None
-    try:
-        n = int(s, 16)
-        return ((n >> 16) & 255, (n >> 8) & 255, n & 255)
-    except ValueError:
-        return None
-
-
-def _rel_lum(rgb: tuple[int, int, int]) -> float:
-    channels = []
-    for v in rgb:
-        c = v / 255.0
-        channels.append(c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4)
-    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
-
-
-def _contrast_ratio(a: tuple[int, int, int], b: tuple[int, int, int]) -> float:
-    l1 = _rel_lum(a)
-    l2 = _rel_lum(b)
-    hi = max(l1, l2)
-    lo = min(l1, l2)
-    return (hi + 0.05) / (lo + 0.05)
-
-
-def swatch_text_color(bg: str) -> str:
-    """Choose readable foreground text (#05070c or #fff) for background swatch."""
-    rgb = _hex_to_rgb(bg)
-    if not rgb:
-        return "#fff"
-    white = (255, 255, 255)
-    ink = (5, 7, 12)
-    return "#05070c" if _contrast_ratio(ink, rgb) >= _contrast_ratio(white, rgb) else "#fff"
-
-
-def pill_style(bg: str, fg: str | None = None) -> str:
+def pill_style(is_government: bool = False) -> str:
     """Generate CSS style attribute string for badge pills."""
-    return f"background:{bg};color:{fg or swatch_text_color(bg)}"
+    return coalition_pill_style(is_government)
 
 
 def format_dewan_date(iso_date: str | None, language: Language = Language.EN) -> str:
@@ -257,7 +209,6 @@ def dewan_page_model(
 
 def render_dewan_body(model: DewanPageModel, language: Language = Language.EN) -> str:
     """Render the inner body HTML matching app.js #dewan-view element IDs/classes."""
-    back_label = t(language, "Back to map", "Kembali ke peta")
     page_title = t(language, "Dewan Rakyat activity", "Aktiviti Dewan Rakyat")
 
     from_str = format_dewan_date(model.from_date, language)
@@ -312,9 +263,8 @@ def render_dewan_body(model: DewanPageModel, language: Language = Language.EN) -
             )
             mp_display = html.escape(r.mp) if r.mp else t(language, "Seat vacant", "Kerusi kosong")
             last_display = html.escape(format_dewan_date(r.last, language)) if r.last else "—"
-            badge_color = party_color(r.coalition)
-            badge_style = pill_style(badge_color)
             coalition_label = html.escape(r.coalition or "—")
+            badge_style = coalition_pill_style()
 
             rows_parts.append(
                 f"""    <button class="dewan-tr" type="button" data-dewan-seat="{html.escape(r.code)}" """
@@ -358,10 +308,6 @@ def render_dewan_body(model: DewanPageModel, language: Language = Language.EN) -
     return f"""<section id="dewan-view" aria-label="{html.escape(page_title)}">
     <div class="pol-dir dewan-page">
       <div class="pol-dir-head">
-        <button class="pol-back" type="button" data-dewan-back>
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
-          <span>{html.escape(back_label)}</span>
-        </button>
         <h1>{html.escape(page_title)}</h1>
         <p class="pol-dir-sub">{html.escape(page_sub)}</p>
       </div>
@@ -373,7 +319,7 @@ def render_dewan_body(model: DewanPageModel, language: Language = Language.EN) -
       <div class="pol-dir-controls dewan-controls">
         <input id="dewan-search" class="pol-dir-search" type="search" autocomplete="off" spellcheck="false"
           placeholder="{html.escape(search_ph)}" />
-        <select id="dewan-coal" class="pol-dir-select" aria-label="{html.escape(all_coal)}">
+        <select id="dewan-coal" aria-label="{html.escape(all_coal)}">
           <option value="">{html.escape(all_coal)}</option>
           {coalition_options}
         </select>

@@ -601,13 +601,13 @@ _CSS = """
   .pk-mp-identity { background: var(--paper-alt); padding: 30px 30px 26px; }
   .pk-mp-identity-row { display: flex; gap: 20px; align-items: flex-start; }
   .pk-mp-portrait {
-    width: 112px; height: 140px; flex-shrink: 0; background: #e0dbd0; border: 1px solid #cfc9bc;
+    width: 112px; height: 140px; flex-shrink: 0; background: var(--paper-alt); border: 1px solid var(--line-strong);
     border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center;
-    font-family: var(--serif); font-size: 40px; color: var(--muted);
+    font-family: var(--sans); font-size: 40px; color: var(--muted);
   }
   .pk-mp-seat-code { font-family: var(--mono); font-size: 13px; color: var(--muted); }
   .pk-mp-identity-text h1 {
-    font-family: var(--serif); font-weight: 500; font-size: 40px; line-height: 1.1;
+    font-family: var(--sans); font-weight: 500; font-size: 40px; line-height: 1.1;
     color: var(--ink); margin: 2px 0 0;
   }
   .pk-mp-state { font-size: 13px; color: var(--ink-secondary); margin-top: 2px; }
@@ -618,13 +618,13 @@ _CSS = """
     padding: 4px 9px; border-radius: var(--radius-sm); border: 1px solid var(--line-strong);
     color: var(--ink-secondary); background: var(--white);
   }
-  .pk-mp-chip-gov { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .pk-mp-chip-gov { background: var(--data-government); color: var(--paper); border-color: var(--data-government); }
   .pk-mp-tenure { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
   .pk-mp-stat-grid {
     display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 24px;
     padding-top: 16px; border-top: 1px solid var(--line);
   }
-  .pk-mp-stat { font-family: var(--serif); font-size: 26px; color: var(--ink); }
+  .pk-mp-stat { font-family: var(--sans); font-size: 26px; color: var(--ink); }
   .pk-mp-stat-cap { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
 
   .pk-mp-mobile-actions { display: none; }
@@ -640,7 +640,7 @@ _CSS = """
   .pk-mp-projection { grid-row: 3; }
   .pk-mp-footer-note { grid-row: 4; }
   .pk-mp-record h3, .pk-mp-voting h3, .pk-mp-bills h3, .pk-mp-card h3 {
-    font-family: var(--serif); font-weight: 500; font-size: 19px; color: var(--ink); margin: 0 0 12px;
+    font-family: var(--sans); font-weight: 500; font-size: 19px; color: var(--ink); margin: 0 0 12px;
   }
   .pk-mp-card {
     background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-lg);
@@ -662,9 +662,9 @@ _CSS = """
     font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase;
     padding: 3px 8px; border-radius: var(--radius-sm); white-space: nowrap;
   }
-  .pk-vote-aye { background: #eef3f0; border: 1px solid #cfe0da; color: #1f5c58; }
-  .pk-vote-no { background: #f6f0e4; border: 1px solid #e6dcc4; color: #8a6a2f; }
-  .pk-vote-absent { background: #f1efea; border: 1px solid #dcd8cf; color: #8a9099; }
+  .pk-vote-aye { background: var(--positive-bg); border: 1px solid var(--positive-border); color: var(--accent); }
+  .pk-vote-no { background: var(--caution-bg); border: 1px solid var(--caution-border); color: var(--caution); }
+  .pk-vote-absent { background: var(--paper-alt); border: 1px solid var(--line); color: var(--muted); }
 
   .pk-mp-bill-card {
     background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-lg);
@@ -679,7 +679,7 @@ _CSS = """
   .pk-mp-parliament-link { display: inline-block; margin-top: 12px; font-size: 12.5px; }
 
   .pk-mp-projection-headline {
-    font-family: var(--serif); font-size: 24px; color: var(--ink); display: flex;
+    font-family: var(--sans); font-size: 24px; color: var(--ink); display: flex;
     align-items: center; gap: 8px; flex-wrap: wrap;
   }
   .pk-mp-projection-note { font-size: 13px; color: var(--ink-secondary); margin: 8px 0 14px; }

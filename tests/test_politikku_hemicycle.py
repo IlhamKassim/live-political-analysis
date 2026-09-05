@@ -51,19 +51,19 @@ def test_a_split_that_does_not_sum_to_222_is_refused():
 
 def test_the_dots_are_filled_in_three_contiguous_bands_left_to_right():
     svg = render_hemicycle(EVEN_SPLIT, show_threshold=False)
-    fills = re.findall(r'fill="(#[0-9a-f]{6})"', svg)
+    fills = re.findall(r'fill="([^"]+)"', svg)
     assert len(fills) == TOTAL_SEATS
-    assert fills[:92] == ["#14203a"] * 92
-    assert fills[92:164] == ["#d6d1c6"] * 72
-    assert fills[164:] == ["#93a0ac"] * 58
+    assert fills[:92] == ["var(--data-government)"] * 92
+    assert fills[92:164] == ["var(--data-noise)"] * 72
+    assert fills[164:] == ["var(--data-nongovernment)"] * 58
 
 
 def test_the_dark_band_palette_recolours_without_changing_the_split():
     svg = render_hemicycle(EVEN_SPLIT, palette=Palette.DARK_BAND, show_threshold=False)
-    fills = re.findall(r'fill="(#[0-9a-f]{6})"', svg)
-    assert fills[:92] == ["#fbfaf7"] * 92
-    assert fills[92:164] == ["#3d4a63"] * 72
-    assert fills[164:] == ["#8792a6"] * 58
+    fills = re.findall(r'fill="([^"]+)"', svg)
+    assert fills[:92] == ["var(--data-government)"] * 92
+    assert fills[92:164] == ["var(--data-noise)"] * 72
+    assert fills[164:] == ["var(--data-nongovernment)"] * 58
 
 
 def test_the_threshold_line_and_label_are_present_only_when_asked_for():

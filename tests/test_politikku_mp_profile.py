@@ -233,9 +233,18 @@ def test_an_abstain_vote_gets_its_own_label_with_no_invented_colour():
 
 def test_vote_pill_colours_match_the_readme_table_exactly():
     html_text = render_mp_profile_body(_model())
-    assert "background: #eef3f0; border: 1px solid #cfe0da; color: #1f5c58;" in html_text
-    assert "background: #f6f0e4; border: 1px solid #e6dcc4; color: #8a6a2f;" in html_text
-    assert "background: #f1efea; border: 1px solid #dcd8cf; color: #8a9099;" in html_text
+    assert (
+        "background: var(--positive-bg); border: 1px solid var(--positive-border); color: var(--accent);"
+        in html_text
+    )
+    assert (
+        "background: var(--caution-bg); border: 1px solid var(--caution-border); color: var(--caution);"
+        in html_text
+    )
+    assert (
+        "background: var(--paper-alt); border: 1px solid var(--line); color: var(--muted);"
+        in html_text
+    )
 
 
 def test_the_mobile_media_query_puts_the_projection_right_after_record():

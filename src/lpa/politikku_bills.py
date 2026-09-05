@@ -138,68 +138,41 @@ def bills_page_model(
 # ── Rendering ─────────────────────────────────────────────────────────────
 
 
-def _swatch_text_color(bg_hex: str) -> str:
-    """Readable foreground for a stage/division pill's background colour.
-
-    A faithful, standalone port of `lib.js`'s `swatchTextColor` (WCAG
-    contrast of near-black vs. white against the background, picking
-    whichever wins) — kept tiny and dependency-free rather than shelling
-    out to Node, since this page needs exactly six fixed colours' worth of
-    it and the algorithm is this short."""
-    h = bg_hex.lstrip("#")
-    r, g, b = (int(h[i : i + 2], 16) for i in (0, 2, 4))
-
-    def _channel(v: int) -> float:
-        c = v / 255
-        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
-
-    def _rel_lum(rgb: tuple[int, int, int]) -> float:
-        cr, cg, cb = (_channel(v) for v in rgb)
-        return 0.2126 * cr + 0.7152 * cg + 0.0722 * cb
-
-    def _contrast(a: tuple[int, int, int], bg: tuple[int, int, int]) -> float:
-        la, lb = _rel_lum(a), _rel_lum(bg)
-        hi, lo = max(la, lb), min(la, lb)
-        return (hi + 0.05) / (lo + 0.05)
-
-    rgb = (r, g, b)
-    ink = (5, 7, 12)
-    white = (255, 255, 255)
-    return "#05070c" if _contrast(ink, rgb) >= _contrast(white, rgb) else "#fff"
+def _pill_style(
+    bg: str = "var(--paper-alt)",
+    fg: str = "var(--ink-secondary)",
+    border: str = "var(--line-strong)",
+) -> str:
+    """Generate CSS style attribute string for badge pills from theme tokens."""
+    return f"background:{bg};color:{fg};border:1px solid {border};"
 
 
-def _pill_style(bg_hex: str) -> str:
-    return f"background:{bg_hex};color:{_swatch_text_color(bg_hex)}"
-
-
-def _bill_stage_color(stage: str) -> str:
-    """Faithful port of `app.js`'s `billStageColor()`."""
+def _bill_stage_style(stage: str) -> str:
+    """Map bill stage string to tokenized pill style."""
     s = stage.lower()
     if "lulus" in s:
-        return "#16a34a"
+        return _pill_style("var(--positive-bg)", "var(--accent)", "var(--positive-border)")
     if "jkpk" in s or "jawatankuasa" in s:
-        return "#d97706"
+        return _pill_style("var(--caution-bg)", "var(--caution)", "var(--caution-border)")
     if "bacaan" in s:
-        return "#2563eb"
+        return _pill_style("var(--paper-alt)", "var(--accent)", "var(--line-strong)")
     if "tidak mendapat undi" in s or "tolak" in s:
-        return "#dc2626"
-    if "tarik" in s:
-        return "#64748b"
-    return "#64748b"
+        return _pill_style("var(--paper-alt)", "var(--muted)", "var(--line-strong)")
+    return _pill_style("var(--paper-alt)", "var(--ink-secondary)", "var(--line-strong)")
 
 
-_DIVISION_PILL_COLOR = "#4338ca"
+_DIVISION_PILL_STYLE = _pill_style("var(--caution-bg)", "var(--caution)", "var(--caution-border)")
 
 
 def _bill_row(bill: Bill, language: Language) -> str:
     """One `<dt>`/`<dd>` pair, matching `renderBillsRows()`'s markup exactly
     so `app.js` can re-render on top of this without a DOM shape change."""
     stage_pill = (
-        f'<span class="pill" style="{_pill_style(_bill_stage_color(bill.stage))}">'
+        f'<span class="pill" style="{_bill_stage_style(bill.stage)}">'
         f"{html.escape(bill.stage)}</span>"
     )
     division_pill = (
-        f'<span class="pill" style="{_pill_style(_DIVISION_PILL_COLOR)}">'
+        f'<span class="pill" style="{_DIVISION_PILL_STYLE}">'
         f"{html.escape(t(language, 'Division vote', 'Undian belah bahagian'))}</span>"
         if bill.division is not None
         else ""
@@ -245,13 +218,13 @@ def _bill_row(bill: Bill, language: Language) -> str:
         )
 
     return f"""
-        <dt class="bill-col-meta">
+        <dt>
           <span class="bill-code mono">{html.escape(bill.code)}</span>
-          <span class="bill-stage">{stage_pill}</span>
+          {stage_pill}
           <span class="bill-date mono muted">{html.escape(bill.stage_date.isoformat())}</span>
           {division_pill}
         </dt>
-        <dd class="bill-col-content">
+        <dd>
           <details class="bill-expandable">
             <summary class="bill-summary-trigger">
               <span class="bill-title-text">{html.escape(bill.title)}</span>
@@ -345,7 +318,7 @@ def render_bills_body(model: BillsPageModel, language: Language = Language.EN) -
             t(language, "Search bill code, title or excerpt…", "Cari kod, tajuk atau petikan RUU…")
         )
     }" />
-      <select id="bills-stage" class="pol-dir-select" aria-label="{
+      <select id="bills-stage" aria-label="{
         html.escape(t(language, "All stages", "Semua peringkat"))
     }">
         <option value="">{html.escape(t(language, "All stages", "Semua peringkat"))}</option>

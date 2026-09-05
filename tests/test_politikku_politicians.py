@@ -9,10 +9,10 @@ from lpa.domain import ElectionStatus
 from lpa.politikku_politicians import (
     PoliticianCardModel,
     build_and_write_politicians_pages,
+    coalition_pill_style,
     dual_seat_map,
     namekey_loose,
     names_likely_same_person,
-    party_color,
     party_stats_list,
     person_initials,
     person_name_tokens,
@@ -87,12 +87,19 @@ def test_person_initials_and_photo_html():
     assert ">AI</span>" in monogram_html
 
 
-def test_pill_style_and_party_color():
-    color = party_color("PH")
-    assert color == "#d7263d"
-    style = pill_style(color)
-    assert "background:#d7263d" in style
-    assert "color:#fff" in style or "color:#05070c" in style
+def test_coalition_pill_style():
+    style = coalition_pill_style()
+    assert "var(--paper-alt)" in style
+    assert "var(--line-strong)" in style
+    assert "var(--ink-secondary)" in style
+
+    gov_style = coalition_pill_style(is_government=True)
+    assert "var(--data-government)" in gov_style
+    assert "var(--paper)" in gov_style
+
+    # pill_style alias behaves identically
+    assert pill_style() == style
+    assert pill_style(True) == gov_style
 
 
 # ── Dual Seat Map Tests ───────────────────────────────────────────────────
@@ -388,7 +395,7 @@ def test_render_politicians_page_shell_and_meta_en_ms():
         in ms_page
     )
     assert 'href="/ms/politicians/"' in ms_page
-    assert "Kembali ke peta" in ms_page
+    assert "Kembali ke peta" not in ms_page
 
 
 def test_build_and_write_politicians_pages_writes_files(tmp_path: Path):

@@ -49,20 +49,6 @@ COALITION_ORDER: tuple[str, ...] = (
     "BEBAS",
 )
 
-COALITION_COLORS: dict[str, str] = {
-    "PH": "#d7263d",
-    "PN": "#15387c",
-    "BN": "#1f9bd6",
-    "GPS": "#b8332e",
-    "GRS": "#e8772e",
-    "WARISAN": "#16a085",
-    "KDM": "#8e44ad",
-    "PBM": "#6c7a89",
-    "BEBAS": "#8a97a6",
-    "STAR": "#b08a1f",
-    "UPKO": "#2e8b57",
-    "PSB": "#9b4d8a",
-}
 
 DUAL_CROSS_STATE: dict[str, str] = {
     "6_N.04": "P.024",  # Tuan Ibrahim Tuan Man: Kelantan MP + Pahang ADUN
@@ -281,56 +267,24 @@ def with_current_affiliation(
     return res
 
 
-# ── Color & Swatch Helpers ────────────────────────────────────────────────
+# ── Coalition Pill Style Helper ───────────────────────────────────────────
 
 
-def party_color(p: str | None) -> str:
-    """Map coalition or party name to swatch color."""
-    return COALITION_COLORS.get((p or "").upper(), "#5d6b7d")
+def coalition_pill_style(is_government: bool = False) -> str:
+    """Generate CSS style attribute string for coalition badge pills.
+
+    Retires coalition palette colors per #149: coalition is identified by its LABEL,
+    not its hue. The one permitted exception: a pill marking the Government
+    Coalition may use --data-government.
+    """
+    if is_government:
+        return "background:var(--data-government);border:1px solid var(--data-government);color:var(--paper);"
+    return "background:var(--paper-alt);border:1px solid var(--line-strong);color:var(--ink-secondary);"
 
 
-def _hex_to_rgb(hex_code: str) -> tuple[int, int, int] | None:
-    s = hex_code.strip().removeprefix("#")
-    if len(s) == 3:
-        s = "".join(c + c for c in s)
-    if len(s) != 6:
-        return None
-    try:
-        n = int(s, 16)
-        return ((n >> 16) & 255, (n >> 8) & 255, n & 255)
-    except ValueError:
-        return None
-
-
-def _rel_lum(rgb: tuple[int, int, int]) -> float:
-    channels = []
-    for v in rgb:
-        c = v / 255.0
-        channels.append(c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4)
-    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
-
-
-def _contrast_ratio(a: tuple[int, int, int], b: tuple[int, int, int]) -> float:
-    l1 = _rel_lum(a)
-    l2 = _rel_lum(b)
-    hi = max(l1, l2)
-    lo = min(l1, l2)
-    return (hi + 0.05) / (lo + 0.05)
-
-
-def swatch_text_color(bg: str) -> str:
-    """Choose readable foreground text (#05070c or #fff) for background swatch."""
-    rgb = _hex_to_rgb(bg)
-    if not rgb:
-        return "#fff"
-    white = (255, 255, 255)
-    ink = (5, 7, 12)
-    return "#05070c" if _contrast_ratio(ink, rgb) >= _contrast_ratio(white, rgb) else "#fff"
-
-
-def pill_style(bg: str, fg: str | None = None) -> str:
+def pill_style(is_government: bool = False) -> str:
     """Generate CSS style attribute string for badge pills."""
-    return f"background:{bg};color:{fg or swatch_text_color(bg)}"
+    return coalition_pill_style(is_government)
 
 
 # ── Dual Seat and Party Stats Calculation ──────────────────────────────────
@@ -805,7 +759,7 @@ def render_politician_card(p: PoliticianCardModel, language: Language) -> str:
         f' <span class="pol-card-vacant">{html.escape(vacant_str)}</span>' if p.vacated else ""
     )
 
-    badge_style = pill_style(party_color(p.coalition or p.party))
+    badge_style = coalition_pill_style()
     photo_html = person_photo_html(p.name, p.photo)
 
     return f"""
@@ -845,10 +799,12 @@ def render_party_card(p: PartyStatsModel, language: Language) -> str:
 
     coal_pill = ""
     if p.coalition and p.coalition != p.party:
-        c_style = pill_style(party_color(p.coalition))
+        c_style = coalition_pill_style()
         coal_pill = f'<span class="pill" style="{c_style}">{html.escape(p.coalition)}</span>'
 
-    party_style = pill_style(party_color(p.coalition or p.party))
+    party_style = (
+        "background:var(--paper-alt);border:1px solid var(--line-strong);color:var(--ink);"
+    )
 
     return f"""
 <button type="button" class="pol-party-card" data-pol-party="{html.escape(p.party)}" aria-label="{html.escape(open_aria)}">
@@ -873,7 +829,6 @@ def render_politicians_body(
     tier: str = "all",
 ) -> str:
     """Render the inner HTML of the politicians view matching app.js DOM contract."""
-    back_lbl = t(language, "Back to map", "Kembali ke peta")
     title_lbl = t(language, "Politicians", "Ahli Politik")
     sub_lbl = t(
         language,
@@ -963,10 +918,6 @@ def render_politicians_body(
     return f"""
     <div class="pol-dir">
       <div class="pol-dir-head">
-        <button id="pol-back" class="pol-back" type="button">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
-          <span>{html.escape(back_lbl)}</span>
-        </button>
         <h1>{html.escape(title_lbl)}</h1>
         <p class="pol-dir-sub">{html.escape(sub_lbl)}</p>
       </div>
