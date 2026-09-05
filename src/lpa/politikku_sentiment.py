@@ -1,8 +1,20 @@
 """The PolitikKu News Sentiment Analysis page (#124).
 
-Renders `/sentiment.html` (English) and `/ms/sentiment.html` (Bahasa Malaysia),
+Renders `/sentiment/` (English) and `/ms/sentiment/` (Bahasa Malaysia),
 tracking daily news sentiment scores for political coalitions across Malaysian
 media outlets, historical sentiment trends, and source coverage breakdowns.
+
+`PAGE_PATH` moved from the flat `sentiment.html` to the directory-with-
+`index.html` shape `/projection/` already used (#143), so `build_and_write_
+sentiment_pages` now writes `public/sentiment/index.html` and
+`public/ms/sentiment/index.html`. `sentiment_page_model()`'s own arithmetic
+is unchanged — this page's pre-existing drift risk against
+`sentiment_export.py`'s independently-computed `frontend/public/data/
+sentiment.json` is a known, out-of-scope gap (#143's "Further Notes"), not
+something this pass fixes. `render_sentiment_page()`'s meta/OG/canonical
+tags come from `render_shell()` itself (title, description, `og:title`,
+`og:description`, `og:image`, canonical — all generic there since #102), so
+this page has always carried them; only the path they now point at changed.
 """
 
 from __future__ import annotations
@@ -27,7 +39,11 @@ from lpa.politikku_shell import (
 )
 from lpa.storage import SentimentSnapshot
 
-PAGE_PATH = "sentiment.html"
+PAGE_PATH = "sentiment/"
+"""Passed to `render_shell` as `page_path` with the default `POLITIKKU_PREFIX`
+("/"), so `route()` computes `/sentiment/` (EN) and `/ms/sentiment/` (BM) —
+matching `/projection/`'s directory-with-`index.html` shape (#143), not the
+retired flat `sentiment.html` file this page used to be."""
 DELTA_WINDOW = timedelta(days=7)
 
 
@@ -537,17 +553,20 @@ def build_and_write_sentiment_pages(
     engine: Engine,
     output_dir: Path | str = "public",
 ) -> tuple[int, int]:
-    """Render and write both EN and BM versions of the sentiment page."""
+    """Render and write both EN and BM versions of the sentiment page, each
+    as a directory with an `index.html` (`public/sentiment/index.html`,
+    `public/ms/sentiment/index.html`) — matching `/projection/`'s shape
+    rather than the retired flat `sentiment.html` file (#143)."""
     model = sentiment_page_model(engine)
     out = Path(output_dir)
 
     en_html = render_sentiment_page(model, language=Language.EN)
-    en_path = out / PAGE_PATH
+    en_path = out / PAGE_PATH / "index.html"
     en_path.parent.mkdir(parents=True, exist_ok=True)
     en_path.write_text(en_html, encoding="utf-8")
 
     ms_html = render_sentiment_page(model, language=Language.MS)
-    ms_path = out / "ms" / PAGE_PATH
+    ms_path = out / "ms" / PAGE_PATH / "index.html"
     ms_path.parent.mkdir(parents=True, exist_ok=True)
     ms_path.write_text(ms_html, encoding="utf-8")
 
@@ -578,8 +597,8 @@ def main() -> None:
     engine = connect()
     en_size, ms_size = build_and_write_sentiment_pages(engine, args.output_dir)
     print(
-        f"Wrote {args.output_dir}/sentiment.html ({en_size:,} bytes) and "
-        f"{args.output_dir}/ms/sentiment.html ({ms_size:,} bytes)"
+        f"Wrote {args.output_dir}/sentiment/index.html ({en_size:,} bytes) and "
+        f"{args.output_dir}/ms/sentiment/index.html ({ms_size:,} bytes)"
     )
 
 

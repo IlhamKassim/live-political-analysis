@@ -2,7 +2,7 @@
 // Data-driven: boundaries render now; GE15 results + scores light up the
 // "Parti"/"Skor" modes and panel rows as soon as their JSON exists.
 
-import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
+import { encodeHash, decodeHash, legacyHashToPath, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues, swatchTextColor,
   competitivenessFromMajorityPct, withCurrentAffiliation, seatViewBox,
@@ -4485,11 +4485,6 @@ document.getElementById("sidebar")?.addEventListener("click", (ev) => {
   if (ev.target.closest("#sb-brand") || ev.target.closest("#sb-map")) {
     closePoliticians({ silent: true }); closeNewsPage({ silent: true }); closeDewanPage({ silent: true }); closeBillsPage({ silent: true }); closeSentimentPage({ silent: true }); closeProjectionPage({ silent: true }); hideInfo(); backToControls(); syncSidebar(); return;
   }
-  if (ev.target.closest("#sb-politicians")) { hideInfo(); openPoliticians(); setTimeout(syncSidebar, 60); return; }
-  if (ev.target.closest("#sb-dewan")) { hideInfo(); openDewanPage(); setTimeout(syncSidebar, 60); return; }
-  if (ev.target.closest("#sb-bills")) { hideInfo(); openBillsPage(); setTimeout(syncSidebar, 60); return; }
-  if (ev.target.closest("#sb-sentiment")) { hideInfo(); openSentimentPage(); setTimeout(syncSidebar, 60); return; }
-  if (ev.target.closest("#sb-projection")) { hideInfo(); openProjectionPage(); setTimeout(syncSidebar, 60); return; }
   if (ev.target.closest("#sb-about")) { showInfo(); return; }
   if (ev.target.closest("#sb-share")) { shareApp(); return; }
   const st = ev.target.closest("[data-sb-state]");
@@ -4498,6 +4493,11 @@ document.getElementById("sidebar")?.addEventListener("click", (ev) => {
 
 // ---- boot ----
 (async function init() {
+  const legacyPath = legacyHashToPath(location.hash);
+  if (legacyPath) {
+    location.replace(legacyPath);
+    return;
+  }
   setTheme(theme, false);
   document.querySelectorAll("#lang button").forEach((x) => setOn(x, x.dataset.lang === lang));
   applyStatic();
@@ -4546,12 +4546,7 @@ document.getElementById("sidebar")?.addEventListener("click", (ev) => {
   writeHash();       // normalise URL to the actually-active state — a gated mode (Skor) or bad seat
                      // code in the deep link gets dropped so a re-shared link can't misrepresent state
                      // (replaceState → no extra history entry)
-  if (bootHash === "#politicians" && state.politicians) await openPoliticians();  // deep-linked directory
   if (bootHash === "#news") openNewsPage();   // deep-linked news page
-  if (bootHash === "#dewan" && state.hansard) await openDewanPage();   // deep-linked Dewan activity
-  if (bootHash === "#bills") await openBillsPage();   // deep-linked Bill tracker
-  if (bootHash === "#sentiment") await openSentimentPage();   // deep-linked Sentiment digest
-  if (bootHash === "#projection") await openProjectionPage();          // deep-linked GE16 projection
   maybeShowHint();   // fresh visit, nothing selected → nudge that seats are tappable
   try { syncMapToCard(); } catch (_) {}
   // body.sb-collapsed is set above; drop the html pre-paint hint
@@ -4586,11 +4581,6 @@ document.getElementById("topbar-title")?.addEventListener("click", showWholeMap)
 document.getElementById("top-map")?.addEventListener("click", showWholeMap);
 document.getElementById("top-info")?.addEventListener("click", showInfo);
 document.getElementById("top-share")?.addEventListener("click", shareApp);
-document.getElementById("top-politicians")?.addEventListener("click", () => openPoliticians());
-document.getElementById("top-dewan")?.addEventListener("click", () => openDewanPage());
-document.getElementById("top-bills")?.addEventListener("click", () => openBillsPage());
-document.getElementById("top-sentiment")?.addEventListener("click", () => openSentimentPage());
-document.getElementById("top-projection")?.addEventListener("click", () => openProjectionPage());
 // mobile-menu nav parity with the wide-screen sidebar (each shown only when relevant)
 POL_VIEW?.addEventListener("click", (e) => {
   if (e.target.closest("a")) return;   // a social-icon link — let it open, don't pop the profile
@@ -4610,20 +4600,10 @@ POL_VIEW?.addEventListener("keydown", (e) => {
   const card = e.target.closest(".pol-card");
   if (card && e.target === card) { e.preventDefault(); openPoliticianModal(card.dataset.polCode, card); }
 });
-// browser back closes the directory (it pushed a #politicians history entry)
+// browser back closes news page if open
 window.addEventListener("popstate", () => {
-  if (location.hash === "#politicians") { if (state.politicians) openPoliticians(); }
-  else if (document.body.classList.contains("politicians-open")) closePoliticians({ silent: true });
   if (location.hash === "#news") openNewsPage();
   else if (document.body.classList.contains("news-open")) closeNewsPage({ silent: true });
-  if (location.hash === "#dewan") { if (state.hansard) openDewanPage(); }
-  else if (document.body.classList.contains("dewan-open")) closeDewanPage({ silent: true });
-  if (location.hash === "#bills") { openBillsPage(); }
-  else if (document.body.classList.contains("bills-open")) closeBillsPage({ silent: true });
-  if (location.hash === "#sentiment") { openSentimentPage(); }
-  else if (document.body.classList.contains("sentiment-open")) closeSentimentPage({ silent: true });
-  if (location.hash === "#projection") openProjectionPage();
-  else if (document.body.classList.contains("projection-open")) closeProjectionPage({ silent: true });
 });
 
 /* ===== Dewan activity page: the Hansard league table (its own full page) ===== */

@@ -464,8 +464,10 @@ def test_the_permalink_the_page_prints_is_under_this_pages_own_route(language):
     # `public/projection/index.html`, and a citation link that 404s is worse
     # than no citation link at all.
     model = _projection_model()
-    ms = "" if language is Language.EN else "ms/"
-    expected = f"{SITE_URL}projection/{ms}{_permalink_path(model.computed_at)}"
+    if language is Language.EN:
+        expected = f"{SITE_URL}projection/{_permalink_path(model.computed_at)}"
+    else:
+        expected = f"{SITE_URL}ms/projection/{_permalink_path(model.computed_at)}"
 
     assert _permalink_url(model, language) == expected
     assert f'href="{expected}"' in render_projection_body(model, language)
@@ -510,10 +512,11 @@ def test_main_writes_both_pages_in_both_languages_with_dated_copies(tmp_path, mo
     main()
 
     permalink = _permalink_path(model.computed_at)
+    ms_projection_out = projection_out.parent.parent / "ms" / "projection" / PROJECTION_PAGE
     assert projection_out.is_file()
-    assert (projection_out.parent / "ms" / PROJECTION_PAGE).is_file()
+    assert ms_projection_out.is_file()
     assert (projection_out.parent / permalink).is_file()
-    assert (projection_out.parent / "ms" / permalink).is_file()
+    assert (ms_projection_out.parent / permalink).is_file()
     assert methodology_out.is_file()
     assert (methodology_out.parent / "ms" / METHODOLOGY_PAGE).is_file()
     # The dated copy is the same run, not a second render of a later one.
@@ -662,8 +665,8 @@ def test_seat_table_and_too_close_link_to_mp_profile_when_available(monkeypatch)
     en_body = render_projection_body(model, Language.EN)
     ms_body = render_projection_body(model, Language.MS)
 
-    assert '<a href="/app/#parlimen/parti/P000">' in en_body
-    assert '<a href="/app/#parlimen/parti/P000">' in ms_body
+    assert '<a href="/mp/P000/">' in en_body
+    assert '<a href="/mp/P000/">' in ms_body
 
 
 def test_cite_section_renders_download_buttons_in_both_languages():

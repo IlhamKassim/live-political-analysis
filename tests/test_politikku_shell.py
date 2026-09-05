@@ -55,7 +55,7 @@ def test_the_active_nav_link_is_the_only_one_marked_current():
     # visible at a time via CSS), so the active link's aria-current appears
     # twice, plus once more for the current EN toggle link.
     assert header.count('aria-current="page"') == 3
-    assert '<a class="active" href="/app/#bills" aria-current="page">Bills</a>' in header
+    assert '<a class="active" href="/bills" aria-current="page">Bills</a>' in header
     # The nav renders twice (desktop + mobile disclosure); "active" must
     # land on Bills in both renderings and nowhere else.
     assert header.count('class="active"') == 2
@@ -86,8 +86,8 @@ def test_a_localized_nav_link_stays_in_bm_not_just_the_toggle():
     # toggle) must be the /ms/ route in both, and the plain EN route must
     # appear nowhere except the toggle's own EN link.
     assert header.count('">Sentimen</a>') == 2
-    assert 'href="/ms/sentiment.html">Sentimen</a>' in header
-    assert 'href="/sentiment.html">Sentimen</a>' not in header
+    assert 'href="/ms/sentiment/">Sentimen</a>' in header
+    assert 'href="/sentiment/">Sentimen</a>' not in header
 
 
 def test_an_external_nav_link_uses_the_same_href_in_both_languages():
@@ -97,8 +97,8 @@ def test_an_external_nav_link_uses_the_same_href_in_both_languages():
     # than producing a wrong /ms/app/#bills guess.
     en_header = render_header(active_nav="home", language=Language.EN, page_path="")
     ms_header = render_header(active_nav="home", language=Language.MS, page_path="")
-    assert en_header.count('href="/app/#bills">Bills</a>') == 2
-    assert ms_header.count('href="/app/#bills">Rang Undang-Undang</a>') == 2
+    assert en_header.count('href="/bills">Bills</a>') == 2
+    assert ms_header.count('href="/bills">Rang Undang-Undang</a>') == 2
 
 
 def test_no_nav_link_opts_out_of_language_routing():

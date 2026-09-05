@@ -72,6 +72,11 @@ TELEGRAM_API = "https://api.telegram.org"
 SITE_URL = "https://politikku.my/"
 
 
+def seat_page_url(seat_code: str) -> str:
+    """Canonical public URL for a Seat's profile page."""
+    return f"{SITE_URL}mp/{seat_code}/"
+
+
 def _long_date(day: date) -> str:
     return f"{day.day} {day.strftime('%B %Y')}"
 
@@ -188,11 +193,12 @@ def compose_majority_post(
         photo = render_seat_card_png(model)
         tight_suffix = ", and inside the too-close band" if model.tier == Tier.TIGHT else ""
         title = f"{model.name} changed hands."
+        url = seat_page_url(newer_call.code)
         caption = (
             "<b>A Seat Call changed.</b> The Projection now puts "
             f"{_escape_html(model.name)} with {_escape_html(model.coalition_name)} "
             f"by {model.margin_points} points — arithmetic against the GE15 result, "
-            f"not calibrated{tight_suffix}.\n\n{SITE_URL}"
+            f"not calibrated{tight_suffix}.\n\n{url}"
         )
         return PostContent(title=title, caption=caption, photo=photo)
 

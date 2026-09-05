@@ -682,6 +682,7 @@ body.state-open #map { overflow: visible; }
   width: 44px; height: 44px; display: grid; place-items: center; padding: 0;
   background: var(--glass); border: 1px solid var(--line); border-radius: var(--control-radius);
   color: var(--ink-dim); cursor: pointer; backdrop-filter: blur(8px);
+  text-decoration: none;
   transition: color .15s, border-color .15s;
 }
 .iconbtn svg { width: 18px; height: 18px; }
@@ -690,7 +691,7 @@ body.state-open #map { overflow: visible; }
   stroke: currentColor; stroke-width: 1.85; stroke-linecap: round; stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
-.iconbtn:hover { color: var(--ink); border-color: var(--line-2); }
+.iconbtn:hover { color: var(--ink); border-color: var(--line-2); text-decoration: none; }
 .iconbtn:active { transform: scale(.92); }
 .iconbtn[hidden] { display: none; }   /* the base display:grid would otherwise defeat the hidden attr */
 .iconbtn.top-live .live-dot { width: 9px; height: 9px; }   /* the election shortcut = a red pulse */
@@ -5728,9 +5729,10 @@ html[data-theme="light"] .bento-news .muted {
   display: flex; align-items: center; gap: 10px; width: 100%;
   min-height: 44px; padding: 9px 10px; border-radius: 9px; border: 0; background: none;
   font: inherit; font-size: 13.5px; color: var(--ink-dim); text-align: left; cursor: pointer;
+  text-decoration: none;
   transition: background .12s, color .12s;
 }
-.sb-item:hover { background: var(--surface-hover-2); color: var(--ink); }
+.sb-item:hover { background: var(--surface-hover-2); color: var(--ink); text-decoration: none; }
 .sb-item.on { background: var(--surface-hover); color: var(--ink); font-weight: 600; }
 .sb-brand:focus-visible, .sb-item:focus-visible, .sb-collapse:focus-visible, .sb-lang button:focus-visible {
   outline: 2px solid var(--focus);

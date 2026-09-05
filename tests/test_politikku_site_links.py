@@ -65,20 +65,19 @@ be in the rendered tree. The value is the file that decides their path, and
 the test below asserts that file actually names it — the same disagreement
 this module exists to catch, one build step over."""
 
-_APP_ROOTED_EXACT = frozenset({"/", "/ms/"})
-_APP_ROOTED_PREFIX = "/app/"
+_APP_ROOTED_EXACT = frozenset({"/", "/ms/", "/bills"})
+_APP_ROOTED_PREFIXES = ("/app/", "/mp/")
 """What the frontend fold-in step (`daily.yml`'s plain `cp -r`, not a Python
 renderer) is responsible for, post-ADR-0014: the site root itself (`"/"`, the
 Home nav item's href — every root-*relative* link starts with `/` too, so
-this is an exact match, not a prefix) and every `/app/#...` hash route a
-page links into (the Bills nav item, the seat-table/too-close MP Profile
-links). Excluded from link resolution below for
+this is an exact match, not a prefix), the Bills page (`"/bills"`), and
+every `/app/#...` or `/mp/<code>/` link. Excluded from link resolution below for
 `GENERATED_BY_ANOTHER_BUILD_STEP`'s own reason — nothing here can render
 them to check."""
 
 
 def _is_app_rooted(link: str) -> bool:
-    return link in _APP_ROOTED_EXACT or link.startswith(_APP_ROOTED_PREFIX)
+    return link in _APP_ROOTED_EXACT or link.startswith(_APP_ROOTED_PREFIXES)
 
 
 _LINK = re.compile(r'(?:href|src)="([^"]+)"')
@@ -144,8 +143,11 @@ def rendered_site(tmp_path_factory) -> Path:
 
     for language in Language:
         ms = "" if language is Language.EN else "ms/"
+        sentiment_path = (
+            "sentiment/index.html" if language is Language.EN else "ms/sentiment/index.html"
+        )
         _write(
-            root, f"{ms}sentiment.html", render_sentiment_page(sentiment_model, language=language)
+            root, sentiment_path, render_sentiment_page(sentiment_model, language=language)
         )
         _write(root, f"{ms}{METHODOLOGY_PAGE}", render_methodology(page, language=language))
         _write(
@@ -240,16 +242,14 @@ def test_the_pages_the_shell_links_on_every_page_are_all_real(rendered_site):
     # every other shell page also carries. ADR 0014 dropped `/home.html`
     # (the "Dashboard" nav item merged into `/app/`, which this module
     # cannot render — see `APP_ROOTED_LINKS`) from this list.
-    sentiment = (rendered_site / "sentiment.html").read_text(encoding="utf-8")
+    sentiment = (rendered_site / "sentiment" / "index.html").read_text(encoding="utf-8")
     for link in ("/methodology.html", "/projection/"):
         assert _resolve(rendered_site, link).is_file()
     assert '/methodology.html"' in sentiment
     assert '/projection/"' in sentiment
-    # "Bills" is the one nav item ADR 0014 repointed straight at `/app/`
-    # (`politikku_shell.NavLink.external`) rather than a redirect stub — the
-    # same literal href in both languages, checked directly since
-    # `_resolve` can't follow it (see `APP_ROOTED_LINKS`).
-    assert '/app/#bills"' in sentiment
+    # "Bills" is the nav item pointing to `/bills` (politikku_shell.NavLink.external),
+    # checked directly since _resolve can't follow it (see _APP_ROOTED_EXACT).
+    assert '/bills"' in sentiment
 
 
 def test_the_assets_no_page_renderer_writes_are_named_by_the_step_that_does(rendered_site):
@@ -258,7 +258,7 @@ def test_the_assets_no_page_renderer_writes_are_named_by_the_step_that_does(rend
     # of which can be exercised from here. So this checks the one thing that
     # can go wrong: the file that decides each path disagreeing with the URL
     # that actually asks for it.
-    sentiment = (rendered_site / "sentiment.html").read_text(encoding="utf-8")
+    sentiment = (rendered_site / "sentiment" / "index.html").read_text(encoding="utf-8")
     build = (REPO_ROOT / GENERATED_BY_ANOTHER_BUILD_STEP["/lookup.js"]).read_text(encoding="utf-8")
     assert '"/lookup.js"' in sentiment
     assert "public/lookup.js" in build

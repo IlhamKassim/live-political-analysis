@@ -27,6 +27,7 @@ from lpa.telegram_post import (
     compose_majority_post,
     compose_posts,
     compose_state_signal_post,
+    seat_page_url,
     send_post,
 )
 
@@ -133,8 +134,13 @@ def test_a_single_seat_crossing_the_line_is_seat_anchored():
 
     assert "A Seat Call changed" in post.caption
     assert "P001" in post.title
+    assert seat_page_url("P001") in post.caption
     img = Image.open(BytesIO(post.photo))
     assert img.size == (CARD_SIZE, CARD_SIZE)  # the square Seat card, not the aggregate
+
+
+def test_seat_page_url_builds_mp_path():
+    assert seat_page_url("P001") == "https://politikku.my/mp/P001/"
 
 
 def test_more_than_one_seat_crossing_falls_through_to_aggregate():

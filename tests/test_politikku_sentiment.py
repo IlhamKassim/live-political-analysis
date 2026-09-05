@@ -93,13 +93,32 @@ def test_render_sentiment_page_wraps_in_shell_with_sentiment_active():
     page_ms = render_sentiment_page(model, language=Language.MS)
 
     assert '<html lang="en">' in page_en
-    assert 'class="active" href="/sentiment.html" aria-current="page"' in page_en
+    assert 'class="active" href="/sentiment/" aria-current="page"' in page_en
 
     assert '<html lang="ms">' in page_ms
-    assert 'class="active" href="/ms/sentiment.html" aria-current="page"' in page_ms
+    assert 'class="active" href="/ms/sentiment/" aria-current="page"' in page_ms
     assert "Penjejak Sentimen Berita" in page_ms
     assert "Sentimen Semasa Mengikut Gabungan" in page_ms
     assert "Portal Berita Dipantau" in page_ms
+
+
+def test_render_sentiment_page_carries_real_meta_and_og_tags_at_the_new_path():
+    # #143: `/sentiment/` (not the retired flat `sentiment.html`) is now
+    # this page's real, individually-addressable path, and `render_shell`
+    # derives every meta/OG/canonical tag from `PAGE_PATH` — this pins both
+    # the page-specific copy and the URL they now point at in one place.
+    model = sentiment_page_model(snapshots=[], names=NAMES, status=NOT_CALLED)
+    page_en = render_sentiment_page(model, language=Language.EN)
+    page_ms = render_sentiment_page(model, language=Language.MS)
+
+    assert "<title>News Sentiment Analysis — PolitikKu</title>" in page_en
+    assert 'og:title" content="News Sentiment Analysis — PolitikKu"' in page_en
+    assert 'og:description" content="Daily news sentiment tracker' in page_en
+    assert 'og:image" content="https://politikku.my/og-image.png"' in page_en
+    assert 'rel="canonical" href="https://politikku.my/sentiment/"' in page_en
+
+    assert "<title>Analisis Sentimen Berita — PolitikKu</title>" in page_ms
+    assert 'rel="canonical" href="https://politikku.my/ms/sentiment/"' in page_ms
 
 
 def test_build_and_write_sentiment_pages(tmp_path, monkeypatch):
@@ -108,8 +127,8 @@ def test_build_and_write_sentiment_pages(tmp_path, monkeypatch):
 
     en_len, ms_len = build_and_write_sentiment_pages(object(), output_dir=tmp_path)
 
-    en_file = tmp_path / PAGE_PATH
-    ms_file = tmp_path / "ms" / PAGE_PATH
+    en_file = tmp_path / PAGE_PATH / "index.html"
+    ms_file = tmp_path / "ms" / PAGE_PATH / "index.html"
     assert en_file.is_file()
     assert ms_file.is_file()
     assert len(en_file.read_bytes()) == en_len
@@ -138,5 +157,5 @@ def test_main_cli_writes_pages(tmp_path, monkeypatch):
     )
 
     main()
-    assert (tmp_path / "sentiment.html").is_file()
-    assert (tmp_path / "ms" / "sentiment.html").is_file()
+    assert (tmp_path / "sentiment" / "index.html").is_file()
+    assert (tmp_path / "ms" / "sentiment" / "index.html").is_file()

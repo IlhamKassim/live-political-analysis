@@ -204,18 +204,14 @@ class NavLink:
     external: str | None = None
     """When set, the literal href to use in both languages, bypassing
     `route()`/`prefix` entirely — for a nav item whose target isn't one of
-    this module's own page paths. Added for ADR 0014 (the mypolitik-frontend
-    root swap): "Bills" now points into `/app/`'s own hash-routed view
-    rather than a PolitikKu page, and `/app/` has no `/ms/` route of its own
-    (its language toggle is in-page state, not a URL) for `route()` to
-    build."""
+    this module's own page paths: "Bills" points directly to `/bills`."""
 
 
 NAV_LINKS: tuple[NavLink, ...] = (
     NavLink("Home", "Utama", "", "home"),
     NavLink("Seat Projection", "Unjuran Kerusi", "", "projection", prefix=PROJECTION_PREFIX),
-    NavLink("Bills", "Rang Undang-Undang", BILLS_PAGE, "bills", external="/app/#bills"),
-    NavLink("Sentiment", "Sentimen", "sentiment.html", "sentiment"),
+    NavLink("Bills", "Rang Undang-Undang", BILLS_PAGE, "bills", external="/bills"),
+    NavLink("Sentiment", "Sentimen", "sentiment/", "sentiment"),
     NavLink("Methodology", "Metodologi", METHODOLOGY_PAGE, "methodology"),
     NavLink("Glossary", "Glosari", "learn/glossary.html", "glossary", en_only=True),
     NavLink("Coalitions", "Gabungan", "learn/coalitions.html", "coalitions", en_only=True),

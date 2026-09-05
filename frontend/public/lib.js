@@ -129,6 +129,24 @@ export function decodeHash(hash) {
   };
 }
 
+// ---- legacy hash routes (#bills, #sentiment, #dewan, #politicians, #projection) ----
+// Maps pre-SSR hash routes to their real-path equivalents. Returns the target path
+// or null if the hash is not a legacy route.
+export const LEGACY_HASH_ROUTES = {
+  "#bills": "/bills",
+  "#sentiment": "/sentiment",
+  "#dewan": "/dewan",
+  "#politicians": "/politicians",
+  "#projection": "/projection",
+};
+
+export function legacyHashToPath(hash) {
+  if (typeof hash !== "string") return null;
+  const clean = hash.split("?")[0].split("&")[0];
+  const key = clean.startsWith("#") ? clean : `#${clean}`;
+  return LEGACY_HASH_ROUTES[key] || null;
+}
+
 // ---- seat competitiveness ----
 // Classify how contested a seat is from the last margin (majority as % of the vote):
 // under 5% = marginal, under 15% = leaning, else safe. Pure; non-finite/absent → null.

@@ -152,8 +152,9 @@ def _permalink_url(model: PageModel, language: Language) -> str:
     page citing the EN dated copy would be a claim-changing defect.
     """
     prefix = PROJECTION_PREFIX.strip("/")
-    ms = "" if language is Language.EN else "ms/"
-    return f"{SITE_URL}{prefix}/{ms}{_permalink_path(model.computed_at)}"
+    if language is Language.EN:
+        return f"{SITE_URL}{prefix}/{_permalink_path(model.computed_at)}"
+    return f"{SITE_URL}ms/{prefix}/{_permalink_path(model.computed_at)}"
 
 
 def _coalition_names(model: PageModel) -> Mapping[Coalition, str]:
@@ -753,15 +754,10 @@ def _too_close_section(model: PageModel, language: Language) -> str:
     profiles = load_mp_profiles()
 
     def _seat_name(seat_code: str, seat_name: str) -> str:
-        # ADR 0014: MP Profile pages are retired; this links straight into
-        # /app/'s own seat-select view (`#parlimen/parti/<code>`, matching
-        # lib.js's encodeHash) rather than the old `/mp/<code>.html` path,
-        # which now only exists as a redirect stub. /app/ has no /ms/ route
-        # of its own, so this is the same href in both languages — the same
-        # reasoning `politikku_shell`'s "Bills" nav item now follows.
+        # Links straight to the Seat's profile page at /mp/{seat_code}/.
         escaped_name = html.escape(seat_name)
         if seat_code in profiles:
-            url = html.escape(f"/app/#parlimen/parti/{seat_code}")
+            url = html.escape(f"/mp/{seat_code}/")
             return f'<a href="{url}">{escaped_name}</a>'
         return escaped_name
 
@@ -927,15 +923,10 @@ def _seat_table_section(model: PageModel, language: Language) -> str:
     profiles = load_mp_profiles()
 
     def _seat_name(seat_code: str, seat_name: str) -> str:
-        # ADR 0014: MP Profile pages are retired; this links straight into
-        # /app/'s own seat-select view (`#parlimen/parti/<code>`, matching
-        # lib.js's encodeHash) rather than the old `/mp/<code>.html` path,
-        # which now only exists as a redirect stub. /app/ has no /ms/ route
-        # of its own, so this is the same href in both languages — the same
-        # reasoning `politikku_shell`'s "Bills" nav item now follows.
+        # Links straight to the Seat's profile page at /mp/{seat_code}/.
         escaped_name = html.escape(seat_name)
         if seat_code in profiles:
-            url = html.escape(f"/app/#parlimen/parti/{seat_code}")
+            url = html.escape(f"/mp/{seat_code}/")
             return f'<a href="{url}">{escaped_name}</a>'
         return escaped_name
 
@@ -1667,9 +1658,8 @@ def main() -> None:
         type=Path,
         default=Path("public") / PROJECTION_PREFIX.strip("/") / PROJECTION_PAGE,
         help="where to write the English projection page "
-        "(default: public/projection/index.html); the BM variant is written alongside it "
-        "at <output-dir>/ms/<output-name>, matching `politikku_shell._ms_route`'s own "
-        "path convention",
+        "(default: public/projection/index.html); the BM variant is written "
+        "at public/ms/projection/index.html",
     )
     parser.add_argument(
         "--methodology-output",
@@ -1693,7 +1683,11 @@ def main() -> None:
     computed_at = model.computed_at
 
     def _target(output: Path, language: Language) -> Path:
-        return output if language is Language.EN else output.parent / "ms" / output.name
+        if language is Language.EN:
+            return output
+        if output.parent.name == "projection":
+            return output.parent.parent / "ms" / "projection" / output.name
+        return output.parent / "ms" / output.name
 
     def _write(target: Path, page: str) -> None:
         target.parent.mkdir(parents=True, exist_ok=True)

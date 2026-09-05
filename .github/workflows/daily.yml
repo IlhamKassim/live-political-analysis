@@ -152,6 +152,29 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m lpa.politikku_sentiment
 
+      - name: Render the PolitikKu bills tracker
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m lpa.politikku_bills
+
+      - name: Render the PolitikKu Dewan page
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m lpa.politikku_dewan
+
+      - name: Render the PolitikKu politicians directory
+        # politikku_politicians.main() already renders the per-seat MP
+        # profile pages itself (it calls into
+        # build_and_write_mp_profile_pages internally) — no separate
+        # invocation needed, and no `||` fallback: a real bug here should
+        # fail this step, not silently reroute to a narrower code path.
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m lpa.politikku_politicians
+
       - name: Render the PolitikKu learn pages
         continue-on-error: true
         env:
@@ -200,7 +223,7 @@ jobs:
         continue-on-error: true
         run: |
           shopt -s nullglob
-          files=(public/projection/[0-9]*/*/*.html public/projection/ms/[0-9]*/*/*.html)
+          files=(public/projection/[0-9]*/*/*.html public/projection/ms/[0-9]*/*/*.html public/ms/projection/[0-9]*/*/*.html)
           if [ ${#files[@]} -eq 0 ]; then
             echo "No dated permalink to archive."
             exit 0
@@ -272,40 +295,41 @@ jobs:
         # produced a sitemap with no /app/ entries, caught by a user asking
         # why the new frontend wasn't showing up for Google.
         run: |
-          mkdir -p public/app
-          cp -r frontend/public/. public/app/
           cp -r frontend/public/. public/
 
-      - name: Smoke-check the frontend fold-in
+      - name: Smoke-check the frontend fold-in and pre-rendered pages
         # Loud on purpose (no continue-on-error): a silently-broken copy
-        # would ship a Pages artifact with a dead root and/or /app/ subtree,
-        # and nobody would notice until a visitor did. index.html proves the
-        # static app itself copied at each location; data/bills.json proves
-        # the data directory (already present in frontend/public/data from a
-        # prior merge step) came along with it.
+        # would ship a Pages artifact with a dead root, and nobody would
+        # notice until a visitor did. index.html proves the static app itself
+        # copied; data/bills.json proves the data directory came along.
+        # Pre-rendered bills, dewan, and politicians pages must exist.
         run: |
           missing=0
-          for dir in public public/app; do
-            if [ ! -f "$dir/index.html" ]; then
-              echo "::error::$dir/index.html is missing — frontend fold-in failed."
-              missing=1
-            fi
-            if [ ! -f "$dir/data/bills.json" ]; then
-              echo "::error::$dir/data/bills.json is missing — frontend fold-in failed."
+          if [ ! -f "public/index.html" ]; then
+            echo "::error::public/index.html is missing — frontend fold-in failed."
+            missing=1
+          fi
+          if [ ! -f "public/data/bills.json" ]; then
+            echo "::error::public/data/bills.json is missing — frontend fold-in failed."
+            missing=1
+          fi
+          for page in public/bills/index.html public/dewan/index.html public/politicians/index.html; do
+            if [ ! -f "$page" ]; then
+              echo "::error::$page is missing."
               missing=1
             fi
           done
           if [ "$missing" -ne 0 ]; then
             exit 1
           fi
-          echo "Frontend fold-in verified at public/ and public/app/."
+          echo "Frontend fold-in and pre-rendered pages verified."
 
       - name: Generate old-URL redirect stubs
         # ADR 0014: politikku_landing.py/homepage.py/bills.py/mp_profile.py
         # are retired, but their old URLs (home.html, bills.html, mp/*.html)
         # are indexed by Google and linked from real bookmarks/backlinks —
         # this writes a stub HTML page at each old path
-        # (`<meta http-equiv="refresh">`) pointing at its /app/#... equivalent,
+        # (`<meta http-equiv="refresh">`) pointing at its root-relative equivalent,
         # so those don't just 404. Must run after the fold-in step above:
         # it writes into public/, which the fold-in's `cp -r` would
         # otherwise have already populated from frontend/public/ (no path

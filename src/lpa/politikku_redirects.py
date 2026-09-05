@@ -6,11 +6,11 @@ with a `<meta http-equiv="refresh">` to the new one. This module writes
 those stubs at the exact paths `politikku_landing.py`, `politikku_homepage.py`,
 `politikku_bills.py`, and `politikku_mp_profile.py` used to render to, so
 existing bookmarks, backlinks, and Google's already-indexed results land on
-`/app/#...` instead of 404ing.
+real root-relative paths (`/`, `/bills`, `/mp/<code>/`) instead of 404ing.
 
 `politikku_landing.py`'s own output path (`public/index.html`, the site
 root) needs no stub here: ADR 0014 has the frontend fold-in step overwrite
-that path directly with `/app/`'s own content, so the root just *is* the
+that path directly with the app's own content, so the root just *is* the
 new content rather than redirecting to it.
 
 Driven off `load_mp_profiles()` for the MP Profile stubs — the same source
@@ -26,12 +26,12 @@ from pathlib import Path
 from lpa.config import load_mp_profiles
 from lpa.politikku_shell import BILLS_PAGE, HOMEPAGE_PAGE, MP_PROFILE_DIR, SITE_URL
 
-# Static (non-Seat-specific) old path -> new /app/ hash route.
-# HOMEPAGE_PAGE was the secondary "Dashboard" nav page (ADR 0011); /app/'s
-# own root map view is its closest equivalent, so no hash is needed.
+# Static (non-Seat-specific) old path -> new root-relative real paths.
+# HOMEPAGE_PAGE was the secondary "Dashboard" nav page (ADR 0011); the
+# root map view is its closest equivalent, so it redirects to "/".
 STATIC_REDIRECTS = {
-    HOMEPAGE_PAGE: "/app/",
-    BILLS_PAGE: "/app/#bills",
+    HOMEPAGE_PAGE: "/",
+    BILLS_PAGE: "/bills",
 }
 
 
@@ -63,16 +63,11 @@ def _write_stub(public_dir: Path, relative_path: str, target: str) -> None:
 
 
 def mp_profile_redirects() -> dict[str, str]:
-    """`{"mp/<code>.html": "/app/#parlimen/parti/<code>", ...}` for every
+    """`{"mp/<code>.html": f"/mp/{code}/", ...}` for every
     Seat `data/mp_profiles.json` has a profile for.
-
-    `#parlimen/parti/<code>` matches `lib.js`'s `encodeHash` field order
-    (tier, mode, code) exactly — `parti` is the default mode, included
-    explicitly since the code slot only decodes correctly in the third
-    position.
     """
     return {
-        f"{MP_PROFILE_DIR}/{code}.html": f"/app/#parlimen/parti/{code}"
+        f"{MP_PROFILE_DIR}/{code}.html": f"/mp/{code}/"
         for code in load_mp_profiles()
     }
 

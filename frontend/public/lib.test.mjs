@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
-  encodeHash, decodeHash,
+  encodeHash, decodeHash, legacyHashToPath,
   pickInitialLang,
   project, parsePathRings, pointInRings,
   findSeatForLocation, haversine, nearestSeat,
@@ -95,6 +95,40 @@ test("decodeHash: empty hash returns null", () => {
   assert.equal(decodeHash("#"), null);
   assert.equal(decodeHash(null), null);
   assert.equal(decodeHash(undefined), null);
+});
+
+test("decodeHash: extra slashes are preserved as decoded empty tokens", () => {
+  assert.deepEqual(decodeHash("#parlimen//P.001"), {
+    tier: "parlimen",
+    mode: "",
+    code: "P.001",
+    stateName: undefined,
+    prn: false,
+  });
+});
+
+// ---- legacy hash routes (#bills, #sentiment, #dewan, #politicians, #projection) ----
+test("legacyHashToPath: maps legacy routes to their real-path equivalents", () => {
+  assert.equal(legacyHashToPath("#bills"), "/bills");
+  assert.equal(legacyHashToPath("#sentiment"), "/sentiment");
+  assert.equal(legacyHashToPath("#dewan"), "/dewan");
+  assert.equal(legacyHashToPath("#politicians"), "/politicians");
+  assert.equal(legacyHashToPath("#projection"), "/projection");
+});
+
+test("legacyHashToPath: works with or without leading # and tolerates query strings", () => {
+  assert.equal(legacyHashToPath("bills"), "/bills");
+  assert.equal(legacyHashToPath("#bills?x=1"), "/bills");
+});
+
+test("legacyHashToPath: returns null for current routes, unknown hashes, and non-strings", () => {
+  assert.equal(legacyHashToPath("#news"), null);
+  assert.equal(legacyHashToPath("#parlimen/parti"), null);
+  assert.equal(legacyHashToPath(""), null);
+  assert.equal(legacyHashToPath("#"), null);
+  assert.equal(legacyHashToPath(null), null);
+  assert.equal(legacyHashToPath(undefined), null);
+  assert.equal(legacyHashToPath(123), null);
 });
 
 test("decodeHash: full hash with leading #", () => {
