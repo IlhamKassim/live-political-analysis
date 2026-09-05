@@ -696,7 +696,7 @@ def render_shell(
 <link rel="alternate" hreflang="ms" href="{ms_url}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="icon" href="{POLITIKKU_PREFIX}favicon.ico">
 <style>{_CSS}</style>
 <script type="application/ld+json">
@@ -720,6 +720,36 @@ def render_shell(
 
 
 _CSS_TEMPLATE = """
+  @font-face {
+    font-family: "Space Grotesk";
+    font-style: normal;
+    font-weight: 300 700;
+    font-display: swap;
+    src: url(/fonts/space-grotesk-latin.woff2) format("woff2");
+  }
+  @font-face {
+    font-family: "Space Grotesk";
+    font-style: normal;
+    font-weight: 300 700;
+    font-display: swap;
+    src: url(/fonts/space-grotesk-latinext.woff2) format("woff2");
+    unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+  }
+  @font-face {
+    font-family: "Redaction 20";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url(/fonts/redaction-20-latin.woff2) format("woff2");
+  }
+  @font-face {
+    font-family: "Redaction 20";
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url(/fonts/redaction-20-bold-latin.woff2) format("woff2");
+  }
+
   :root {
     --paper: #0b0e13;
     --paper-alt: #11151d;
@@ -745,8 +775,9 @@ _CSS_TEMPLATE = """
     --on-dark-muted: #708096;
     --nav-active-rule: #4dd6c1;
 
-    --serif: var(--sans);
+    --serif: var(--font-display);
     --sans: "Space Grotesk", system-ui, -apple-system, sans-serif;
+    --font-display: "Redaction 20", Georgia, "Times New Roman", serif;
     --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
     --radius-sm: 3px;
@@ -780,6 +811,7 @@ _CSS_TEMPLATE = """
     -webkit-font-smoothing: antialiased;
   }
   h1, h2, h3, p { text-wrap: pretty; }
+  h1, h2 { font-family: var(--font-display); }
   a { color: var(--accent); text-decoration: none; }
 
   /* Shell chrome: sidebar & topbar */
@@ -1046,6 +1078,13 @@ _CSS_TEMPLATE = """
 }
 .dewan-tile b {
   font-size: 16px; line-height: 1.25;
+}
+.bento-tile, .dewan-tile {
+  background: var(--surface-soft); border: 1px solid var(--line); border-radius: 16px;
+  padding: 15px 16px; min-width: 0; display: flex; flex-direction: column; gap: 9px;
+}
+.bento-kicker {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); font-weight: 600;
 }
 .dewan-controls {
   flex-wrap: wrap;
