@@ -997,6 +997,10 @@ async function openPoliticians() {
   closeBillsPage({ silent: true });    // …and so is the Bill tracker page
   closeSentimentPage({ silent: true }); // …and so is the Sentiment digest page
   closeProjectionPage({ silent: true }); // …and so is the Projection page
+  closeMethodologyPage({ silent: true });
+  closeGlossaryPage({ silent: true });
+  closeCoalitionsPage({ silent: true });
+  closeProcessPage({ silent: true });
   if (state.prnMode) closePrnMode();   // leave the election dashboard before the directory takes over
   if (!state.data.parlimen) { try { await loadTier("parlimen"); } catch (_) {} }
   if (polTier !== "parlimen" && polTier !== "pledges" && !state.data.dun) {
@@ -4913,6 +4917,10 @@ async function openDewanPage() {
   closeBillsPage({ silent: true });
   closeSentimentPage({ silent: true });
   closeProjectionPage({ silent: true });
+  closeMethodologyPage({ silent: true });
+  closeGlossaryPage({ silent: true });
+  closeCoalitionsPage({ silent: true });
+  closeProcessPage({ silent: true });
   if (state.prnMode) closePrnMode();
   if (!state.data.parlimen) { try { await loadTier("parlimen"); } catch (_) {} }
   document.body.classList.add("dewan-open");
@@ -5115,6 +5123,10 @@ async function openBillsPage() {
   closeDewanPage({ silent: true });
   closeSentimentPage({ silent: true });
   closeProjectionPage({ silent: true });
+  closeMethodologyPage({ silent: true });
+  closeGlossaryPage({ silent: true });
+  closeCoalitionsPage({ silent: true });
+  closeProcessPage({ silent: true });
   if (state.prnMode) closePrnMode();
   document.body.classList.add("bills-open");
   renderBillsPage();
@@ -5260,6 +5272,10 @@ async function openSentimentPage() {
   closeDewanPage({ silent: true });
   closeBillsPage({ silent: true });
   closeProjectionPage({ silent: true });
+  closeMethodologyPage({ silent: true });
+  closeGlossaryPage({ silent: true });
+  closeCoalitionsPage({ silent: true });
+  closeProcessPage({ silent: true });
   if (state.prnMode) closePrnMode();
   document.body.classList.add("sentiment-open");
   renderSentimentPage();
@@ -5583,6 +5599,10 @@ async function openProjectionPage() {
   closeDewanPage({ silent: true });
   closeBillsPage({ silent: true });
   closeSentimentPage({ silent: true });
+  closeMethodologyPage({ silent: true });
+  closeGlossaryPage({ silent: true });
+  closeCoalitionsPage({ silent: true });
+  closeProcessPage({ silent: true });
   if (state.prnMode) closePrnMode();
   if (!state.data.parlimen) { try { await loadTier("parlimen"); } catch (_) {} }
   if (!state.projection) {
@@ -8475,6 +8495,10 @@ async function openNewsPage() {
   closeBillsPage({ silent: true });
   closeSentimentPage({ silent: true });
   closeProjectionPage({ silent: true });
+  closeMethodologyPage({ silent: true });
+  closeGlossaryPage({ silent: true });
+  closeCoalitionsPage({ silent: true });
+  closeProcessPage({ silent: true });
   if (liveElection()) {
     await openPrnMode();
     requestAnimationFrame(() => {
