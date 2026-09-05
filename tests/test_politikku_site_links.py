@@ -289,9 +289,11 @@ def test_the_assets_no_page_renderer_writes_are_named_by_the_step_that_does(rend
     assert '"projection.json"' in export_written
     assert '"projection.csv"' in export_written
 
-    # Fonts use Google Fonts (Space Grotesk & JetBrains Mono) matching index.html
+    # JetBrains Mono uses Google Fonts while Space Grotesk is self-hosted.
     assert "fonts.googleapis.com" in sentiment
-    assert "Space+Grotesk" in sentiment
+    assert "JetBrains+Mono" in sentiment
+    assert "Space+Grotesk" not in sentiment
+    assert "/fonts/space-grotesk-latin.woff2" in sentiment
 
 
 def test_the_mp_profile_url_the_browser_builds_matches_the_apps_own_hash_route(rendered_site):

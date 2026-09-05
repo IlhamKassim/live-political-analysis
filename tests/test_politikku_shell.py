@@ -309,7 +309,9 @@ def test_the_shell_escapes_the_page_title():
     assert '<html lang="en">' in page
     assert "<main>placeholder</main>" in page
     assert "fonts.googleapis.com" in page
-    assert "Space+Grotesk" in page
+    assert "JetBrains+Mono" in page
+    assert "Space+Grotesk" not in page
+    assert "/fonts/space-grotesk-latin.woff2" in page
 
 
 def test_the_shell_carries_og_and_twitter_tags_with_the_real_domain():
