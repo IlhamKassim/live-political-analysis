@@ -276,10 +276,12 @@ def render_dewan_body(model: DewanPageModel, language: Language = Language.EN) -
 
     top_mp_name = html.escape(model.top_mp.mp) if model.top_mp and model.top_mp.mp else "—"
     top_turns_str = (
-        f'{model.top_mp.turns:,} {t(language, "turns", "giliran")}' if model.top_mp else ""
+        f"{model.top_mp.turns:,} {t(language, 'turns', 'giliran')}" if model.top_mp else ""
     )
 
-    search_ph = t(language, "Search an MP, seat or state…", "Cari Ahli Parlimen, kerusi atau negeri…")
+    search_ph = t(
+        language, "Search an MP, seat or state…", "Cari Ahli Parlimen, kerusi atau negeri…"
+    )
     all_coal = t(language, "All coalitions", "Semua gabungan")
     sort_aria = t(language, "Sort by", "Susun ikut")
 
@@ -309,9 +311,7 @@ def render_dewan_body(model: DewanPageModel, language: Language = Language.EN) -
                 f"Lihat kerusi Parlimen {r.code} di peta →",
             )
             mp_display = html.escape(r.mp) if r.mp else t(language, "Seat vacant", "Kerusi kosong")
-            last_display = (
-                html.escape(format_dewan_date(r.last, language)) if r.last else "—"
-            )
+            last_display = html.escape(format_dewan_date(r.last, language)) if r.last else "—"
             badge_color = party_color(r.coalition)
             badge_style = pill_style(badge_color)
             coalition_label = html.escape(r.coalition or "—")
@@ -344,7 +344,11 @@ def render_dewan_body(model: DewanPageModel, language: Language = Language.EN) -
         "Giliran ialah giliran ucapan yang direkodkan dalam transkrip rasmi; urusan pengerusi majlis "
         "dikecualikan. Kekerapan bukan ukuran kualiti — baca Hansard penuh melalui tab Dewan mana-mana kerusi.",
     )
-    source_label = t(language, "Source: Official Hansard, Parliament of Malaysia.", "Sumber: Hansard rasmi Parlimen Malaysia.")
+    source_label = t(
+        language,
+        "Source: Official Hansard, Parliament of Malaysia.",
+        "Sumber: Hansard rasmi Parlimen Malaysia.",
+    )
     coverage_label = t(
         language,
         f"Coverage: {from_str} – {to_str} · {model.sittings_total} Dewan Rakyat sittings, 15th Parliament.",
@@ -426,6 +430,7 @@ def render_dewan_page(
 
     if status is None:
         from lpa.config import load_election_status
+
         status = load_election_status()
 
     if updated_at is None:
@@ -434,9 +439,11 @@ def render_dewan_page(
                 updated_at = date.fromisoformat(model.to_date)
             except (ValueError, TypeError):
                 from lpa.pipeline import today_in_malaysia
+
                 updated_at = today_in_malaysia()
         else:
             from lpa.pipeline import today_in_malaysia
+
             updated_at = today_in_malaysia()
 
     page_html: str = render_shell(

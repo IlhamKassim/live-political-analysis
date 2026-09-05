@@ -124,9 +124,7 @@ def bills_page_model(
     if status is None:
         status = load_election_status()
 
-    sorted_bills = tuple(
-        sorted(bills.values(), key=lambda b: (b.stage_date, b.code), reverse=True)
-    )
+    sorted_bills = tuple(sorted(bills.values(), key=lambda b: (b.stage_date, b.code), reverse=True))
 
     updated_at = retrieved if retrieved is not None else today_in_malaysia()
 
@@ -202,14 +200,14 @@ def _bill_row(bill: Bill, language: Language) -> str:
     )
     division_pill = (
         f'<span class="pill" style="{_pill_style(_DIVISION_PILL_COLOR)}">'
-        f'{html.escape(t(language, "Division vote", "Undian belah bahagian"))}</span>'
+        f"{html.escape(t(language, 'Division vote', 'Undian belah bahagian'))}</span>"
         if bill.division is not None
         else ""
     )
     source_link = (
         f'<p class="bill-source-p"><a href="{html.escape(bill.summary_source_url)}" '
         f'target="_blank" rel="noopener noreferrer">'
-        f'{html.escape(t(language, "View source PDF", "Lihat PDF sumber"))} ↗</a></p>'
+        f"{html.escape(t(language, 'View source PDF', 'Lihat PDF sumber'))} ↗</a></p>"
         if bill.summary_source_url
         else ""
     )
@@ -221,9 +219,9 @@ def _bill_row(bill: Bill, language: Language) -> str:
             f"{d.ayes} setuju · {d.noes} tidak · {d.abstentions} berkecuali · {d.absent} tidak hadir",
         )
         hansard_link = (
-            f'<dt>{html.escape(t(language, "Hansard record", "Rekod Hansard"))}</dt>'
+            f"<dt>{html.escape(t(language, 'Hansard record', 'Rekod Hansard'))}</dt>"
             f'<dd><a href="{html.escape(d.hansard_url)}" target="_blank" rel="noopener noreferrer">'
-            f'{html.escape(t(language, "Hansard record", "Rekod Hansard"))} ↗</a></dd>'
+            f"{html.escape(t(language, 'Hansard record', 'Rekod Hansard'))} ↗</a></dd>"
             if d.hansard_url
             else ""
         )
@@ -319,40 +317,66 @@ def render_bills_body(model: BillsPageModel, language: Language = Language.EN) -
   <div class="pol-dir dewan-page bills-page">
     <div class="pol-dir-head">
       <h1>{html.escape(t(language, "Bill tracker", "Penjejak Rang Undang-Undang"))}</h1>
-      <p class="pol-dir-sub">{html.escape(t(
-          language,
-          "All Bills before the 15th Parliament with verbatim explanatory statements and division votes.",
-          "Semua Rang Undang-Undang di hadapan Parlimen ke-15 berserta pernyataan penjelasan verbatim dan undian belah bahagian.",
-      ))}</p>
+      <p class="pol-dir-sub">{
+        html.escape(
+            t(
+                language,
+                "All Bills before the 15th Parliament with verbatim explanatory statements and division votes.",
+                "Semua Rang Undang-Undang di hadapan Parlimen ke-15 berserta pernyataan penjelasan verbatim dan undian belah bahagian.",
+            )
+        )
+    }</p>
     </div>
     <div class="dewan-tiles">
-      <div class="dewan-tile"><span class="muted">{html.escape(t(language, "Total Bills", "Jumlah RUU"))}</span><b class="mono">{model.total_bills}</b></div>
-      <div class="dewan-tile"><span class="muted">{html.escape(t(language, "Passed", "Lulus"))}</span><b class="mono">{model.passed_bills_count}</b></div>
-      <div class="dewan-tile"><span class="muted">{html.escape(t(language, "Recorded Divisions", "Undian Belah Bahagian"))}</span><b class="mono">{model.divisions_count}</b></div>
+      <div class="dewan-tile"><span class="muted">{
+        html.escape(t(language, "Total Bills", "Jumlah RUU"))
+    }</span><b class="mono">{model.total_bills}</b></div>
+      <div class="dewan-tile"><span class="muted">{
+        html.escape(t(language, "Passed", "Lulus"))
+    }</span><b class="mono">{model.passed_bills_count}</b></div>
+      <div class="dewan-tile"><span class="muted">{
+        html.escape(t(language, "Recorded Divisions", "Undian Belah Bahagian"))
+    }</span><b class="mono">{model.divisions_count}</b></div>
     </div>
     <div class="pol-dir-controls dewan-controls bills-controls">
       <input id="bills-search" class="pol-dir-search" type="search" autocomplete="off" spellcheck="false"
-        placeholder="{html.escape(t(language, "Search bill code, title or excerpt…", "Cari kod, tajuk atau petikan RUU…"))}" />
-      <select id="bills-stage" class="pol-dir-select" aria-label="{html.escape(t(language, "All stages", "Semua peringkat"))}">
+        placeholder="{
+        html.escape(
+            t(language, "Search bill code, title or excerpt…", "Cari kod, tajuk atau petikan RUU…")
+        )
+    }" />
+      <select id="bills-stage" class="pol-dir-select" aria-label="{
+        html.escape(t(language, "All stages", "Semua peringkat"))
+    }">
         <option value="">{html.escape(t(language, "All stages", "Semua peringkat"))}</option>
         {stage_options}
       </select>
-      <div class="seg chip dewan-sorts bills-sorts" role="group" aria-label="{html.escape(t(language, "Sort bills", "Susun RUU"))}">
+      <div class="seg chip dewan-sorts bills-sorts" role="group" aria-label="{
+        html.escape(t(language, "Sort bills", "Susun RUU"))
+    }">
         {sort_buttons}
       </div>
     </div>
     <div id="bills-count" class="pol-dir-count">{html.escape(count_text)}</div>
     <div id="bills-rows">{render_bills_rows(model, language)}</div>
-    <div class="note dewan-page-note">{html.escape(t(
-        language,
-        "Bills tracked from the official Dewan Rakyat register. Summaries are verbatim excerpts of each Bill's own explanatory statement (ADR 0010).",
-        "RUU dijejak daripada daftar rasmi Dewan Rakyat. Huraian adalah petikan verbatim daripada pernyataan penjelasan setiap RUU (ADR 0010).",
-    ))}</div>
-    <p class="pol-dir-src">{html.escape(t(
-        language,
-        "Source: Parlimen Malaysia — Rang Undang-Undang register",
-        "Sumber: Parlimen Malaysia — Daftar Rang Undang-Undang",
-    ))} · {html.escape(retrieved_text)}</p>
+    <div class="note dewan-page-note">{
+        html.escape(
+            t(
+                language,
+                "Bills tracked from the official Dewan Rakyat register. Summaries are verbatim excerpts of each Bill's own explanatory statement (ADR 0010).",
+                "RUU dijejak daripada daftar rasmi Dewan Rakyat. Huraian adalah petikan verbatim daripada pernyataan penjelasan setiap RUU (ADR 0010).",
+            )
+        )
+    }</div>
+    <p class="pol-dir-src">{
+        html.escape(
+            t(
+                language,
+                "Source: Parlimen Malaysia — Rang Undang-Undang register",
+                "Sumber: Parlimen Malaysia — Daftar Rang Undang-Undang",
+            )
+        )
+    } · {html.escape(retrieved_text)}</p>
   </div>
 </div>
 """.strip()

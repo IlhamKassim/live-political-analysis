@@ -344,9 +344,7 @@ def dual_seat_map(
     mp_to_dun: dict[str, PoliticianCardModel] = {}
     matched_dun: set[str] = set()
     mp_hit: dict[str, int] = {}
-    keyed_mps: list[tuple[PoliticianCardModel, str]] = [
-        (m, namekey_loose(m.name)) for m in mps
-    ]
+    keyed_mps: list[tuple[PoliticianCardModel, str]] = [(m, namekey_loose(m.name)) for m in mps]
 
     for a in aduns:
         if a.code in DUAL_CROSS_STATE:
@@ -360,9 +358,7 @@ def dual_seat_map(
         hits = [
             m
             for m, k in keyed_mps
-            if m.state == a.state
-            and len(k) >= 8
-            and names_likely_same_person(m.name, a.name)
+            if m.state == a.state and len(k) >= 8 and names_likely_same_person(m.name, a.name)
         ]
         if len(hits) != 1:
             continue
@@ -660,7 +656,8 @@ def politicians_page_model(
     return PoliticiansPageModel(
         updated_at=updated_at or datetime.now(UTC).date(),
         sources_count=sources_count,
-        status=status or ElectionStatus(constitutional_deadline=date(2028, 2, 17), source="default"),
+        status=status
+        or ElectionStatus(constitutional_deadline=date(2028, 2, 17), source="default"),
         all_politicians=tuple(all_list),
         mps=tuple(mps_list),
         aduns=tuple(aduns_list),
@@ -828,9 +825,7 @@ def render_politician_card(p: PoliticianCardModel, language: Language) -> str:
 def render_party_card(p: PartyStatsModel, language: Language) -> str:
     """Render one party/bloc rollup card in the parties grid."""
     state_none = t(language, "No state seats", "Tiada kerusi negeri")
-    state_line = (
-        " · ".join(f"{s} {n}" for s, n in p.top_states) if p.top_states else state_none
-    )
+    state_line = " · ".join(f"{s} {n}" for s, n in p.top_states) if p.top_states else state_none
 
     samples_html = "".join(
         f"<li><b>{html.escape(r.name)}</b><span>{html.escape(r.seat)}</span></li>"
@@ -1031,6 +1026,7 @@ def render_politicians_page(
 
 def load_politicians_data(base_path: Path = Path("frontend/public/data")) -> PoliticiansPageModel:
     """Load JSON files from static data directory and build PoliticiansPageModel."""
+
     def _read_json(filename: str) -> Any:
         file_path = base_path / filename
         if not file_path.exists():
@@ -1114,8 +1110,12 @@ def main() -> None:
         output_dir=args.output_dir,
         base_data_path=args.data_dir,
     )
-    print(f"Wrote politicians directory to {args.output_dir}/politicians/index.html ({en_len} bytes)")
-    print(f"Wrote politicians directory to {args.output_dir}/ms/politicians/index.html ({ms_len} bytes)")
+    print(
+        f"Wrote politicians directory to {args.output_dir}/politicians/index.html ({en_len} bytes)"
+    )
+    print(
+        f"Wrote politicians directory to {args.output_dir}/ms/politicians/index.html ({ms_len} bytes)"
+    )
 
     # Also build per-seat MP profiles if available
     try:

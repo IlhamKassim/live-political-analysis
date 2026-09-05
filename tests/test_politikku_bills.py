@@ -72,18 +72,14 @@ def test_empty_bills_produces_empty_model():
 
 def test_model_computes_counts_and_sorts_bills_by_stage_date_descending():
     bills = {
-        "D.R.1/2026": _bill(
-            "D.R.1/2026", stage="Lulus", stage_date=date(2026, 6, 1)
-        ),
+        "D.R.1/2026": _bill("D.R.1/2026", stage="Lulus", stage_date=date(2026, 6, 1)),
         "D.R.2/2026": _bill(
             "D.R.2/2026",
             stage="Dirujuk ke JKPK",
             stage_date=date(2026, 7, 20),
             division=DIVISION,
         ),
-        "D.R.3/2026": _bill(
-            "D.R.3/2026", stage="Bacaan kali pertama", stage_date=date(2026, 8, 1)
-        ),
+        "D.R.3/2026": _bill("D.R.3/2026", stage="Bacaan kali pertama", stage_date=date(2026, 8, 1)),
     }
 
     model = bills_page_model(bills, retrieved=date(2026, 8, 15), status=STATUS)

@@ -767,9 +767,7 @@ def load_all_mp_profile_data(
     status = load_election_status()
 
     computed_str = projection_data.get("computed_at")
-    computed_at = (
-        date.fromisoformat(computed_str) if computed_str else datetime.now(UTC).date()
-    )
+    computed_at = date.fromisoformat(computed_str) if computed_str else datetime.now(UTC).date()
 
     context = _MPProfileContext(
         updated_at=computed_at,
@@ -793,7 +791,9 @@ def load_all_mp_profile_data(
                 )
         sorted_shares = sorted(vote_shares.values(), reverse=True)
         margin = (
-            (sorted_shares[0] - sorted_shares[1]) if len(sorted_shares) > 1 else (sorted_shares[0] if sorted_shares else 0.0)
+            (sorted_shares[0] - sorted_shares[1])
+            if len(sorted_shares) > 1
+            else (sorted_shares[0] if sorted_shares else 0.0)
         )
         baselines[code] = SeatBaseline(
             code=code,

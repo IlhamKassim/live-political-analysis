@@ -66,10 +66,7 @@ def mp_profile_redirects() -> dict[str, str]:
     """`{"mp/<code>.html": f"/mp/{code}/", ...}` for every
     Seat `data/mp_profiles.json` has a profile for.
     """
-    return {
-        f"{MP_PROFILE_DIR}/{code}.html": f"/mp/{code}/"
-        for code in load_mp_profiles()
-    }
+    return {f"{MP_PROFILE_DIR}/{code}.html": f"/mp/{code}/" for code in load_mp_profiles()}
 
 
 def build_redirects(public_dir: Path) -> int:

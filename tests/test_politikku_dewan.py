@@ -255,7 +255,7 @@ def test_render_dewan_body_contains_key_elements_and_classes():
     assert 'data-dewan-seat="P.003"' in body
     assert "Shahirah Kassim" in body
     assert "Padang Besar" in body
-    assert "class=\"dewan-num mono\">300</span>" in body
+    assert 'class="dewan-num mono">300</span>' in body
     assert 'class="note dewan-page-note"' in body
     assert 'class="pol-dir-src"' in body
 

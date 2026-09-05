@@ -383,7 +383,10 @@ def test_render_politicians_page_shell_and_meta_en_ms():
 
     ms_page = render_politicians_page(model, language=Language.MS)
     assert '<html lang="ms">' in ms_page
-    assert "<title>Ahli Politik — Dewan Rakyat &amp; Dewan Undangan Negeri | PolitikKu</title>" in ms_page
+    assert (
+        "<title>Ahli Politik — Dewan Rakyat &amp; Dewan Undangan Negeri | PolitikKu</title>"
+        in ms_page
+    )
     assert 'href="/ms/politicians/"' in ms_page
     assert "Kembali ke peta" in ms_page
 

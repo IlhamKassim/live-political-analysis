@@ -146,9 +146,7 @@ def rendered_site(tmp_path_factory) -> Path:
         sentiment_path = (
             "sentiment/index.html" if language is Language.EN else "ms/sentiment/index.html"
         )
-        _write(
-            root, sentiment_path, render_sentiment_page(sentiment_model, language=language)
-        )
+        _write(root, sentiment_path, render_sentiment_page(sentiment_model, language=language))
         _write(root, f"{ms}{METHODOLOGY_PAGE}", render_methodology(page, language=language))
         _write(
             root,
