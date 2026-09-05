@@ -9,8 +9,8 @@ put a wrong claim on a card — an unescaped Seat name, a SAMPLE stamp, or a
 from pytest import approx
 
 from lpa.domain import SeatBaseline, SeatCall
-from lpa.public_page import Tier, tier_for
 from lpa.politikku_politicians import load_coalition_colors
+from lpa.public_page import Tier, tier_for
 from lpa.seat_call_card import (
     COALITION_INKS,
     CardModel,
