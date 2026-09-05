@@ -331,7 +331,9 @@ def render_sidebar(
     *, active_nav: str, language: Language, page_path: str, prefix: str = POLITIKKU_PREFIX
 ) -> str:
     """Render the SPA-matching sidebar navigation aside."""
-    home_href = route(language, "")
+    # Always the EN route: the root is a single static file with no /ms/
+    # twin (see NAV_LINKS' "map" entry and landing_url for the same fix).
+    home_href = route(Language.EN, "")
     about_label = t(language, "About", "Tentang")
     about_href = methodology_url(language)
 
@@ -411,7 +413,9 @@ def render_topbar(
     status: ElectionStatus | None = None,
 ) -> str:
     """Render the SPA-matching topbar header."""
-    home_href = route(language, "")
+    # Always the EN route: the root is a single static file with no /ms/
+    # twin (see NAV_LINKS' "map" entry and landing_url for the same fix).
+    home_href = route(Language.EN, "")
     whole_map_label = t(language, "Show the whole map", "Tunjukkan seluruh peta")
     lang_aria = t(language, "Language", "Bahasa")
     open_menu_label = t(language, "Open menu", "Buka menu")

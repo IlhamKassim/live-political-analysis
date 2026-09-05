@@ -113,20 +113,23 @@ def test_no_nav_link_opts_out_of_language_routing():
     # through `/ms/` from a BM page.
     en_header = render_header(active_nav="home", language=Language.EN, page_path="")
     ms_header = render_header(active_nav="home", language=Language.MS, page_path="")
-    # Two independent things legitimately render href="/" on a BM page.
-    # First, the language toggle's own EN link — since #104 put PolitikKu at
-    # the site root, that's `/`, the same href the Home nav item has in
-    # English (2 occurrences: sidebar + topbar). Second, as of the #149
-    # Wave-3 fix for the /ms/ dead end, the "Map" NAV_LINKS entry also sets
-    # `external="/"` — there is no Malay-specific site root to route to
-    # (the root is a single static file that switches language client-side),
-    # so Map always points at `/` on both languages, the same escape hatch
-    # `external` already provides for Bills (2 more occurrences: sidebar +
-    # topbar). So the "no opt-out" check expects exactly these four, not
-    # more: a *third* nav item opting out this way would push the count
-    # above 4.
+    # Three independent things legitimately render href="/" on a BM page —
+    # none of them a bug, all of them the #149 Wave-3 fix for the /ms/ dead
+    # end: the root is a single static file with no /ms/ twin, so nothing
+    # that points "home" has a Malay-specific target to route to.
+    #   1. The language toggle's own EN link (2: sidebar + topbar) — since
+    #      #104 put PolitikKu at the site root, that's `/`, the same href
+    #      the Home nav item has in English.
+    #   2. The "Map" NAV_LINKS entry, via `external="/"` — the same escape
+    #      hatch `external` already provides for Bills (2: sidebar + topbar).
+    #   3. The wordmark/brand links — `sb-brand`, `brand-home`,
+    #      `topbar-title` — which route through `home_href` in
+    #      `render_sidebar`/`render_topbar`, not through NAV_LINKS at all
+    #      (3: one in the sidebar, two in the topbar).
+    # Total: 7. A nav item or brand link that newly opts out this way would
+    # push the count above 7.
     toggle_en_href = f'href="{route(Language.EN, "")}"'
-    assert ms_header.count(toggle_en_href) == 4
+    assert ms_header.count(toggle_en_href) == 7
     for link in NAV_LINKS:
         if link.external is not None:
             continue
@@ -222,13 +225,18 @@ def test_the_root_familys_persistence_script_rewrites_the_leading_slash():
     assert "path.indexOf('/ms/') === 0" in page
 
 
-def test_the_wordmark_stays_in_the_current_language():
+def test_the_wordmark_always_points_at_the_shared_site_root():
+    # Was "stays in the current language" — the wordmark linked /ms/ on a
+    # Malay page, which 404s (#149 Wave 3): the root is a single static file
+    # with no /ms/ twin, so there is nothing for "the current language" to
+    # mean here. Both languages now get the same href, matching how the
+    # "Map" NAV_LINKS entry and landing_url already handle this.
     en_header = render_header(active_nav="home", language=Language.EN, page_path="")
     ms_header = render_header(active_nav="home", language=Language.MS, page_path="")
     assert 'class="brand brand-home wordmark" href="/"' in en_header
-    assert 'class="brand brand-home wordmark" href="/ms/"' in ms_header
+    assert 'class="brand brand-home wordmark" href="/"' in ms_header
     assert 'id="sb-brand" class="sb-brand" href="/"' in en_header
-    assert 'id="sb-brand" class="sb-brand" href="/ms/"' in ms_header
+    assert 'id="sb-brand" class="sb-brand" href="/"' in ms_header
 
 
 def test_the_language_persistence_script_is_present_and_reads_localstorage():
