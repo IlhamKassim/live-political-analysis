@@ -225,9 +225,45 @@ def landing_url(language: Language = Language.EN) -> str:
     return route(Language.EN, LANDING_PAGE)
 
 
-def short_date(day: date) -> str:
-    """23 Aug 2026 — abbreviated month."""
-    return f"{day.day} {day.strftime('%b %Y')}"
+_MONTHS_EN: tuple[str, ...] = (
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+)
+_MONTHS_MS: tuple[str, ...] = (
+    "Jan",
+    "Feb",
+    "Mac",
+    "Apr",
+    "Mei",
+    "Jun",
+    "Jul",
+    "Ogo",
+    "Sep",
+    "Okt",
+    "Nov",
+    "Dis",
+)
+
+
+def short_date(day: date, language: Language = Language.EN) -> str:
+    """23 Aug 2026 / 23 Ogo 2026 — abbreviated month, per language.
+
+    The month name is looked up from an explicit table rather than
+    `strftime('%b')`, which is locale-dependent and has no Malay locale to
+    rely on. Defaults to English so existing callers are unaffected.
+    """
+    months = _MONTHS_MS if language is Language.MS else _MONTHS_EN
+    return f"{day.day} {months[day.month - 1]} {day.year}"
 
 
 def trust_strip_status_text(status: ElectionStatus, language: Language = Language.EN) -> str:
@@ -281,7 +317,8 @@ def _lang_toggle(language: Language, page_path: str, prefix: str = POLITIKKU_PRE
         current=ms_current,
         extra="ms",
     )
-    return f'<div class="seg lang-seg sb-lang" role="group" aria-label="Language">{en_link}{ms_link}</div>'
+    label = html.escape(t(language, "Language", "Bahasa"))
+    return f'<div class="seg lang-seg sb-lang" role="group" aria-label="{label}">{en_link}{ms_link}</div>'
 
 
 _LANGUAGE_PERSISTENCE_SCRIPT_TEMPLATE = """
