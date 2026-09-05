@@ -80,6 +80,7 @@ NAV_LINKS: tuple[NavLink, ...] = (
         "Peta",
         "",
         "map",
+        external="/",
         icon_svg=(
             '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
             'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
@@ -220,8 +221,8 @@ def projection_url(language: Language = Language.EN) -> str:
 
 
 def landing_url(language: Language = Language.EN) -> str:
-    """Where 'What is PolitikKu?' points."""
-    return route(language, LANDING_PAGE)
+    """Where 'What is PolitikKu?' points: the shared site root."""
+    return route(Language.EN, LANDING_PAGE)
 
 
 def short_date(day: date) -> str:

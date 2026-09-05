@@ -75,10 +75,21 @@ def mp_profile_redirects() -> dict[str, str]:
     return {f"{MP_PROFILE_DIR}/{code}.html": f"/mp/{code}/" for code in load_mp_profiles()}
 
 
+def ms_landing_redirect(public_dir: Path) -> None:
+    """Redirect /ms/ to the single client-side bilingual site root.
+
+    Unlike retired paths, this must not write public/index.html, which is the real site.
+    """
+    out = public_dir / "ms" / "index.html"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(_stub_html("/"), encoding="utf-8")
+
+
 def build_redirects(public_dir: Path) -> int:
     redirects = {**STATIC_REDIRECTS, **mp_profile_redirects()}
     for relative_path, target in redirects.items():
         _write_stub(public_dir, relative_path, target)
+    ms_landing_redirect(public_dir)
     return len(redirects)
 
 
