@@ -612,6 +612,42 @@ body.state-open #map { overflow: visible; }
   min-height: calc(max(12px, env(safe-area-inset-top)) + 44px + 10px);
 }
 #topbar > * { pointer-events: auto; }
+#topbar .brand-home {
+  background: rgba(20, 32, 58, 0.92);
+  border: 1px solid rgba(251, 250, 247, .22);
+  border-radius: 999px;
+  color: #fbfaf7;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: background .15s ease, border-color .15s ease;
+}
+#topbar .brand-home:hover {
+  background: rgba(20, 32, 58, 0.98);
+  border-color: rgba(251, 250, 247, .40);
+}
+#topbar .brand-home:focus-visible {
+  outline: 2px solid #a9cdc9;
+  outline-offset: 2px;
+}
+#topbar .brand .mark,
+#topbar .brand .brand-word {
+  font-family: 'Newsreader', ui-serif, Georgia, 'Times New Roman', serif;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  color: #fbfaf7;
+}
+#topbar .brand .brand-word b {
+  color: inherit;
+  font-weight: 600;
+}
+#topbar .brand .brand-symbol {
+  display: none;
+}
+#topbar .mobile-menu {
+  background: rgba(20, 32, 58, 0.96);
+  border: 1px solid rgba(251, 250, 247, .22);
+}
 /* Theme toggle hidden while product is dark-only (light mode unreadable on PRN). */
 .theme-toggle,
 [data-theme-toggle] {
@@ -660,18 +696,40 @@ body.state-open #map { overflow: visible; }
 .topbar-end .mobile-menu-btn { order: 4; }
 .topbar-end .topbar-actions { order: 1; }
 .topbar-lang {
-  background: var(--glass);
-  border: 1px solid var(--line);
-  border-radius: var(--control-radius);
-  backdrop-filter: blur(8px);
+  background: rgba(20, 32, 58, 0.92);
+  border: 1px solid rgba(251, 250, 247, .28);
+  border-radius: 4px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   overflow: hidden;
+  display: inline-flex;
 }
 .topbar-lang button {
-  min-width: 40px;
+  min-width: 36px;
   min-height: 44px;
   padding: 0 10px;
+  font-family: 'IBM Plex Mono', ui-monospace, Menlo, Monaco, Consolas, 'Courier New', monospace;
   font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .06em;
+  color: #b9c0cc;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.topbar-lang button:hover:not(.on) {
+  color: #fbfaf7;
+  background: rgba(251, 250, 247, .12);
+}
+.topbar-lang button.on {
+  background: #fbfaf7;
+  color: #14203a;
   font-weight: 600;
+}
+.topbar-lang button:focus-visible {
+  outline: 2px solid #a9cdc9;
+  outline-offset: -2px;
 }
 /* when menu is open as display:contents, don't let topicons steal right-side space */
 @media (min-width: 640px) {
@@ -680,10 +738,11 @@ body.state-open #map { overflow: visible; }
 }
 .iconbtn {
   width: 44px; height: 44px; display: grid; place-items: center; padding: 0;
-  background: var(--glass); border: 1px solid var(--line); border-radius: var(--control-radius);
-  color: var(--ink-dim); cursor: pointer; backdrop-filter: blur(8px);
+  background: rgba(20, 32, 58, 0.92); border: 1px solid rgba(251, 250, 247, .22); border-radius: 4px;
+  color: #b9c0cc; cursor: pointer; backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   text-decoration: none;
-  transition: color .15s, border-color .15s;
+  transition: color .15s ease, border-color .15s ease, background .15s ease;
 }
 .iconbtn svg { width: 18px; height: 18px; }
 .nav-icon {
@@ -691,7 +750,13 @@ body.state-open #map { overflow: visible; }
   stroke: currentColor; stroke-width: 1.85; stroke-linecap: round; stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
-.iconbtn:hover { color: var(--ink); border-color: var(--line-2); text-decoration: none; }
+.iconbtn:hover {
+  color: #fbfaf7;
+  border-color: rgba(251, 250, 247, .40);
+  background: rgba(20, 32, 58, 0.98);
+  text-decoration: none;
+}
+.iconbtn:focus-visible { outline: 2px solid #a9cdc9; outline-offset: 2px; }
 .iconbtn:active { transform: scale(.92); }
 .iconbtn[hidden] { display: none; }   /* the base display:grid would otherwise defeat the hidden attr */
 .iconbtn.top-live .live-dot { width: 9px; height: 9px; }   /* the election shortcut = a red pulse */
@@ -5499,29 +5564,36 @@ html[data-theme="light"] .bento-gov-emblem-pane {
   min-height: 44px;
   padding: 0 18px;
   margin: 0;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(251, 250, 247, .22);
   border-radius: 999px;
-  background: var(--glass);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: 0;
+  background: rgba(20, 32, 58, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-family: 'Newsreader', ui-serif, Georgia, 'Times New Roman', serif;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -.01em;
   line-height: 1;
-  color: var(--ink);
+  color: #fbfaf7;
   white-space: nowrap;
   cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
 }
-.topbar-title:hover { border-color: var(--line-2); }
-.topbar-title:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-.topbar-title .brand-word b { color: var(--accent); font-weight: 800; }
+.topbar-title:hover {
+  background: rgba(20, 32, 58, 0.98);
+  border-color: rgba(251, 250, 247, .40);
+}
+.topbar-title:focus-visible { outline: 2px solid #a9cdc9; outline-offset: 2px; }
+.topbar-title .brand-word { font-family: inherit; font-weight: inherit; color: inherit; }
+.topbar-title .brand-word b { color: inherit; font-weight: 600; }
 .topbar-context .bento-title {
   display: inline-flex; align-items: center; gap: 9px;
   min-height: 44px; padding: 0 16px;
-  font-family: var(--font-display); font-size: 19px; font-weight: 700; letter-spacing: 0; white-space: nowrap;
-  background: var(--glass); border: 1px solid var(--line); border-radius: 999px;
-  backdrop-filter: blur(8px);
+  font-family: 'Newsreader', ui-serif, Georgia, 'Times New Roman', serif; font-size: 19px; font-weight: 600; letter-spacing: 0; white-space: nowrap;
+  background: rgba(20, 32, 58, 0.92); border: 1px solid rgba(251, 250, 247, .22); border-radius: 999px;
+  color: #fbfaf7;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 .topbar-context .bento-title .live-dot { width: 8px; height: 8px; }
 /* official state / federal territory emblem badges */
@@ -5543,7 +5615,20 @@ html[data-theme="light"] .bento-gov-emblem-pane {
 .bento-crest.state-emblem-fallback { padding: 0; font-size: 11px; }
 .topbar-actions .prn-close-btn {
   margin: 0; width: auto; border-radius: 999px; padding: 0 16px; min-height: 44px;
-  background: var(--glass); backdrop-filter: blur(8px); border-color: var(--line);
+  background: rgba(20, 32, 58, 0.92);
+  border: 1px solid rgba(251, 250, 247, .22);
+  color: #b9c0cc;
+  font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.topbar-actions .prn-close-btn:hover {
+  background: rgba(20, 32, 58, 0.98);
+  border-color: rgba(251, 250, 247, .40);
+  color: #fbfaf7;
 }
 body.bento-on #topbar { justify-content: flex-start; }
 body.bento-on #topbar .top-controls { margin-inline: auto; }
@@ -5698,14 +5783,33 @@ html[data-theme="light"] .bento-news .muted {
    across window sizes (it boots collapsed to the 60px icon strip; expanding is
    temporary). Only true phone widths (<640px) fall back to the hamburger menu.
    ============================================================================ */
-#sidebar { display: none; }
+#sidebar {
+  display: none;
+  --sb-ink: #14203a;
+  --sb-paper: #fbfaf7;
+  --sb-on-dark-body: #b9c0cc;
+  --sb-on-dark-muted: #8a94a6;
+  --sb-accent: #1f5c58;
+  --sb-accent-on-dark: #a9cdc9;
+  --sb-nav-active-rule: #7fa8a4;
+  --sb-line: rgba(251, 250, 247, 0.12);
+  --sb-line-hover: rgba(251, 250, 247, 0.2);
+  --sb-surface-hover: rgba(251, 250, 247, 0.08);
+  --sb-serif: 'Newsreader', ui-serif, Georgia, 'Times New Roman', serif;
+  --sb-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --sb-mono: 'IBM Plex Mono', ui-monospace, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  font-family: var(--sb-sans);
+  color: var(--sb-on-dark-body);
+}
 @media (min-width: 640px) {
   #sidebar {
     position: fixed; inset: 0 auto 0 0; width: 232px; z-index: 60;
     display: flex; flex-direction: column; gap: 2px;
     padding: 14px 12px 12px;
-    background: var(--topbar-strip); backdrop-filter: blur(10px);
-    border-right: 1px solid var(--line);
+    background: var(--sb-ink);
+    border-right: 1px solid var(--sb-line);
+    font-family: var(--sb-sans);
+    color: var(--sb-on-dark-body);
   }
   #app { margin-left: 232px; }
   #topbar { left: 232px; }
@@ -5719,37 +5823,45 @@ html[data-theme="light"] .bento-news .muted {
 }
 .sb-brand {
   display: flex; align-items: center; gap: 6px;
-  font-family: var(--font-display); font-size: 19px; font-weight: 700; color: var(--ink);
+  font-family: var(--sb-serif); font-size: 21px; font-weight: 600; letter-spacing: -.01em; color: var(--sb-paper);
   min-height: 44px; background: none; border: 0; cursor: pointer; padding: 6px 10px 14px; text-align: left;
 }
-.sb-brand .brand-word b { font-weight: 800; }
-.sb-brand .brand-symbol { font-size: 23px; line-height: 1; }
+.sb-brand .brand-word { font-family: inherit; font-size: inherit; font-weight: inherit; letter-spacing: inherit; color: inherit; }
+.sb-brand .brand-word b { font-weight: 600; }
+.sb-brand .brand-symbol { display: none; }
 .sb-nav { display: flex; flex-direction: column; gap: 2px; }
 .sb-item {
   display: flex; align-items: center; gap: 10px; width: 100%;
-  min-height: 44px; padding: 9px 10px; border-radius: 9px; border: 0; background: none;
-  font: inherit; font-size: 13.5px; color: var(--ink-dim); text-align: left; cursor: pointer;
+  min-height: 44px; padding: 9px 10px; border-radius: 8px; border: 0; background: none;
+  font: inherit; font-family: var(--sb-sans); font-size: 13.5px; color: var(--sb-on-dark-body); text-align: left; cursor: pointer;
   text-decoration: none;
   transition: background .12s, color .12s;
 }
-.sb-item:hover { background: var(--surface-hover-2); color: var(--ink); text-decoration: none; }
-.sb-item.on { background: var(--surface-hover); color: var(--ink); font-weight: 600; }
+.sb-item:hover { background: var(--sb-surface-hover); color: var(--sb-paper); text-decoration: none; }
+.sb-item.on { background: var(--sb-accent); color: var(--sb-paper); font-weight: 600; }
+.sb-item.on:hover { background: var(--sb-accent); color: var(--sb-paper); }
 .sb-brand:focus-visible, .sb-item:focus-visible, .sb-collapse:focus-visible, .sb-lang button:focus-visible {
-  outline: 2px solid var(--focus);
+  outline: 2px solid var(--sb-accent-on-dark);
   outline-offset: 2px;
 }
 .sb-ic { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
 .sb-ic .nav-icon { width: 22px; height: 22px; }
 .sb-live .live-dot { width: 8px; height: 8px; margin-right: 2px; }
 .sb-section {
-  font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .09em;
-  color: var(--ink-faint); margin: 16px 10px 6px;
+  font-family: var(--sb-mono); font-size: 10.5px; font-weight: 500; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--sb-on-dark-muted); margin: 16px 10px 6px;
 }
 .sb-states { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; }
-.sb-state { font-size: 13px; min-height: 44px; padding: 7px 10px; gap: 8px; }
+.sb-state {
+  font-family: var(--sb-sans); font-size: 13px; min-height: 44px; padding: 7px 10px; gap: 8px;
+  color: var(--sb-on-dark-body);
+}
+.sb-state:hover { background: var(--sb-surface-hover); color: var(--sb-paper); }
+.sb-state.on { background: var(--sb-accent); color: var(--sb-paper); font-weight: 600; }
+.sb-state.on:hover { background: var(--sb-accent); color: var(--sb-paper); }
 .sb-state-emblem {
   width: 30px; height: 30px; padding: 2px; border-radius: 8px;
-  background: var(--state-emblem-bg);
+  background: rgba(251, 250, 247, .07);
   position: relative;   /* anchors the map-hover glint sweep */
   transition: transform .18s ease, box-shadow .18s ease;
 }
@@ -5796,15 +5908,17 @@ html[data-theme="light"] .sb-state.is-map-hover .sb-state-emblem::after {
   transform: translateY(-50%);
   max-width: min(220px, calc(100vw - 84px));
   padding: 7px 10px;
-  border: 1px solid var(--line-2);
-  border-radius: 7px;
-  background: var(--tooltip-bg, rgba(8,11,16,.94));
-  color: var(--ink);
+  border: 1px solid rgba(251, 250, 247, .2);
+  border-radius: 6px;
+  background: var(--sb-ink);
+  color: var(--sb-paper);
+  font-family: var(--sb-sans);
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.2;
   white-space: nowrap;
   pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .35);
 }
 .sb-state-hover-label[hidden] { display: none; }
 /* live-election state row (Johor): translucent red + left→right pulse — replaces
@@ -5877,14 +5991,20 @@ html[data-theme="light"] .sb-state.is-map-hover .sb-state-emblem::after {
 @media (prefers-reduced-motion: reduce) {
   .sb-state.is-election::before { display: none; animation: none; }
 }
-.sb-foot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 2px; }
-.sb-small { width: auto; font-size: 12.5px; padding: 7px 9px; }
-.sb-lang { margin-left: auto; }
-.sb-lang button {
-  font: inherit; font-size: 11px; font-weight: 600; padding: 6px 9px; min-width: 44px; min-height: 44px;
-  border: 0; background: none; color: var(--ink-faint); border-radius: 8px; cursor: pointer;
+.sb-foot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--sb-line); display: flex; align-items: center; gap: 2px; }
+.sb-small { width: auto; font-family: var(--sb-sans); font-size: 12.5px; padding: 7px 9px; color: var(--sb-on-dark-body); }
+.sb-small:hover { color: var(--sb-paper); background: var(--sb-surface-hover); }
+.sb-lang {
+  margin-left: auto; display: flex; border: 1px solid rgba(251, 250, 247, .28); border-radius: 4px; overflow: hidden;
+  font-family: var(--sb-mono); font-size: 11px; letter-spacing: .06em;
 }
-.sb-lang button.on { background: var(--surface-hover); color: var(--ink); }
+.sb-lang button {
+  font: inherit; font-family: var(--sb-mono); font-size: 11px; font-weight: 500; padding: 5px 9px; min-width: 34px; min-height: 28px;
+  border: 0; background: none; color: var(--sb-on-dark-body); border-radius: 0; cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.sb-lang button:hover:not(.on) { color: var(--sb-paper); background: rgba(251, 250, 247, .12); }
+.sb-lang button.on { background: var(--sb-paper); color: var(--sb-ink); font-weight: 600; }
 
 /* ---- collapsible rail: 232px ⇄ 60px icon strip; content reflows beside it ---- */
 @media (min-width: 640px) {
@@ -5915,7 +6035,7 @@ html[data-theme="light"] .sb-state.is-map-hover .sb-state-emblem::after {
     gap: 2px;
     margin-top: 8px;
     padding-top: 8px;
-    border-top: 1px solid var(--line);
+    border-top: 1px solid var(--sb-line);
     overflow-y: auto;
     scrollbar-width: none;
   }
@@ -5925,7 +6045,7 @@ html[data-theme="light"] .sb-state.is-map-hover .sb-state-emblem::after {
     width: 44px;
     min-height: 44px;
     padding: 0;
-    border-radius: 12px;
+    border-radius: 8px;
   }
   body.sb-collapsed .sb-state-name { display: none; }
   body.sb-collapsed .sb-state-emblem {
@@ -5947,10 +6067,11 @@ html[data-theme="light"] .sb-state.is-map-hover .sb-state-emblem::after {
 .sb-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding-bottom: 8px; }
 .sb-collapse {
   flex: 0 0 auto; width: 44px; height: 44px; display: grid; place-items: center;
-  border: 0; border-radius: 8px; background: none; color: var(--ink-faint); cursor: pointer;
+  border: 0; border-radius: 8px; background: none; color: var(--sb-on-dark-muted); cursor: pointer;
+  transition: background .12s, color .12s;
 }
 .sb-collapse svg { width: 22px; height: 22px; }
-.sb-collapse:hover { background: var(--surface-hover-2); color: var(--ink); }
+.sb-collapse:hover { background: var(--sb-surface-hover); color: var(--sb-paper); }
 
 /* manifesto pledges dialog (opened from the sidebar) */
 .pledges-modal { width: min(720px, calc(100vw - 40px)); }
@@ -6090,10 +6211,10 @@ html[data-theme="light"] .bento-gov-emblem-pane {
   #topbar { background: transparent; border-bottom: 0; backdrop-filter: none; }
   .topbar-context .bento-title {
     background: none; border: 0; padding: 0 4px;
-    font-family: var(--font-display); font-size: 19px; font-weight: 700; letter-spacing: 0;
+    font-family: 'Newsreader', ui-serif, Georgia, 'Times New Roman', serif; font-size: 19px; font-weight: 600; letter-spacing: 0;
     backdrop-filter: none;
   }
-  .topbar-actions .prn-close-btn { background: var(--snow-inner); border: 0; backdrop-filter: none; }
+  .topbar-actions .prn-close-btn { background: rgba(20, 32, 58, 0.92); border: 1px solid rgba(251, 250, 247, .22); color: #b9c0cc; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
   body.bento-on #state-bento {
     background:
       linear-gradient(to right,  var(--grid-line) 1px, transparent 1px) 0 0 / var(--grid-size) var(--grid-size),
@@ -6101,15 +6222,8 @@ html[data-theme="light"] .bento-gov-emblem-pane {
       radial-gradient(120% 90% at 50% 0%, var(--bento-page-top) 0%, var(--snow-page) 72%);
   }
 }
-/* sidebar: flat, borderless, pill active */
 @media (min-width: 640px) {
-  #sidebar { background: var(--snow-page); border-right: 0; }
   #topbar { left: 232px; }
-  .sb-item { border-radius: 12px; }
-  .sb-item:hover { background: var(--snow-inner); }
-  .sb-item.on { background: var(--snow-inner-hi); }
-  .sb-foot { border-top: 1px solid var(--snow-inner); }
-  .sb-lang button.on { background: var(--snow-inner-hi); }
 }
 /* explore card internals */
 .bento-explore-spot { border-left-color: var(--snow-inner-hi); }
