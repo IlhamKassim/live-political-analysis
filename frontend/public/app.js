@@ -2,7 +2,7 @@
 // Data-driven: boundaries render now; GE15 results + scores light up the
 // "Parti"/"Skor" modes and panel rows as soon as their JSON exists.
 
-import { encodeHash, decodeHash, legacyHashToPath, pickInitialLang, findSeatForLocation, nearestSeat,
+import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSeat,
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues, swatchTextColor,
   competitivenessFromMajorityPct, withCurrentAffiliation, seatViewBox,
@@ -952,7 +952,7 @@ function renderPoliticiansDirectory(keepQuery = "") {
       <p class="pol-dir-src">${esc(t(srcKey))}</p>
     </div>`;
   renderPoliticiansBody();
-  document.getElementById("pol-back")?.addEventListener("click", () => { hideInfo(); backToControls(); syncSidebar(); });
+  document.getElementById("pol-back")?.addEventListener("click", () => { closePoliticians({ silent: true }); hideInfo(); backToControls(); syncSidebar(); });
   if (!pledgesMode) {
     const s = document.getElementById("pol-search");
     s && s.addEventListener("input", renderPoliticiansBody);
@@ -983,7 +983,39 @@ function renderPoliticiansDirectory(keepQuery = "") {
     renderPoliticiansDirectory((document.getElementById("pol-search") || {}).value || "");
   }));
 }
+async function openPoliticians() {
+  if (!state.politicians) {
+    try {
+      const pl = await fetch("data/politicians.json");
+      if (pl.ok) state.politicians = await pl.json();
+    } catch (_) {}
+  }
+  if (!state.politicians) return;
+  closeNewsPage({ silent: true });     // the directory and the news page are mutually exclusive
+  closeDewanPage({ silent: true });    // …and so is the Dewan activity page
+  closeBillsPage({ silent: true });    // …and so is the Bill tracker page
+  closeSentimentPage({ silent: true }); // …and so is the Sentiment digest page
+  closeProjectionPage({ silent: true }); // …and so is the Projection page
+  if (state.prnMode) closePrnMode();   // leave the election dashboard before the directory takes over
+  if (!state.data.parlimen) { try { await loadTier("parlimen"); } catch (_) {} }
+  if (polTier !== "parlimen" && polTier !== "pledges" && !state.data.dun) {
+    try { await loadTier("dun"); } catch (_) {}
+  }
+  document.body.classList.add("politicians-open");
+  renderPoliticiansDirectory();
+  syncSidebar();
+  if (location.hash !== "#politicians") history.pushState(null, "", "#politicians");
+  POL_VIEW.querySelector(".pol-dir")?.scrollTo?.(0, 0);
+}
+function closePoliticians(options = {}) {
+  if (!document.body.classList.contains("politicians-open")) return;
+  document.body.classList.remove("politicians-open");
+  if (POL_VIEW) POL_VIEW.innerHTML = "";
+  syncSidebar();
+  if (!options.silent) writeHash();
+}
 function openSeatFromPolitician(code) {
+  closePoliticians({ silent: true });
   const tier = code.startsWith("P.") ? "parlimen" : "dun";   // ADUN cards carry DUN codes
   const go = () => { const d = state.data[tier]; if (d && d.byCode.has(code)) select(code); };
   if (state.tier !== tier) setTier(tier).then(go); else go();
@@ -4225,6 +4257,12 @@ RESET.addEventListener("click", deselect);
 const PLEDGES_MODAL = document.getElementById("pledges-modal");
 const NEWS_VIEW = document.getElementById("news-view");
 function openPledgesModal() {
+  // Prefer the Politicians directory tab when the roster is available
+  if (state.politicians && state.johorPledges) {
+    polTier = "pledges";
+    openPoliticians();
+    return;
+  }
   if (!PLEDGES_MODAL || !state.johorPledges) return;
   PLEDGES_MODAL.innerHTML = `
     <div class="pol-modal-shell">
@@ -4347,6 +4385,11 @@ function syncSidebar() {
 // a state picked from the sidebar — W.P. territories only exist on the parliament
 // layer, so switch tiers when the current layer has no seats for it
 async function sidebarOpenState(name) {
+  closePoliticians({ silent: true });
+  closeDewanPage({ silent: true });
+  closeBillsPage({ silent: true });
+  closeSentimentPage({ silent: true });
+  closeProjectionPage({ silent: true });
   hideInfo();
   // live election state (Johor) → open the PRN dashboard; other states open normally
   const e = liveElection();
@@ -4431,6 +4474,10 @@ bindSidebarAutoCollapse();
 if (sbAutoCollapseEnabled() && !document.body.classList.contains("sb-collapsed")) {
   scheduleSidebarAutoCollapse();
 }
+function isPlainLeftClick(ev) {
+  return ev.button === 0 && !ev.altKey && !ev.ctrlKey && !ev.metaKey && !ev.shiftKey;
+}
+
 document.getElementById("sidebar")?.addEventListener("click", (ev) => {
   // any click in the rail counts as use (and may expand via the toggle below)
   bumpSidebarAutoCollapse();
@@ -4446,7 +4493,52 @@ document.getElementById("sidebar")?.addEventListener("click", (ev) => {
     return;
   }
   if (ev.target.closest("#sb-brand") || ev.target.closest("#sb-map")) {
-    closeNewsPage({ silent: true }); hideInfo(); backToControls(); syncSidebar(); return;
+    closePoliticians({ silent: true }); closeNewsPage({ silent: true }); closeDewanPage({ silent: true }); closeBillsPage({ silent: true }); closeSentimentPage({ silent: true }); closeProjectionPage({ silent: true }); hideInfo(); backToControls(); syncSidebar(); return;
+  }
+  const sbPol = ev.target.closest("#sb-politicians");
+  if (sbPol) {
+    if (!isPlainLeftClick(ev)) return;
+    ev.preventDefault();
+    hideInfo();
+    openPoliticians();
+    setTimeout(syncSidebar, 60);
+    return;
+  }
+  const sbDewan = ev.target.closest("#sb-dewan");
+  if (sbDewan) {
+    if (!isPlainLeftClick(ev)) return;
+    ev.preventDefault();
+    hideInfo();
+    openDewanPage();
+    setTimeout(syncSidebar, 60);
+    return;
+  }
+  const sbBills = ev.target.closest("#sb-bills");
+  if (sbBills) {
+    if (!isPlainLeftClick(ev)) return;
+    ev.preventDefault();
+    hideInfo();
+    openBillsPage();
+    setTimeout(syncSidebar, 60);
+    return;
+  }
+  const sbSent = ev.target.closest("#sb-sentiment");
+  if (sbSent) {
+    if (!isPlainLeftClick(ev)) return;
+    ev.preventDefault();
+    hideInfo();
+    openSentimentPage();
+    setTimeout(syncSidebar, 60);
+    return;
+  }
+  const sbProj = ev.target.closest("#sb-projection");
+  if (sbProj) {
+    if (!isPlainLeftClick(ev)) return;
+    ev.preventDefault();
+    hideInfo();
+    openProjectionPage();
+    setTimeout(syncSidebar, 60);
+    return;
   }
   if (ev.target.closest("#sb-about")) { showInfo(); return; }
   if (ev.target.closest("#sb-share")) { shareApp(); return; }
@@ -4456,11 +4548,6 @@ document.getElementById("sidebar")?.addEventListener("click", (ev) => {
 
 // ---- boot ----
 (async function init() {
-  const legacyPath = legacyHashToPath(location.hash);
-  if (legacyPath) {
-    location.replace(legacyPath);
-    return;
-  }
   setTheme(theme, false);
   document.querySelectorAll("#lang button").forEach((x) => setOn(x, x.dataset.lang === lang));
   applyStatic();
@@ -4509,7 +4596,12 @@ document.getElementById("sidebar")?.addEventListener("click", (ev) => {
   writeHash();       // normalise URL to the actually-active state — a gated mode (Skor) or bad seat
                      // code in the deep link gets dropped so a re-shared link can't misrepresent state
                      // (replaceState → no extra history entry)
+  if (bootHash === "#politicians") await openPoliticians();
   if (bootHash === "#news") openNewsPage();   // deep-linked news page
+  if (bootHash === "#dewan") await openDewanPage();
+  if (bootHash === "#bills") await openBillsPage();
+  if (bootHash === "#sentiment") await openSentimentPage();
+  if (bootHash === "#projection") await openProjectionPage();
   maybeShowHint();   // fresh visit, nothing selected → nudge that seats are tappable
   try { syncMapToCard(); } catch (_) {}
   // body.sb-collapsed is set above; drop the html pre-paint hint
@@ -4538,12 +4630,51 @@ async function shareApp() {
     else { await navigator.clipboard.writeText(url); showToast("share_ok"); }
   } catch (e) { /* user cancelled */ }
 }
-function showWholeMap() { hideInfo(); backToControls(); }
+function showWholeMap() {
+  hideInfo();
+  closePoliticians({ silent: true });
+  closeNewsPage({ silent: true });
+  closeDewanPage({ silent: true });
+  closeBillsPage({ silent: true });
+  closeSentimentPage({ silent: true });
+  closeProjectionPage({ silent: true });
+  backToControls();
+}
 document.getElementById("brand-home")?.addEventListener("click", showWholeMap);
 document.getElementById("topbar-title")?.addEventListener("click", showWholeMap);
 document.getElementById("top-map")?.addEventListener("click", showWholeMap);
 document.getElementById("top-info")?.addEventListener("click", showInfo);
 document.getElementById("top-share")?.addEventListener("click", shareApp);
+document.getElementById("top-politicians")?.addEventListener("click", (e) => {
+  if (!isPlainLeftClick(e)) return;
+  e.preventDefault();
+  setMobileMenu(false);
+  openPoliticians();
+});
+document.getElementById("top-dewan")?.addEventListener("click", (e) => {
+  if (!isPlainLeftClick(e)) return;
+  e.preventDefault();
+  setMobileMenu(false);
+  openDewanPage();
+});
+document.getElementById("top-bills")?.addEventListener("click", (e) => {
+  if (!isPlainLeftClick(e)) return;
+  e.preventDefault();
+  setMobileMenu(false);
+  openBillsPage();
+});
+document.getElementById("top-sentiment")?.addEventListener("click", (e) => {
+  if (!isPlainLeftClick(e)) return;
+  e.preventDefault();
+  setMobileMenu(false);
+  openSentimentPage();
+});
+document.getElementById("top-projection")?.addEventListener("click", (e) => {
+  if (!isPlainLeftClick(e)) return;
+  e.preventDefault();
+  setMobileMenu(false);
+  openProjectionPage();
+});
 // mobile-menu nav parity with the wide-screen sidebar (each shown only when relevant)
 POL_VIEW?.addEventListener("click", (e) => {
   if (e.target.closest("a")) return;   // a social-icon link — let it open, don't pop the profile
@@ -4563,10 +4694,20 @@ POL_VIEW?.addEventListener("keydown", (e) => {
   const card = e.target.closest(".pol-card");
   if (card && e.target === card) { e.preventDefault(); openPoliticianModal(card.dataset.polCode, card); }
 });
-// browser back closes news page if open
+// browser back closes in-app views if open
 window.addEventListener("popstate", () => {
+  if (location.hash === "#politicians") { openPoliticians(); }
+  else if (document.body.classList.contains("politicians-open")) closePoliticians({ silent: true });
   if (location.hash === "#news") openNewsPage();
   else if (document.body.classList.contains("news-open")) closeNewsPage({ silent: true });
+  if (location.hash === "#dewan") { openDewanPage(); }
+  else if (document.body.classList.contains("dewan-open")) closeDewanPage({ silent: true });
+  if (location.hash === "#bills") { openBillsPage(); }
+  else if (document.body.classList.contains("bills-open")) closeBillsPage({ silent: true });
+  if (location.hash === "#sentiment") { openSentimentPage(); }
+  else if (document.body.classList.contains("sentiment-open")) closeSentimentPage({ silent: true });
+  if (location.hash === "#projection") openProjectionPage();
+  else if (document.body.classList.contains("projection-open")) closeProjectionPage({ silent: true });
 });
 
 /* ===== Dewan activity page: the Hansard league table (its own full page) ===== */
@@ -4701,6 +4842,53 @@ function renderDewanPage() {
     renderDewanRows((document.getElementById("dewan-search") || {}).value || "");
   });
 }
+
+async function openDewanPage() {
+  if (!state.hansard) {
+    try {
+      const hd = await fetch("data/hansard-dewan.json");
+      if (hd.ok) state.hansard = await hd.json();
+    } catch (_) {}
+  }
+  if (!state.hansard) return;
+  closePoliticians({ silent: true });
+  closeNewsPage({ silent: true });
+  closeBillsPage({ silent: true });
+  closeSentimentPage({ silent: true });
+  closeProjectionPage({ silent: true });
+  if (state.prnMode) closePrnMode();
+  if (!state.data.parlimen) { try { await loadTier("parlimen"); } catch (_) {} }
+  document.body.classList.add("dewan-open");
+  renderDewanPage();
+  syncSidebar();
+  if (location.hash !== "#dewan") history.pushState(null, "", "#dewan");
+  DEWAN_VIEW.querySelector(".pol-dir")?.scrollTo?.(0, 0);
+}
+function closeDewanPage(options = {}) {
+  if (!document.body.classList.contains("dewan-open")) return;
+  document.body.classList.remove("dewan-open");
+  if (DEWAN_VIEW) DEWAN_VIEW.innerHTML = "";
+  syncSidebar();
+  if (!options.silent) writeHash();
+}
+
+DEWAN_VIEW?.addEventListener("click", (e) => {
+  if (e.target.closest("[data-dewan-back]")) { closeDewanPage({ silent: true }); backToControls(); syncSidebar(); return; }
+  const sortBtn = e.target.closest("[data-dewan-sort]");
+  if (sortBtn) {
+    dewanSort = sortBtn.dataset.dewanSort;
+    DEWAN_VIEW.querySelectorAll("[data-dewan-sort]").forEach((b) => setOn(b, b === sortBtn));
+    renderDewanRows((document.getElementById("dewan-search") || {}).value || "");
+    return;
+  }
+  const row = e.target.closest("[data-dewan-seat]");
+  if (row) {
+    const code = row.dataset.dewanSeat;
+    closeDewanPage({ silent: true });
+    const go = () => { const d = state.data.parlimen; if (d && d.byCode.has(code)) select(code); };
+    if (state.tier !== "parlimen") setTier("parlimen").then(go); else go();
+  }
+});
 
 /* ===== Parliamentary bills tracker view ===== */
 const BILLS_VIEW = document.getElementById("bills-view");
@@ -4857,6 +5045,51 @@ function renderBillsPage() {
   });
 }
 
+async function openBillsPage() {
+  if (!state.bills) {
+    try {
+      const res = await fetch("data/bills.json");
+      if (res.ok) state.bills = await res.json();
+    } catch (_) {}
+  }
+  if (!state.bills) return;
+  closePoliticians({ silent: true });
+  closeNewsPage({ silent: true });
+  closeDewanPage({ silent: true });
+  closeSentimentPage({ silent: true });
+  closeProjectionPage({ silent: true });
+  if (state.prnMode) closePrnMode();
+  document.body.classList.add("bills-open");
+  renderBillsPage();
+  syncSidebar();
+  if (location.hash !== "#bills") history.pushState(null, "", "#bills");
+  BILLS_VIEW.querySelector(".pol-dir")?.scrollTo?.(0, 0);
+}
+
+function closeBillsPage(options = {}) {
+  if (!document.body.classList.contains("bills-open")) return;
+  document.body.classList.remove("bills-open");
+  if (BILLS_VIEW) BILLS_VIEW.innerHTML = "";
+  syncSidebar();
+  if (!options.silent) writeHash();
+}
+
+BILLS_VIEW?.addEventListener("click", (e) => {
+  if (e.target.closest("[data-bills-back]")) {
+    closeBillsPage({ silent: true });
+    backToControls();
+    syncSidebar();
+    return;
+  }
+  const sortBtn = e.target.closest("[data-bills-sort]");
+  if (sortBtn) {
+    billsSort = sortBtn.dataset.billsSort;
+    BILLS_VIEW.querySelectorAll("[data-bills-sort]").forEach((b) => setOn(b, b === sortBtn));
+    renderBillsRows((document.getElementById("bills-search") || {}).value || "");
+    return;
+  }
+});
+
 
 /* ===== News sentiment tracker view ===== */
 const SENTIMENT_VIEW = document.getElementById("sentiment-view");
@@ -4956,6 +5189,45 @@ function renderSentimentPage() {
     </div>
   `;
 }
+
+async function openSentimentPage() {
+  if (!state.sentiment) {
+    try {
+      const res = await fetch("data/sentiment.json");
+      if (res.ok) state.sentiment = await res.json();
+    } catch (_) {}
+  }
+  if (!state.sentiment) return;
+  closePoliticians({ silent: true });
+  closeNewsPage({ silent: true });
+  closeDewanPage({ silent: true });
+  closeBillsPage({ silent: true });
+  closeProjectionPage({ silent: true });
+  if (state.prnMode) closePrnMode();
+  document.body.classList.add("sentiment-open");
+  renderSentimentPage();
+  syncSidebar();
+  if (location.hash !== "#sentiment") history.pushState(null, "", "#sentiment");
+  SENTIMENT_VIEW.querySelector(".pol-dir")?.scrollTo?.(0, 0);
+}
+
+function closeSentimentPage(options = {}) {
+  if (!document.body.classList.contains("sentiment-open")) return;
+  document.body.classList.remove("sentiment-open");
+  if (SENTIMENT_VIEW) SENTIMENT_VIEW.innerHTML = "";
+  syncSidebar();
+  if (!options.silent) writeHash();
+}
+
+SENTIMENT_VIEW?.addEventListener("click", (e) => {
+  if (e.target.closest("[data-sentiment-back]")) {
+    closeSentimentPage({ silent: true });
+    backToControls();
+    syncSidebar();
+    return;
+  }
+});
+
 
 /* ===== GE16 Seat Projection page ===== */
 const PROJECTION_VIEW = document.getElementById("projection-view");
@@ -5247,6 +5519,63 @@ function renderProjectionPage() {
     renderProjectionRows((document.getElementById("proj-search") || {}).value || "");
   });
 }
+
+async function openProjectionPage() {
+  closePoliticians({ silent: true });
+  closeNewsPage({ silent: true });
+  closeDewanPage({ silent: true });
+  closeBillsPage({ silent: true });
+  closeSentimentPage({ silent: true });
+  if (state.prnMode) closePrnMode();
+  if (!state.data.parlimen) { try { await loadTier("parlimen"); } catch (_) {} }
+  if (!state.projection) {
+    try {
+      const pj = await fetch("data/projection.json");
+      if (pj.ok) state.projection = await pj.json();
+    } catch (_) {}
+  }
+  document.body.classList.add("projection-open");
+  renderProjectionPage();
+  syncSidebar();
+  if (location.hash !== "#projection") history.pushState(null, "", "#projection");
+  PROJECTION_VIEW.querySelector(".pol-dir")?.scrollTo?.(0, 0);
+}
+
+function closeProjectionPage(options = {}) {
+  if (!document.body.classList.contains("projection-open")) return;
+  document.body.classList.remove("projection-open");
+  if (PROJECTION_VIEW) PROJECTION_VIEW.innerHTML = "";
+  syncSidebar();
+  if (!options.silent) writeHash();
+}
+
+PROJECTION_VIEW?.addEventListener("click", (e) => {
+  if (e.target.closest("[data-proj-back]")) {
+    closeProjectionPage({ silent: true });
+    backToControls();
+    syncSidebar();
+    return;
+  }
+  const sortBtn = e.target.closest("[data-proj-sort]");
+  if (sortBtn) {
+    projSort = sortBtn.dataset.projSort;
+    PROJECTION_VIEW.querySelectorAll("[data-proj-sort]").forEach((b) => setOn(b, b === sortBtn));
+    renderProjectionRows((document.getElementById("proj-search") || {}).value || "");
+    return;
+  }
+  const seatEl = e.target.closest("[data-proj-seat]");
+  if (seatEl) {
+    const code = seatEl.dataset.projSeat;
+    closeProjectionPage({ silent: true });
+    const go = () => {
+      const d = state.data.parlimen;
+      if (d && d.byCode.has(code)) select(code);
+    };
+    if (state.tier !== "parlimen") setTier("parlimen").then(go);
+    else go();
+  }
+});
+
 
 /* ===== state-first drill: main map = states; tap a state to open its district mini-map in the card ===== */
 const STATE_MAP = document.getElementById("state-map");
@@ -6422,6 +6751,9 @@ async function openPrnMode() {
   if (!e || (state.prnMode && state.openState === e.state)) return;
   const gen = ++prnOpenGen;
   closeNewsPage({ silent: true });
+  closeBillsPage({ silent: true });
+  closeSentimentPage({ silent: true });
+  closeProjectionPage({ silent: true });
   const preSel = state.selected;   // openStateCard clears the selection — keep it for the bento spotlight
   // Hide map while swapping Parliament → DUN so the national DUN recolour never flashes
   document.body.classList.add("tier-switching");
@@ -7802,7 +8134,12 @@ function newsStripHTML() {
 }
 // Legacy #news deep-link → open the PRN dashboard and scroll to the news section.
 async function openNewsPage() {
+  closePoliticians({ silent: true });
   closeNewsPage({ silent: true });
+  closeDewanPage({ silent: true });
+  closeBillsPage({ silent: true });
+  closeSentimentPage({ silent: true });
+  closeProjectionPage({ silent: true });
   if (liveElection()) {
     await openPrnMode();
     requestAnimationFrame(() => {
@@ -8423,6 +8760,9 @@ function openStateCard(name) {
     return;
   }
   closeNewsPage({ silent: true });   // opening a state leaves the news full page (no overlap)
+  closeBillsPage({ silent: true });
+  closeSentimentPage({ silent: true });
+  closeProjectionPage({ silent: true });
   // cancel a pending home→Parliament rebuild so it doesn't yank the layer mid-open
   if (homeTierResetTimer) { clearTimeout(homeTierResetTimer); homeTierResetTimer = null; }
   clearTimeout(stateExitTimer);
