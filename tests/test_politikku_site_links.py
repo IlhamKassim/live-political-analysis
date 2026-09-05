@@ -164,9 +164,13 @@ def rendered_site(tmp_path_factory) -> Path:
         )
         _write(root, sentiment_path, render_sentiment_page(sentiment_model, language=language))
         _write(root, f"{ms}{METHODOLOGY_PAGE}", render_methodology(page, language=language))
+        # The `ms` segment leads, matching where `politikku_projection.main`
+        # actually writes the BM page (`public/ms/projection/index.html`) and
+        # what `_ms_route` now builds. The old `projection/ms/` shape this
+        # fixture used to mirror is a 404 in production.
         _write(
             root,
-            f"{projection_dir}/{ms}{PROJECTION_PAGE}",
+            f"{ms}{projection_dir}/{PROJECTION_PAGE}",
             render_projection(page, language=language),
         )
     return root
