@@ -235,12 +235,15 @@ def _bill_row(bill: Bill, language: Language) -> str:
                     {hansard_link}
                   </dl>"""
     else:
+        voice_vote_note = t(
+            language,
+            "No recorded Division — passed on voice vote "
+            "(Hansard records a decision with no individual roll-call).",
+            "Tiada undian belah bahagian direkodkan — diluluskan melalui undian "
+            "suara (Hansard merekodkan keputusan tanpa senarai undi individu).",
+        )
         division_box_body = (
-            f'<p class="bill-voice-vote-note muted">'
-            f'{html.escape(t(language, "No recorded Division — passed on voice vote "
-                "(Hansard records a decision with no individual roll-call).",
-                "Tiada undian belah bahagian direkodkan — diluluskan melalui undian "
-                "suara (Hansard merekodkan keputusan tanpa senarai undi individu)."))}</p>'
+            f'<p class="bill-voice-vote-note muted">{html.escape(voice_vote_note)}</p>'
         )
 
     return f"""
