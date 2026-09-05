@@ -982,6 +982,29 @@ def test_create_worktree_raises_on_a_bad_base_ref(tmp_path):
         create_worktree(repo, base_ref="not-a-real-ref", branch_name="b", work_dir=None)
 
 
+def test_create_worktree_resolves_a_relative_work_dir_to_an_absolute_path(tmp_path, monkeypatch):
+    """`--work-dir` on the CLI (per the runbook in HANDOFF.md/deepseek-agent.md)
+    is naturally a relative path typed from the repo root. Every file tool
+    routes its target through `resolve_in_worktree`, which always returns an
+    absolute, `.resolve()`d path — so if `worktree.path` itself stayed
+    relative, `_tool_grep`'s `target.relative_to(worktree)` would compare an
+    absolute path against a relative one and raise `ValueError` on the first
+    grep call. This crashed both worker dispatches in the 2026-09-05 nav-seam
+    session.
+    """
+    repo = _init_scratch_repo(tmp_path)
+    monkeypatch.chdir(tmp_path)
+
+    worktree = create_worktree(
+        repo, base_ref="HEAD", branch_name="rel-work-dir", work_dir=Path("relative-work-dir")
+    )
+
+    assert worktree.path.is_absolute()
+    assert worktree.path == (tmp_path / "relative-work-dir" / "worktree").resolve()
+
+    remove_worktree(repo, worktree.path)
+
+
 # --- CLI ------------------------------------------------------------------
 
 

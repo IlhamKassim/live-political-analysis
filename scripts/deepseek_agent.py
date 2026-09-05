@@ -914,7 +914,7 @@ def create_worktree(
 ) -> Worktree:
     run_id = new_run_id()
     branch = branch_name or f"deepseek-agent/{run_id}"
-    base_dir = work_dir or (repo_root / ".deepseek-agent-runs" / run_id)
+    base_dir = work_dir.resolve() if work_dir else (repo_root / ".deepseek-agent-runs" / run_id)
     worktree_path = base_dir / "worktree"
     base_dir.mkdir(parents=True, exist_ok=True)
     completed = run_subprocess(
