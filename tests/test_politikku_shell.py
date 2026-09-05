@@ -308,8 +308,8 @@ def test_the_shell_escapes_the_page_title():
     assert "<title>Bills &amp; motions &lt;/title&gt;</title>" in page
     assert '<html lang="en">' in page
     assert "<main>placeholder</main>" in page
-    assert "fonts.googleapis.com" in page
-    assert "JetBrains+Mono" in page
+    assert "fonts.googleapis.com" not in page
+    assert "/fonts/jetbrains-mono-latin.woff2" in page
     assert "Space+Grotesk" not in page
     assert "/fonts/space-grotesk-latin.woff2" in page
 

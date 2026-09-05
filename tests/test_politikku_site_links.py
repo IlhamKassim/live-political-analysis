@@ -312,9 +312,9 @@ def test_the_assets_no_page_renderer_writes_are_named_by_the_step_that_does(rend
     assert '"projection.json"' in export_written
     assert '"projection.csv"' in export_written
 
-    # JetBrains Mono uses Google Fonts while Space Grotesk is self-hosted.
-    assert "fonts.googleapis.com" in sentiment
-    assert "JetBrains+Mono" in sentiment
+    # JetBrains Mono and Space Grotesk are self-hosted.
+    assert "fonts.googleapis.com" not in sentiment
+    assert "/fonts/jetbrains-mono-latin.woff2" in sentiment
     assert "Space+Grotesk" not in sentiment
     assert "/fonts/space-grotesk-latin.woff2" in sentiment
 

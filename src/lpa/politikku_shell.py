@@ -695,9 +695,6 @@ def render_shell(
 <link rel="canonical" href="{og_url}">
 <link rel="alternate" hreflang="en" href="{en_url}">
 <link rel="alternate" hreflang="ms" href="{ms_url}">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="icon" href="{POLITIKKU_PREFIX}favicon.ico">
 <style>{_CSS}</style>
 <script type="application/ld+json">
@@ -749,6 +746,21 @@ _CSS_TEMPLATE = """
     font-weight: 700;
     font-display: swap;
     src: url(/fonts/redaction-20-bold-latin.woff2) format("woff2");
+  }
+  @font-face {
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: 400 600;
+    font-display: swap;
+    src: url(/fonts/jetbrains-mono-latin.woff2) format("woff2");
+  }
+  @font-face {
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: 400 600;
+    font-display: swap;
+    src: url(/fonts/jetbrains-mono-latinext.woff2) format("woff2");
+    unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
   }
 
   :root {
