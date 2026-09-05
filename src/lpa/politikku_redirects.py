@@ -31,7 +31,13 @@ from lpa.politikku_shell import BILLS_PAGE, HOMEPAGE_PAGE, MP_PROFILE_DIR, SITE_
 # root map view is its closest equivalent, so it redirects to "/".
 STATIC_REDIRECTS = {
     HOMEPAGE_PAGE: "/",
-    BILLS_PAGE: "/bills",
+    # Trailing slash matters: GitHub Pages resolves the extensionless
+    # request "/bills" to this stub file (`bills.html`) in preference over
+    # the real `bills/index.html` directory it now shadows. A target of
+    # "/bills" would make the stub redirect to itself instead of the real
+    # page; "/bills/" is a distinct path GH Pages actually serves content
+    # for (matching how mp_profile_redirects() already targets "/mp/<code>/").
+    BILLS_PAGE: "/bills/",
 }
 
 
