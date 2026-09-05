@@ -113,7 +113,7 @@ _GLOSSARY_CSS = f"""{_LEARN_BASE_CSS}
 """.strip()
 
 _GLOSSARY_BODY = """
-<main class="pk-learn-container">
+<div class="pk-learn-container">
 <section class="opening">
     <div class="pk-eyebrow">What the projection assumes you know</div>
     <h1>Core terms</h1>
@@ -285,7 +285,7 @@ _GLOSSARY_BODY = """
       <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Election Status is context for reading a Projection, not an input that feeds into one.</span>
     </p>
   </section>
-</main>
+</div>
 <script>
 /* Live figures: enriches /learn definitions with today's projected numbers,
    read client-side from /projection.json (public_export.py, #46). Vanilla
@@ -449,7 +449,7 @@ _COALITIONS_CSS = f"""{_LEARN_BASE_CSS}
 """.strip()
 
 _COALITIONS_BODY = """
-<main class="pk-learn-container">
+<div class="pk-learn-container">
 <section class="opening">
     <div class="pk-eyebrow">Who the projection is projecting</div>
     <h1>The five Coalitions</h1>
@@ -642,7 +642,7 @@ _COALITIONS_BODY = """
       counts five rather than three.
     </p>
   </section>
-</main>
+</div>
 
 """.strip()
 
@@ -738,7 +738,7 @@ _PROCESS_CSS = f"""{_LEARN_BASE_CSS}
 """.strip()
 
 _PROCESS_BODY = """
-<main class="pk-learn-container">
+<div class="pk-learn-container">
 <section class="opening">
     <div class="pk-eyebrow">How the election actually unfolds</div>
     <h1>The GE16 process</h1>
@@ -834,7 +834,7 @@ _PROCESS_BODY = """
       </div>
     </div>
   </section>
-</main>
+</div>
 
 """.strip()
 
