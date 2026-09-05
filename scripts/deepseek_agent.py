@@ -45,6 +45,22 @@ from pathlib import Path
 import httpx
 
 DEFAULT_MODEL = "deepseek-chat"
+DEFAULT_BASE_URL = "https://api.deepseek.com"
+"""The chat-completions host, without a trailing `/chat/completions`.
+
+Overridable via `--base-url` / `$LPA_AGENT_BASE_URL` so this loop can drive
+any OpenAI-compatible endpoint, not DeepSeek alone — the wire format this
+script depends on (a `tools` array, `tool_choice`, and `choices[].message.
+tool_calls` back) is the OpenAI chat-completions shape that DeepSeek, OpenAI
+and the aggregators in front of them all implement. Nothing else about the
+safety model changes with the provider: the tool schema still contains no
+push/PR/merge verb, and `run_command` still checks `ALLOWED_COMMANDS`.
+
+A provider that silently ignores `tool_choice: "required"` will return a
+plain assistant message with no `tool_calls`, which this loop already
+treats as a malformed envelope and retries once before giving up — so an
+incompatible endpoint fails loudly at turn 1 rather than half-working."""
+
 DEFAULT_TURN_TIMEOUT = 120.0
 DEFAULT_COMMAND_TIMEOUT = 120.0
 DEFAULT_MAX_TURNS = 40
@@ -63,7 +79,7 @@ allowlist, not a denylist over a shell string: a denylist has to anticipate
 every bypass (block `rm`, get `python -c "shutil.rmtree(...)"`), an
 allowlist just has to check membership. See `validate_command`."""
 
-_SECRET_ENV_PREFIXES = ("DEEPSEEK_", "ANTHROPIC_", "OPENAI_")
+_SECRET_ENV_PREFIXES = ("DEEPSEEK_", "ANTHROPIC_", "OPENAI_", "LPA_AGENT_")
 
 
 class RunStatus(StrEnum):
@@ -672,7 +688,13 @@ Post = Callable[..., httpx.Response]
 
 
 def call_deepseek(
-    *, messages: list[dict], model: str, api_key: str, timeout: float, post: Post
+    *,
+    messages: list[dict],
+    model: str,
+    api_key: str,
+    timeout: float,
+    post: Post,
+    base_url: str = DEFAULT_BASE_URL,
 ) -> tuple[dict | None, str | None]:
     """One chat-completions round trip, with a one-shot retry on failure —
     same philosophy as `deepseek_judge`'s vocabulary retry, applied here at
@@ -685,7 +707,7 @@ def call_deepseek(
     def attempt() -> tuple[dict | None, str | None]:
         try:
             response = post(
-                "https://api.deepseek.com/chat/completions",
+                f"{base_url.rstrip('/')}/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}"},
                 json={
                     "model": model,
@@ -738,6 +760,7 @@ def run_agent_loop(
     task: str,
     model: str,
     api_key: str,
+    base_url: str = DEFAULT_BASE_URL,
     max_turns: int = DEFAULT_MAX_TURNS,
     max_wall_clock_seconds: float = DEFAULT_MAX_WALL_CLOCK_SECONDS,
     turn_timeout: float = DEFAULT_TURN_TIMEOUT,
@@ -777,7 +800,12 @@ def run_agent_loop(
         turn += 1
         progress(f"turn {turn}: calling {model}")
         payload, error = call_deepseek(
-            messages=messages, model=model, api_key=api_key, timeout=turn_timeout, post=post
+            messages=messages,
+            model=model,
+            api_key=api_key,
+            timeout=turn_timeout,
+            post=post,
+            base_url=base_url,
         )
         if error is not None:
             progress(f"turn {turn}: API error: {error}")
@@ -974,7 +1002,17 @@ def build_arg_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument("--model", default=DEFAULT_MODEL)
-    parser.add_argument("--api-key", default=None, help="default: $DEEPSEEK_API_KEY")
+    parser.add_argument(
+        "--base-url",
+        default=None,
+        help=(
+            "OpenAI-compatible chat-completions host, no trailing /chat/completions. "
+            f"Default: $LPA_AGENT_BASE_URL, else {DEFAULT_BASE_URL}"
+        ),
+    )
+    parser.add_argument(
+        "--api-key", default=None, help="default: $LPA_AGENT_API_KEY, else $DEEPSEEK_API_KEY"
+    )
     parser.add_argument("--keep-worktree", dest="keep_worktree", action="store_true", default=True)
     parser.add_argument("--no-keep-worktree", dest="keep_worktree", action="store_false")
     return parser
@@ -992,10 +1030,16 @@ def main(argv: list[str] | None = None, *, post: Post = httpx.post) -> int:
     """
     args = build_arg_parser().parse_args(argv)
 
-    api_key = args.api_key or os.environ.get("DEEPSEEK_API_KEY")
+    api_key = (
+        args.api_key or os.environ.get("LPA_AGENT_API_KEY") or os.environ.get("DEEPSEEK_API_KEY")
+    )
     if not api_key:
-        _print_setup_failure(RunStatus.SETUP_FAILED, "DEEPSEEK_API_KEY not set")
+        _print_setup_failure(
+            RunStatus.SETUP_FAILED, "neither LPA_AGENT_API_KEY nor DEEPSEEK_API_KEY is set"
+        )
         return exit_code_for(RunStatus.SETUP_FAILED)
+
+    base_url = args.base_url or os.environ.get("LPA_AGENT_BASE_URL") or DEFAULT_BASE_URL
 
     try:
         repo_root = resolve_repo_root(args.repo_root)
@@ -1020,6 +1064,7 @@ def main(argv: list[str] | None = None, *, post: Post = httpx.post) -> int:
         task=task,
         model=args.model,
         api_key=api_key,
+        base_url=base_url,
         max_turns=args.max_turns,
         max_wall_clock_seconds=args.max_wall_clock_seconds,
         turn_timeout=args.turn_timeout,

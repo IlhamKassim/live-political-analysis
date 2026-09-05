@@ -8,7 +8,11 @@ dist/
 
 # Never commit a database credential. The setup wizard does not write one
 # here, but nothing should be able to arrive in the repo by accident.
+# `.env` alone does not match `.env.agent` or any other suffixed variant —
+# the glob is what makes "put the key in a dotfile next to the code" safe by
+# default rather than safe only for the one filename someone thought of.
 .env
+.env.*
 .streamlit/secrets.toml
 
 # Finder writes these into any directory it opens, and one reached a commit
