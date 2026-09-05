@@ -113,14 +113,20 @@ def test_no_nav_link_opts_out_of_language_routing():
     # through `/ms/` from a BM page.
     en_header = render_header(active_nav="home", language=Language.EN, page_path="")
     ms_header = render_header(active_nav="home", language=Language.MS, page_path="")
-    # The one EN route a BM header is allowed to carry is the language
-    # toggle's own EN link — which, since #104 put PolitikKu at the site
-    # root, is `/`, the same href the Home nav item has in English. So the
-    # "no opt-out" check counts occurrences rather than asserting `/` is
-    # absent: a nav item that had opted out would push the count above the
-    # toggle's two links (sidebar and topbar).
+    # Two independent things legitimately render href="/" on a BM page.
+    # First, the language toggle's own EN link — since #104 put PolitikKu at
+    # the site root, that's `/`, the same href the Home nav item has in
+    # English (2 occurrences: sidebar + topbar). Second, as of the #149
+    # Wave-3 fix for the /ms/ dead end, the "Map" NAV_LINKS entry also sets
+    # `external="/"` — there is no Malay-specific site root to route to
+    # (the root is a single static file that switches language client-side),
+    # so Map always points at `/` on both languages, the same escape hatch
+    # `external` already provides for Bills (2 more occurrences: sidebar +
+    # topbar). So the "no opt-out" check expects exactly these four, not
+    # more: a *third* nav item opting out this way would push the count
+    # above 4.
     toggle_en_href = f'href="{route(Language.EN, "")}"'
-    assert ms_header.count(toggle_en_href) == 2
+    assert ms_header.count(toggle_en_href) == 4
     for link in NAV_LINKS:
         if link.external is not None:
             continue
@@ -152,8 +158,12 @@ def test_politikku_is_served_from_the_site_root():
     # (the frontend fold-in step, not any Python renderer). `HOMEPAGE_PAGE`
     # is what moved off the root before that (#104) and was retired outright
     # by ADR 0014 — kept only as `politikku_redirects.py`'s old-path key.
+    #
+    # `landing_url` ignores its `language` argument (#149 Wave 3): the root
+    # is a single static file with no /ms/ twin, so a Malay reader is routed
+    # to the same `/` an English reader gets, not to a dead `/ms/`.
     assert landing_url() == "/"
-    assert landing_url(Language.MS) == "/ms/"
+    assert landing_url(Language.MS) == "/"
     assert LANDING_URL == "/"
     assert HOMEPAGE_PAGE == "home.html"
     assert route(Language.EN, f"{MP_PROFILE_DIR}/P.102.html") == "/mp/P.102.html"
