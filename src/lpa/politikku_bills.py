@@ -301,13 +301,13 @@ def render_bills_body(model: BillsPageModel, language: Language = Language.EN) -
     }</p>
     </div>
     <div class="dewan-tiles">
-      <div class="dewan-tile"><span class="muted">{
+      <div class="bento-tile"><span class="bento-kicker">{
         html.escape(t(language, "Total Bills", "Jumlah RUU"))
     }</span><b class="mono">{model.total_bills}</b></div>
-      <div class="dewan-tile"><span class="muted">{
+      <div class="bento-tile"><span class="bento-kicker">{
         html.escape(t(language, "Passed", "Lulus"))
     }</span><b class="mono">{model.passed_bills_count}</b></div>
-      <div class="dewan-tile"><span class="muted">{
+      <div class="bento-tile"><span class="bento-kicker">{
         html.escape(t(language, "Recorded Divisions", "Undian Belah Bahagian"))
     }</span><b class="mono">{model.divisions_count}</b></div>
     </div>

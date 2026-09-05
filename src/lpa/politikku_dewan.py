@@ -321,9 +321,9 @@ def render_dewan_body(model: DewanPageModel, language: Language = Language.EN) -
         <p class="pol-dir-sub">{html.escape(page_sub)}</p>
       </div>
       <div class="dewan-tiles">
-        <div class="dewan-tile"><span class="muted">{html.escape(tile_sittings)}</span><b class="mono">{model.sittings_total}</b></div>
-        <div class="dewan-tile"><span class="muted">{html.escape(tile_top)}</span><b>{top_mp_name}</b><span class="muted mono">{top_turns_str}</span></div>
-        <div class="dewan-tile"><span class="muted">{html.escape(tile_median)}</span><b class="mono">{model.median_turns:,}</b></div>
+        <div class="bento-tile"><span class="bento-kicker">{html.escape(tile_sittings)}</span><b class="mono">{model.sittings_total}</b></div>
+        <div class="bento-tile"><span class="bento-kicker">{html.escape(tile_top)}</span><b>{top_mp_name}</b><span class="muted mono">{top_turns_str}</span></div>
+        <div class="bento-tile"><span class="bento-kicker">{html.escape(tile_median)}</span><b class="mono">{model.median_turns:,}</b></div>
       </div>
       <div class="pol-dir-controls dewan-controls">
         <input id="dewan-search" class="pol-dir-search" type="search" autocomplete="off" spellcheck="false"
