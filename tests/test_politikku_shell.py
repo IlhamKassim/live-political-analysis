@@ -24,6 +24,7 @@ from lpa.politikku_shell import (
     render_shell,
     render_trust_strip,
     route,
+    short_date,
     trust_strip_status_text,
 )
 
@@ -447,3 +448,22 @@ def test_the_full_shell_in_bm_carries_no_leftover_english_chrome_copy():
     assert "Metodologi &amp; sumber" in page
     for english_only in ("How this works", "Read the full methodology"):
         assert english_only not in page
+
+
+def test_short_date_renders_malay_month_abbreviations():
+    """The trust strip stamps a date on every /ms/ page, so the month has to
+    localise. `strftime('%b')` cannot: it is locale-dependent and there is no
+    Malay locale to lean on, which is why the months come from a table."""
+    day = date(2026, 8, 23)
+    assert short_date(day) == "23 Aug 2026"
+    assert short_date(day, Language.EN) == "23 Aug 2026"
+    assert short_date(day, Language.MS) == "23 Ogo 2026"
+
+
+def test_the_language_toggle_names_itself_in_the_page_language():
+    """The EN/BM switcher's accessible name is the only thing a screen-reader
+    user hears for it; on a Malay page it has to be Malay too."""
+    en = render_header(active_nav="home", language=Language.EN, page_path="")
+    ms = render_header(active_nav="home", language=Language.MS, page_path="")
+    assert 'aria-label="Language"' in en
+    assert 'aria-label="Bahasa"' in ms
