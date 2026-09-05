@@ -848,13 +848,16 @@ _CSS_TEMPLATE = """
   }
 
   #topbar {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    position: fixed; top: 0; right: 0; z-index: 50;
     display: flex; align-items: center; gap: 12px;
     padding: 8px 18px;
     background: rgba(9, 11, 15, .94);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--line);
     min-height: 56px;
+  }
+  @media (max-width: 639px) {
+    #topbar { left: 0; }
   }
   .brand-home {
     display: flex; align-items: center;
@@ -1334,6 +1337,8 @@ button.dewan-tr:hover {
 .pol-monogram {
   font-family: var(--sans); font-weight: 700; font-size: 26px; line-height: 1; color: #fff; letter-spacing: .02em;
 }
+.pol-socials { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pol-socials-compact { gap: 5px; margin-top: 8px; }
 .pol-soc-icon {
   display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 9px;
   border: 1px solid var(--line); background: var(--paper-alt); color: var(--ink-secondary);
@@ -1371,22 +1376,6 @@ button.dewan-tr:hover {
 .pol-dir-head .pol-dir-sub {
   color: var(--ink-secondary); font-size: 13px; margin: 4px 0 0;
 }
-.pol-back {
-  display: inline-flex; align-items: center; gap: 6px; margin: 0 0 12px;
-  min-height: 44px; padding: 0 14px 0 10px; border-radius: 999px; cursor: pointer;
-  font: inherit; font-size: 13px; font-weight: 600; color: var(--ink);
-  background: var(--paper-alt); border: 1px solid var(--line);
-  transition: border-color .12s ease, background .12s ease;
-}
-.pol-back:hover {
-  border-color: var(--line-strong); background: color-mix(in oklab, var(--paper-alt) 85%, var(--ink) 15%);
-}
-.pol-back:focus-visible {
-  outline: 2px solid var(--accent); outline-offset: 2px;
-}
-.pol-back svg {
-  flex: 0 0 auto;
-}
 .pol-dir-controls {
   max-width: 1100px; margin: 0 auto 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
 }
@@ -1399,6 +1388,10 @@ button.dewan-tr:hover {
 }
 .pol-dir-count {
   max-width: 1100px; margin: 0 auto 10px; color: var(--muted); font-size: 12px; font-family: var(--mono);
+}
+.pol-grid {
+  max-width: 1100px; margin: 0 auto;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px;
 }
 .pol-card {
   display: grid; gap: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 14px;
@@ -1452,6 +1445,10 @@ button.dewan-tr:hover {
 }
 .pol-dir-empty {
   max-width: 1100px; margin: 30px auto; color: var(--ink-secondary); text-align: center;
+}
+.pol-party-grid {
+  max-width: 1100px; margin: 0 auto;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px;
 }
 .pol-party-card {
   min-height: 44px; display: grid; gap: 12px; padding: 14px;
