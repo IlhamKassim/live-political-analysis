@@ -519,8 +519,8 @@ def test_main_writes_both_pages_in_both_languages_with_dated_copies(tmp_path, mo
     assert (ms_projection_out.parent / permalink).is_file()
     assert methodology_out.is_file()
     assert (methodology_out.parent / "ms" / METHODOLOGY_PAGE).is_file()
-    # The dated copy is the same run, not a second render of a later one.
-    assert (projection_out.parent / permalink).read_text(encoding="utf-8") == (
+    # The dated copy is rendered separately so its shell names its own route.
+    assert (projection_out.parent / permalink).read_text(encoding="utf-8") != (
         projection_out.read_text(encoding="utf-8")
     )
     # And all four pages come from one Storage read. A second read that
@@ -595,6 +595,19 @@ def test_the_projection_page_is_served_from_its_own_route_family(language):
     assert "'/ms/'" not in page
     # One canonical URL, not two: the toggle never names `index.html`.
     assert f"{PROJECTION_PREFIX}{PROJECTION_PAGE}" not in page
+
+
+def test_dated_projection_toggle_points_to_the_same_archived_day():
+    model = _projection_model()
+    archived_toggle = 'href="/ms/projection/2026/08/23.html"'
+
+    dated_page = render_projection(
+        model, language=Language.EN, page_path="2026/08/23.html"
+    )
+    index_page = render_projection(model, language=Language.EN)
+
+    assert archived_toggle in dated_page
+    assert archived_toggle not in index_page
 
 
 def test_the_page_reads_in_politikkus_register_not_the_old_dashboards():

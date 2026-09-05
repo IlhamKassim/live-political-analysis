@@ -1151,8 +1151,15 @@ def render_projection_body(model: PageModel, language: Language = Language.EN) -
     )
 
 
-def render_projection(model: PageModel, *, language: Language = Language.EN) -> str:
-    """The projection page as one full HTML document, shell included."""
+def render_projection(
+    model: PageModel, *, language: Language = Language.EN, page_path: str = ""
+) -> str:
+    """The projection page as one full HTML document, shell included.
+
+    A dated permalink passes its own ``{year}/{month}/{day}.html`` tail as
+    ``page_path`` so its language toggle and canonical URL name that archived
+    day, not the live index.
+    """
     title = t(
         language,
         "GE16 Seat Projection — PolitikKu",
@@ -1172,7 +1179,7 @@ def render_projection(model: PageModel, *, language: Language = Language.EN) -> 
         description=description,
         active_nav="projection",
         language=language,
-        page_path="",
+        page_path=page_path,
         updated_at=model.computed_at,
         sources_count=len(model.sources),
         status=model.status,
@@ -1733,10 +1740,16 @@ def main() -> None:
         print(f"Wrote {target} ({len(page):,} bytes), computed {computed_at}")
 
     for language in Language:
-        page = render_projection(model, language=language)
         target = _target(args.output, language)
-        _write(target, page)
-        _write(target.parent / _permalink_path(computed_at), page)
+        _write(target, render_projection(model, language=language))
+        # The dated copy is not a duplicate of the index: it passes its own
+        # permalink tail so its language toggle points at the same archived
+        # day in the other language, and its canonical URL names itself.
+        permalink = _permalink_path(computed_at)
+        _write(
+            target.parent / permalink,
+            render_projection(model, language=language, page_path=permalink),
+        )
 
         _write(
             _target(args.methodology_output, language), render_methodology(model, language=language)
