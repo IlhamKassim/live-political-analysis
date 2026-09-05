@@ -1410,7 +1410,7 @@ button.dewan-tr:hover {
   max-width: 1100px; margin: 0 auto 16px;
 }
 .pol-dir-head h1 {
-  font-family: var(--sans); font-size: clamp(24px, 4vw, 40px); margin: 0;
+  font-family: var(--font-display); font-size: clamp(24px, 4vw, 40px); margin: 0;
 }
 .pol-dir-head .pol-dir-sub {
   color: var(--ink-secondary); font-size: 13px; margin: 4px 0 0;
