@@ -9,16 +9,20 @@ from typing import Any
 
 from lpa.domain import ElectionStatus
 from lpa.politikku_dewan import (
+    COALITION_COLORS,
     PAGE_DIR,
     build_and_write_dewan_pages,
     coalition_pill_style,
     dewan_page_model,
     format_dewan_date,
+    load_coalition_colors,
     load_dewan_data,
     main,
+    party_color,
     pill_style,
     render_dewan_body,
     render_dewan_page,
+    swatch_text_color,
 )
 from lpa.politikku_shell import Language
 
@@ -197,19 +201,58 @@ def test_dewan_model_ties_in_turns_preserves_stability():
 # ── Color & Formatting Helpers ─────────────────────────────────────────────
 
 
+def test_party_color_and_pill_style():
+    colors = load_coalition_colors()
+    assert "PH" in colors
+    assert "PN" in colors
+    assert "BN" in colors
+    assert colors["PH"] == "#d7263d"
+    assert colors["PN"] == "#15387c"
+    assert colors["BN"] == "#1f9bd6"
+
+    assert party_color("PH") == "#d7263d"
+    assert party_color("ph") == "#d7263d"
+    assert party_color("UNKNOWN_PARTY") == "#5d6b7d"
+    assert party_color("") == "#5d6b7d"
+    assert party_color(None) == "#5d6b7d"
+
+    # White text on dark red (PH)
+    assert swatch_text_color("#d7263d") == "#fff"
+    # Dark text on bright blue (BN)
+    assert swatch_text_color("#1f9bd6") == "#05070c"
+
+    style = pill_style("#d7263d")
+    assert "background:#d7263d" in style
+    assert "color:#fff" in style
+
+
+def test_coalition_contrast_floor():
+    """Verify every coalition color in COALITION_COLORS clears 4.5:1 contrast floor."""
+    from lpa.politikku_politicians import _contrast_ratio, _hex_to_rgb
+
+    for name, hex_code in COALITION_COLORS.items():
+        fg = swatch_text_color(hex_code)
+        fg_rgb = _hex_to_rgb(fg)
+        bg_rgb = _hex_to_rgb(hex_code)
+        assert fg_rgb is not None
+        assert bg_rgb is not None
+        ratio = _contrast_ratio(fg_rgb, bg_rgb)
+        assert ratio >= 4.5, f"{name} ({hex_code}) failed 4.5:1 contrast with {fg} ({ratio:.2f}:1)"
+
+
 def test_coalition_pill_style():
-    style = coalition_pill_style()
-    assert "var(--paper-alt)" in style
-    assert "var(--line-strong)" in style
-    assert "var(--ink-secondary)" in style
+    style = coalition_pill_style("PH")
+    assert "background:#d7263d" in style
+    assert "color:#fff" in style
 
     gov_style = coalition_pill_style(is_government=True)
     assert "var(--data-government)" in gov_style
     assert "var(--paper)" in gov_style
 
-    # pill_style alias behaves identically
-    assert pill_style() == style
-    assert pill_style(True) == gov_style
+    # Default fallback pill style
+    default_style = coalition_pill_style()
+    assert "background:#5d6b7d" in default_style
+    assert "color:#fff" in default_style
 
 
 def test_format_dewan_date():
@@ -255,6 +298,10 @@ def test_render_dewan_body_contains_key_elements_and_classes():
     assert 'class="dewan-num mono">300</span>' in body
     assert 'class="note dewan-page-note"' in body
     assert 'class="pol-dir-src"' in body
+
+    # Coalition pills are rendered with party colors
+    assert '<span class="pill" style="background:#15387c;color:#fff">PN</span>' in body
+    assert '<span class="pill" style="background:#d7263d;color:#fff">PH</span>' in body
 
 
 def test_render_dewan_body_empty_model():

@@ -15,6 +15,7 @@ Follows the `page_model()` / `render_*_body()` / `render_*_page()` shape:
 from __future__ import annotations
 
 import argparse
+import functools
 import html
 import json
 import re
@@ -33,6 +34,34 @@ from lpa.politikku_shell import (
 )
 
 PAGE_PATH = "politicians/"
+
+_LIB_JS_PATH = Path(__file__).resolve().parents[2] / "frontend" / "public" / "lib.js"
+
+
+@functools.lru_cache(maxsize=4)
+def load_coalition_colors(lib_path: Path | str | None = None) -> dict[str, str]:
+    """Parse COALITION_COLORS from frontend/public/lib.js (single source of truth)."""
+    if lib_path is not None:
+        p = Path(lib_path)
+    else:
+        p = _LIB_JS_PATH
+        if not p.exists():
+            p = Path("frontend/public/lib.js")
+
+    if not p.exists():
+        raise FileNotFoundError(f"Cannot find frontend/public/lib.js at {p}")
+
+    text = p.read_text(encoding="utf-8")
+    m = re.search(r"export\s+const\s+COALITION_COLORS\s*=\s*\{([^}]+)\}", text, re.MULTILINE)
+    if not m:
+        raise ValueError(f"Could not find COALITION_COLORS block in {p}")
+
+    block = m.group(1)
+    colors = dict(re.findall(r"(\w+)\s*:\s*[\"'](#[0-9a-fA-F]+)[\"']", block))
+    return {k.upper(): v for k, v in colors.items()}
+
+
+COALITION_COLORS: dict[str, str] = load_coalition_colors()
 
 COALITION_ORDER: tuple[str, ...] = (
     "PH",
@@ -267,24 +296,76 @@ def with_current_affiliation(
     return res
 
 
-# ── Coalition Pill Style Helper ───────────────────────────────────────────
+# ── Color & Swatch Helpers ────────────────────────────────────────────────
 
 
-def coalition_pill_style(is_government: bool = False) -> str:
+def party_color(p: str | None) -> str:
+    """Map coalition or party name to swatch color, mirroring lib.js partyColor()."""
+    colors = load_coalition_colors()
+    return colors.get((p or "").strip().upper(), "#5d6b7d")
+
+
+def _hex_to_rgb(hex_code: str) -> tuple[int, int, int] | None:
+    if not isinstance(hex_code, str):
+        return None
+    s = hex_code.strip().removeprefix("#")
+    if len(s) == 3:
+        s = "".join(c + c for c in s)
+    if len(s) != 6:
+        return None
+    try:
+        n = int(s, 16)
+        return ((n >> 16) & 255, (n >> 8) & 255, n & 255)
+    except ValueError:
+        return None
+
+
+def _rel_lum(rgb: tuple[int, int, int]) -> float:
+    channels = []
+    for v in rgb:
+        c = v / 255.0
+        channels.append(c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4)
+    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+
+
+def _contrast_ratio(a: tuple[int, int, int], b: tuple[int, int, int]) -> float:
+    l1 = _rel_lum(a)
+    l2 = _rel_lum(b)
+    hi = max(l1, l2)
+    lo = min(l1, l2)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+def swatch_text_color(bg: str) -> str:
+    """Choose readable foreground text (#05070c or #fff) for background swatch.
+
+    Matches lib.js swatchTextColor(): selects between ink (#05070c) and white (#fff)
+    by higher contrast ratio, guaranteeing >= 4.5:1 on all palette colors.
+    """
+    rgb = _hex_to_rgb(bg)
+    if not rgb:
+        return "#fff"
+    white = (255, 255, 255)
+    ink = (5, 7, 12)
+    return "#05070c" if _contrast_ratio(ink, rgb) >= _contrast_ratio(white, rgb) else "#fff"
+
+
+def pill_style(bg: str | None = None, fg: str | None = None) -> str:
+    """Generate CSS style attribute string for badge pills."""
+    color = bg or party_color(None)
+    text_color = fg or swatch_text_color(color)
+    return f"background:{color};color:{text_color}"
+
+
+def coalition_pill_style(coalition: str | None = None, is_government: bool = False) -> str:
     """Generate CSS style attribute string for coalition badge pills.
 
-    Retires coalition palette colors per #149: coalition is identified by its LABEL,
-    not its hue. The one permitted exception: a pill marking the Government
-    Coalition may use --data-government.
+    If is_government is True, marks the Government Coalition with --data-government.
+    Otherwise styles the pill using party_color(coalition).
     """
     if is_government:
         return "background:var(--data-government);border:1px solid var(--data-government);color:var(--paper);"
-    return "background:var(--paper-alt);border:1px solid var(--line-strong);color:var(--ink-secondary);"
-
-
-def pill_style(is_government: bool = False) -> str:
-    """Generate CSS style attribute string for badge pills."""
-    return coalition_pill_style(is_government)
+    return pill_style(party_color(coalition))
 
 
 # ── Dual Seat and Party Stats Calculation ──────────────────────────────────
@@ -759,7 +840,7 @@ def render_politician_card(p: PoliticianCardModel, language: Language) -> str:
         f' <span class="pol-card-vacant">{html.escape(vacant_str)}</span>' if p.vacated else ""
     )
 
-    badge_style = coalition_pill_style()
+    badge_style = pill_style(party_color(p.coalition or p.party))
     photo_html = person_photo_html(p.name, p.photo)
 
     return f"""
@@ -799,12 +880,10 @@ def render_party_card(p: PartyStatsModel, language: Language) -> str:
 
     coal_pill = ""
     if p.coalition and p.coalition != p.party:
-        c_style = coalition_pill_style()
+        c_style = pill_style(party_color(p.coalition))
         coal_pill = f'<span class="pill" style="{c_style}">{html.escape(p.coalition)}</span>'
 
-    party_style = (
-        "background:var(--paper-alt);border:1px solid var(--line-strong);color:var(--ink);"
-    )
+    party_style = pill_style(party_color(p.coalition or p.party))
 
     return f"""
 <button type="button" class="pol-party-card" data-pol-party="{html.escape(p.party)}" aria-label="{html.escape(open_aria)}">

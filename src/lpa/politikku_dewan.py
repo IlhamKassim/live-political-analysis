@@ -24,6 +24,14 @@ from pathlib import Path
 from typing import Any
 
 from lpa.domain import ElectionStatus
+from lpa.politikku_politicians import (
+    COALITION_COLORS,
+    coalition_pill_style,
+    load_coalition_colors,
+    party_color,
+    pill_style,
+    swatch_text_color,
+)
 from lpa.politikku_shell import (
     Language,
     render_shell,
@@ -32,22 +40,22 @@ from lpa.politikku_shell import (
 
 PAGE_DIR = "dewan"
 
-
-def coalition_pill_style(is_government: bool = False) -> str:
-    """Generate CSS style attribute string for coalition badge pills.
-
-    Retires coalition palette colors per #149: coalition is identified by its LABEL,
-    not its hue. The one permitted exception: a pill marking the Government
-    Coalition may use --data-government.
-    """
-    if is_government:
-        return "background:var(--data-government);border:1px solid var(--data-government);color:var(--paper);"
-    return "background:var(--paper-alt);border:1px solid var(--line-strong);color:var(--ink-secondary);"
-
-
-def pill_style(is_government: bool = False) -> str:
-    """Generate CSS style attribute string for badge pills."""
-    return coalition_pill_style(is_government)
+__all__ = [
+    "COALITION_COLORS",
+    "PAGE_DIR",
+    "build_and_write_dewan_pages",
+    "coalition_pill_style",
+    "dewan_page_model",
+    "format_dewan_date",
+    "load_coalition_colors",
+    "load_dewan_data",
+    "main",
+    "party_color",
+    "pill_style",
+    "render_dewan_body",
+    "render_dewan_page",
+    "swatch_text_color",
+]
 
 
 def format_dewan_date(iso_date: str | None, language: Language = Language.EN) -> str:
@@ -263,8 +271,9 @@ def render_dewan_body(model: DewanPageModel, language: Language = Language.EN) -
             )
             mp_display = html.escape(r.mp) if r.mp else t(language, "Seat vacant", "Kerusi kosong")
             last_display = html.escape(format_dewan_date(r.last, language)) if r.last else "—"
+            badge_color = party_color(r.coalition)
+            badge_style = pill_style(badge_color)
             coalition_label = html.escape(r.coalition or "—")
-            badge_style = coalition_pill_style()
 
             rows_parts.append(
                 f"""    <button class="dewan-tr" type="button" data-dewan-seat="{html.escape(r.code)}" """

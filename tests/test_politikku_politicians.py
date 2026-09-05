@@ -7,12 +7,15 @@ from pathlib import Path
 
 from lpa.domain import ElectionStatus
 from lpa.politikku_politicians import (
+    COALITION_COLORS,
     PoliticianCardModel,
     build_and_write_politicians_pages,
     coalition_pill_style,
     dual_seat_map,
+    load_coalition_colors,
     namekey_loose,
     names_likely_same_person,
+    party_color,
     party_stats_list,
     person_initials,
     person_name_tokens,
@@ -23,6 +26,7 @@ from lpa.politikku_politicians import (
     render_politician_card,
     render_politicians_body,
     render_politicians_page,
+    swatch_text_color,
     title_case_name,
 )
 from lpa.politikku_shell import Language
@@ -87,19 +91,38 @@ def test_person_initials_and_photo_html():
     assert ">AI</span>" in monogram_html
 
 
+def test_pill_style_and_party_color():
+    colors = load_coalition_colors()
+    assert colors["PH"] == "#d7263d"
+    assert colors["PN"] == "#15387c"
+
+    color = party_color("PH")
+    assert color == "#d7263d"
+    style = pill_style(color)
+    assert "background:#d7263d" in style
+    assert "color:#fff" in style
+
+    # Contrast floor >= 4.5:1
+    from lpa.politikku_politicians import _contrast_ratio, _hex_to_rgb
+
+    for name, hex_code in COALITION_COLORS.items():
+        fg = swatch_text_color(hex_code)
+        fg_rgb = _hex_to_rgb(fg)
+        bg_rgb = _hex_to_rgb(hex_code)
+        assert fg_rgb is not None
+        assert bg_rgb is not None
+        ratio = _contrast_ratio(fg_rgb, bg_rgb)
+        assert ratio >= 4.5, f"{name} ({hex_code}) failed contrast with {fg}"
+
+
 def test_coalition_pill_style():
-    style = coalition_pill_style()
-    assert "var(--paper-alt)" in style
-    assert "var(--line-strong)" in style
-    assert "var(--ink-secondary)" in style
+    style = coalition_pill_style("PH")
+    assert "background:#d7263d" in style
+    assert "color:#fff" in style
 
     gov_style = coalition_pill_style(is_government=True)
     assert "var(--data-government)" in gov_style
     assert "var(--paper)" in gov_style
-
-    # pill_style alias behaves identically
-    assert pill_style() == style
-    assert pill_style(True) == gov_style
 
 
 # ── Dual Seat Map Tests ───────────────────────────────────────────────────
@@ -343,10 +366,15 @@ def test_render_politicians_card_and_party_card():
     assert "Kawasan Ujian" in html_card
     assert "12 votes · 3 bills" in html_card
     assert 'class="pol-soc-icon"' in html_card
+    assert (
+        'class="pol-card-badge pill" style="background:#d7263d;color:#fff">PKR</span>' in html_card
+    )
 
     party = party_stats_list([card], [])[0]
     html_party = render_party_card(party, Language.EN)
     assert 'data-pol-party="PKR"' in html_party
+    assert 'class="pol-party-mark" style="background:#d7263d;color:#fff">PKR</span>' in html_party
+    assert '<span class="pill" style="background:#d7263d;color:#fff">PH</span>' in html_party
     assert ">1<" in html_party
 
 
@@ -368,6 +396,7 @@ def test_render_politicians_body_structure():
     assert 'id="pol-grid" class="pol-grid"' in body_all
     assert "1 politicians" in body_all
     assert "YB A" in body_all
+    assert 'style="background:#1f9bd6;color:#05070c">UMNO</span>' in body_all
 
     body_parties = render_politicians_body(model, Language.EN, tier="parties")
     assert 'data-pol-tier="parties" aria-selected="true" class="on"' in body_parties
