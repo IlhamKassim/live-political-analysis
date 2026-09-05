@@ -588,8 +588,8 @@ def test_the_projection_page_is_served_from_its_own_route_family(language):
     # The EN/BM toggle and the language-persistence script must both compare
     # `/projection/`, or a stored BM preference silently no-ops here.
     assert f'href="{PROJECTION_PREFIX}"' in page
-    assert f'href="{PROJECTION_PREFIX}ms/"' in page
-    assert "'/projection/ms/'" in page
+    assert f'href="/ms{PROJECTION_PREFIX}"' in page
+    assert "'/ms/projection/'" in page
     # Not the root family's own comparison (`POLITIKKU_PREFIX`, `/` since
     # #104) — that would silently no-op a stored BM preference here.
     assert "'/ms/'" not in page

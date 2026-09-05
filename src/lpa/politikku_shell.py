@@ -202,7 +202,10 @@ def _en_route(page_path: str, prefix: str = POLITIKKU_PREFIX) -> str:
 
 
 def _ms_route(page_path: str, prefix: str = POLITIKKU_PREFIX) -> str:
-    return f"{prefix}ms/{page_path}"
+    """The `ms` segment leads the path — `/ms/<prefix>/<page>`, never
+    `/<prefix>/ms/<page>`. The page builder writes BM pages to
+    `public/ms/projection/…`, so a route of `/projection/ms/…` is a 404."""
+    return f"/ms{prefix}{page_path}"
 
 
 def route(language: Language, page_path: str, prefix: str = POLITIKKU_PREFIX) -> str:
@@ -328,11 +331,11 @@ _LANGUAGE_PERSISTENCE_SCRIPT_TEMPLATE = """
     var stored = window.localStorage.getItem('pk-language');
     if (stored === 'en' || stored === 'ms') {
       var path = location.pathname;
-      var current = path.indexOf('__PREFIX__ms/') === 0 ? 'ms' : 'en';
+      var current = path.indexOf('/ms__PREFIX__') === 0 ? 'ms' : 'en';
       if (stored !== current) {
         var target = stored === 'ms'
-          ? path.replace('__PREFIX__', '__PREFIX__ms/')
-          : path.replace('__PREFIX__ms/', '__PREFIX__');
+          ? path.replace('__PREFIX__', '/ms__PREFIX__')
+          : path.replace('/ms__PREFIX__', '__PREFIX__');
         if (target !== path) { location.replace(target); return; }
       }
     }

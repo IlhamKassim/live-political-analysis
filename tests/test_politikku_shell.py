@@ -73,7 +73,7 @@ def test_the_projection_nav_item_points_at_politikkus_own_projection_page():
     assert projection_link.prefix == PROJECTION_PREFIX
     assert projection_link.href == ""
     assert projection_url() == "/projection/"
-    assert projection_url(Language.MS) == "/projection/ms/"
+    assert projection_url(Language.MS) == "/ms/projection/"
 
 
 def test_a_localized_nav_link_stays_in_bm_not_just_the_toggle():
@@ -137,7 +137,7 @@ def test_no_nav_link_opts_out_of_language_routing():
         en_href = f'href="{link.prefix}{link.href}"'
         assert en_href in en_header
         if not link.en_only:
-            assert f'href="{link.prefix}ms/{link.href}"' in ms_header
+            assert f'href="/ms{link.prefix}{link.href}"' in ms_header
             assert ms_header.count(en_href) == (2 if en_href == toggle_en_href else 0)
 
 
@@ -200,7 +200,7 @@ def test_the_language_persistence_script_compares_the_pages_own_route_family():
     projection = render_shell(**kwargs, prefix=PROJECTION_PREFIX)  # type: ignore[arg-type]
 
     assert "'/ms/'" in politikku
-    assert "'/projection/ms/'" in projection
+    assert "'/ms/projection/'" in projection
     assert "'/ms/'" not in projection
 
 
@@ -374,7 +374,7 @@ def test_the_og_url_carries_the_bm_route_and_prefix_together():
         body_html="",
         prefix=PROJECTION_PREFIX,
     )
-    assert '<meta property="og:url" content="https://politikku.my/projection/ms/">' in page
+    assert '<meta property="og:url" content="https://politikku.my/ms/projection/">' in page
 
 
 def test_the_shell_sets_the_bahasa_malaysia_lang_attribute():
