@@ -103,6 +103,12 @@ public/learn/*.pending.json
 # public/learn/*.pending.json above: written next to what it's about, not
 # meant to be committed.
 .deepseek-agent-runs/
+
+# Browser-audit working directory: headless Chrome profiles, Lighthouse JSON,
+# screenshots and throwaway servers from a manual frontend pass. Chrome
+# profiles alone reached 755MB in one session — one `git add .` away from a
+# commit nobody wants.
+scratch/
 public/sitemap.xml
 
 # Sentiment page
