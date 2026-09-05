@@ -366,7 +366,7 @@ def _record_this_term(model: MPProfilePageModel, language: Language) -> str:
         )
         card = f"""
 <div class="pk-mp-card">
-  <h3>{heading}</h3>
+  <h2>{heading}</h2>
   <div class="pk-mp-progress"><div class="pk-mp-progress-fill" style="width:{model.attendance_pct:.1f}%"></div></div>
   <div class="pk-mp-source">{source}</div>
 </div>
@@ -378,7 +378,7 @@ def _record_this_term(model: MPProfilePageModel, language: Language) -> str:
         )
         card = f"""
 <div class="pk-mp-card">
-  <h3>{heading}</h3>
+  <h2>{heading}</h2>
   <p class="pk-mp-gap-note">{not_published} {note}</p>
 </div>
 """.strip()
@@ -422,7 +422,7 @@ def _voting_record(model: MPProfilePageModel, language: Language) -> str:
     )
     return f"""
 <section class="pk-mp-voting pk-mp-col-left">
-  <h3>{heading}</h3>
+  <h2>{heading}</h2>
   <div class="pk-mp-division-list">{rows}</div>
 </section>
 """.strip()
@@ -444,7 +444,7 @@ def _bills_sponsored(model: MPProfilePageModel, language: Language) -> str:
     )
     return f"""
 <section class="pk-mp-bills pk-mp-col-left">
-  <h3>{heading}</h3>
+  <h2>{heading}</h2>
   {body}
 </section>
 """.strip()
@@ -478,7 +478,7 @@ def _contact_card(model: MPProfilePageModel, language: Language) -> str:
     heading = t(language, "Contact &amp; service centre", "Hubungi &amp; pusat khidmat")
     return f"""
 <div class="pk-mp-card pk-mp-col-right pk-mp-contact">
-  <h3>{heading}</h3>
+  <h2>{heading}</h2>
   {address}
   {hours}
   <div class="pk-mp-contact-actions">{buttons}</div>
@@ -492,7 +492,7 @@ def _who_lives_here(model: MPProfilePageModel, language: Language) -> str:
     note = html.escape(t(language, model.who_lives_here_note_en, model.who_lives_here_note_ms))
     return f"""
 <div class="pk-mp-card pk-mp-col-right pk-mp-who-lives-here">
-  <h3>{heading}</h3>
+  <h2>{heading}</h2>
   <p class="pk-mp-gap-note">{note}</p>
 </div>
 """.strip()
@@ -526,7 +526,7 @@ def _seat_projection_section(model: MPProfilePageModel, language: Language) -> s
     )
     return f"""
 <div class="pk-mp-card pk-mp-col-right pk-mp-projection">
-  <h3>{heading}</h3>
+  <h2>{heading}</h2>
   <div class="pk-mp-projection-headline">{headline} {not_calibrated_tag(language)}</div>
   <p class="pk-mp-projection-note">{html.escape(note)}</p>
   {_projection_bar(p)}
@@ -639,7 +639,7 @@ _CSS = """
   .pk-mp-who-lives-here { grid-row: 2; }
   .pk-mp-projection { grid-row: 3; }
   .pk-mp-footer-note { grid-row: 4; }
-  .pk-mp-record h3, .pk-mp-voting h3, .pk-mp-bills h3, .pk-mp-card h3 {
+  .pk-mp-record h2, .pk-mp-voting h2, .pk-mp-bills h2, .pk-mp-card h2 {
     font-family: var(--sans); font-weight: 500; font-size: 19px; color: var(--ink); margin: 0 0 12px;
   }
   .pk-mp-card {
