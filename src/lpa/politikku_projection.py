@@ -72,6 +72,7 @@ translation could quietly soften.
 from __future__ import annotations
 
 import html
+import json
 from collections.abc import Mapping
 from datetime import date
 
@@ -286,11 +287,11 @@ def _hero(model: PageModel, language: Language) -> str:
         f"""
   <div class="pk-proj-hero-prose">
     <div class="pk-eyebrow">{eyebrow}</div>
-    <div class="pk-proj-headline">
+    <h1 class="pk-proj-headline">
       <span class="pk-proj-headline-number">{model.government_seats} {of_word} {model.total_seats}</span>
       <span class="pk-proj-headline-unit">{to_government}</span>
       {not_calibrated_tag(language)}
-    </div>
+    </h1>
     <p class="pk-proj-lede">{lede(model, language)}</p>
     <dl class="pk-proj-stats">{stat_html}</dl>
   </div>
@@ -984,7 +985,12 @@ def _seat_table_section(model: PageModel, language: Language) -> str:
     )
 
 
-def _cite_this(model: PageModel, language: Language) -> str:
+def _cite_this(
+    model: PageModel,
+    language: Language,
+    *,
+    heading_tag: str = "h3",
+) -> str:
     """The provenance block (#55): what to cite, and against exactly which
     constants and sources.
 
@@ -1019,7 +1025,7 @@ def _cite_this(model: PageModel, language: Language) -> str:
     heading = t(language, "Cite this", "Petik ini")
     return (
         '<div class="pk-proj-card pk-proj-cite">'
-        f"<h3>{heading}</h3><p>{body}</p>"
+        f"<{heading_tag}>{heading}</{heading_tag}><p>{body}</p>"
         f'<p><a href="{url}">{link_text}</a>{trailer}</p></div>'
     )
 
@@ -1095,6 +1101,30 @@ def _seat_filter_script(language: Language) -> str:
     return _SEAT_FILTER_SCRIPT_TEMPLATE.replace("__MATCH_TEXT__", match_text)
 
 
+def _projection_dataset_ld(model: PageModel, language: Language) -> str:
+    """Dataset structured data for the seat projection (issue #149 Track D)."""
+    payload = {
+        "@context": "https://schema.org",
+        "@type": "Dataset",
+        "name": t(
+            language,
+            "PolitikKu GE16 Seat Projection",
+            "Unjuran Kerusi PRU16 PolitikKu",
+        ),
+        "description": t(
+            language,
+            f"Seat-by-seat GE16 projection for all {model.total_seats} seats, "
+            "model-driven and not calibrated against survey data.",
+            f"Unjuran PRU16 kerusi demi kerusi bagi kesemua {model.total_seats} "
+            "kerusi, dijana oleh model dan belum ditentukur terhadap data tinjauan.",
+        ),
+        "dateModified": model.computed_at.isoformat(),
+        "creator": {"@type": "Organization", "name": "PolitikKu"},
+        "isAccessibleForFree": True,
+    }
+    return f'<script type="application/ld+json">{json.dumps(payload)}</script>'
+
+
 def render_projection_body(model: PageModel, language: Language = Language.EN) -> str:
     """The projection page's `body_html`, without the persistent shell.
 
@@ -1108,6 +1138,7 @@ def render_projection_body(model: PageModel, language: Language = Language.EN) -
     tipping_band = _band("pk-proj-tipping-band", tipping) if tipping else ""
     return (
         f"<style>{_CSS}</style>"
+        f"{_projection_dataset_ld(model, language)}"
         f"{_hero(model, language)}" + tipping_band + f"{_ledger_section(model, language)}"
         f"{_stress_section(model, language)}"
         f"{_trend_section(model, language)}"
@@ -1215,7 +1246,7 @@ def _colophon(model: PageModel, language: Language) -> str:
     )
     return "".join(
         f'<div class="pk-proj-card{" pk-proj-caution" if caution else ""}">'
-        f"<h3>{heading}</h3><p>{body}</p></div>"
+        f"<h2>{heading}</h2><p>{body}</p></div>"
         for heading, body, caution in cards
     )
 
@@ -1259,7 +1290,11 @@ def render_methodology_body(model: PageModel, language: Language = Language.EN) 
         "pk-proj-colophon",
         f'<div class="pk-proj-colophon-grid">{_colophon(model, language)}</div>',
     )
-    provenance = _band("pk-proj-provenance", _cite_this(model, language), alt=True)
+    provenance = _band(
+        "pk-proj-provenance",
+        _cite_this(model, language, heading_tag="h2"),
+        alt=True,
+    )
     return f"<style>{_CSS}</style>{hero}{colophon}{provenance}"
 
 
@@ -1321,7 +1356,7 @@ _CSS = """
     background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-lg);
     padding: 18px 20px;
   }
-  .pk-proj-card h3 {
+  .pk-proj-card h2, .pk-proj-card h3 {
     font-family: var(--serif); font-weight: 500; font-size: 19px; color: var(--ink);
     margin: 0 0 8px;
   }
@@ -1331,7 +1366,10 @@ _CSS = """
 
   /* Hero */
   .pk-proj-hero { display: grid; grid-template-columns: 1.05fr .95fr; gap: 44px; align-items: start; }
-  .pk-proj-headline { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 14px 0 16px; }
+  .pk-proj-headline {
+    display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 14px 0 16px;
+    font-size: inherit; font-weight: inherit; line-height: inherit;
+  }
   .pk-proj-headline-number {
     font-family: var(--serif); font-size: var(--text-h1-desktop); line-height: 1;
     letter-spacing: -.025em; color: var(--ink);
