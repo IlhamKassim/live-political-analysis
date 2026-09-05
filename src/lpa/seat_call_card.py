@@ -342,7 +342,7 @@ def render_card(model: CardModel) -> str:
   <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".15" numOctaves="3"/></filter>
   <rect width="{CARD_W}" height="{CARD_H}" filter="url(#grain)" opacity=".035"/>
   <g>
-    <text x="{PAD_X}" y="46" font-family="{SERIF}" font-size="15" fill="{INK_SOFT}">Live Political Analysis <tspan fill="{INK}">· reading this site</tspan></text>
+    <text x="{PAD_X}" y="46" font-family="{SERIF}" font-size="15" fill="{INK_SOFT}">PolitikKu <tspan fill="{INK}">· reading this site</tspan></text>
     <text x="{PAD_X}" y="118" font-family="{MONO}" font-size="12" letter-spacing=".18em" fill="{INK_FAINT}">Seat-Level Projection · GE16</text>
     <text x="{PAD_X}" y="188" font-family="{SERIF}" font-size="58" letter-spacing="-0.02em" fill="{INK}">{html.escape(model.name)}</text>
     <text x="{PAD_X}" y="212" font-family="{MONO}" font-size="14" letter-spacing=".1em" fill="{INK_FAINT}">{html.escape(model.code)} · {html.escape(model.state.upper())}</text>

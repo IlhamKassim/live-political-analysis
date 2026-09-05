@@ -154,6 +154,6 @@ def test_the_card_is_a_self_contained_svg_with_an_aria_label():
 
 def test_the_wordmark_and_register_markers_survive():
     svg = render_card(holding_model())
-    assert "Live Political Analysis" in svg
+    assert "PolitikKu" in svg
     assert "reading this site" in svg
     assert "one entry in the Seat-Level Projection" in svg
