@@ -48,12 +48,23 @@ RULE = "#C8CAC0"  # --rule: bar track and footnote rule
 # The printed coalition inks. A coalition the palette does not name — a minor
 # party that keeps its own bracketed code as its Coalition — falls back to
 # ink-soft, the same honest answer public_page._swatch gives.
+# Sourced from frontend/public/lib.js's COALITION_COLORS, which is the
+# single source of truth for coalition colour across the site. Kept in sync
+# by test_the_card_inks_match_the_sites_coalition_colours — if that test
+# fails, lib.js changed and this table follows it, never the other way round.
 COALITION_INKS: Mapping[Coalition, str] = {
-    "PH": "#B23A2E",
-    "BN": "#1D4E89",
-    "PN": "#2B7A78",
-    "GPS": "#8A6D1F",
-    "GRS": "#6A4A7C",
+    "PH": "#d7263d",
+    "PN": "#15387c",
+    "BN": "#1f9bd6",
+    "GPS": "#b8332e",
+    "GRS": "#e8772e",
+    "WARISAN": "#16a085",
+    "KDM": "#8e44ad",
+    "PBM": "#6c7a89",
+    "BEBAS": "#8a97a6",
+    "STAR": "#b08a1f",
+    "UPKO": "#2e8b57",
+    "PSB": "#9b4d8a",
 }
 FALLBACK_INK = INK_SOFT
 

@@ -10,7 +10,9 @@ from pytest import approx
 
 from lpa.domain import SeatBaseline, SeatCall
 from lpa.public_page import Tier, tier_for
+from lpa.politikku_politicians import load_coalition_colors
 from lpa.seat_call_card import (
+    COALITION_INKS,
     CardModel,
     _coalition_ink,
     card_model,
@@ -157,3 +159,12 @@ def test_the_wordmark_and_register_markers_survive():
     assert "PolitikKu" in svg
     assert "reading this site" in svg
     assert "one entry in the Seat-Level Projection" in svg
+
+
+def test_the_card_inks_match_the_sites_coalition_colours():
+    """lib.js is the single source of truth for coalition colour. A card
+    shared off-site that paints PN teal while the site paints it navy makes
+    the card misread, so this pins the two together."""
+    site = load_coalition_colors()
+    for coalition, ink in COALITION_INKS.items():
+        assert site[coalition].lower() == ink.lower(), coalition
