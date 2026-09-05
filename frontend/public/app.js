@@ -189,6 +189,7 @@ function setLang(l) {
   if (document.body.classList.contains("bills-open")) renderBillsPage(); // Bill tracker
   if (document.body.classList.contains("sentiment-open")) renderSentimentPage(); // Sentiment digest
   if (document.body.classList.contains("projection-open")) renderProjectionPage(); // GE16 projection page
+  if (document.body.classList.contains("methodology-open")) openMethodologyPage();
   if (PLEDGES_MODAL && PLEDGES_MODAL.open) openPledgesModal();
 }
 
@@ -4364,12 +4365,20 @@ function syncSidebar() {
   const bl = document.body.classList.contains("bills-open");
   const st = document.body.classList.contains("sentiment-open");
   const prj = document.body.classList.contains("projection-open");
-  sb.querySelector("#sb-map")?.classList.toggle("on", !state.openState && !pol && !dw && !bl && !st && !prj);
+  const meth = document.body.classList.contains("methodology-open");
+  const gloss = document.body.classList.contains("glossary-open");
+  const coal = document.body.classList.contains("coalitions-open");
+  const proc = document.body.classList.contains("process-open");
+  sb.querySelector("#sb-map")?.classList.toggle("on", !state.openState && !pol && !dw && !bl && !st && !prj && !meth && !gloss && !coal && !proc);
   sb.querySelector("#sb-politicians")?.classList.toggle("on", pol);
   sb.querySelector("#sb-dewan")?.classList.toggle("on", dw);
   sb.querySelector("#sb-bills")?.classList.toggle("on", bl);
   sb.querySelector("#sb-sentiment")?.classList.toggle("on", st);
   sb.querySelector("#sb-projection")?.classList.toggle("on", prj);
+  sb.querySelector("#sb-methodology")?.classList.toggle("on", meth);
+  sb.querySelector("#sb-glossary")?.classList.toggle("on", gloss);
+  sb.querySelector("#sb-coalitions")?.classList.toggle("on", coal);
+  sb.querySelector("#sb-process")?.classList.toggle("on", proc);
   // live election is highlighted on its state row (e.g. Johor), not a separate PRN nav item
   const e = liveElection();
   sb.querySelectorAll("[data-sb-state]").forEach((b) => {
@@ -4493,7 +4502,7 @@ document.getElementById("sidebar")?.addEventListener("click", (ev) => {
     return;
   }
   if (ev.target.closest("#sb-brand") || ev.target.closest("#sb-map")) {
-    closePoliticians({ silent: true }); closeNewsPage({ silent: true }); closeDewanPage({ silent: true }); closeBillsPage({ silent: true }); closeSentimentPage({ silent: true }); closeProjectionPage({ silent: true }); hideInfo(); backToControls(); syncSidebar(); return;
+    closePoliticians({ silent: true }); closeNewsPage({ silent: true }); closeDewanPage({ silent: true }); closeBillsPage({ silent: true }); closeSentimentPage({ silent: true }); closeProjectionPage({ silent: true }); closeMethodologyPage({ silent: true }); closeGlossaryPage({ silent: true }); closeCoalitionsPage({ silent: true }); closeProcessPage({ silent: true }); hideInfo(); backToControls(); syncSidebar(); return;
   }
   const sbPol = ev.target.closest("#sb-politicians");
   if (sbPol) {
@@ -4537,6 +4546,42 @@ document.getElementById("sidebar")?.addEventListener("click", (ev) => {
     ev.preventDefault();
     hideInfo();
     openProjectionPage();
+    setTimeout(syncSidebar, 60);
+    return;
+  }
+  const sbMethod = ev.target.closest("#sb-methodology");
+  if (sbMethod) {
+    if (!isPlainLeftClick(ev)) return;
+    ev.preventDefault();
+    hideInfo();
+    openMethodologyPage();
+    setTimeout(syncSidebar, 60);
+    return;
+  }
+  const sbGlossary = ev.target.closest("#sb-glossary");
+  if (sbGlossary) {
+    if (!isPlainLeftClick(ev)) return;
+    ev.preventDefault();
+    hideInfo();
+    openGlossaryPage();
+    setTimeout(syncSidebar, 60);
+    return;
+  }
+  const sbCoalitions = ev.target.closest("#sb-coalitions");
+  if (sbCoalitions) {
+    if (!isPlainLeftClick(ev)) return;
+    ev.preventDefault();
+    hideInfo();
+    openCoalitionsPage();
+    setTimeout(syncSidebar, 60);
+    return;
+  }
+  const sbProcess = ev.target.closest("#sb-process");
+  if (sbProcess) {
+    if (!isPlainLeftClick(ev)) return;
+    ev.preventDefault();
+    hideInfo();
+    openProcessPage();
     setTimeout(syncSidebar, 60);
     return;
   }
@@ -4602,6 +4647,10 @@ document.getElementById("sidebar")?.addEventListener("click", (ev) => {
   if (bootHash === "#bills") await openBillsPage();
   if (bootHash === "#sentiment") await openSentimentPage();
   if (bootHash === "#projection") await openProjectionPage();
+  if (bootHash === "#methodology") await openMethodologyPage();
+  if (bootHash === "#glossary") await openGlossaryPage();
+  if (bootHash === "#coalitions") await openCoalitionsPage();
+  if (bootHash === "#ge16-process") await openProcessPage();
   maybeShowHint();   // fresh visit, nothing selected → nudge that seats are tappable
   try { syncMapToCard(); } catch (_) {}
   // body.sb-collapsed is set above; drop the html pre-paint hint
@@ -4708,6 +4757,14 @@ window.addEventListener("popstate", () => {
   else if (document.body.classList.contains("sentiment-open")) closeSentimentPage({ silent: true });
   if (location.hash === "#projection") openProjectionPage();
   else if (document.body.classList.contains("projection-open")) closeProjectionPage({ silent: true });
+  if (location.hash === "#methodology") { openMethodologyPage(); }
+  else if (document.body.classList.contains("methodology-open")) closeMethodologyPage({ silent: true });
+  if (location.hash === "#glossary") { openGlossaryPage(); }
+  else if (document.body.classList.contains("glossary-open")) closeGlossaryPage({ silent: true });
+  if (location.hash === "#coalitions") { openCoalitionsPage(); }
+  else if (document.body.classList.contains("coalitions-open")) closeCoalitionsPage({ silent: true });
+  if (location.hash === "#ge16-process") { openProcessPage(); }
+  else if (document.body.classList.contains("process-open")) closeProcessPage({ silent: true });
 });
 
 /* ===== Dewan activity page: the Hansard league table (its own full page) ===== */
@@ -5573,6 +5630,260 @@ PROJECTION_VIEW?.addEventListener("click", (e) => {
     };
     if (state.tier !== "parlimen") setTier("parlimen").then(go);
     else go();
+  }
+});
+
+/* ===== Methodology page (server-rendered, fetched and hydrated) ===== */
+const METHODOLOGY_VIEW = document.getElementById("methodology-view");
+
+async function openMethodologyPage() {
+  if (!state.methodologyHtml || state.methodologyHtmlLang !== lang) {
+    try {
+      const url = lang === "ms" ? "ms/methodology.html" : "methodology.html";
+      const res = await fetch(url);
+      if (res.ok) {
+        const doc = new DOMParser().parseFromString(await res.text(), "text/html");
+        const main = doc.getElementById("main-content");
+        if (main) {
+          state.methodologyHtml = main.innerHTML;
+          state.methodologyHtmlLang = lang;
+        }
+      }
+    } catch (_) {}
+  }
+  if (!state.methodologyHtml) return;
+  closePoliticians({ silent: true });
+  closeNewsPage({ silent: true });
+  closeDewanPage({ silent: true });
+  closeBillsPage({ silent: true });
+  closeSentimentPage({ silent: true });
+  closeProjectionPage({ silent: true });
+  closeCoalitionsPage({ silent: true });
+  closeProcessPage({ silent: true });
+  if (state.prnMode) closePrnMode();
+  document.body.classList.add("methodology-open");
+  renderMethodologyPage();
+  syncSidebar();
+  if (location.hash !== "#methodology") history.pushState(null, "", "#methodology");
+  METHODOLOGY_VIEW.querySelector(".pol-dir")?.scrollTo?.(0, 0);
+}
+
+function renderMethodologyPage() {
+  if (!METHODOLOGY_VIEW || !state.methodologyHtml) return;
+  METHODOLOGY_VIEW.innerHTML = `
+    <div class="pol-dir">
+      <div class="pol-dir-head">
+        <button class="pol-back" type="button" data-methodology-back>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+          <span>${esc(t("pol_back"))}</span>
+        </button>
+      </div>
+      ${state.methodologyHtml}
+    </div>`;
+}
+
+function closeMethodologyPage(options = {}) {
+  if (!document.body.classList.contains("methodology-open")) return;
+  document.body.classList.remove("methodology-open");
+  if (METHODOLOGY_VIEW) METHODOLOGY_VIEW.innerHTML = "";
+  syncSidebar();
+  if (!options.silent) writeHash();
+}
+
+METHODOLOGY_VIEW?.addEventListener("click", (e) => {
+  if (e.target.closest("[data-methodology-back]")) {
+    closeMethodologyPage({ silent: true });
+    backToControls();
+    syncSidebar();
+    return;
+  }
+});
+
+/* ===== Glossary page (server-rendered, fetched and hydrated; English only — see NAV_LINKS' en_only) ===== */
+const GLOSSARY_VIEW = document.getElementById("glossary-view");
+
+async function openGlossaryPage() {
+  if (!state.glossaryHtml) {
+    try {
+      const res = await fetch("learn/glossary.html");
+      if (res.ok) {
+        const doc = new DOMParser().parseFromString(await res.text(), "text/html");
+        const main = doc.getElementById("main-content");
+        if (main) state.glossaryHtml = main.innerHTML;
+      }
+    } catch (_) {}
+  }
+  if (!state.glossaryHtml) return;
+  closePoliticians({ silent: true });
+  closeNewsPage({ silent: true });
+  closeDewanPage({ silent: true });
+  closeBillsPage({ silent: true });
+  closeSentimentPage({ silent: true });
+  closeProjectionPage({ silent: true });
+  closeMethodologyPage({ silent: true });
+  closeCoalitionsPage({ silent: true });
+  closeProcessPage({ silent: true });
+  if (state.prnMode) closePrnMode();
+  document.body.classList.add("glossary-open");
+  renderGlossaryPage();
+  syncSidebar();
+  if (location.hash !== "#glossary") history.pushState(null, "", "#glossary");
+  GLOSSARY_VIEW.querySelector(".pol-dir")?.scrollTo?.(0, 0);
+}
+
+function renderGlossaryPage() {
+  if (!GLOSSARY_VIEW || !state.glossaryHtml) return;
+  GLOSSARY_VIEW.innerHTML = `
+    <div class="pol-dir">
+      <div class="pol-dir-head">
+        <button class="pol-back" type="button" data-glossary-back>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+          <span>${esc(t("pol_back"))}</span>
+        </button>
+      </div>
+      ${state.glossaryHtml}
+    </div>`;
+}
+
+function closeGlossaryPage(options = {}) {
+  if (!document.body.classList.contains("glossary-open")) return;
+  document.body.classList.remove("glossary-open");
+  if (GLOSSARY_VIEW) GLOSSARY_VIEW.innerHTML = "";
+  syncSidebar();
+  if (!options.silent) writeHash();
+}
+
+GLOSSARY_VIEW?.addEventListener("click", (e) => {
+  if (e.target.closest("[data-glossary-back]")) {
+    closeGlossaryPage({ silent: true });
+    backToControls();
+    syncSidebar();
+    return;
+  }
+});
+
+/* ===== Coalitions page (server-rendered, fetched and hydrated; English only — see NAV_LINKS' en_only) ===== */
+const COALITIONS_VIEW = document.getElementById("coalitions-view");
+
+async function openCoalitionsPage() {
+  if (!state.coalitionsHtml) {
+    try {
+      const res = await fetch("learn/coalitions.html");
+      if (res.ok) {
+        const doc = new DOMParser().parseFromString(await res.text(), "text/html");
+        const main = doc.getElementById("main-content");
+        if (main) state.coalitionsHtml = main.innerHTML;
+      }
+    } catch (_) {}
+  }
+  if (!state.coalitionsHtml) return;
+  closePoliticians({ silent: true });
+  closeNewsPage({ silent: true });
+  closeDewanPage({ silent: true });
+  closeBillsPage({ silent: true });
+  closeSentimentPage({ silent: true });
+  closeProjectionPage({ silent: true });
+  closeMethodologyPage({ silent: true });
+  closeGlossaryPage({ silent: true });
+  if (state.prnMode) closePrnMode();
+  document.body.classList.add("coalitions-open");
+  renderCoalitionsPage();
+  syncSidebar();
+  if (location.hash !== "#coalitions") history.pushState(null, "", "#coalitions");
+  COALITIONS_VIEW.querySelector(".pol-dir")?.scrollTo?.(0, 0);
+}
+
+function renderCoalitionsPage() {
+  if (!COALITIONS_VIEW || !state.coalitionsHtml) return;
+  COALITIONS_VIEW.innerHTML = `
+    <div class="pol-dir">
+      <div class="pol-dir-head">
+        <button class="pol-back" type="button" data-coalitions-back>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+          <span>${esc(t("pol_back"))}</span>
+        </button>
+      </div>
+      ${state.coalitionsHtml}
+    </div>`;
+}
+
+function closeCoalitionsPage(options = {}) {
+  if (!document.body.classList.contains("coalitions-open")) return;
+  document.body.classList.remove("coalitions-open");
+  if (COALITIONS_VIEW) COALITIONS_VIEW.innerHTML = "";
+  syncSidebar();
+  if (!options.silent) writeHash();
+}
+
+COALITIONS_VIEW?.addEventListener("click", (e) => {
+  if (e.target.closest("[data-coalitions-back]")) {
+    closeCoalitionsPage({ silent: true });
+    backToControls();
+    syncSidebar();
+    return;
+  }
+});
+
+/* ===== GE16 Process page (server-rendered, fetched and hydrated; English only — see NAV_LINKS' en_only) ===== */
+const PROCESS_VIEW = document.getElementById("ge16-process-view");
+
+async function openProcessPage() {
+  if (!state.processHtml) {
+    try {
+      const res = await fetch("learn/ge16-process.html");
+      if (res.ok) {
+        const doc = new DOMParser().parseFromString(await res.text(), "text/html");
+        const main = doc.getElementById("main-content");
+        if (main) state.processHtml = main.innerHTML;
+      }
+    } catch (_) {}
+  }
+  if (!state.processHtml) return;
+  closePoliticians({ silent: true });
+  closeNewsPage({ silent: true });
+  closeDewanPage({ silent: true });
+  closeBillsPage({ silent: true });
+  closeSentimentPage({ silent: true });
+  closeProjectionPage({ silent: true });
+  closeCoalitionsPage({ silent: true });
+  closeMethodologyPage({ silent: true });
+  closeGlossaryPage({ silent: true });
+  if (state.prnMode) closePrnMode();
+  document.body.classList.add("process-open");
+  renderProcessPage();
+  syncSidebar();
+  if (location.hash !== "#ge16-process") history.pushState(null, "", "#ge16-process");
+  PROCESS_VIEW.querySelector(".pol-dir")?.scrollTo?.(0, 0);
+}
+
+function renderProcessPage() {
+  if (!PROCESS_VIEW || !state.processHtml) return;
+  PROCESS_VIEW.innerHTML = `
+    <div class="pol-dir">
+      <div class="pol-dir-head">
+        <button class="pol-back" type="button" data-process-back>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+          <span>${esc(t("pol_back"))}</span>
+        </button>
+      </div>
+      ${state.processHtml}
+    </div>`;
+}
+
+function closeProcessPage(options = {}) {
+  if (!document.body.classList.contains("process-open")) return;
+  document.body.classList.remove("process-open");
+  if (PROCESS_VIEW) PROCESS_VIEW.innerHTML = "";
+  syncSidebar();
+  if (!options.silent) writeHash();
+}
+
+PROCESS_VIEW?.addEventListener("click", (e) => {
+  if (e.target.closest("[data-process-back]")) {
+    closeProcessPage({ silent: true });
+    backToControls();
+    syncSidebar();
+    return;
   }
 });
 
