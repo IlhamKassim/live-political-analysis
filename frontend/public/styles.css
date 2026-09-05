@@ -3958,6 +3958,15 @@ body.process-open #topbar .topbar-context { pointer-events: auto; }
 .pol-dir-head { max-width: 1100px; margin: 0 auto 16px; }
 .pol-dir-head h1 { font-family: var(--font-display); font-size: clamp(24px, 4vw, 40px); margin: 0; }
 .pol-dir-head .pol-dir-sub { color: var(--ink-dim); font-size: 13px; margin: 4px 0 0; }
+
+.pol-dir .opening > .pk-eyebrow,
+.pol-dir .opening > h1,
+.pol-dir .opening > .lede,
+.pol-dir .pk-proj-methodology-hero > .pk-eyebrow,
+.pol-dir .pk-proj-methodology-hero > h1,
+.pol-dir .pk-proj-methodology-hero > p:first-of-type {
+  display: none;
+}
 .pol-back {
   display: inline-flex; align-items: center; gap: 6px; margin: 0 0 12px;
   min-height: 44px; padding: 0 14px 0 10px; border-radius: 999px; cursor: pointer;

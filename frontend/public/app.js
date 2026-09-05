@@ -5670,6 +5670,10 @@ async function openMethodologyPage() {
 
 function renderMethodologyPage() {
   if (!METHODOLOGY_VIEW || !state.methodologyHtml) return;
+  const doc = new DOMParser().parseFromString(state.methodologyHtml, "text/html");
+  const hero = doc.querySelector(".pk-proj-methodology-hero");
+  const title = hero?.querySelector("h1")?.textContent?.trim() || "";
+  const subtitle = hero?.querySelector("p")?.textContent?.trim() || "";
   METHODOLOGY_VIEW.innerHTML = `
     <div class="pol-dir">
       <div class="pol-dir-head">
@@ -5677,6 +5681,8 @@ function renderMethodologyPage() {
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
           <span>${esc(t("pol_back"))}</span>
         </button>
+        <h1>${esc(title)}</h1>
+        <p class="pol-dir-sub">${esc(subtitle)}</p>
       </div>
       ${state.methodologyHtml}
     </div>`;
@@ -5733,6 +5739,10 @@ async function openGlossaryPage() {
 
 function renderGlossaryPage() {
   if (!GLOSSARY_VIEW || !state.glossaryHtml) return;
+  const doc = new DOMParser().parseFromString(state.glossaryHtml, "text/html");
+  const opening = doc.querySelector(".opening");
+  const title = opening?.querySelector("h1")?.textContent?.trim() || "";
+  const subtitle = opening?.querySelector(".lede")?.textContent?.trim() || "";
   GLOSSARY_VIEW.innerHTML = `
     <div class="pol-dir">
       <div class="pol-dir-head">
@@ -5740,6 +5750,8 @@ function renderGlossaryPage() {
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
           <span>${esc(t("pol_back"))}</span>
         </button>
+        <h1>${esc(title)}</h1>
+        <p class="pol-dir-sub">${esc(subtitle)}</p>
       </div>
       ${state.glossaryHtml}
     </div>`;
@@ -5795,6 +5807,10 @@ async function openCoalitionsPage() {
 
 function renderCoalitionsPage() {
   if (!COALITIONS_VIEW || !state.coalitionsHtml) return;
+  const doc = new DOMParser().parseFromString(state.coalitionsHtml, "text/html");
+  const opening = doc.querySelector(".opening");
+  const title = opening?.querySelector("h1")?.textContent?.trim() || "";
+  const subtitle = opening?.querySelector(".lede")?.textContent?.trim() || "";
   COALITIONS_VIEW.innerHTML = `
     <div class="pol-dir">
       <div class="pol-dir-head">
@@ -5802,6 +5818,8 @@ function renderCoalitionsPage() {
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
           <span>${esc(t("pol_back"))}</span>
         </button>
+        <h1>${esc(title)}</h1>
+        <p class="pol-dir-sub">${esc(subtitle)}</p>
       </div>
       ${state.coalitionsHtml}
     </div>`;
@@ -5858,6 +5876,10 @@ async function openProcessPage() {
 
 function renderProcessPage() {
   if (!PROCESS_VIEW || !state.processHtml) return;
+  const doc = new DOMParser().parseFromString(state.processHtml, "text/html");
+  const opening = doc.querySelector(".opening");
+  const title = opening?.querySelector("h1")?.textContent?.trim() || "";
+  const subtitle = opening?.querySelector(".lede")?.textContent?.trim() || "";
   PROCESS_VIEW.innerHTML = `
     <div class="pol-dir">
       <div class="pol-dir-head">
@@ -5865,6 +5887,8 @@ function renderProcessPage() {
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
           <span>${esc(t("pol_back"))}</span>
         </button>
+        <h1>${esc(title)}</h1>
+        <p class="pol-dir-sub">${esc(subtitle)}</p>
       </div>
       ${state.processHtml}
     </div>`;
