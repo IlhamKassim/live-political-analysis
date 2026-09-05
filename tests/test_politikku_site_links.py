@@ -45,9 +45,14 @@ from lpa.politikku_projection import (
     render_projection,
 )
 from lpa.politikku_sentiment import render_sentiment_page, sentiment_page_model
-from lpa.politikku_shell import POLITIKKU_PREFIX, Language
+from lpa.politikku_shell import NAV_LINKS, POLITIKKU_PREFIX, Language
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+# IDs inside `.sb-nav` that are UI controls rather than NAV_LINKS destinations.
+# The SPA's other sidebar-only chrome (`sb-brand`, `sb-collapse`, `sb-states`,
+# `sb-state-hover-label`, `sb-about`, and `sb-share`) lives outside this nav block.
+SIDEBAR_IDS_WITHOUT_A_NAV_LINK: frozenset[str] = frozenset()
 
 UNBUILT_ROUTES: frozenset[str] = frozenset()
 """The nav items the design handoff itself asks to be "wired to routes
@@ -196,6 +201,24 @@ def _internal_links(page: str) -> set[str]:
         and not _is_app_rooted(link)
         and link not in GENERATED_BY_ANOTHER_BUILD_STEP
     }
+
+
+def test_the_spa_sidebar_and_nav_links_agree_on_which_destinations_exist():
+    """Four NAV_LINKS destinations once became unreachable from the map homepage.
+    Keep later additions from silently disappearing from either sidebar again.
+    """
+    expected = {link.key for link in NAV_LINKS}
+    index_html = (REPO_ROOT / "frontend" / "public" / "index.html").read_text(encoding="utf-8")
+    nav_match = re.search(r'<nav class="sb-nav">(.*?)</nav>', index_html, flags=re.DOTALL)
+    assert nav_match is not None, "the SPA sidebar's .sb-nav block is missing"
+    extracted = set(re.findall(r'id="sb-([a-z0-9-]+)"', nav_match.group(1)))
+    extracted -= SIDEBAR_IDS_WITHOUT_A_NAV_LINK
+
+    assert extracted == expected, (
+        "SPA sidebar and NAV_LINKS destinations differ: "
+        f"symmetric difference={sorted(extracted ^ expected)}; "
+        f"SPA only={sorted(extracted - expected)}; NAV_LINKS only={sorted(expected - extracted)}"
+    )
 
 
 def test_every_page_is_written_under_the_site_root_not_a_sub_prefix(rendered_site):
