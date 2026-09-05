@@ -57,7 +57,7 @@
 <aside id="sidebar" aria-label="Navigation">
   <div class="sb-top">
     <button id="sb-brand" class="sb-brand" type="button" data-i18n-aria="home_aria" aria-label="Show the whole map">
-      <span class="brand-word">PolitikKu</span>
+      <span class="brand-symbol">◧</span> <span class="brand-word">Politik<b>Ku</b></span>
     </button>
     <button id="sb-collapse" class="sb-collapse" type="button" aria-label="Toggle sidebar" title="Toggle sidebar">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/></svg>
@@ -68,7 +68,7 @@
     <a id="sb-politicians" class="sb-item" href="/politicians" data-i18n-aria="nav_politicians" aria-label="Politicians" data-i18n-title="nav_politicians"><span class="sb-ic"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/><path d="M16.8 4.4a3.5 3.5 0 0 1 0 5.2"/><path d="M18.7 15.2a6.3 6.3 0 0 1 2.8 5.8"/></svg></span><span class="sb-label" data-i18n="nav_politicians">Politicians</span></a>
     <a id="sb-dewan" class="sb-item" href="/dewan" data-i18n-aria="nav_dewan" aria-label="Dewan" data-i18n-title="nav_dewan"><span class="sb-ic"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V10M9.5 21V10M14.5 21V10M19 21V10"/><path d="M3 10h18l-9-6-9 6z"/></svg></span><span class="sb-label" data-i18n="nav_dewan">Dewan</span></a>
     <a id="sb-projection" class="sb-item" href="/projection" data-i18n-aria="nav_projection" aria-label="Projection" data-i18n-title="nav_projection"><span class="sb-ic"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13a9 9 0 1 0 18 0"/><path d="M12 13V4"/><path d="m8 8 4-4 4 4"/><circle cx="12" cy="13" r="2"/></svg></span><span class="sb-label" data-i18n="nav_projection">Projection</span></a>
-    <a id="sb-bills" class="sb-item" href="/bills" data-i18n-aria="nav_bills" aria-label="Bills" data-i18n-title="nav_bills"><span class="sb-ic"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg></span><span class="sb-label" data-i18n="nav_bills">Bills</span></a>
+    <a id="sb-bills" class="sb-item" href="/bills/" data-i18n-aria="nav_bills" aria-label="Bills" data-i18n-title="nav_bills"><span class="sb-ic"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg></span><span class="sb-label" data-i18n="nav_bills">Bills</span></a>
     <a id="sb-sentiment" class="sb-item" href="/sentiment" data-i18n-aria="nav_sentiment" aria-label="Sentiment" data-i18n-title="nav_sentiment"><span class="sb-ic"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span><span class="sb-label" data-i18n="nav_sentiment">Sentiment</span></a>
   </nav>
   <div class="sb-section" data-i18n="sidebar_states">States</div>
@@ -86,12 +86,12 @@
 <div id="app">
   <header id="topbar">
     <button id="brand-home" class="brand brand-home" type="button" data-i18n-aria="home_aria" aria-label="Show the whole map" data-i18n-title="home_aria" title="Show the whole map">
-      <span class="mark"><span class="brand-word">PolitikKu</span></span>
+      <span class="mark"><span class="brand-symbol">◧</span> <span class="brand-word">Politik<b>Ku</b></span></span>
     </button>
     <!-- always-on centre title (same slot state names used to occupy) -->
     <div id="topbar-context" class="topbar-context">
       <button type="button" id="topbar-title" class="topbar-title" data-i18n-aria="home_aria" aria-label="Show the whole map" title="PolitikKu">
-        <span class="brand-word">PolitikKu</span>
+        <span class="brand-word">Politik<b>Ku</b></span>
       </button>
     </div>
     <!-- right cluster: bento actions (aligned to grid) + theme (always top-right) + menu -->
@@ -124,7 +124,7 @@
         <a id="top-projection" class="iconbtn" href="/projection" data-i18n-aria="nav_projection" aria-label="Projection" data-i18n-title="nav_projection" title="Projection">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13a9 9 0 1 0 18 0"/><path d="M12 13V4"/><path d="m8 8 4-4 4 4"/><circle cx="12" cy="13" r="2"/></svg>
         </a>
-        <a id="top-bills" class="iconbtn" href="/bills" data-i18n-aria="nav_bills" aria-label="Bills" data-i18n-title="nav_bills" title="Bills">
+        <a id="top-bills" class="iconbtn" href="/bills/" data-i18n-aria="nav_bills" aria-label="Bills" data-i18n-title="nav_bills" title="Bills">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
         </a>
         <a id="top-sentiment" class="iconbtn" href="/sentiment" data-i18n-aria="nav_sentiment" aria-label="Sentiment" data-i18n-title="nav_sentiment" title="Sentiment">

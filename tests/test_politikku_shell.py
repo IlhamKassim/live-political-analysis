@@ -51,14 +51,14 @@ def test_the_three_election_statuses_each_get_their_own_compact_line():
 def test_the_active_nav_link_is_the_only_one_marked_current():
     header = render_header(active_nav="bills", language=Language.EN, page_path="")
 
-    # The nav is rendered twice (desktop row + mobile disclosure, only one
-    # visible at a time via CSS), so the active link's aria-current appears
-    # twice, plus once more for the current EN toggle link.
-    assert header.count('aria-current="page"') == 3
-    assert '<a class="active" href="/bills" aria-current="page">Bills</a>' in header
-    # The nav renders twice (desktop + mobile disclosure); "active" must
-    # land on Bills in both renderings and nowhere else.
-    assert header.count('class="active"') == 2
+    # The nav is rendered twice (desktop sidebar + mobile menu), so the active
+    # link's aria-current appears twice, plus twice more for the current EN
+    # toggle link in sidebar and topbar.
+    assert header.count('aria-current="page"') == 4
+    assert '<a id="sb-bills" class="sb-item on" href="/bills/"' in header
+    assert 'id="top-bills" class="iconbtn on" href="/bills/"' in header
+    assert header.count(' class="sb-item on"') == 1
+    assert header.count(' class="iconbtn on"') == 1
     assert len(NAV_LINKS) > 1  # otherwise the count above would be trivially true
 
 
@@ -85,9 +85,9 @@ def test_a_localized_nav_link_stays_in_bm_not_just_the_toggle():
     # Nav renders twice (desktop + mobile) — the Sentiment nav link (not the
     # toggle) must be the /ms/ route in both, and the plain EN route must
     # appear nowhere except the toggle's own EN link.
-    assert header.count('">Sentimen</a>') == 2
-    assert 'href="/ms/sentiment/">Sentimen</a>' in header
-    assert 'href="/sentiment/">Sentimen</a>' not in header
+    assert header.count("Sentimen</span>") == 2
+    assert 'href="/ms/sentiment/"' in header
+    assert 'href="/sentiment/"' not in header
 
 
 def test_an_external_nav_link_uses_the_same_href_in_both_languages():
@@ -97,8 +97,10 @@ def test_an_external_nav_link_uses_the_same_href_in_both_languages():
     # than producing a wrong /ms/app/#bills guess.
     en_header = render_header(active_nav="home", language=Language.EN, page_path="")
     ms_header = render_header(active_nav="home", language=Language.MS, page_path="")
-    assert en_header.count('href="/bills">Bills</a>') == 2
-    assert ms_header.count('href="/bills">Rang Undang-Undang</a>') == 2
+    assert en_header.count('href="/bills/"') == 2
+    assert ms_header.count('href="/bills/"') == 2
+    assert "Bills</span>" in en_header
+    assert "Rang Undang-Undang</span>" in ms_header
 
 
 def test_no_nav_link_opts_out_of_language_routing():
@@ -116,9 +118,9 @@ def test_no_nav_link_opts_out_of_language_routing():
     # root, is `/`, the same href the Home nav item has in English. So the
     # "no opt-out" check counts occurrences rather than asserting `/` is
     # absent: a nav item that had opted out would push the count above the
-    # toggle's single link.
+    # toggle's two links (sidebar and topbar).
     toggle_en_href = f'href="{route(Language.EN, "")}"'
-    assert ms_header.count(toggle_en_href) == 1
+    assert ms_header.count(toggle_en_href) == 2
     for link in NAV_LINKS:
         if link.external is not None:
             continue
@@ -126,7 +128,7 @@ def test_no_nav_link_opts_out_of_language_routing():
         assert en_href in en_header
         if not link.en_only:
             assert f'href="{link.prefix}ms/{link.href}"' in ms_header
-        assert ms_header.count(en_href) == (1 if en_href == toggle_en_href else 0)
+            assert ms_header.count(en_href) == (2 if en_href == toggle_en_href else 0)
 
 
 def test_the_methodology_and_projection_urls_are_language_aware():
@@ -213,8 +215,10 @@ def test_the_root_familys_persistence_script_rewrites_the_leading_slash():
 def test_the_wordmark_stays_in_the_current_language():
     en_header = render_header(active_nav="home", language=Language.EN, page_path="")
     ms_header = render_header(active_nav="home", language=Language.MS, page_path="")
-    assert '<a class="wordmark" href="/">PolitikKu</a>' in en_header
-    assert '<a class="wordmark" href="/ms/">PolitikKu</a>' in ms_header
+    assert 'class="brand brand-home wordmark" href="/"' in en_header
+    assert 'class="brand brand-home wordmark" href="/ms/"' in ms_header
+    assert 'id="sb-brand" class="sb-brand" href="/"' in en_header
+    assert 'id="sb-brand" class="sb-brand" href="/ms/"' in ms_header
 
 
 def test_the_language_persistence_script_is_present_and_reads_localstorage():
@@ -240,14 +244,18 @@ def test_the_language_toggle_marks_the_current_language_and_links_the_other():
     # these check substrings that survive that addition, not the exact
     # historical tag text.
     en_page = render_header(active_nav="home", language=Language.EN, page_path="bills.html")
-    assert 'class="lang-current" href="/bills.html" aria-current="page"' in en_page
-    assert 'data-pk-set-lang="en"' in en_page
+    assert (
+        'class="on lang-current" href="/bills.html" data-pk-set-lang="en" aria-current="page">EN</a>'
+        in en_page
+    )
     assert 'href="/ms/bills.html" data-pk-set-lang="ms">BM</a>' in en_page
 
     ms_page = render_header(active_nav="home", language=Language.MS, page_path="bills.html")
     assert 'href="/bills.html" data-pk-set-lang="en">EN</a>' in ms_page
-    assert 'class="lang-current" href="/ms/bills.html" aria-current="page"' in ms_page
-    assert 'data-pk-set-lang="ms"' in ms_page
+    assert (
+        'class="on lang-current" href="/ms/bills.html" data-pk-set-lang="ms" aria-current="page">BM</a>'
+        in ms_page
+    )
 
 
 def test_the_trust_strip_states_sources_singular_and_plural_correctly():
@@ -300,7 +308,8 @@ def test_the_shell_escapes_the_page_title():
     assert "<title>Bills &amp; motions &lt;/title&gt;</title>" in page
     assert '<html lang="en">' in page
     assert "<main>placeholder</main>" in page
-    assert "newsreader-variable.woff2" in page
+    assert "fonts.googleapis.com" in page
+    assert "Space+Grotesk" in page
 
 
 def test_the_shell_carries_og_and_twitter_tags_with_the_real_domain():
@@ -376,9 +385,9 @@ def test_the_nav_labels_translate_in_bm_and_stay_english_by_default():
     en_header = render_header(active_nav="bills", language=Language.EN, page_path="")
     ms_header = render_header(active_nav="bills", language=Language.MS, page_path="")
 
-    assert ">Bills</a>" in en_header
-    assert ">Rang Undang-Undang</a>" in ms_header
-    assert ">Bills</a>" not in ms_header
+    assert ">Bills</span>" in en_header
+    assert ">Rang Undang-Undang</span>" in ms_header
+    assert ">Bills</span>" not in ms_header
 
 
 def test_the_trust_strip_translates_the_updated_word_and_status_sentence():
@@ -414,7 +423,7 @@ def test_the_full_shell_in_bm_carries_no_leftover_english_chrome_copy():
         status=NOT_CALLED,
         body_html="<main>isi</main>",
     )
-    assert ">Utama</a>" in page  # translated "Home" nav item
+    assert ">Peta</span>" in page  # translated "Map" nav item
     assert "Metodologi &amp; sumber" in page
-    for english_only in ("Home", "How this works", "Read the full methodology"):
+    for english_only in ("How this works", "Read the full methodology"):
         assert english_only not in page

@@ -1,70 +1,15 @@
 """PolitikKu: design tokens, self-hosted fonts, and the persistent site shell.
 
-The header, trust strip, EN/BM toggle and methodology footer are the chrome
-every PolitikKu screen shares (#72, part of #69's design handoff). Built once
-here so #74 (homepage), #75 (landing page) and #79 (MP profile page) each
-wrap their own body content in `render_shell` rather than re-deriving it.
-
-Follows ADR 0006's precedent (`public_page.py`): Python renders static HTML,
-no build step. This is a deliberately separate visual identity from the
-existing chamber dashboard, not a replacement of it — see #70's resolution.
-The dashboard's party-colour tokens (`--ph`/`--pn`/`--bn`/`--gps`/`--grs`)
-have no equivalent here; the handoff is explicit that PolitikKu carries no
-party colours at all.
-
-`render_shell` also loads `{POLITIKKU_PREFIX}lookup.js` — the compiled output
-of `ts/src/` (issue #77), the one piece of PolitikKu with real client-side
-state (#70). It is a static module script, harmless on a page with no
-`[data-pk-lookup-form]` (`mountAllLookups()` is a no-op then), so it is
-loaded on every page rather than conditionally per template. Like every
-other PolitikKu page, `public/lookup.js` is generated, not
-committed — `ts/README.md` (or `ts/package.json`'s `build` script) is
-what produces it, run alongside the Python pages' own build step.
-
-Every value below is taken from `design_handoff_politikku/README.md`'s
-Design Tokens table and the inline styles in `PolitikKu Homepage.dc.html`
-(ids 1a/3a) — this module does not invent a palette. Two deliberate
-deviations from the handoff's literal copy, both because the handoff's
-sample data is not this repo's real data (README's own "Fidelity" section
-says as much for other fields):
-
-- The handoff's trust strip reads "Updated 23 Aug 2026, 06:00 MYT". This
-  repo's daily Action actually runs at 23:00 MYT (`pipeline.py`'s
-  `MALAYSIA_TIME`), and `PageModel.computed_at`/callers of this module only
-  carry a date, not a time. Stating a specific clock time this code cannot
-  verify would violate trust rule 2 (every factual figure carries a real
-  source) for the sake of matching a mockup's invented timestamp, so the
-  strip states the date and timezone and no fabricated clock time.
-- Desktop nav is a real link row (`<a href>`), not the mockup's plain
-  `<span>` — this is production markup, and the nav needs to actually
-  navigate.
-
-Routing (not specified by #72's body — the handoff only tells the toggle to
-link to real routes, not what they are — so this is a scoped, reversible
-call rather than a mechanical translation of a given value): PolitikKu's
-pages live under `POLITIKKU_PREFIX`, English at `/<page>` and Bahasa
-Malaysia at `/ms/<page>`, all root-relative (the whole site serves from one
-domain per `public/CNAME`). Bills/Sentiment point at pages later tickets
-have not built yet, same as the handoff itself asks for ("wired to routes
-that don't need to exist yet").
-
-Two of those routes stopped being placeholders in #102 (ADR 0011), which is
-also why the routing helpers below take a `prefix` rather than hardcoding
-one: "Seat Projection" points at `politikku_projection.py`'s own page at
-`/projection/` (and `/projection/ms/`) rather than at the old chamber
-dashboard, and "Methodology" has a real page behind it.
-
-#104 finished the cutover ADR 0011 describes by flipping `POLITIKKU_PREFIX`
-from the staging `/politikku/` to `/`: `politikku_homepage` now owns
-`public/index.html`, the old chamber dashboard (`public_page.py`) is no
-longer rendered or published at all, and its analytical depth lives at
-`/projection/`. `public_page.py` itself stays — every number on both
-`/` and `/projection/` is still computed by its `page_model()`.
+The sidebar and topbar are the chrome every PolitikKu screen shares (#149).
+Adopts the unified PolitikMY dark design across the entire site, retiring the
+navy/paper shell (#148). The map SPA's sidebar and topbar chrome now frames every
+page: Bills, Dewan, Politicians, Projection, Sentiment, and Learn.
 """
 
 from __future__ import annotations
 
 import html
+import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
@@ -73,149 +18,181 @@ from enum import StrEnum
 from lpa.domain import ElectionStatus
 
 POLITIKKU_PREFIX = "/"
-"""Where PolitikKu's own pages are served from — the site root since #104's
-cutover (ADR 0011). Every route below is built from a prefix plus a page
-path, so a page living outside this family (see `PROJECTION_PREFIX`) still
-gets the same EN/`ms/` pairing rather than a second, hand-written routing
-scheme.
-
-Until #104 this was the staging prefix `/politikku/`, and flipping this one
-constant is the whole of the cutover for every link in the shell: the nav
-(`NAV_LINKS` -> `route`), the wordmark, the EN/BM toggle, the
-language-persistence script's route-family detection, `LANDING_URL`,
-`methodology_url`, and the self-hosted font/`lookup.js` asset URLs in
-`render_shell`/`_CSS` all read it rather than spelling a prefix themselves.
-The page-writing side follows the same constant, though which page owns
-`public/index.html` changed again at the landing-page cutover below:
-`politikku_landing`'s `--output` default is `public/index.html` now,
-`politikku_homepage`'s is `public/home.html` (`HOMEPAGE_PAGE`), and
-`ts/build.mjs` writes `public/lookup.js`."""
+"""Where PolitikKu's own pages are served from — the site root."""
 
 PROJECTION_PREFIX = "/projection/"
-"""The ported projection detail page (#102, ADR 0011) — the old dashboard's
-analytical depth redrawn in PolitikKu's register. It sits at its own
-top-level route rather than under `POLITIKKU_PREFIX` because ADR 0011 has
-PolitikKu becoming the site itself: with #104's cutover done,
-`POLITIKKU_PREFIX` *is* `/`, so the projection page needs a route of its own
-to live at rather than sharing the root with the homepage."""
+"""The ported projection detail page route."""
 
 METHODOLOGY_PAGE = "methodology.html"
-"""The page path (under `POLITIKKU_PREFIX`) the header nav, the trust strip
-and the footer all link "how this works" at. Built by
-`politikku_projection.build_methodology`; before #102 this link target did
-not exist anywhere — see that module's docstring."""
+"""The page path (under POLITIKKU_PREFIX) for methodology."""
 
 MP_PROFILE_DIR = "mp"
-"""The directory MP profile pages live in, under `POLITIKKU_PREFIX` — one
-`<seat-code>.html` per Seat (`politikku_mp_profile`), so `/mp/P.102.html` in
-English and `/ms/mp/P.102.html` in BM. Named here because three places have
-to agree on it: the pages' own `page_path` (which drives their EN/BM
-toggle), `politikku_mp_profile.main`'s `--output-dir` default, and
-`ts/src/dom.ts`'s `mpProfileUrl()`, which builds the same href in the
-browser and cannot import this constant."""
+"""The directory MP profile pages live in, under POLITIKKU_PREFIX."""
 
 BILLS_PAGE = "bills.html"
-"""The bill-tracker page path — still one of the routes "wired to routes that
-don't need to exist yet" (no ticket has built it). Named here rather than
-spelled twice because `politikku_homepage`'s "All bills →" link points at the
-same page the nav does, and #104 found that second copy still carrying the
-pre-cutover `/politikku/` prefix."""
+"""The legacy bill-tracker redirect path."""
 
 LANDING_PAGE = ""
-"""`politikku_landing.py`'s own page (#75), as a page path under
-`POLITIKKU_PREFIX` — the same shape as `METHODOLOGY_PAGE`, so `route()`
-turns it into a real href in whichever language rather than a hand-written
-string. Defined here, not on `politikku_landing`, so both directions of the
-reference (footer -> landing, landing -> its own output path) read from the
-one constant rather than two copies of the same string.
-
-Empty since the site-root cutover below: the landing page IS `/` now, not a
-page linked from it. Until that cutover this was `"landing.html"` — a real,
-separate route reached only via a CTA, with the homepage at `/`."""
+"""Landing page path (now site root)."""
 
 LANDING_URL = f"{POLITIKKU_PREFIX}{LANDING_PAGE}"
-"""The English landing page's URL — what `politikku_landing.main` derives its
-`--output` default from, and nothing else (link *targets* go through
-`landing_url` below, which is language-aware). Until #104 this was a
-hardcoded `/politikku/landing.html`: a stale prefix that would have survived
-the cutover, which is exactly why it is now built from `POLITIKKU_PREFIX`.
-With `LANDING_PAGE` now empty, this collapses to `POLITIKKU_PREFIX` itself
-(`"/"`) — the landing-page cutover, second verse."""
+"""The landing page URL."""
 
 HOMEPAGE_PAGE = "home.html"
-"""`politikku_homepage.py`'s own former page path (#74, retired by ADR 0014).
-Kept only as the redirect stub's own old-path key (`politikku_redirects.py`)
-— its content merged into `/app/`, and no nav item or live page links here
-by this path any more (`HOMEPAGE_URL`, which used to, was deleted with the
-nav item)."""
+"""Retired homepage path kept for redirects."""
 
 
 class Language(StrEnum):
-    """The two languages a PolitikKu page can be served in.
-
-    Originally chrome-only (#72's scope excluded translated copy); #81 wires
-    this to real BM strings throughout the shell and every page built on it,
-    via `t()` below.
-    """
+    """The two languages a PolitikKu page can be served in."""
 
     EN = "en"
     MS = "ms"
 
 
 def t(language: Language, en: str, ms: str) -> str:
-    """Pick `en` or `ms` copy for `language` — the one primitive every
-    PolitikKu page's rendering function calls at each point bilingual text
-    appears (#81). Lives here, next to `Language`, rather than in
-    `politikku_i18n` so that module (shared vocabulary built out of this
-    same primitive) can import both from one place without a circular
-    import back to itself.
-    """
+    """Pick en or ms copy for language."""
     return en if language is Language.EN else ms
 
 
 @dataclass(frozen=True)
 class NavLink:
-    """One item in the persistent header nav."""
+    """One item in the persistent site navigation."""
 
     label: str
     label_ms: str
-    """BM copy for `label`. No settled source (the design handoff's bilingual
-    table covers homepage copy, not shell nav) — plain, low-risk cognates/
-    translations, listed in #81's PR description for a native-BM check."""
     href: str
-    """The page-path fragment `_en_route`/`_ms_route` take (e.g.
-    `"bills.html"`, `""` for a directory index) — routed through whichever
-    language the current page is in, so clicking a nav item from a BM page
-    stays in BM (#81's own "persisted... drives /ms/ routes" requirement
-    extends to in-site navigation, not just the toggle itself)."""
     key: str
-    """Identifies this link for the `active_nav` comparison — stable even if
-    `label`/`label_ms` change."""
     prefix: str = POLITIKKU_PREFIX
-    """Which route family this link's `href` hangs off. Every link was
-    `POLITIKKU_PREFIX` until #102 gave "Seat Projection" a real page of its
-    own at `PROJECTION_PREFIX`. It replaces the old `localized: bool` flag,
-    which existed solely so that one item could point at the un-translated
-    chamber dashboard at `/` — that page now has a BM sibling
-    (`/projection/ms/`), so there is no longer any nav item that has to opt
-    out of language routing."""
     en_only: bool = False
-    """If True, this link is omitted when the site is viewed in BM."""
     external: str | None = None
-    """When set, the literal href to use in both languages, bypassing
-    `route()`/`prefix` entirely — for a nav item whose target isn't one of
-    this module's own page paths: "Bills" points directly to `/bills`."""
+    icon_svg: str = ""
 
+
+_DEFAULT_NAV_ICON = (
+    '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+    'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    '<circle cx="12" cy="12" r="9"/></svg>'
+)
 
 NAV_LINKS: tuple[NavLink, ...] = (
-    NavLink("Home", "Utama", "", "home"),
-    NavLink("Seat Projection", "Unjuran Kerusi", "", "projection", prefix=PROJECTION_PREFIX),
-    NavLink("Bills", "Rang Undang-Undang", BILLS_PAGE, "bills", external="/bills"),
-    NavLink("Sentiment", "Sentimen", "sentiment/", "sentiment"),
-    NavLink("Methodology", "Metodologi", METHODOLOGY_PAGE, "methodology"),
-    NavLink("Glossary", "Glosari", "learn/glossary.html", "glossary", en_only=True),
-    NavLink("Coalitions", "Gabungan", "learn/coalitions.html", "coalitions", en_only=True),
-    NavLink("GE16 Process", "Proses PRU16", "learn/ge16-process.html", "process", en_only=True),
+    NavLink(
+        "Map",
+        "Peta",
+        "",
+        "map",
+        icon_svg=(
+            '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+            'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+            '<path d="m8 4 8-2 5 2.5v15l-5-2.5-8 2-5-2.5v-15z"/><path d="M8 4v15"/><path d="M16 2v15"/>'
+            '<path d="M5.7 11.5h4.1"/><path d="M14.2 7.5h4.1"/></svg>'
+        ),
+    ),
+    NavLink(
+        "Politicians",
+        "Ahli Politik",
+        "politicians/",
+        "politicians",
+        icon_svg=(
+            '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+            'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+            '<path d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/>'
+            '<path d="M16.8 4.4a3.5 3.5 0 0 1 0 5.2"/><path d="M18.7 15.2a6.3 6.3 0 0 1 2.8 5.8"/></svg>'
+        ),
+    ),
+    NavLink(
+        "Dewan",
+        "Dewan",
+        "dewan/",
+        "dewan",
+        icon_svg=(
+            '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+            'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+            '<path d="M3 21h18"/><path d="M5 21V10M9.5 21V10M14.5 21V10M19 21V10"/><path d="M3 10h18l-9-6-9 6z"/></svg>'
+        ),
+    ),
+    NavLink(
+        "Projection",
+        "Unjuran",
+        "",
+        "projection",
+        prefix=PROJECTION_PREFIX,
+        icon_svg=(
+            '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+            'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+            '<path d="M3 13a9 9 0 1 0 18 0"/><path d="M12 13V4"/><path d="m8 8 4-4 4 4"/><circle cx="12" cy="13" r="2"/></svg>'
+        ),
+    ),
+    NavLink(
+        "Bills",
+        "Rang Undang-Undang",
+        "bills/",
+        "bills",
+        external="/bills/",
+        icon_svg=(
+            '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+            'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+            '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>'
+            '<path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>'
+        ),
+    ),
+    NavLink(
+        "Sentiment",
+        "Sentimen",
+        "sentiment/",
+        "sentiment",
+        icon_svg=(
+            '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+            'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+            '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>'
+        ),
+    ),
+    NavLink(
+        "Methodology",
+        "Metodologi",
+        METHODOLOGY_PAGE,
+        "methodology",
+        icon_svg=(
+            '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+            'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+            '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.2"/><circle cx="12" cy="7.6" r="0.7" fill="currentColor" stroke="none"/></svg>'
+        ),
+    ),
+    NavLink(
+        "Glossary",
+        "Glosari",
+        "learn/glossary.html",
+        "glossary",
+        en_only=True,
+        icon_svg=(
+            '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+            'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+            '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M9 7h6M9 11h6"/></svg>'
+        ),
+    ),
+    NavLink(
+        "Coalitions",
+        "Gabungan",
+        "learn/coalitions.html",
+        "coalitions",
+        en_only=True,
+        icon_svg=(
+            '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+            'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+            '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
+        ),
+    ),
+    NavLink(
+        "GE16 Process",
+        "Proses PRU16",
+        "learn/ge16-process.html",
+        "process",
+        en_only=True,
+        icon_svg=(
+            '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+            'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+            '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/></svg>'
+        ),
+    ),
 )
 
 
@@ -228,48 +205,32 @@ def _ms_route(page_path: str, prefix: str = POLITIKKU_PREFIX) -> str:
 
 
 def route(language: Language, page_path: str, prefix: str = POLITIKKU_PREFIX) -> str:
-    """`page_path` under `prefix`, in whichever language — the one place a
-    caller outside this module turns "which page, which language" into a
-    real href, rather than each page reassembling `/ms/…` itself."""
+    """page_path under prefix, in whichever language."""
     return _en_route(page_path, prefix) if language is Language.EN else _ms_route(page_path, prefix)
 
 
 def methodology_url(language: Language = Language.EN) -> str:
-    """Where "how this works" points. Language-aware since #102: the BM
-    footer previously linked the English methodology page, a leak nobody
-    could see while the target did not exist at all."""
+    """Where 'how this works' points."""
     return route(language, METHODOLOGY_PAGE)
 
 
 def projection_url(language: Language = Language.EN) -> str:
-    """Where "Seat Projection"/"Full projection →" point (#102)."""
+    """Where 'Seat Projection'/'Full projection' point."""
     return route(language, "", PROJECTION_PREFIX)
 
 
 def landing_url(language: Language = Language.EN) -> str:
-    """Where the footer's "What is PolitikKu? →" points. Language-aware for
-    `methodology_url`'s own reason (#102): a BM page linking the English
-    landing page is a leak, and `politikku_landing.main` writes a BM variant
-    at `ms/landing.html` for it to link."""
+    """Where 'What is PolitikKu?' points."""
     return route(language, LANDING_PAGE)
 
 
 def short_date(day: date) -> str:
-    """`23 Aug 2026` — the trust strip's date format, abbreviated month."""
+    """23 Aug 2026 — abbreviated month."""
     return f"{day.day} {day.strftime('%b %Y')}"
 
 
 def trust_strip_status_text(status: ElectionStatus, language: Language = Language.EN) -> str:
-    """The Election Status as the trust strip's one-line form.
-
-    A compact sibling of `public_page.status_sentence`, not a reuse of it —
-    that function writes a standfirst sentence; this is a strip item a few
-    words wide. Same discipline: never guesses a date that is not set.
-
-    The BM sentences have no settled source (design handoff's table covers
-    homepage copy, not the election-status strip text) — original
-    translations, listed in #81's PR description for a native-BM check.
-    """
+    """The Election Status as a one-line form."""
     if not status.called:
         deadline = short_date(status.constitutional_deadline)
         return t(
@@ -294,13 +255,6 @@ _ARIA_CURRENT_PAGE = ' aria-current="page"'
 
 
 def _link(*, href: str, label: str, css_class: str, current: bool, extra: str = "") -> str:
-    """One `<a>` tag, escaped, with `aria-current="page"` when it's the
-    current page — factored out because pre-3.12 f-strings cannot contain a
-    backslash-escaped quote inside a `{}` expression.
-
-    `extra`, when set, adds `data-pk-set-lang="{extra}"` — read by
-    `_LANGUAGE_PERSISTENCE_SCRIPT`'s click listener, not a navigation
-    handler, so the link stays a real `<a href>` either way."""
     aria = _ARIA_CURRENT_PAGE if current else ""
     cls = f' class="{css_class}"' if css_class else ""
     extra_attr = f' data-pk-set-lang="{extra}"' if extra else ""
@@ -312,26 +266,21 @@ def _lang_toggle(language: Language, page_path: str, prefix: str = POLITIKKU_PRE
     ms_href = _ms_route(page_path, prefix)
     en_current = language is Language.EN
     ms_current = language is Language.MS
-    # `data-pk-set-lang` (via `_link`'s `extra` param) is read by
-    # `_LANGUAGE_PERSISTENCE_SCRIPT` below, not a click handler that
-    # intercepts navigation — the link's own `href` is what actually moves
-    # the visitor, matching this ticket's "a pair of links to the localised
-    # routes, not a JS-only control" requirement.
     en_link = _link(
         href=en_href,
         label="EN",
-        css_class="lang-current" if en_current else "",
+        css_class="on lang-current" if en_current else "",
         current=en_current,
         extra="en",
     )
     ms_link = _link(
         href=ms_href,
         label="BM",
-        css_class="lang-current" if ms_current else "",
+        css_class="on lang-current" if ms_current else "",
         current=ms_current,
         extra="ms",
     )
-    return f'<div class="lang-toggle" role="group" aria-label="Language">{en_link}{ms_link}</div>'
+    return f'<div class="seg lang-seg sb-lang" role="group" aria-label="Language">{en_link}{ms_link}</div>'
 
 
 _LANGUAGE_PERSISTENCE_SCRIPT_TEMPLATE = """
@@ -352,85 +301,217 @@ _LANGUAGE_PERSISTENCE_SCRIPT_TEMPLATE = """
   } catch (e) {}
   document.addEventListener('click', function (event) {
     var el = event.target.closest && event.target.closest('[data-pk-set-lang]');
-    if (!el) return;
-    try { window.localStorage.setItem('pk-language', el.getAttribute('data-pk-set-lang')); } catch (e) {}
+    if (el) {
+      try { window.localStorage.setItem('pk-language', el.getAttribute('data-pk-set-lang')); } catch (e) {}
+    }
+    var col = event.target.closest && event.target.closest('#sb-collapse');
+    if (col) {
+      document.body.classList.toggle('sb-collapsed');
+    }
+    var menuBtn = event.target.closest && event.target.closest('#mobile-menu-btn');
+    if (menuBtn) {
+      var menu = document.getElementById('mobile-menu');
+      if (menu) {
+        var open = menu.classList.toggle('is-open');
+        menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      }
+    }
   });
 })();
 </script>
 """
-"""#81's own requirement: `language` "persisted (cookie or localStorage),
-drives /ms/ routes" — a static site with no server has nowhere but the
-browser to keep that, so this is unavoidably a small script, the same
-progressive-enhancement shape #77's "Recently looked up" chips already use
-(a real link/feature works with no script; this only remembers the choice
-for next time). Placed early in `<head>` (see `render_shell`) so a stored
-preference redirects before the wrong-language page paints, rather than
-flashing it first.
-
-`__PREFIX__` is substituted per page (#102) rather than hardcoded: a page
-served from `PROJECTION_PREFIX` has to compare its own route family, or a
-stored BM preference would silently no-op there while working everywhere
-else. Both substitutions are prefix-shaped on purpose — with
-`POLITIKKU_PREFIX` now `/` (#104), `path.replace('/', '/ms/')` rewrites the
-*leading* slash (`String.replace` with a string pattern replaces the first
-occurrence only), so `/mp/P.102.html` becomes `/ms/mp/P.102.html` and `/`
-becomes `/ms/`, which are the paths `politikku_mp_profile.main` and
-`politikku_homepage.main` actually write."""
 
 
 def _language_persistence_script(prefix: str = POLITIKKU_PREFIX) -> str:
-    """`_LANGUAGE_PERSISTENCE_SCRIPT_TEMPLATE` bound to one route family — a
-    `.replace` substitution rather than an f-string, since the template is
-    brace-dense JS (the same call `public_page._theme_script` makes)."""
     return _LANGUAGE_PERSISTENCE_SCRIPT_TEMPLATE.replace("__PREFIX__", prefix)
 
 
-def render_header(
+def render_sidebar(
     *, active_nav: str, language: Language, page_path: str, prefix: str = POLITIKKU_PREFIX
 ) -> str:
-    """The 56px navy header: wordmark, nav, EN/BM toggle.
-
-    `active_nav` is a `NavLink.key` (e.g. `"home"`) — the current page's nav
-    item, underlined per the handoff's id-1a header. Nav collapses to a
-    `<details>` disclosure below 900px (`_CSS`) rather than hidden JS: the
-    links stay real and reachable with no script, matching this ticket's
-    EN/BM-toggle accessibility requirement extended to the rest of the nav.
-    """
+    """Render the SPA-matching sidebar navigation aside."""
+    home_href = route(language, "")
+    about_label = t(language, "About", "Tentang")
+    about_href = methodology_url(language)
 
     def _nav_href(link: NavLink) -> str:
         return (
             link.external if link.external is not None else route(language, link.href, link.prefix)
         )
 
-    links_html = "".join(
-        _link(
-            href=_nav_href(link),
-            label=t(language, link.label, link.label_ms),
-            css_class="active" if link.key == active_nav else "",
-            current=link.key == active_nav,
+    items_html: list[str] = []
+    for link in NAV_LINKS:
+        if link.en_only and language is Language.MS:
+            continue
+        is_active = (link.key == active_nav) or (link.key == "map" and active_nav == "home")
+        href = _nav_href(link)
+        label = t(language, link.label, link.label_ms)
+        icon = link.icon_svg or _DEFAULT_NAV_ICON
+        aria_curr = ' aria-current="page"' if is_active else ""
+        cls = "sb-item on" if is_active else "sb-item"
+        items_html.append(
+            f'<a id="sb-{link.key}" class="{cls}" href="{html.escape(href)}"{aria_curr} '
+            f'aria-label="{html.escape(label)}">'
+            f'<span class="sb-ic">{icon}</span>'
+            f'<span class="sb-label">{html.escape(label)}</span></a>'
         )
-        for link in NAV_LINKS
-        if not (link.en_only and language is Language.MS)
+
+    en_href = _en_route(page_path, prefix)
+    ms_href = _ms_route(page_path, prefix)
+    en_current = language is Language.EN
+    ms_current = language is Language.MS
+    en_class = "on lang-current" if en_current else ""
+    ms_class = "on lang-current" if ms_current else ""
+    en_aria = ' aria-current="page"' if en_current else ""
+    ms_aria = ' aria-current="page"' if ms_current else ""
+
+    en_link = (
+        f'<a class="{en_class}" href="{html.escape(en_href)}" data-pk-set-lang="en"{en_aria}>EN</a>'
     )
-    menu_label = t(language, "Menu", "Menu")  # "menu" is standard BM too
-    primary_label = t(language, "Primary", "Utama")
-    primary_mobile_label = t(language, "Primary (mobile)", "Utama (mudah alih)")
-    home_href = route(language, "")
-    return f"""
-<header class="pk-header">
-  <div class="pk-header-left">
-    <a class="wordmark" href="{html.escape(home_href)}">PolitikKu</a>
-    <nav class="pk-nav" aria-label="{primary_label}">{links_html}</nav>
+    ms_link = (
+        f'<a class="{ms_class}" href="{html.escape(ms_href)}" data-pk-set-lang="ms"{ms_aria}>BM</a>'
+    )
+
+    nav_aria = t(language, "Navigation", "Navigasi")
+    whole_map_label = t(language, "Show the whole map", "Tunjukkan seluruh peta")
+    toggle_sb_label = t(language, "Toggle sidebar", "Togol bar sisi")
+    lang_aria = t(language, "Language", "Bahasa")
+
+    return f"""<aside id="sidebar" aria-label="{nav_aria}">
+  <div class="sb-top">
+    <a id="sb-brand" class="sb-brand" href="{html.escape(home_href)}" aria-label="{whole_map_label}">
+      <span class="brand-word">Politik<b>Ku</b></span>
+    </a>
+    <button id="sb-collapse" class="sb-collapse" type="button" aria-label="{toggle_sb_label}" title="{toggle_sb_label}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/></svg>
+    </button>
   </div>
-  <details class="pk-nav-mobile">
-    <summary aria-label="{menu_label}">
-      <span></span><span></span><span></span>
-    </summary>
-    <nav aria-label="{primary_mobile_label}">{links_html}</nav>
-  </details>
-  {_lang_toggle(language, page_path, prefix)}
-</header>
-""".strip()
+  <nav class="sb-nav">
+    {"".join(items_html)}
+  </nav>
+  <div class="sb-foot">
+    <a id="sb-about" class="sb-item sb-small" href="{html.escape(about_href)}"><span>{html.escape(about_label)}</span></a>
+    <div class="seg lang-seg sb-lang" role="group" aria-label="{lang_aria}">
+      {en_link}
+      {ms_link}
+    </div>
+  </div>
+</aside>"""
+
+
+def render_topbar(
+    *,
+    active_nav: str,
+    language: Language,
+    page_path: str,
+    prefix: str = POLITIKKU_PREFIX,
+    updated_at: date | None = None,
+    sources_count: int | None = None,
+    status: ElectionStatus | None = None,
+) -> str:
+    """Render the SPA-matching topbar header."""
+    home_href = route(language, "")
+    whole_map_label = t(language, "Show the whole map", "Tunjukkan seluruh peta")
+    lang_aria = t(language, "Language", "Bahasa")
+    open_menu_label = t(language, "Open menu", "Buka menu")
+    mobile_actions_label = t(language, "Mobile actions", "Tindakan mudah alih")
+
+    en_href = _en_route(page_path, prefix)
+    ms_href = _ms_route(page_path, prefix)
+    en_current = language is Language.EN
+    ms_current = language is Language.MS
+    en_class = "on lang-current" if en_current else ""
+    ms_class = "on lang-current" if ms_current else ""
+    en_aria = ' aria-current="page"' if en_current else ""
+    ms_aria = ' aria-current="page"' if ms_current else ""
+
+    en_link = (
+        f'<a class="{en_class}" href="{html.escape(en_href)}" data-pk-set-lang="en"{en_aria}>EN</a>'
+    )
+    ms_link = (
+        f'<a class="{ms_class}" href="{html.escape(ms_href)}" data-pk-set-lang="ms"{ms_aria}>BM</a>'
+    )
+
+    trust_html = ""
+    if updated_at is not None and sources_count is not None and status is not None:
+        trust_html = render_trust_strip(
+            updated_at=updated_at,
+            sources_count=sources_count,
+            status=status,
+            language=language,
+        )
+
+    def _nav_href(link: NavLink) -> str:
+        return (
+            link.external if link.external is not None else route(language, link.href, link.prefix)
+        )
+
+    mobile_items: list[str] = []
+    for link in NAV_LINKS:
+        if link.en_only and language is Language.MS:
+            continue
+        is_active = (link.key == active_nav) or (link.key == "map" and active_nav == "home")
+        href = _nav_href(link)
+        label = t(language, link.label, link.label_ms)
+        icon = link.icon_svg or _DEFAULT_NAV_ICON
+        aria_curr = ' aria-current="page"' if is_active else ""
+        cls = "iconbtn on" if is_active else "iconbtn"
+        mobile_items.append(
+            f'<a id="top-{link.key}" class="{cls}" href="{html.escape(href)}"{aria_curr} '
+            f'aria-label="{html.escape(label)}">{icon}<span>{html.escape(label)}</span></a>'
+        )
+
+    return f"""<header id="topbar" class="pk-header">
+  <a id="brand-home" class="brand brand-home wordmark" href="{html.escape(home_href)}" aria-label="{whole_map_label}" title="{whole_map_label}">
+    <span class="mark"><span class="brand-word">Politik<b>Ku</b></span></span>
+  </a>
+  <div id="topbar-context" class="topbar-context">
+    <a id="topbar-title" class="topbar-title" href="{html.escape(home_href)}" aria-label="{whole_map_label}" title="PolitikKu">
+      <span class="brand-word">Politik<b>Ku</b></span>
+    </a>
+  </div>
+  {trust_html}
+  <div class="topbar-end">
+    <div class="seg lang-seg topbar-lang" id="lang" role="group" aria-label="{lang_aria}">
+      {en_link}
+      {ms_link}
+    </div>
+    <button id="mobile-menu-btn" class="iconbtn mobile-menu-btn" type="button" aria-label="{open_menu_label}" aria-controls="mobile-menu" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M5 7h14"/><path d="M5 12h14"/><path d="M5 17h14"/></svg>
+    </button>
+  </div>
+  <div id="mobile-menu" class="mobile-menu">
+    <nav class="topicons" role="navigation" aria-label="{mobile_actions_label}">
+      {"".join(mobile_items)}
+    </nav>
+  </div>
+</header>"""
+
+
+def render_header(
+    *,
+    active_nav: str,
+    language: Language,
+    page_path: str,
+    prefix: str = POLITIKKU_PREFIX,
+    updated_at: date | None = None,
+    sources_count: int | None = None,
+    status: ElectionStatus | None = None,
+) -> str:
+    """The persistent shell chrome: sidebar + topbar."""
+    sidebar = render_sidebar(
+        active_nav=active_nav, language=language, page_path=page_path, prefix=prefix
+    )
+    topbar = render_topbar(
+        active_nav=active_nav,
+        language=language,
+        page_path=page_path,
+        prefix=prefix,
+        updated_at=updated_at,
+        sources_count=sources_count,
+        status=status,
+    )
+    return f"{sidebar}\n{topbar}"
 
 
 def render_trust_strip(
@@ -441,18 +522,7 @@ def render_trust_strip(
     language: Language = Language.EN,
     methodology_href: str | None = None,
 ) -> str:
-    """The persistent trust strip — appears on every PolitikKu page.
-
-    Desktop shows all three items; the `<= 900px` rule in `_CSS` condenses
-    it to just the date and a "Sources" link, per the handoff's mobile trust
-    strip ("Updated 06:00 MYT today" + "Sources").
-
-    "Updated" translates from the settled `Updated … today` row (dropping
-    "hari ini"/"today" — this strip states a real date, never a fabricated
-    "today", per its own docstring above). "{n} news source(s) read" and
-    "How this works" have no settled source — original translations, listed
-    in #81's PR description.
-    """
+    """The persistent trust strip — appears inside the topbar."""
     updated = html.escape(short_date(updated_at))
     updated_word = t(language, "Updated", "Dikemas kini")
     sources_text = t(
@@ -463,19 +533,17 @@ def render_trust_strip(
     status_text = html.escape(trust_strip_status_text(status, language))
     methodology = html.escape(methodology_href or methodology_url(language))
     how_it_works = t(language, "How this works", "Cara ini berfungsi")
-    return f"""
-<div class="pk-trust-strip">
-  <span class="pk-trust-full">
-    <span>{updated_word} {updated}, MYT</span>
-    <span class="pk-dot">·</span>
-    <span>{sources_text}</span>
-    <span class="pk-dot">·</span>
-    <span>{status_text}</span>
+    return f"""<div class="topbar-trust">
+  <span class="trust-full">
+    <span class="trust-updated">{updated_word} {updated}, MYT</span>
+    <span class="topbar-dot">·</span>
+    <span class="trust-sources">{sources_text}</span>
+    <span class="topbar-dot">·</span>
+    <span class="trust-status">{status_text}</span>
   </span>
-  <span class="pk-trust-condensed">{updated_word} {updated}, MYT</span>
-  <a class="pk-trust-link" href="{methodology}">{how_it_works}</a>
-</div>
-""".strip()
+  <span class="trust-condensed">{updated_word} {updated}, MYT</span>
+  <a class="trust-link" href="{methodology}">{how_it_works}</a>
+</div>""".strip()
 
 
 @dataclass(frozen=True)
@@ -485,9 +553,6 @@ class SourceGroup:
     heading: str
     heading_ms: str
     sources: Sequence[str]
-    """Source names/citations — kept identical in both languages (mostly
-    proper institutional names, several already part-BM, e.g. "Dewan Rakyat
-    Hansard"; see `render_methodology_footer`'s docstring)."""
 
 
 FACTUAL_SOURCES = SourceGroup(
@@ -500,10 +565,6 @@ MODELLED_SOURCES = SourceGroup(
     "Input model",
     ("News outlets, EN + BM", "Merdeka Center polling", "GE15 Baseline + state results"),
 )
-"""`MODELLED_SOURCES`' first line drops the handoff's hardcoded "9" (outlet
-count) — that number belongs to whichever page wires in real data (#74),
-not this static footer, and going stale the day an outlet is added or
-dropped from `data/outlets.json` would itself be a trust-rule violation."""
 
 
 def render_methodology_footer(
@@ -513,15 +574,7 @@ def render_methodology_footer(
     factual: SourceGroup = FACTUAL_SOURCES,
     modelled: SourceGroup = MODELLED_SOURCES,
 ) -> str:
-    """The navy 3-column footer: methodology statement, factual sources,
-    modelled sources. Persistent chrome, same as the header.
-
-    The heading is the settled `Methodology & sources` -> `Metodologi &
-    sumber` row. The disclaimer paragraph and the two footer links have no
-    settled source — original translations, listed in #81's PR description.
-    Source names/citations (`factual.sources`/`modelled.sources`) are left
-    untranslated in both languages — see `SourceGroup.sources`'s docstring.
-    """
+    """Methodology statements and sources."""
     factual_items = "".join(f"<span>{html.escape(s)}</span>" for s in factual.sources)
     modelled_items = "".join(f"<span>{html.escape(s)}</span>" for s in modelled.sources)
     href = html.escape(methodology_href or methodology_url(language))
@@ -551,8 +604,7 @@ def render_methodology_footer(
 
     factual_heading = html.escape(t(language, factual.heading, factual.heading_ms))
     modelled_heading = html.escape(t(language, modelled.heading, modelled.heading_ms))
-    return f"""
-<footer class="pk-footer">
+    return f"""<footer class="pk-footer">
   <div class="pk-footer-statement">
     <div class="pk-footer-heading">{heading}</div>
     <p>{statement}</p>
@@ -567,17 +619,10 @@ def render_methodology_footer(
     <div class="pk-footer-label">{modelled_heading}</div>
     <div class="pk-footer-list">{modelled_items}</div>
   </div>
-</footer>
-""".strip()
+</footer>""".strip()
 
 
 SITE_URL = "https://politikku.my/"
-"""The published site's real address — `public/CNAME`'s custom domain.
-
-Duplicated from `public_page.py` rather than imported: `public_page.py`
-already imports `Language`/`t` from this module, so importing `SITE_URL`
-back the other way would be circular. `telegram_post.py` already carries
-its own copy of this same constant for the same reason."""
 
 
 def render_shell(
@@ -593,31 +638,19 @@ def render_shell(
     body_html: str,
     prefix: str = POLITIKKU_PREFIX,
 ) -> str:
-    """Wrap `body_html` in the full PolitikKu page: head, header, trust
-    strip, `body_html` untouched, methodology footer.
-
-    `body_html` is the one thing this function does not decide — #74/#75/#79
-    each render their own body and pass it straight through, per #72's
-    "not in scope: actual page content."
-
-    `prefix` is the route family this particular page is served from, and
-    only the EN/BM toggle and the language-persistence script read it (the
-    nav's own links each carry their own `NavLink.prefix`). It defaults to
-    `POLITIKKU_PREFIX`, so every page that existed before #102 is unchanged.
-
-    `description` backs both `<meta name="description">` and the og:/
-    twitter: tags — required, not defaulted, the same discipline #41 used
-    for `public_page.py`'s own version of this block: every caller states
-    real, page-specific copy rather than a generic fallback that reads the
-    same on every page a reader shares.
-    """
-    header = render_header(
+    """Wrap body_html in the full PolitikKu page shell."""
+    sidebar = render_sidebar(
         active_nav=active_nav, language=language, page_path=page_path, prefix=prefix
     )
-    trust_strip = render_trust_strip(
-        updated_at=updated_at, sources_count=sources_count, status=status, language=language
+    topbar = render_topbar(
+        active_nav=active_nav,
+        language=language,
+        page_path=page_path,
+        prefix=prefix,
+        updated_at=updated_at,
+        sources_count=sources_count,
+        status=status,
     )
-    footer = render_methodology_footer(language=language)
     lang_attr = "ms" if language is Language.MS else "en"
     escaped_title = html.escape(title)
     escaped_description = html.escape(description)
@@ -627,8 +660,6 @@ def render_shell(
     ms_url = html.escape(f"{SITE_URL.rstrip('/')}{_ms_route(page_path, prefix)}")
 
     og_image = html.escape(f"{SITE_URL}og-image.png")
-
-    import json
 
     website_ld = json.dumps(
         {
@@ -640,6 +671,8 @@ def render_shell(
             "inLanguage": ["en", "ms"],
         }
     )
+
+    footer = render_methodology_footer(language=language)
 
     return f"""<!doctype html>
 <html lang="{lang_attr}">
@@ -661,8 +694,9 @@ def render_shell(
 <link rel="canonical" href="{og_url}">
 <link rel="alternate" hreflang="en" href="{en_url}">
 <link rel="alternate" hreflang="ms" href="{ms_url}">
-<link rel="preload" href="{POLITIKKU_PREFIX}fonts/newsreader-variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="{POLITIKKU_PREFIX}fonts/ibm-plex-sans-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="icon" href="{POLITIKKU_PREFIX}favicon.ico">
 <style>{_CSS}</style>
 <script type="application/ld+json">
@@ -671,12 +705,14 @@ def render_shell(
 <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{{"token": "5eadc388fb2a4518b8e846b059fb102c"}}'></script><!-- End Cloudflare Web Analytics --> <!-- gitleaks:allow -->
 </head>
 <body>
-{header}
-{trust_strip}
+{sidebar}
+<div id="app">
+{topbar}
 <main id="main-content">
 {body_html}
 </main>
 {footer}
+</div>
 <script type="module" src="{POLITIKKU_PREFIX}lookup.js"></script>
 </body>
 </html>
@@ -684,108 +720,57 @@ def render_shell(
 
 
 _CSS_TEMPLATE = """
-  @font-face {
-    font-family: 'Newsreader';
-    font-style: normal;
-    font-weight: 400 600;
-    font-display: swap;
-    src: url('__PREFIX__fonts/newsreader-variable.woff2') format('woff2');
-    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
-      U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-  }
-  @font-face {
-    font-family: 'IBM Plex Sans';
-    font-style: normal;
-    font-weight: 400 600;
-    font-display: swap;
-    src: url('__PREFIX__fonts/ibm-plex-sans-variable.woff2') format('woff2');
-    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
-      U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-  }
-  @font-face {
-    font-family: 'IBM Plex Mono';
-    font-style: normal;
-    font-weight: 400;
-    font-display: swap;
-    src: url('__PREFIX__fonts/ibm-plex-mono-400.woff2') format('woff2');
-  }
-  @font-face {
-    font-family: 'IBM Plex Mono';
-    font-style: normal;
-    font-weight: 500;
-    font-display: swap;
-    src: url('__PREFIX__fonts/ibm-plex-mono-500.woff2') format('woff2');
-  }
-
   :root {
-    /* Design tokens — design_handoff_politikku/README.md, "Design Tokens" */
-    --ink:            #14203a;
-    --ink-secondary:  #5f6773;
-    --muted:          #6b7280;
-    --paper:          #fbfaf7;
-    --paper-alt:      #f4f2ec;
-    --white:          #ffffff;
-    --line:           #dcd8cf;
-    --line-soft:      #ece8df;
-    --line-strong:    #c9c4b8;
-    --accent:         #1f5c58;
-    --accent-on-dark: #a9cdc9;
-    --caution:        #8a6a2f;
-    --caution-deep:   #7a5c1e;
-    --caution-bg:     #f0e6d2;
-    --caution-border: #e0d2b4;
-    --positive-bg:     #eef3f0;
-    --positive-border: #cfe0da;
-    --data-government:    #14203a;
-    --data-noise:          #d6d1c6;
-    --data-nongovernment:  #93a0ac;
-    --on-dark-body:   #b9c0cc;
-    --on-dark-muted:  #8a94a6;
-    --nav-active-rule: #7fa8a4;
+    --paper: #0b0e13;
+    --paper-alt: #11151d;
+    --white: #0e1219;
+    --ink: #e7edf4;
+    --ink-secondary: #93a1b3;
+    --muted: #708096;
+    --line: #1d2733;
+    --line-soft: #161e28;
+    --line-strong: #2a3645;
+    --accent: #4dd6c1;
+    --accent-on-dark: #4dd6c1;
+    --caution: #ffd166;
+    --caution-deep: #ffd166;
+    --caution-bg: rgba(255, 209, 102, .12);
+    --caution-border: rgba(255, 209, 102, .35);
+    --positive-bg: rgba(77, 214, 193, .12);
+    --positive-border: rgba(77, 214, 193, .35);
+    --data-government: #e7edf4;
+    --data-noise: #3a4757;
+    --data-nongovernment: #7d8fa3;
+    --on-dark-body: #93a1b3;
+    --on-dark-muted: #708096;
+    --nav-active-rule: #4dd6c1;
 
-    --serif: 'Newsreader', ui-serif, Georgia, 'Times New Roman', serif;
-    --sans:  'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
-    --mono:  'IBM Plex Mono', ui-monospace, Menlo, Monaco, Consolas, 'Courier New', monospace;
+    --serif: var(--sans);
+    --sans: "Space Grotesk", system-ui, -apple-system, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
     --radius-sm: 3px;
     --radius-md: 4px;
     --radius-lg: 5px;
 
-    /* Spacing — README's "Spacing" section. Only the two constants this
-       ticket's own components actually need are promoted to tokens: the
-       horizontal gutter, held constant across every band regardless of
-       section (only the vertical padding varies 38–46px/22–28px per
-       section, which is a per-section design call, not a shared constant),
-       and the 4px base unit, named here for later pages to build multiples
-       of rather than inventing their own increment. */
     --space-unit: 4px;
     --gutter-desktop: 30px;
     --gutter-mobile:  18px;
 
-    /* Typography — README's "Typography" role table. Only the two roles
-       given as an exact desktop/mobile pair are promoted (Landing hero,
-       Page h1) — #74/#75 will use these directly. The other roles (Section
-       h2, Card h3, Body, Caption) are given as ranges (e.g. 13.5–15px),
-       and this ticket's own header/trust-strip/footer sizes are drawn from
-       the id=1a inline styles, not from that range table, and don't map
-       onto it cleanly (the footer statement paragraph is 12.5px, smaller
-       than the Body role's own stated 13.5–15px floor) — turning an
-       inconsistent source into one false-precise token per role would
-       assert a system the handoff itself doesn't have, so those stay as
-       literal values at their point of use. */
     --text-hero-desktop: 58px;
     --text-hero-mobile:  38px;
     --text-h1-desktop:   44px;
     --text-h1-mobile:    34px;
+
+    --surface-soft: var(--paper-alt);
+    --surface-hover: rgba(255, 255, 255, .06);
+    --surface-hover-2: rgba(255, 255, 255, .08);
   }
 
   * { box-sizing: border-box; }
   :focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
-  }
-  .pk-header :focus-visible, .pk-footer :focus-visible {
-    outline-color: var(--accent-on-dark);
   }
   body {
     margin: 0;
@@ -797,166 +782,1029 @@ _CSS_TEMPLATE = """
   h1, h2, h3, p { text-wrap: pretty; }
   a { color: var(--accent); text-decoration: none; }
 
-  /* Header */
-  .pk-header {
-    position: relative;
-    background: var(--ink);
-    color: var(--paper);
-    height: 56px;
-    padding: 0 var(--gutter-desktop);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
+  /* Shell chrome: sidebar & topbar */
+  #sidebar { display: none; }
+  @media (min-width: 640px) {
+    #sidebar {
+      position: fixed; inset: 0 auto 0 0; width: 232px; z-index: 60;
+      display: flex; flex-direction: column; gap: 2px;
+      padding: 14px 12px 12px;
+      background: var(--paper-alt);
+      border-right: 1px solid var(--line);
+      transition: width .12s ease, padding .12s ease;
+    }
+    #app { margin-left: 232px; transition: margin-left .12s ease; }
+    #topbar { left: 232px; transition: left .12s ease; }
+    #topbar .brand-home { display: none; }
   }
-  .pk-header-left { display: flex; align-items: baseline; gap: 26px; }
-  .pk-header .wordmark {
-    font-family: var(--serif);
-    font-size: 21px;
-    font-weight: 600;
-    letter-spacing: -.01em;
-    color: var(--paper);
+  .sb-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding-bottom: 8px; }
+  .sb-brand {
+    display: flex; align-items: center; gap: 6px;
+    font-family: var(--sans); font-size: 19px; font-weight: 700; color: var(--ink);
+    min-height: 44px; background: none; border: 0; cursor: pointer; padding: 6px 10px 14px; text-align: left;
+    text-decoration: none;
   }
-  .pk-nav { display: flex; gap: 20px; font-size: 13px; color: var(--on-dark-body); }
-  .pk-nav a, .pk-nav-mobile nav a { color: inherit; transition: color .15s ease, border-bottom-color .15s ease; }
-  .pk-nav a:hover:not(.active) { color: var(--paper); }
-  .pk-nav a.active {
-    color: var(--paper);
-    border-bottom: 2px solid var(--nav-active-rule);
-    padding-bottom: 2px;
+  .sb-brand .brand-word b { font-weight: 800; color: var(--accent); }
+  .sb-collapse {
+    flex: 0 0 auto; width: 44px; height: 44px; display: grid; place-items: center;
+    border: 0; border-radius: var(--radius-md); background: none; color: var(--muted); cursor: pointer;
+    transition: background .12s, color .12s;
   }
-  .pk-nav-mobile { display: none; }
-
-  .lang-toggle {
-    display: flex;
-    border: 1px solid rgba(251, 250, 247, .28);
-    border-radius: var(--radius-md);
-    overflow: hidden;
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: .06em;
+  .sb-collapse svg { width: 22px; height: 22px; }
+  .sb-collapse:hover { background: rgba(255, 255, 255, .06); color: var(--ink); }
+  .sb-nav { display: flex; flex-direction: column; gap: 2px; overflow-y: auto; flex: 1; }
+  .sb-item {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    min-height: 44px; padding: 9px 10px; border-radius: 9px; border: 0; background: none;
+    font: inherit; font-size: 13.5px; color: var(--ink-secondary); text-align: left; cursor: pointer;
+    text-decoration: none;
+    transition: background .12s, color .12s;
   }
-  .lang-toggle a {
-    padding: 5px 10px;
-    color: var(--on-dark-body);
+  .sb-item:hover { background: rgba(255, 255, 255, .06); color: var(--ink); text-decoration: none; }
+  .sb-item.on { background: rgba(255, 255, 255, .1); color: var(--ink); font-weight: 600; }
+  .sb-ic { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+  .sb-ic .nav-icon { width: 22px; height: 22px; }
+  .sb-foot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 2px; }
+  .sb-small { width: auto; font-size: 12.5px; padding: 7px 9px; }
+  .sb-lang { margin-left: auto; display: flex; border: 1px solid var(--line-strong); border-radius: var(--radius-md); overflow: hidden; }
+  .sb-lang a, .sb-lang button {
+    font: inherit; font-family: var(--mono); font-size: 11px; font-weight: 600; padding: 6px 9px; min-width: 36px; min-height: 36px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 0; background: none; color: var(--muted); border-radius: 0; cursor: pointer; text-decoration: none;
     transition: background .15s ease, color .15s ease;
   }
-  .lang-toggle a:hover:not(.lang-current) {
-    color: var(--paper);
-    background: rgba(251, 250, 247, .12);
-  }
-  .lang-toggle a.lang-current { background: var(--paper); color: var(--ink); font-weight: 500; }
+  .sb-lang a:hover:not(.on):not(.lang-current) { color: var(--ink); background: rgba(255, 255, 255, .06); }
+  .sb-lang a.on, .sb-lang a.lang-current { background: rgba(255, 255, 255, .15); color: var(--ink); font-weight: 700; }
 
-  /* Trust strip */
-  .pk-trust-strip {
-    background: var(--paper-alt);
+  @media (min-width: 640px) {
+    body.sb-collapsed #sidebar { width: 60px; padding: 14px 8px 12px; }
+    body.sb-collapsed #app { margin-left: 60px; }
+    body.sb-collapsed #topbar { left: 60px; }
+    body.sb-collapsed .sb-brand,
+    body.sb-collapsed .sb-label,
+    body.sb-collapsed .sb-foot { display: none; }
+    body.sb-collapsed .sb-top { justify-content: center; padding-bottom: 10px; }
+    body.sb-collapsed .sb-item { justify-content: center; padding: 10px 0; }
+  }
+
+  #topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 18px;
+    background: rgba(9, 11, 15, .94);
+    backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--line);
-    padding: 9px var(--gutter-desktop);
-    display: flex;
-    gap: 22px;
-    align-items: center;
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--ink-secondary);
+    min-height: 56px;
   }
-  .pk-trust-full { display: flex; gap: 22px; align-items: center; }
-  .pk-dot { color: var(--line-strong); }
-  .pk-trust-condensed { display: none; }
-  .pk-trust-link {
-    margin-left: auto;
-    color: var(--accent);
-    border-bottom: 1px solid rgba(31, 92, 88, .4);
-    transition: border-bottom-color .15s ease, color .15s ease;
+  .brand-home {
+    display: flex; align-items: center;
+    text-decoration: none; color: var(--ink);
   }
-  .pk-trust-link:hover {
-    border-bottom-color: var(--accent);
-    color: var(--accent);
+  .brand-home .mark { font-family: var(--sans); font-size: 18px; font-weight: 700; }
+  .brand-home .mark b { color: var(--accent); }
+  .topbar-context { display: flex; align-items: center; }
+  .topbar-title {
+    background: none; border: 0; color: var(--ink); font-family: var(--sans);
+    font-size: 16px; font-weight: 600; text-decoration: none;
+  }
+  .topbar-title .brand-word b { color: var(--accent); }
+  .topbar-trust {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--mono); font-size: 11px; color: var(--ink-secondary);
+    margin-left: 12px;
+  }
+  .topbar-trust .trust-full { display: flex; align-items: center; gap: 10px; }
+  .topbar-trust .topbar-dot { color: var(--line-strong); }
+  .topbar-trust .trust-condensed { display: none; }
+  .topbar-trust .trust-link, .topbar-trust a {
+    color: var(--accent); border-bottom: 1px solid rgba(77, 214, 193, .4);
+    text-decoration: none;
+  }
+  .topbar-trust .trust-link:hover, .topbar-trust a:hover { border-bottom-color: var(--accent); }
+  .topbar-end {
+    margin-left: auto; display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto;
+  }
+  .topbar-lang {
+    display: inline-flex; background: rgba(17, 21, 29, .85); border: 1px solid var(--line);
+    border-radius: var(--radius-md); overflow: hidden;
+  }
+  .topbar-lang a, .topbar-lang button {
+    font-family: var(--mono); font-size: 11px; font-weight: 600; padding: 5px 10px;
+    color: var(--ink-secondary); text-decoration: none; background: transparent; border: 0; cursor: pointer;
+  }
+  .topbar-lang a.on, .topbar-lang a.lang-current { background: rgba(255, 255, 255, .15); color: var(--ink); }
+  .mobile-menu-btn {
+    display: none; width: 44px; height: 44px; border-radius: var(--radius-md); border: 0;
+    background: none; color: var(--muted); cursor: pointer; align-items: center; justify-content: center;
+  }
+  .mobile-menu-btn svg { width: 22px; height: 22px; }
+  .mobile-menu { display: none; }
+  @media (max-width: 639px) {
+    .mobile-menu-btn { display: inline-flex; }
+    .topbar-trust .trust-full { display: none; }
+    .topbar-trust .trust-condensed { display: inline; }
+    .topbar-trust { font-size: 10px; gap: 6px; }
+    .mobile-menu.is-open {
+      display: block; position: fixed; top: 56px; left: 0; right: 0; bottom: 0;
+      background: var(--paper); z-index: 99; padding: 16px; overflow-y: auto;
+    }
+    .mobile-menu .topicons {
+      display: grid; grid-template-columns: 1fr; gap: 8px;
+    }
+    .mobile-menu .iconbtn {
+      display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+      border-radius: var(--radius-md); background: var(--paper-alt); color: var(--ink);
+      text-decoration: none; font-size: 14px; font-weight: 500;
+    }
+    .mobile-menu .iconbtn.on { background: rgba(255, 255, 255, .15); font-weight: 700; }
+  }
+  @media (max-width: 900px) {
+    .topbar-trust .trust-full { display: none; }
+    .topbar-trust .trust-condensed { display: inline; }
   }
 
-  /* Methodology footer */
+  #app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  #main-content {
+    flex: 1;
+    padding-top: 56px;
+  }
+
+  /* Ported page primitives */
+.seg button:focus-visible {
+  outline-offset: -2px;
+}
+.seg {
+  display: inline-flex; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+}
+.seg button {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .03em;
+  color: var(--ink-secondary); background: transparent; border: 0; padding: 7px 13px;
+  cursor: pointer; transition: background .15s, color .15s;
+}
+.seg button:hover:not(:disabled) {
+  color: var(--ink); background: var(--paper-alt);
+}
+.seg button.on {
+  color: var(--paper); background: var(--accent); font-weight: 600;
+}
+.seg button:disabled {
+  color: var(--muted); cursor: not-allowed; opacity: .55;
+}
+.seg button[data-after]::after {
+  content: attr(data-after);
+  margin-left: 6px; vertical-align: middle;
+  font-size: 8.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  padding: 1px 5px; border-radius: 999px;
+  background: var(--caution); color: var(--paper);
+}
+#tooltip .pill {
+  font-size: 10px; padding: 1px 6px;
+}
+.muted {
+  color: var(--ink-secondary);
+}
+.rows {
+  display: grid; grid-template-columns: auto 1fr;
+  border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+}
+.rows dt, .rows dd {
+  padding: 10px 12px; border-bottom: 1px solid var(--line); min-width: 0;
+}
+.rows dt {
+  color: var(--ink-secondary); font-size: 12.5px; white-space: nowrap; border-right: 1px solid var(--line);
+}
+.rows dd {
+  margin: 0; text-align: right; font-size: 14px; overflow-wrap: anywhere;
+}
+.rows dd.mono {
+  font-family: var(--mono);
+}
+.rows .bloc-unit {
+  white-space: nowrap;
+}
+.rows dt:last-of-type, .rows dd:last-of-type {
+  border-bottom: 0;
+}
+.pill {
+  display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  font-family: var(--mono); color: #0b0e13;
+}
+.pill-model {
+  font-size: 10px;
+  padding: 1px 7px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  background: color-mix(in oklab, #ffd166 18%, transparent);
+  color: #ffd166;
+  border: 1px solid color-mix(in oklab, #ffd166 40%, transparent);
+  vertical-align: middle;
+}
+.note {
+  margin-top: 18px; padding: 11px 12px; background: var(--paper); border: 1px solid var(--line);
+  border-radius: 8px; font-size: 12px; color: var(--ink-secondary); line-height: 1.5;
+}
+.note b {
+  color: var(--ink);
+}
+.top-controls .seg.chip {
+  background: rgba(17, 21, 29, .85);
+  border-color: var(--line);
+  backdrop-filter: blur(8px);
+}
+.top-controls .seg.chip button {
+  min-height: 44px;
+  padding: 8px 14px;
+}
+.state-h .muted {
+  font-size: 12px;
+}
+.seat-tab.on {
+  color: var(--paper); background: var(--accent); border-color: var(--accent);
+}
+.dewan-coverage + .note {
+  margin-top: 8px;
+}
+.dewan-page {
+  max-width: 900px; margin: 0 auto;
+}
+.dewan-tiles {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0 4px;
+}
+.dewan-tile {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 12px 14px; background: var(--paper-alt); border: 1px solid var(--line); border-radius: 12px;
+}
+.dewan-tile .muted {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+}
+.dewan-tile b {
+  font-size: 16px; line-height: 1.25;
+}
+.dewan-controls {
+  flex-wrap: wrap;
+}
+.dewan-sorts {
+  flex: 0 0 auto;
+}
+.dewan-table {
+  margin-top: 8px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+}
+.dewan-tr {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 64px 70px 70px 64px 96px;
+  gap: 8px; align-items: center;
+  width: 100%; padding: 9px 12px; margin: 0; border: 0; text-align: left;
+  background: transparent; color: var(--ink); font: inherit; cursor: pointer;
+  border-bottom: 1px solid color-mix(in oklab, var(--line) 60%, transparent);
+}
+.dewan-tr:last-child {
+  border-bottom: 0;
+}
+button.dewan-tr:hover {
+  background: var(--surface-hover, var(--paper-alt));
+}
+.dewan-th {
+  cursor: default; font-size: 10px; font-weight: 700; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--muted); background: var(--paper-alt);
+}
+.dewan-rank {
+  color: var(--muted); font-size: 11px;
+}
+.dewan-mp {
+  display: flex; flex-direction: column; gap: 1px; min-width: 0;
+}
+.dewan-mp b {
+  font-size: 13px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dewan-mp .muted {
+  font-size: 10.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dewan-coal {
+  display: flex; justify-content: flex-start;
+}
+.dewan-num {
+  text-align: right; font-size: 12px;
+}
+.dewan-th .dewan-num {
+  font-size: 10px;
+}
+.dewan-page-note {
+  margin-top: 14px;
+}
+.bills-page {
+  max-width: 900px; margin: 0 auto;
+}
+.bills-controls {
+  flex-wrap: wrap;
+}
+.bills-sorts {
+  flex: 0 0 auto;
+}
+.bills-table.rows {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.bills-table.rows dt,
+.bills-table.rows dd {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+.bills-table.rows dt {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  border-right: 1px solid var(--line);
+  color: var(--ink-secondary);
+  font-size: 11.5px;
+  background: var(--surface-soft, var(--paper));
+}
+.bills-table.rows dd {
+  margin: 0;
+  text-align: left;
+  font-size: 13.5px;
+}
+.bills-table.rows dt:last-of-type,
+.bills-table.rows dd:last-of-type {
+  border-bottom: 0;
+}
+.bill-code {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.bill-date {
+  font-size: 11px;
+}
+.bill-expandable {
+  width: 100%;
+}
+.bill-summary-trigger {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+.bill-summary-trigger::-webkit-details-marker {
+  display: none;
+}
+.bill-title-text {
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ink);
+}
+.bill-toggle-indicator {
+  font-size: 11px;
+  color: var(--ink-secondary);
+  transition: transform .15s ease;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+.bill-expandable[open] .bill-toggle-indicator {
+  transform: rotate(180deg);
+}
+.bill-expanded-content {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in oklab, var(--line) 60%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.bill-huraian {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--ink-secondary);
+}
+.bill-huraian-p {
+  margin: 0 0 6px;
+  color: var(--ink);
+}
+.bill-source-p {
+  margin: 0;
+  font-size: 11px;
+}
+.bill-source-p a {
+  color: var(--caution);
+  text-decoration: none;
+}
+.bill-source-p a:hover {
+  text-decoration: underline;
+}
+.bill-division-box {
+  margin-top: 2px;
+}
+.bill-division-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.bill-division-rows.rows {
+  margin-top: 4px;
+}
+.bill-division-rows.rows dt {
+  font-size: 11.5px;
+  background: transparent;
+}
+.bill-division-rows.rows dd {
+  font-size: 12.5px;
+  text-align: right;
+}
+.bill-voice-vote-note {
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+}
+.sentiment-table.rows {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.sentiment-table.rows dt,
+.sentiment-table.rows dd {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+.sentiment-table.rows dt {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  border-right: 1px solid var(--line);
+  background: var(--surface-soft, var(--paper));
+}
+.sentiment-table.rows dd {
+  margin: 0;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: center;
+}
+.sentiment-table.rows dt:last-of-type,
+.sentiment-table.rows dd:last-of-type {
+  border-bottom: 0;
+}
+.rows.seat-score-row {
+  margin-top: 10px;
+}
+.find-actions .seg.chip {
+  border-radius: 12px;
+}
+.find-actions .seg.chip button {
+  min-height: 48px; padding: 10px 17px; font-size: 13px;
+}
+.seg.chip {
+  background: var(--paper-alt); border: 1px solid var(--line); border-radius: var(--radius-md);
+}
+.seg.chip button {
+  min-height: 44px; padding: 8px 13px; font-size: 12px;
+}
+.seg.chip button.on {
+  background: var(--accent); color: var(--paper); font-weight: 600;
+}
+.seg.chip button:hover:not(:disabled):not(.on) {
+  background: rgba(255, 255, 255, .06); color: var(--ink);
+}
+.seg button, .lang-seg button, .brand-home, .iconbtn, .share-btn, .share-icon, .card-back, .seat-tab, .map-inspect-details, .map-inspect-more, .map-inspect-select-button, .map-inspect-option,
+.card-preview-close, .preview-download, .find-loc {
+  transition-property: background, color, border-color, transform;
+  transition-duration: .12s;
+  transition-timing-function: ease;
+}
+.seg button:focus-visible, .lang-seg button:focus-visible, .brand-home:focus-visible, .iconbtn:focus-visible,
+.card-back:focus-visible, .share-btn:focus-visible, .share-icon:focus-visible, .seat-tab:focus-visible, .map-inspect-details:focus-visible, .map-inspect-more:focus-visible, .map-inspect-select-button:focus-visible,
+.card-preview-close:focus-visible, .preview-download:focus-visible, .loc-fab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.seg button:active:not(:disabled), .lang-seg button:active, .brand-home:active, .card-back:active, .seat-tab:active,
+.share-icon:active, .map-inspect-details:active, .map-inspect-more:active, .map-inspect-select-button:active, .map-inspect-option:active, .card-preview-close:active {
+  transform: scale(.94);
+}
+.state-h .muted {
+  font-size: clamp(12px, 0.95vw, 15px);
+}
+.rows dt {
+  font-size: clamp(12.5px, 1.02vw, 15.5px);
+}
+.rows dd {
+  font-size: clamp(14px, 1.18vw, 18px);
+}
+.rows dt, .rows dd {
+  padding-block: clamp(10px, 0.95vw, 16px);
+}
+.bento-runners-grid .prn-cc.is-compact .prn-cc-head .pill {
+  align-self: center;
+  flex: 0 0 auto;
+}
+.bento-runners-grid .prn-cc.is-compact .pol-photo.prn-profile-photo,
+.bento-runners-grid .prn-cc.is-compact .pol-photo {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+}
+.prn-cand .pill {
+  flex: 0 0 auto;
+}
+.pol-photo {
+  width: 72px; height: 72px; aspect-ratio: 1 / 1; box-sizing: border-box; overflow: hidden;
+  border-radius: 12px; object-fit: cover; flex: 0 0 auto;
+  background: var(--line); display: grid; place-items: center;
+}
+.pol-monogram {
+  font-family: var(--sans); font-weight: 700; font-size: 26px; line-height: 1; color: #fff; letter-spacing: .02em;
+}
+.pol-soc-icon {
+  display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 9px;
+  border: 1px solid var(--line); background: var(--paper-alt); color: var(--ink-secondary);
+  transition: color .12s, border-color .12s;
+}
+.pol-soc-icon:hover {
+  color: var(--ink); border-color: var(--line-strong);
+}
+.pol-soc-icon:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+.pol-soc-icon svg {
+  width: 17px; height: 17px; display: block;
+}
+.pol-socials-compact .pol-soc-icon {
+  width: 26px; height: 26px; border-radius: 7px;
+}
+.pol-socials-compact .pol-soc-icon svg {
+  width: 14px; height: 14px;
+}
+.pol-socials-unverified .pol-soc-icon {
+  border-style: dashed;
+}
+.pol-dir {
+  position: fixed; inset: 0; z-index: 6;
+  overflow-y: auto; overscroll-behavior: contain;
+  padding: clamp(22px, 5vw, 72px) clamp(14px, 4vw, 40px) 60px;
+}
+.pol-dir-head {
+  max-width: 1100px; margin: 0 auto 16px;
+}
+.pol-dir-head h1 {
+  font-family: var(--sans); font-size: clamp(24px, 4vw, 40px); margin: 0;
+}
+.pol-dir-head .pol-dir-sub {
+  color: var(--ink-secondary); font-size: 13px; margin: 4px 0 0;
+}
+.pol-back {
+  display: inline-flex; align-items: center; gap: 6px; margin: 0 0 12px;
+  min-height: 44px; padding: 0 14px 0 10px; border-radius: 999px; cursor: pointer;
+  font: inherit; font-size: 13px; font-weight: 600; color: var(--ink);
+  background: var(--paper-alt); border: 1px solid var(--line);
+  transition: border-color .12s ease, background .12s ease;
+}
+.pol-back:hover {
+  border-color: var(--line-strong); background: color-mix(in oklab, var(--paper-alt) 85%, var(--ink) 15%);
+}
+.pol-back:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+.pol-back svg {
+  flex: 0 0 auto;
+}
+.pol-dir-controls {
+  max-width: 1100px; margin: 0 auto 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+}
+.pol-dir-controls input, .pol-dir-controls select {
+  background: var(--paper-alt); border: 1px solid var(--line); border-radius: 12px;
+  padding: 11px 13px; font-size: 16px; font-family: var(--sans); color: var(--ink); min-height: 44px;
+}
+.pol-dir-search {
+  flex: 1 1 220px; min-width: 0;
+}
+.pol-dir-count {
+  max-width: 1100px; margin: 0 auto 10px; color: var(--muted); font-size: 12px; font-family: var(--mono);
+}
+.pol-card {
+  display: grid; gap: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--paper-alt); text-align: left; cursor: pointer; color: inherit; font: inherit;
+  align-content: start;
+}
+.pol-card:hover {
+  border-color: var(--line-strong); background: rgba(255, 255, 255, .06);
+}
+.pol-card:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+.pol-card-photo {
+  position: relative; line-height: 0;
+}
+.pol-card .pol-photo {
+  width: 100%; height: auto; aspect-ratio: 1; border-radius: 10px;
+}
+.pol-card .pol-monogram {
+  font-size: 40px;
+}
+.pol-card-badge {
+  position: absolute; top: 7px; right: 7px; font-size: 10.5px; font-weight: 700;
+  /* the photo wrapper is line-height:0 to kill the img gap — restore it here or
+     the badge text ("PAS") collapses to a squeezed sliver. */
+  line-height: 1.5; padding: 2px 8px; white-space: nowrap;
+  box-shadow: 0 1px 6px rgba(0,0,0,.45);
+}
+.pol-card-name {
+  font-family: var(--sans); font-weight: 700; font-size: 15px; line-height: 1.2;
+  color: var(--ink); margin-top: 2px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  min-height: 2.4em;
+}
+.pol-card-seat {
+  font-size: 11px; color: var(--ink-secondary); font-family: var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pol-card .pol-socials-compact {
+  margin-top: 2px; min-height: 26px; flex-wrap: nowrap; overflow: hidden;
+}
+.pol-card-socials-spacer {
+  min-height: 26px; margin-top: 2px;
+}
+.pol-soc-more {
+  display: inline-grid; place-items: center; min-width: 26px; height: 26px; padding: 0 5px;
+  border-radius: 7px; border: 1px dashed var(--line); color: var(--muted);
+  font-family: var(--mono); font-size: 11px; flex: 0 0 auto;
+}
+.pol-dir-src {
+  max-width: 1100px; margin: 20px auto 0; color: var(--muted); font-size: 11px; line-height: 1.5;
+}
+.pol-dir-empty {
+  max-width: 1100px; margin: 30px auto; color: var(--ink-secondary); text-align: center;
+}
+.pol-party-card {
+  min-height: 44px; display: grid; gap: 12px; padding: 14px;
+  border: 1px solid var(--line); border-radius: 14px;
+  background: var(--paper-alt); color: inherit; font: inherit; text-align: left; cursor: pointer;
+  transition: background .12s, border-color .12s, transform .04s;
+}
+.pol-party-card:hover {
+  border-color: var(--line-strong); background: rgba(255, 255, 255, .06);
+}
+.pol-party-card:active {
+  transform: translateY(1px);
+}
+.pol-party-card:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+.pol-party-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0;
+}
+.pol-party-mark {
+  min-width: 52px; max-width: 100%; min-height: 44px; padding: 0 13px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 12px; color: #fff; font-family: var(--sans); font-size: 20px; font-weight: 800;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.14), 0 8px 22px rgba(0,0,0,.28);
+}
+.pol-party-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+}
+.pol-party-stats span {
+  min-width: 0; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--white);
+}
+.pol-party-stats small {
+  display: block; color: var(--muted); font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .06em;
+}
+.pol-party-stats b {
+  display: block; margin-top: 3px; font-size: 20px; line-height: 1;
+}
+.pol-party-meta {
+  display: grid; gap: 4px;
+}
+.pol-party-meta span {
+  color: var(--muted); font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .06em;
+}
+.pol-party-meta b {
+  color: var(--ink-secondary); font-size: 12.5px; line-height: 1.35; font-weight: 600;
+}
+.pol-party-samples {
+  list-style: none; display: grid; gap: 6px; margin: 0; padding: 0;
+}
+.pol-party-samples li {
+  min-width: 0; display: grid; gap: 1px;
+}
+.pol-party-samples b, .pol-party-samples span {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pol-party-samples b {
+  font-size: 13px;
+}
+.pol-party-samples span {
+  color: var(--muted); font-family: var(--mono); font-size: 10.5px;
+}
+.pol-party-open {
+  align-self: end; color: var(--ink); font-size: 12px; font-weight: 700;
+}
+.pol-modal-photo.pol-monogram {
+  font-size: 34px;
+}
+.cand-modal-photo.pol-monogram {
+  font-size: 34px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 1px 0 rgba(0,0,0,.25);
+}
+.cand-pill-row .pill {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  padding: 6px 12px;
+  border-radius: 999px;
+  box-shadow: 0 4px 14px color-mix(in oklab, var(--accent) 30%, transparent);
+}
+.prn-all-cand .pill {
+  flex: 0 0 auto;
+}
+.bento-cr-cap .muted {
+  font-size: 11.5px;
+}
+.prn-cc-head .pill {
+  flex: 0 0 auto; align-self: flex-start;
+}
+.prn-cc.has-profile .prn-cc-head .pill {
+  max-width: 112px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.bento-cand-row .prn-cc.is-compact .prn-cc-head .pill {
+  align-self: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; padding: 3px 8px;
+}
+.bento-cand-row .prn-cc.is-compact .pol-photo.prn-profile-photo {
+  width: 32px; height: 32px;
+}
+.prn-pl-tab.on {
+  color: var(--ink); border-color: var(--accent); background: color-mix(in oklab, var(--accent) 22%, var(--paper-alt));
+}
+.bento-prn-toggle.on {
+  color: var(--ink); border-color: var(--accent); background: color-mix(in oklab, var(--accent) 16%, var(--paper-alt));
+}
+.bento-live-strip-title .muted {
+  font-size: 12px;
+}
+.bento-live-metric .muted {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+}
+.bento-live-chip.on {
+  background: color-mix(in oklab, var(--accent) 18%, var(--paper-alt)); border-color: color-mix(in oklab, var(--accent) 40%, var(--line)); color: var(--ink);
+}
+.pol-photo.bento-gov-photo {
+  width: 84px; height: 84px; border-radius: 16px; flex: 0 0 auto; object-fit: cover; object-position: center 12%; font-size: 22px;
+}
+.pol-photo.prn-inc-photo {
+  width: 52px; height: 52px; border-radius: 11px; flex: 0 0 auto; object-fit: cover; object-position: center 12%; font-size: 16px;
+}
+.pol-dir-tabs-wrap {
+  max-width: 1100px;
+  margin: 0 auto 18px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.pol-dir-tabs-wrap::-webkit-scrollbar {
+  display: none;
+}
+.pol-dir-tabs {
+  display: inline-flex;
+  max-width: 100%;
+  vertical-align: top;
+}
+.seg.chip.bento-map-seg button {
+  min-height: 44px; padding: 0 13px; font-size: 10.5px; letter-spacing: .02em; white-space: nowrap;
+}
+.sb-item.on {
+  background: rgba(255, 255, 255, .06); color: var(--ink); font-weight: 600;
+}
+.sb-state.is-election.on,
+.sb-state.is-election.is-prn-on {
+  background: color-mix(in oklab, #f87171 42%, transparent);
+  border-color: color-mix(in oklab, #f87171 80%, transparent);
+  font-weight: 650;
+}
+.sb-lang button.on {
+  background: rgba(255, 255, 255, .06); color: var(--ink);
+}
+.bento-cr-count .bento-count-big span, .bento-cr-cap .muted {
+  color: rgba(20,22,26,.7);
+}
+.bento-tier-chip.on {
+  background: rgba(255, 255, 255, .15); color: var(--ink);
+}
+.bento-prn-toggle.on {
+  background: color-mix(in oklab, rgba(77, 214, 193, .15) 52%, rgba(255, 255, 255, .08)); color: var(--ink);
+}
+.pol-card-vacant {
+  display: inline-block; margin-left: 6px; padding: 1px 5px; border-radius: 5px;
+  border: 1px solid rgba(210, 162, 76, .55); color: #d2a24c; background: rgba(210, 162, 76, .1);
+  font-family: var(--mono); font-size: 8.5px; font-weight: 700;
+  letter-spacing: .05em; text-transform: uppercase; vertical-align: 2px;
+}
+.seat-legislative .rows {
+  margin-top: 6px;
+}
+.pol-card-leg {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-secondary);
+  min-height: 16px;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pol-card-leg-spacer {
+  min-height: 16px;
+  margin-top: 1px;
+}
+.pol-card-coal-diff {
+  font-size: 9.5px;
+  font-family: var(--mono);
+  color: var(--caution);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 639px) {
+  .mobile-menu .top-controls .seg.chip,
+  .mobile-menu .menu-map-controls .seg.chip {
+    width: 100%;
+  }
+  .mobile-menu .top-controls .seg.chip button,
+  .mobile-menu .menu-map-controls .seg.chip button {
+    flex: 1 1 0;
+      min-width: 0;
+  }
+}
+@media (max-width: 430px) {
+  .mobile-menu .top-controls .seg.chip button,
+  .mobile-menu .menu-map-controls .seg.chip button {
+    padding: 8px 10px;
+      font-size: 11px;
+  }
+}
+@media (max-width: 680px) {
+  .dewan-tr {
+    grid-template-columns: 26px minmax(0, 1fr) 52px 58px 52px; padding: 9px 10px;
+  }
+  .dewan-col-qa, .dewan-col-last {
+    display: none;
+  }
+  .dewan-tiles {
+    grid-template-columns: 1fr 1fr;
+  }
+  .dewan-tile:first-child {
+    display: none;
+  }
+  .bills-table.rows {
+    grid-template-columns: 1fr;
+  }
+  .bills-table.rows dt {
+    border-right: 0;
+      border-bottom: 0;
+      padding-bottom: 4px;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+  }
+  .bills-table.rows dd {
+    padding-top: 4px;
+  }
+  .sentiment-table.rows {
+    grid-template-columns: 1fr;
+  }
+  .sentiment-table.rows dt {
+    border-right: 0;
+      border-bottom: 0;
+      padding-bottom: 4px;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+  }
+  .sentiment-table.rows dd {
+    padding-top: 4px;
+  }
+}
+@media (max-width: 860px) {
+  body.map-inspect #panel-state .state-h .muted {
+    font-size: 11px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .seg button:active, .lang-seg button:active, .brand-home:active, .iconbtn:active,
+  .share-btn:active, .card-back:active, .share-icon:active, .seat-tab:active, .map-inspect-details:active, .map-inspect-more:active, .map-inspect-select-button:active, .map-inspect-option:active,
+  .card-preview-close:active, .preview-download:active, .find-loc:active {
+    transform: none;
+  }
+}
+@media (max-width: 380px) {
+  .seg.chip button {
+    padding: 8px 10px; font-size: 11px;
+  }
+}
+@media (min-aspect-ratio: 1/1) and (max-height: 700px) {
+  #panel.seat-detail .rows dt,
+  #panel.seat-detail .rows dd {
+    padding-block: 5px;
+  }
+}
+@media (max-width: 760px) {
+  .cand-modal-photo, .cand-modal-photo.pol-monogram {
+    border-radius: 15px; font-size: 26px;
+  }
+}
+@media (max-width: 1100px) {
+  .pol-photo.bento-gov-photo {
+    width: 76px; height: 76px;
+  }
+}
+@media (min-width: 640px) {
+  body.politicians-open .pol-dir {
+    left: 232px;
+  }
+  body.dewan-open .pol-dir, body.bills-open .pol-dir, body.sentiment-open .pol-dir {
+    left: 232px;
+  }
+  body.sb-collapsed.politicians-open .pol-dir {
+    left: 60px;
+  }
+  body.sb-collapsed.dewan-open .pol-dir, body.sb-collapsed.bills-open .pol-dir, body.sb-collapsed.sentiment-open .pol-dir {
+    left: 60px;
+  }
+  .sb-item.on {
+    background: rgba(255, 255, 255, .15);
+  }
+  .sb-lang button.on {
+    background: rgba(255, 255, 255, .15);
+  }
+}
+
+
+  .pol-dir {
+    position: relative;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px clamp(14px, 4vw, 40px) 60px;
+  }
+  .pk-hemicycle { display: block; width: 100%; height: auto; }
+
+  /* Methodology footer & legacy components */
   .pk-footer {
-    background: var(--ink);
+    background: var(--paper-alt);
     color: var(--on-dark-body);
     padding: var(--gutter-desktop);
     display: grid;
     grid-template-columns: 1.4fr 1fr 1fr;
     gap: 36px;
+    border-top: 1px solid var(--line);
   }
   .pk-footer-heading {
-    font-family: var(--serif);
+    font-family: var(--sans);
     font-size: 18px;
-    color: var(--paper);
+    color: var(--ink);
     margin-bottom: 8px;
   }
   .pk-footer-statement p { margin: 0; font-size: 12.5px; line-height: 1.6; }
-  .pk-not-calibrated { color: #e3d3ac; }
+  .pk-not-calibrated { color: var(--caution); }
   .pk-footer-link {
     display: inline-block;
     margin-top: 12px;
     margin-right: 18px;
     font-size: 12.5px;
-    color: var(--accent-on-dark);
-    border-bottom: 1px solid rgba(169, 205, 201, .4);
+    color: var(--accent);
+    border-bottom: 1px solid rgba(77, 214, 193, .4);
     transition: border-bottom-color .15s ease;
   }
-  .pk-footer-link:hover { border-bottom-color: var(--accent-on-dark); }
+  .pk-footer-link:hover { border-bottom-color: var(--accent); }
   .pk-footer-label {
     font-family: var(--mono);
     font-size: 10px;
     letter-spacing: .1em;
     text-transform: uppercase;
-    color: var(--on-dark-muted);
+    color: var(--muted);
     margin-bottom: 9px;
   }
   .pk-footer-list { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; }
-
-  /* Hemicycle (#73) — scale-free by its own viewBox; a page sets its own
-     max-width/position/opacity for whichever of the three contexts it's
-     reused in (this is just a sane block-level default, not a size). */
-  .pk-hemicycle { display: block; width: 100%; height: auto; }
-
-  /* ADR 0014 removed the `.pk-lookup-*`/`.pk-visually-hidden`/`.pk-tag-modelled`/
-     `.pk-recent-chip` rules that used to sit here: styling for the postcode
-     search form and its dynamic results, which only ever appeared in
-     `politikku_landing.py`'s/`politikku_homepage.py`'s own body markup —
-     verified dead (grepped for every class this stylesheet defines against
-     the three surviving renderers' source before removing anything) rather
-     than assumed dead just because those two modules were retired. */
-
   @media (max-width: 900px) {
-    .pk-header { padding: 0 var(--gutter-mobile); height: 52px; }
-    .pk-header-left { gap: 12px; }
-    .pk-nav { display: none; }
-    .pk-nav-mobile { display: block; }
-    .pk-nav-mobile summary {
-      list-style: none;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      width: 20px;
-    }
-    .pk-nav-mobile summary::-webkit-details-marker { display: none; }
-    .pk-nav-mobile summary span { height: 1.5px; background: var(--paper); display: block; }
-    .pk-nav-mobile nav {
-      position: absolute;
-      right: var(--gutter-mobile);
-      top: 52px;
-      background: var(--ink);
-      border: 1px solid rgba(251, 250, 247, .18);
-      border-radius: var(--radius-md);
-      padding: 10px 0;
-      display: flex;
-      flex-direction: column;
-      z-index: 10;
-    }
-    .pk-nav-mobile nav a { padding: 10px var(--gutter-mobile); font-size: 13px; }
-
-    .pk-trust-strip { padding: 8px var(--gutter-mobile); font-size: 10.5px; }
-    .pk-trust-full { display: none; }
-    .pk-trust-condensed { display: inline; }
-    .pk-trust-link { margin-left: auto; }
-
     .pk-footer {
       grid-template-columns: 1fr;
       gap: 24px;
@@ -965,11 +1813,4 @@ _CSS_TEMPLATE = """
   }
 """
 
-_CSS = _CSS_TEMPLATE.replace("__PREFIX__", POLITIKKU_PREFIX)
-"""`_CSS_TEMPLATE` bound to the one route family PolitikKu's self-hosted
-fonts are served from — the same `.replace` substitution
-`_language_persistence_script` makes, and for the same reason: the stylesheet
-is brace-dense, so an f-string is not available. The fonts are PolitikKu's
-own assets rather than any one page's, so this is `POLITIKKU_PREFIX` and not
-the per-page `prefix` — a `/projection/` page loads the same
-`{POLITIKKU_PREFIX}fonts/...` files the homepage does."""
+_CSS = _CSS_TEMPLATE

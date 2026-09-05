@@ -93,10 +93,10 @@ def test_render_sentiment_page_wraps_in_shell_with_sentiment_active():
     page_ms = render_sentiment_page(model, language=Language.MS)
 
     assert '<html lang="en">' in page_en
-    assert 'class="active" href="/sentiment/" aria-current="page"' in page_en
+    assert 'class="sb-item on" href="/sentiment/" aria-current="page"' in page_en
 
     assert '<html lang="ms">' in page_ms
-    assert 'class="active" href="/ms/sentiment/" aria-current="page"' in page_ms
+    assert 'class="sb-item on" href="/ms/sentiment/" aria-current="page"' in page_ms
     assert "Penjejak Sentimen Berita" in page_ms
     assert "Sentimen Semasa Mengikut Gabungan" in page_ms
     assert "Portal Berita Dipantau" in page_ms

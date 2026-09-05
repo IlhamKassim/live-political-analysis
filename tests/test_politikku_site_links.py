@@ -65,12 +65,23 @@ be in the rendered tree. The value is the file that decides their path, and
 the test below asserts that file actually names it — the same disagreement
 this module exists to catch, one build step over."""
 
-_APP_ROOTED_EXACT = frozenset({"/", "/ms/", "/bills"})
+_APP_ROOTED_EXACT = frozenset(
+    {
+        "/",
+        "/ms/",
+        "/bills/",
+        "/politicians/",
+        "/dewan/",
+        "/ms/politicians/",
+        "/ms/dewan/",
+    }
+)
 _APP_ROOTED_PREFIXES = ("/app/", "/mp/")
 """What the frontend fold-in step (`daily.yml`'s plain `cp -r`, not a Python
 renderer) is responsible for, post-ADR-0014: the site root itself (`"/"`, the
 Home nav item's href — every root-*relative* link starts with `/` too, so
-this is an exact match, not a prefix), the Bills page (`"/bills"`), and
+this is an exact match, not a prefix), the Bills page (`"/bills/"`),
+Politicians and Dewan directory routes, and
 every `/app/#...` or `/mp/<code>/` link. Excluded from link resolution below for
 `GENERATED_BY_ANOTHER_BUILD_STEP`'s own reason — nothing here can render
 them to check."""
@@ -227,7 +238,7 @@ def test_the_language_toggle_on_every_page_reaches_the_other_language(rendered_s
             continue
         page = page_path.read_text(encoding="utf-8")
         toggles = re.findall(r'href="([^"]+)" (?:aria-current="page" )?data-pk-set-lang=', page)
-        assert len(toggles) == 2, page_path
+        assert len(toggles) == 4, page_path
         for link in toggles:
             assert _resolve(rendered_site, link).is_file(), (page_path, link)
 
@@ -245,9 +256,9 @@ def test_the_pages_the_shell_links_on_every_page_are_all_real(rendered_site):
         assert _resolve(rendered_site, link).is_file()
     assert '/methodology.html"' in sentiment
     assert '/projection/"' in sentiment
-    # "Bills" is the nav item pointing to `/bills` (politikku_shell.NavLink.external),
+    # "Bills" is the nav item pointing to `/bills/` (politikku_shell.NavLink.external),
     # checked directly since _resolve can't follow it (see _APP_ROOTED_EXACT).
-    assert '/bills"' in sentiment
+    assert '/bills/"' in sentiment
 
 
 def test_the_assets_no_page_renderer_writes_are_named_by_the_step_that_does(rendered_site):
@@ -278,11 +289,9 @@ def test_the_assets_no_page_renderer_writes_are_named_by_the_step_that_does(rend
     assert '"projection.json"' in export_written
     assert '"projection.csv"' in export_written
 
-    # The fonts, by contrast, are committed — so their real path is checkable.
-    fonts = re.findall(r"[\w/.-]*\.woff2", sentiment)
-    assert fonts
-    for font in fonts:
-        assert (REPO_ROOT / "public" / font.lstrip("/")).is_file(), font
+    # Fonts use Google Fonts (Space Grotesk & JetBrains Mono) matching index.html
+    assert "fonts.googleapis.com" in sentiment
+    assert "Space+Grotesk" in sentiment
 
 
 def test_the_mp_profile_url_the_browser_builds_matches_the_apps_own_hash_route(rendered_site):
