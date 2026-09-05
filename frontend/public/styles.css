@@ -3771,14 +3771,20 @@ body.searching .results {
 .yb-credit { font-size: 10.5px; margin: 0; }
 
 /* ===== Politicians directory ===== */
-#politicians-view, #news-view, #dewan-view, #bills-view, #sentiment-view, #projection-view { display: none; }
-body.politicians-open #politicians-view, body.news-open #news-view, body.dewan-open #dewan-view, body.bills-open #bills-view, body.sentiment-open #sentiment-view, body.projection-open #projection-view { display: block; }
+#politicians-view, #news-view, #dewan-view, #bills-view, #sentiment-view, #projection-view,
+#methodology-view, #glossary-view, #coalitions-view, #ge16-process-view { display: none; }
+body.politicians-open #politicians-view, body.news-open #news-view, body.dewan-open #dewan-view, body.bills-open #bills-view, body.sentiment-open #sentiment-view, body.projection-open #projection-view,
+body.methodology-open #methodology-view, body.glossary-open #glossary-view, body.coalitions-open #coalitions-view, body.process-open #ge16-process-view { display: block; }
 body.politicians-open #stage, body.politicians-open #panel,
 body.news-open #stage, body.news-open #panel,
 body.dewan-open #stage, body.dewan-open #panel,
 body.bills-open #stage, body.bills-open #panel,
 body.sentiment-open #stage, body.sentiment-open #panel,
-body.projection-open #stage, body.projection-open #panel { display: none; }
+body.projection-open #stage, body.projection-open #panel,
+body.methodology-open #stage, body.methodology-open #panel,
+body.glossary-open #stage, body.glossary-open #panel,
+body.coalitions-open #stage, body.coalitions-open #panel,
+body.process-open #stage, body.process-open #panel { display: none; }
 /* directory pages hide map chrome; keep centre PolitikKu title + theme/lang cluster */
 body.politicians-open #brand-home,
 body.politicians-open #mobile-menu-btn,
@@ -3803,13 +3809,33 @@ body.sentiment-open #topbar-actions,
 body.projection-open #brand-home,
 body.projection-open #mobile-menu-btn,
 body.projection-open #mobile-menu,
-body.projection-open #topbar-actions { display: none !important; }
+body.projection-open #topbar-actions,
+body.methodology-open #brand-home,
+body.methodology-open #mobile-menu-btn,
+body.methodology-open #mobile-menu,
+body.methodology-open #topbar-actions,
+body.glossary-open #brand-home,
+body.glossary-open #mobile-menu-btn,
+body.glossary-open #mobile-menu,
+body.glossary-open #topbar-actions,
+body.coalitions-open #brand-home,
+body.coalitions-open #mobile-menu-btn,
+body.coalitions-open #mobile-menu,
+body.coalitions-open #topbar-actions,
+body.process-open #brand-home,
+body.process-open #mobile-menu-btn,
+body.process-open #mobile-menu,
+body.process-open #topbar-actions { display: none !important; }
 body.politicians-open #topbar,
 body.news-open #topbar,
 body.dewan-open #topbar,
 body.bills-open #topbar,
 body.sentiment-open #topbar,
-body.projection-open #topbar {
+body.projection-open #topbar,
+body.methodology-open #topbar,
+body.glossary-open #topbar,
+body.coalitions-open #topbar,
+body.process-open #topbar {
   display: flex;
   align-items: center;
   background: transparent;
@@ -3827,7 +3853,15 @@ body.bills-open #topbar .topbar-context,
 body.sentiment-open #topbar .topbar-end,
 body.sentiment-open #topbar .topbar-context,
 body.projection-open #topbar .topbar-end,
-body.projection-open #topbar .topbar-context { pointer-events: auto; }
+body.projection-open #topbar .topbar-context,
+body.methodology-open #topbar .topbar-end,
+body.methodology-open #topbar .topbar-context,
+body.glossary-open #topbar .topbar-end,
+body.glossary-open #topbar .topbar-context,
+body.coalitions-open #topbar .topbar-end,
+body.coalitions-open #topbar .topbar-context,
+body.process-open #topbar .topbar-end,
+body.process-open #topbar .topbar-context { pointer-events: auto; }
 
 /* ===== Projection view ===== */
 .projection-page { max-width: 900px; margin: 0 auto; padding-bottom: 40px; }
@@ -5183,7 +5217,11 @@ body.projection-open #topbar .topbar-context { pointer-events: auto; }
   body.dewan-open #state-bento,
   body.bills-open #state-bento,
   body.sentiment-open #state-bento,
-  body.projection-open #state-bento { display: none; }
+  body.projection-open #state-bento,
+  body.methodology-open #state-bento,
+  body.glossary-open #state-bento,
+  body.coalitions-open #state-bento,
+  body.process-open #state-bento { display: none; }
 }
 
 /* leadership tile: large state identity · current MB/KM/Premier */
@@ -5720,7 +5758,9 @@ html[data-theme="light"] .bento-news .muted {
   #topbar .topicons { display: none; }
   body.politicians-open #politicians-view { left: 232px; }
   body.politicians-open .pol-dir { left: 232px; }
-  body.dewan-open .pol-dir, body.bills-open .pol-dir, body.sentiment-open .pol-dir { left: 232px; }
+  body.dewan-open .pol-dir, body.bills-open .pol-dir, body.sentiment-open .pol-dir,
+  body.methodology-open .pol-dir, body.glossary-open .pol-dir,
+  body.coalitions-open .pol-dir, body.process-open .pol-dir { left: 232px; }
 }
 .sb-brand {
   display: flex; align-items: center; gap: 6px;
@@ -5906,7 +5946,9 @@ html[data-theme="light"] .sb-state.is-map-hover .sb-state-emblem::after {
   body.sb-collapsed #topbar { left: 60px; }
   body.sb-collapsed.politicians-open #politicians-view { left: 60px; }
   body.sb-collapsed.politicians-open .pol-dir { left: 60px; }
-  body.sb-collapsed.dewan-open .pol-dir, body.sb-collapsed.bills-open .pol-dir, body.sb-collapsed.sentiment-open .pol-dir { left: 60px; }
+  body.sb-collapsed.dewan-open .pol-dir, body.sb-collapsed.bills-open .pol-dir, body.sb-collapsed.sentiment-open .pol-dir,
+  body.sb-collapsed.methodology-open .pol-dir, body.sb-collapsed.glossary-open .pol-dir,
+  body.sb-collapsed.coalitions-open .pol-dir, body.sb-collapsed.process-open .pol-dir { left: 60px; }
   body.sb-collapsed .sb-brand,
   body.sb-collapsed .sb-label,
   body.sb-collapsed .sb-section,
