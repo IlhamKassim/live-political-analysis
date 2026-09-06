@@ -90,9 +90,7 @@ def _sentiment_rows(
         return ()
     latest = history[-1].sentiment
     target = history[-1].computed_at - DELTA_WINDOW
-    eligible = [
-        snap for snap in history[:-1] if abs(snap.computed_at - target) <= DELTA_TOLERANCE
-    ]
+    eligible = [snap for snap in history[:-1] if abs(snap.computed_at - target) <= DELTA_TOLERANCE]
     earlier_snap = (
         min(
             eligible,

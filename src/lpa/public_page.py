@@ -611,7 +611,9 @@ def _ordered_seats(
             )
         )
     government = sorted((s for s in seats if s.government), key=lambda s: (-s.margin, s.code))
-    non_government = sorted((s for s in seats if not s.government), key=lambda s: (s.margin, s.code))
+    non_government = sorted(
+        (s for s in seats if not s.government), key=lambda s: (s.margin, s.code)
+    )
     return tuple(government + non_government)
 
 
