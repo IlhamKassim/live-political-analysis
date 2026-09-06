@@ -161,3 +161,34 @@ record.
   automated ground truth for "is this really a bug" — `CONFIRMED` means
   Claude traced and believes the failure scenario, not that it was proven by
   a runnable reproduction.
+- **"Dead code" needs checking against dev tooling, not just the shipped
+  pipeline.** The first real run's dead-code finding (`public_page.py`'s
+  render functions) was confirmed against `daily.yml`'s own comments, which
+  was true but incomplete — `scripts/preview_public_page.py` turned out to
+  still import and call the same functions directly. The address pass's
+  push-back caught this, not the original verification. Checking
+  `daily.yml`/CI is necessary but not sufficient for "unused"; grep for
+  other callers across `scripts/` too before confirming a dead-code finding.
+- **Antigravity workers can't push — Claude does, after independently
+  verifying.** `AGENTS.md`'s rule 3 ("Never push... local commits only when
+  requested") predates this skill and applies to every Antigravity dispatch
+  in this repo, address-pass fixes included. `SKILL.md`'s worker prompt
+  says commit-only for this reason; pushing a verified commit is Claude's
+  job in step 7, same trust boundary as verifying the fix itself.
+- **Two workers editing the same shared working directory at once can
+  produce transient, unrelated test failures.** The first real run's
+  address pass had both workers fixing issues concurrently in the same
+  checkout (not separate worktrees); one worker's in-progress, uncommitted
+  edit briefly broke tests the other worker's already-committed fix had
+  nothing to do with. Re-running the full suite after both workers finish
+  (not mid-flight) is what actually resolved this, not a real regression —
+  but a false alarm here is a real risk of this design, worth knowing before
+  concluding a failure means a fix is broken.
+- **The checkpoint tag advances to the current HEAD after the address
+  pass, not the commit recorded at the start of the run.** The address pass
+  adds real commits (fixes, and anything resolving a step-7 live question
+  directly) on top of that starting point, and all of them get personally
+  verified before the tag moves — advancing to the stale, pre-address-pass
+  SHA would hand the next run's workers commits already scrutinized this
+  session as if they were unreviewed. `SKILL.md` step 8 was corrected to
+  this after the first real run advanced the tag to the wrong commit.

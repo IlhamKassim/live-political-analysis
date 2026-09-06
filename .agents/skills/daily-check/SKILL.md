@@ -200,9 +200,10 @@ For each one, either:
 
 (a) Fix it. Make the change, verify it against this repo's own checks
 (ruff/mypy/pytest for Python, npm run lint/typecheck/test for ts/ — match
-whichever the changed file belongs to), commit, and push to main (no PR —
-this repo's normal workflow). Then comment on the issue with what changed
-and the commit SHA, and close it.
+whichever the changed file belongs to), and commit locally. Do not push —
+AGENTS.md forbids it; Claude pushes once your commit is independently
+verified. Then comment on the issue with what changed and the commit SHA,
+and close it.
 
 (b) Push back. If you believe the finding isn't a real bug or isn't worth
 fixing, comment on the issue explaining why, in enough detail that someone
@@ -254,10 +255,22 @@ open because the user chose to defer it after being asked directly in step
 7. An issue that's still ambiguous — nobody's decided anything about it yet
 — blocks this step: go back to step 7 rather than advancing past it.
 
+**Advance to the current `main` HEAD, not the SHA recorded in step 1.** The
+address pass adds real commits on top of that SHA (fixes, and anything you
+made directly resolving a step-7 live question), and every one of them has
+already been personally verified by you — re-diffing against the step-1 SHA
+next time would hand the workers commits you've already scrutinized as if
+they were new, unreviewed code.
+
 ```
-git tag -f last-bug-review <sha-recorded-in-step-1>
-git push origin last-bug-review --force
+git rev-parse HEAD  # confirm this is genuinely the last commit made this run
+git tag -a last-bug-review -m "daily-check: <one-line summary of this run>" HEAD
+git push origin last-bug-review
 ```
+
+(First run establishing the tag: `-a` with a message, no `-f` needed. A
+later run replacing an existing tag needs `-f` on both the tag and the
+push, same as before.)
 
 ### 9. Report
 
