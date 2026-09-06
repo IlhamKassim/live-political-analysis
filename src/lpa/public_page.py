@@ -348,11 +348,6 @@ class PageModel:
         return sum(1 for s in self.seats if not s.government and s.tier == Tier.TIGHT)
 
     @property
-    def opposition_too_close(self) -> int:
-        """Deprecated alias for `non_government_too_close` (retained for backward compatibility)."""
-        return self.non_government_too_close
-
-    @property
     def too_close_seats(self) -> tuple[ChamberSeat, ...]:
         """Every Seat in the `Tier.TIGHT` band, smallest margin first (#48).
 

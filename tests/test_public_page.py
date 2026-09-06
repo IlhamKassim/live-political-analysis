@@ -157,7 +157,6 @@ def test_the_stress_numbers_are_the_buffer_worked_both_ways():
     assert model.government_majority is True
     assert model.government_too_close == 1
     assert model.non_government_too_close == 0
-    assert model.opposition_too_close == 0
     assert model.if_every_marginal_fell == 3
     assert model.if_every_marginal_held == 4
     assert model.seats_that_must_move == 1
