@@ -122,11 +122,13 @@ def main() -> None:
         json.dumps(output, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
     meta = output["meta"]
+    leg_only = meta["seats_with_legislative_profile"] - meta["seats_with_both"]
+    bio_only = meta["seats_with_bio_profile"] - meta["seats_with_both"]
     print(
         f"wrote {OUTPUT_PATH}: {meta['total_seats']} Seats, "
         f"{meta['seats_with_both']} with both bio and legislative data, "
-        f"{meta['seats_with_legislative_profile']} with legislative only, "
-        f"{meta['seats_with_bio_profile']} with bio only"
+        f"{leg_only} with legislative only, "
+        f"{bio_only} with bio only"
     )
 
 
