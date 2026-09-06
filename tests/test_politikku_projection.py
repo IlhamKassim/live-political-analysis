@@ -47,6 +47,7 @@ from lpa.politikku_shell import (
     Language,
     methodology_url,
     projection_url,
+    short_date,
 )
 from lpa.public_page import (
     MIN_TREND_READINGS,
@@ -519,10 +520,20 @@ def test_main_writes_both_pages_in_both_languages_with_dated_copies(tmp_path, mo
     assert (ms_projection_out.parent / permalink).is_file()
     assert methodology_out.is_file()
     assert (methodology_out.parent / "ms" / METHODOLOGY_PAGE).is_file()
-    # The dated copy is rendered separately so its shell names its own route.
-    assert (projection_out.parent / permalink).read_text(encoding="utf-8") != (
-        projection_out.read_text(encoding="utf-8")
-    )
+    # The dated copy is the same run, not a second render of a later one.
+    # It is no longer byte-identical to the index — it passes its own
+    # permalink tail so its toggle and canonical name the archived day — so
+    # the guarantee is checked on the figures instead of the whole file:
+    # same computed date, same headline seat count.
+    dated_text = (projection_out.parent / permalink).read_text(encoding="utf-8")
+    index_text = projection_out.read_text(encoding="utf-8")
+    headline = re.compile(r'pk-proj-headline-number">([^<]+)<')
+    assert headline.search(dated_text)  # the page really carries a headline
+    assert headline.search(dated_text).group(1) == headline.search(index_text).group(1)
+    assert short_date(model.computed_at) in dated_text
+    # The one thing that must differ is the route the shell names.
+    assert f'href="/ms/projection/{permalink}"' in dated_text
+    assert f'href="/ms/projection/{permalink}"' not in index_text
     # And all four pages come from one Storage read. A second read that
     # picked up a day written in between would leave the methodology page
     # citing a dated permalink whose file this run never wrote.
@@ -601,9 +612,7 @@ def test_dated_projection_toggle_points_to_the_same_archived_day():
     model = _projection_model()
     archived_toggle = 'href="/ms/projection/2026/08/23.html"'
 
-    dated_page = render_projection(
-        model, language=Language.EN, page_path="2026/08/23.html"
-    )
+    dated_page = render_projection(model, language=Language.EN, page_path="2026/08/23.html")
     index_page = render_projection(model, language=Language.EN)
 
     assert archived_toggle in dated_page
