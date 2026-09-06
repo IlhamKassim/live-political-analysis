@@ -1035,6 +1035,7 @@ def test_main_fails_closed_on_a_missing_api_key_without_creating_a_worktree(
     tmp_path, monkeypatch, capsys
 ):
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    monkeypatch.delenv("LPA_AGENT_API_KEY", raising=False)
     repo = _init_scratch_repo(tmp_path)
     task_file = tmp_path / "task.md"
     task_file.write_text("do the thing")
