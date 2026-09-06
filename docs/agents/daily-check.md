@@ -169,6 +169,15 @@ record.
   push-back caught this, not the original verification. Checking
   `daily.yml`/CI is necessary but not sufficient for "unused"; grep for
   other callers across `scripts/` too before confirming a dead-code finding.
+- **`ruff check` and `ruff format --check` are two separate CI steps —
+  verifying only one is not verifying CI.** The first real run's address
+  pass shipped two commits (#153's rename, #168's fix) that passed `ruff
+  check`, `mypy`, and `pytest` — the only three checks anyone ran, worker
+  and Claude alike — and broke CI anyway, because `ci.yml` also runs `ruff
+  format --check .` as its own step, which nobody ran. Real CI failure, a
+  live push notification, caught by the user rather than this skill.
+  `SKILL.md`'s address-pass prompt and step 7 now both name `ruff format
+  --check` explicitly rather than leaving "ruff" ambiguous between the two.
 - **Antigravity workers can't push — Claude does, after independently
   verifying.** `AGENTS.md`'s rule 3 ("Never push... local commits only when
   requested") predates this skill and applies to every Antigravity dispatch

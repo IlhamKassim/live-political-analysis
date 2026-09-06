@@ -198,9 +198,12 @@ You filed the following issue(s) in a previous pass over this repo:
 
 For each one, either:
 
-(a) Fix it. Make the change, verify it against this repo's own checks
-(ruff/mypy/pytest for Python, npm run lint/typecheck/test for ts/ — match
-whichever the changed file belongs to), and commit locally. Do not push —
+(a) Fix it. Make the change, verify it against this repo's own checks —
+for Python, run all three of `ruff check .`, `ruff format --check .` (a
+separate step from `ruff check` — CI runs both, and a fix can pass the
+first while still failing the second), and `pytest`; for ts/, `npm run
+lint`, `npm run typecheck`, and `npm test` — match whichever the changed
+file belongs to. Commit locally once all of them pass. Do not push —
 AGENTS.md forbids it; Claude pushes once your commit is independently
 verified. Then comment on the issue with what changed and the commit SHA,
 and close it.
@@ -220,6 +223,18 @@ concept — avoid every synonym its entries list as "Avoid."
 Wait for the user to paste back both workers' responses.
 
 ### 7. Verify the address pass
+
+Before judging individual issues, independently re-run the full mechanical
+check yourself — `ruff check .`, `ruff format --check .`, `mypy`, `pytest`
+(and the ts/ equivalents if anything there changed) — rather than trusting
+a worker's reported numbers. Run this after every worker claims to be done,
+not mid-flight: if two workers are editing the same shared checkout at
+once, a transient failure from the other worker's in-progress edit can look
+like a real regression (see `docs/agents/daily-check.md`'s known
+limitations). `ruff check` and `ruff format --check` are two separate CI
+steps — a change can pass one and fail the other, and only running the
+first is exactly the gap that let a real CI failure through on this skill's
+first run.
 
 For each issue from step 6, check its real state yourself — treat both
 workers' claims as unverified, same discipline as step 4:
