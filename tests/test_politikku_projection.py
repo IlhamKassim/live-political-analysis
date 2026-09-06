@@ -688,7 +688,7 @@ def test_seat_table_and_too_close_link_to_mp_profile_when_available(monkeypatch)
     ms_body = render_projection_body(model, Language.MS)
 
     assert '<a href="/mp/P000/">' in en_body
-    assert '<a href="/mp/P000/">' in ms_body
+    assert '<a href="/ms/mp/P000/">' in ms_body
 
 
 def test_cite_section_renders_download_buttons_in_both_languages():

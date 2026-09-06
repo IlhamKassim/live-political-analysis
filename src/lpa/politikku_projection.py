@@ -102,6 +102,7 @@ from lpa.politikku_shell import (
     methodology_url,
     projection_url,
     render_shell,
+    route,
     t,
 )
 from lpa.public_page import (
@@ -755,10 +756,10 @@ def _too_close_section(model: PageModel, language: Language) -> str:
     profiles = load_mp_profiles()
 
     def _seat_name(seat_code: str, seat_name: str) -> str:
-        # Links straight to the Seat's profile page at /mp/{seat_code}/.
+        # Links straight to the Seat's profile page at /mp/{seat_code}/ or /ms/mp/{seat_code}/.
         escaped_name = html.escape(seat_name)
         if seat_code in profiles:
-            url = html.escape(f"/mp/{seat_code}/")
+            url = html.escape(route(language, f"mp/{seat_code}/"))
             return f'<a href="{url}">{escaped_name}</a>'
         return escaped_name
 
@@ -924,10 +925,10 @@ def _seat_table_section(model: PageModel, language: Language) -> str:
     profiles = load_mp_profiles()
 
     def _seat_name(seat_code: str, seat_name: str) -> str:
-        # Links straight to the Seat's profile page at /mp/{seat_code}/.
+        # Links straight to the Seat's profile page at /mp/{seat_code}/ or /ms/mp/{seat_code}/.
         escaped_name = html.escape(seat_name)
         if seat_code in profiles:
-            url = html.escape(f"/mp/{seat_code}/")
+            url = html.escape(route(language, f"mp/{seat_code}/"))
             return f'<a href="{url}">{escaped_name}</a>'
         return escaped_name
 
