@@ -45,6 +45,7 @@ PAGE_PATH = "sentiment/"
 matching `/projection/`'s directory-with-`index.html` shape (#143), not the
 retired flat `sentiment.html` file this page used to be."""
 DELTA_WINDOW = timedelta(days=7)
+DELTA_TOLERANCE = timedelta(days=1)
 
 
 @dataclass(frozen=True)
@@ -89,9 +90,18 @@ def _sentiment_rows(
         return ()
     latest = history[-1].sentiment
     target = history[-1].computed_at - DELTA_WINDOW
-    earlier = next(
-        (snap.sentiment for snap in reversed(history[:-1]) if snap.computed_at == target), None
+    eligible = [
+        snap for snap in history[:-1] if abs(snap.computed_at - target) <= DELTA_TOLERANCE
+    ]
+    earlier_snap = (
+        min(
+            eligible,
+            key=lambda s: (abs(s.computed_at - target), -s.computed_at.toordinal()),
+        )
+        if eligible
+        else None
     )
+    earlier = earlier_snap.sentiment if earlier_snap is not None else None
     coalitions = sorted(latest.article_counts, key=lambda c: (-latest.article_counts[c], c))
     rows = []
     for coalition in coalitions:

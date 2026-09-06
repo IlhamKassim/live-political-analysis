@@ -70,6 +70,29 @@ def test_sentiment_model_calculates_scores_and_7_day_delta():
     assert by_coalition["BN"].delta is None
 
 
+def test_sentiment_model_calculates_delta_with_date_tolerance():
+    # When exact 7-day prior snapshot is missing (e.g. 6 or 8 days prior),
+    # delta is still computed within the tolerance window.
+    six_days_back = date(2026, 8, 17)
+    history_six = [
+        _snapshot(six_days_back, {"PH": 0.04}, {"PH": 5}),
+        _snapshot(LATEST_DAY, {"PH": 0.10}, {"PH": 8}),
+    ]
+    model_six = sentiment_page_model(snapshots=history_six, names=NAMES, status=NOT_CALLED)
+    by_coalition_six = {row.coalition: row for row in model_six.rows}
+    assert by_coalition_six["PH"].delta == approx(0.06)
+
+    # When snapshot is beyond tolerance window (e.g. 10 days prior), delta is None
+    ten_days_back = date(2026, 8, 13)
+    history_ten = [
+        _snapshot(ten_days_back, {"PH": 0.04}, {"PH": 5}),
+        _snapshot(LATEST_DAY, {"PH": 0.10}, {"PH": 8}),
+    ]
+    model_ten = sentiment_page_model(snapshots=history_ten, names=NAMES, status=NOT_CALLED)
+    by_coalition_ten = {row.coalition: row for row in model_ten.rows}
+    assert by_coalition_ten["PH"].delta is None
+
+
 def test_render_sentiment_body_carries_all_expected_sections():
     history = [
         _snapshot(SEVEN_DAYS_BACK, {"PH": 0.02, "PN": 0.10}, {"PH": 4, "PN": 2}),
