@@ -35,3 +35,16 @@ session in an isolated `git worktree` — files, a fixed shell allowlist, and
 local git only, never push/PR/merge. Attended/manual dispatch only (ADR
 0002); a mandatory `/code-review` pass is required before it's trusted for a
 real task. See `docs/agents/deepseek-agent.md`.
+
+### Daily check
+
+An attended, diff-scoped bug hunt: two Antigravity workers (Standards pass +
+Correctness pass) review the diff since the `last-bug-review` git tag,
+Claude independently verifies each finding, and confirmed findings become
+GitHub issues labeled `needs-triage`. The same two workers then fix or push
+back on their own filed issues in an address pass, Claude verifies that too,
+and any judgement call is put to the user live in-session rather than
+parked async — so the `last-bug-review` tag normally advances with nothing
+left open by the time the run ends. Attended/manual dispatch only, never
+wired into a scheduled workflow, the same discipline ADR 0002 requires for
+the DeepSeek agent loop above. See `docs/agents/daily-check.md`.
