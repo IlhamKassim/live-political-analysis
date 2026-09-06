@@ -167,3 +167,72 @@ def test_johor_poller_wrapper():
         assert data["phase"] == "live"
         assert data["election"] == "prn16-johor"
         assert data["tally"] == {"BN": 6, "PH": 4, "PN": 3}
+
+
+def test_merge_status_precedence_and_vote_tiebreaker():
+    # 1_N.01: candidate from media called "won", but EC official call declares another candidate
+    # 1_N.02: two candidates both "leading", one has more votes
+    readings = [
+        (
+            "sinar",
+            {
+                "1_N.01": {
+                    "status": "won",
+                    "coalition": "PH",
+                    "party": "PKR",
+                    "name": "Candidate One",
+                    "votes": 1000,
+                },
+                "1_N.02": {
+                    "status": "leading",
+                    "coalition": "PN",
+                    "party": "PAS",
+                    "name": "Candidate Three",
+                    "votes": 300,
+                },
+            },
+        ),
+        (
+            "thestar",
+            {
+                "1_N.01": {
+                    "status": "won",
+                    "coalition": "PH",
+                    "party": "PKR",
+                    "name": "Candidate One",
+                    "votes": 1000,
+                },
+                "1_N.02": {
+                    "status": "leading",
+                    "coalition": "BN",
+                    "party": "UMNO",
+                    "name": "Candidate Four",
+                    "votes": 800,
+                },
+            },
+        ),
+        (
+            "manual",
+            {
+                "1_N.01": {
+                    "status": "official",
+                    "coalition": "BN",
+                    "party": "UMNO",
+                    "name": "Candidate Two",
+                    "votes": 1200,
+                }
+            },
+        ),
+    ]
+    merged = poller.merge(readings)
+
+    # Official EC declaration beats media "won" call
+    assert merged["1_N.01"]["status"] == "official"
+    assert merged["1_N.01"]["coalition"] == "BN"
+    assert merged["1_N.01"]["name"] == "Candidate Two"
+
+    # Higher votes wins among "leading" candidates
+    assert merged["1_N.02"]["status"] == "leading"
+    assert merged["1_N.02"]["coalition"] == "BN"
+    assert merged["1_N.02"]["name"] == "Candidate Four"
+    assert merged["1_N.02"]["votes"] == 800

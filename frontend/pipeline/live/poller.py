@@ -57,6 +57,7 @@ MYUNDI_COAL_DEFAULT = {
     "GPS": "GPS", "GRS": "GRS", "WARISAN": "WARISAN",
 }
 TRUSTED_SOURCES = {"manual", "myundi"}
+STATUS_PRECEDENCE: dict[str, int] = {"official": 2, "won": 1, "leading": 0}
 
 
 def now_iso() -> str:
@@ -630,8 +631,19 @@ def merge(readings: list[tuple[str, dict[str, Any]]]) -> dict[str, Any]:
                 status = "leading"
             c["status"] = status
             c["sources"] = sorted(srcs)
-            if best is None or ("won", "official").count(c["status"]) > ("won", "official").count(best["status"]):
+            c_rank = (
+                STATUS_PRECEDENCE.get(c.get("status") or "", 0),
+                int(c.get("votes") or 0),
+            )
+            if best is None:
                 best = c
+            else:
+                best_rank = (
+                    STATUS_PRECEDENCE.get(best.get("status") or "", 0),
+                    int(best.get("votes") or 0),
+                )
+                if c_rank > best_rank:
+                    best = c
         if best is not None:
             best_field = best.get("candidates") or []
             for _, c in calls:
