@@ -157,57 +157,22 @@ def to_csv(payload: Mapping[str, Any]) -> str:
 def build_export(engine: Engine) -> tuple[str, str]:
     """Read Storage and return `(json_body, csv_body)` for the latest Projection.
 
-    Builds a full `PageModel` via `public_page.page_model` — the same
+    Builds a full `PageModel` via `public_page.load_projection_bundle` — the same
     construction `public_page.build_page` uses — so the sensitivity table,
     per-state rollup, and Majority-margin trend the export carries are the
     identical numbers the public page states, never a second derivation of
     them that could drift from the first.
     """
-    from lpa.config import (
-        coalition_names,
-        load_coalition_config,
-        load_election_status,
-        load_state_election_signals,
-        swing_model_config,
-    )
-    from lpa.public_page import page_model
-    from lpa.storage import (
-        load_projections,
-        load_seat_baselines,
-        load_sentiment_snapshots,
-        load_state_swing,
-    )
+    from lpa.public_page import load_projection_bundle
 
-    projections = load_projections(engine)
-    if not projections:
-        raise SystemExit("No Projection stored. Run `python -m lpa.pipeline` to compute one.")
-    baseline = load_seat_baselines(engine)
-    if not baseline:
-        raise SystemExit("No Seat Baseline in Storage. Run `python -m lpa.baseline_loader` first.")
-
-    config = load_coalition_config()
-    names = coalition_names(config)
-    snapshots = load_sentiment_snapshots(engine)
-    latest_sentiment = snapshots[-1].sentiment if snapshots else None
-    model = page_model(
-        projection=projections[-1],
-        baseline=baseline,
-        status=load_election_status(),
-        config=swing_model_config(config),
-        names=names,
-        sentiment=latest_sentiment,
-        state_election_signals=load_state_election_signals(),
-        total_seats=config["total_seats"],
-        state_swing=load_state_swing(engine, projections[-1].computed_at),
-        history=projections,
-    )
+    bundle = load_projection_bundle(engine)
     payload = export_model(
-        projections[-1],
-        baseline,
-        names,
-        sensitivity_table=model.sensitivity_table,
-        state_rollup=model.state_rollup,
-        trend=model.trend,
+        bundle.projection,
+        bundle.baseline,
+        bundle.names,
+        sensitivity_table=bundle.model.sensitivity_table,
+        state_rollup=bundle.model.state_rollup,
+        trend=bundle.model.trend,
     )
     return to_json(payload), to_csv(payload)
 

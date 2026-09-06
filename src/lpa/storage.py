@@ -425,19 +425,16 @@ def save_snapshot(
                 )
 
 
-def load_projections(engine: Engine) -> Sequence[Projection]:
-    """Every stored Projection, oldest first.
-
-    Only the latest two carry Seat Calls — Storage keeps that two-day window
-    alone (ADR 0005, extended by #54). They are attached here, to the
-    Projection whose day they were computed on, rather than handed back
-    separately: a caller that had to pair them up itself could pair them
-    wrongly, and a Seat Call shown under the wrong date is indistinguishable
-    from a right one.
-    """
+def _load_projections(
+    engine: Engine,
+    snapshot_table: Table,
+    seat_call_table: Table,
+) -> Sequence[Projection]:
     with engine.connect() as connection:
         calls_by_day: dict[date, list[SeatCall]] = {}
-        for row in connection.execute(select(seat_call).order_by(seat_call.c.code)).mappings():
+        for row in connection.execute(
+            select(seat_call_table).order_by(seat_call_table.c.code)
+        ).mappings():
             calls_by_day.setdefault(row["computed_at"], []).append(
                 SeatCall(
                     code=row["code"],
@@ -446,7 +443,7 @@ def load_projections(engine: Engine) -> Sequence[Projection]:
                 )
             )
         rows = connection.execute(
-            select(projection_snapshot).order_by(projection_snapshot.c.computed_at)
+            select(snapshot_table).order_by(snapshot_table.c.computed_at)
         ).mappings()
         return [
             Projection(
@@ -457,6 +454,19 @@ def load_projections(engine: Engine) -> Sequence[Projection]:
             )
             for row in rows
         ]
+
+
+def load_projections(engine: Engine) -> Sequence[Projection]:
+    """Every stored day, oldest first — see `projection_snapshot`.
+
+    Only the latest two carry Seat Calls — Storage keeps that two-day window
+    alone (ADR 0005, extended by #54). They are attached here, to the
+    Projection whose day they were computed on, rather than handed back
+    separately: a caller that had to pair them up itself could pair them
+    wrongly, and a Seat Call shown under the wrong date is indistinguishable
+    from a right one.
+    """
+    return _load_projections(engine, projection_snapshot, seat_call)
 
 
 def load_frozen_projections(engine: Engine) -> Sequence[Projection]:
@@ -469,30 +479,7 @@ def load_frozen_projections(engine: Engine) -> Sequence[Projection]:
     same reason: a caller pairing calls to totals itself could pair them
     wrongly.
     """
-    with engine.connect() as connection:
-        calls_by_day: dict[date, list[SeatCall]] = {}
-        for row in connection.execute(
-            select(frozen_seat_call).order_by(frozen_seat_call.c.code)
-        ).mappings():
-            calls_by_day.setdefault(row["computed_at"], []).append(
-                SeatCall(
-                    code=row["code"],
-                    coalition=row["coalition"],
-                    margin=row["margin"],
-                )
-            )
-        rows = connection.execute(
-            select(frozen_projection).order_by(frozen_projection.c.computed_at)
-        ).mappings()
-        return [
-            Projection(
-                coalition_seat_totals=row["coalition_seat_totals"],
-                government_majority=row["government_majority"],
-                computed_at=row["computed_at"],
-                seat_calls=tuple(calls_by_day.get(row["computed_at"], ())),
-            )
-            for row in rows
-        ]
+    return _load_projections(engine, frozen_projection, frozen_seat_call)
 
 
 def load_state_swing(engine: Engine, computed_at: date) -> Mapping[str, Mapping[Coalition, float]]:

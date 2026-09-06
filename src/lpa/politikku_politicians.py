@@ -1031,8 +1031,8 @@ def render_politicians_page(
     )
     description = t(
         language,
-        "Directory of 222 Members of Parliament and 600 State Assembly members (ADUNs) across Malaysia. Track party affiliations, voting records, and constituency representation.",
-        "Direktori 222 Ahli Parlimen dan 600 Ahli Dewan Undangan Negeri (ADUN) di seluruh Malaysia. Semak parti politik, rekod undian, dan wakil kawasan.",
+        "Directory of 222 Members of Parliament and 600 State Assembly members (ADUNs) across Malaysia. Track Coalition affiliations, voting records, and Seat representation.",
+        "Direktori 222 Ahli Parlimen dan 600 Ahli Dewan Undangan Negeri (ADUN) di seluruh Malaysia. Semak gabungan politik, rekod undian, dan perwakilan Kerusi.",
     )
 
     body_html = render_politicians_body(model, language=language, tier="all")

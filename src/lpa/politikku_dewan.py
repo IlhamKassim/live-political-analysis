@@ -101,7 +101,7 @@ def format_dewan_date(iso_date: str | None, language: Language = Language.EN) ->
 
 @dataclass(frozen=True)
 class DewanRow:
-    """One constituency row in the Dewan activity table."""
+    """One Seat row in the Dewan activity table."""
 
     code: str
     seat_name: str

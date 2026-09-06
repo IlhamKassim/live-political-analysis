@@ -344,8 +344,13 @@ class PageModel:
         return sum(1 for s in self.seats if s.government and s.tier == Tier.TIGHT)
 
     @property
-    def opposition_too_close(self) -> int:
+    def non_government_too_close(self) -> int:
         return sum(1 for s in self.seats if not s.government and s.tier == Tier.TIGHT)
+
+    @property
+    def opposition_too_close(self) -> int:
+        """Deprecated alias for `non_government_too_close` (retained for backward compatibility)."""
+        return self.non_government_too_close
 
     @property
     def too_close_seats(self) -> tuple[ChamberSeat, ...]:
@@ -378,7 +383,7 @@ class PageModel:
 
     @property
     def if_every_marginal_held(self) -> int:
-        return self.government_seats + self.opposition_too_close
+        return self.government_seats + self.non_government_too_close
 
     @property
     def trend_is_plotted(self) -> bool:
@@ -423,6 +428,16 @@ class PageModel:
         threshold met, and the threshold is met at equality.
         """
         return max(0, self.buffer + 1)
+
+
+@dataclass(frozen=True)
+class ProjectionBundle:
+    """A loaded Projection with its Baseline and computed PageModel (#158)."""
+
+    model: PageModel
+    projection: Projection
+    baseline: Sequence[SeatBaseline]
+    names: Mapping[Coalition, str]
 
 
 def tier_for(margin: float) -> Tier:
@@ -568,7 +583,7 @@ def _ordered_seats(
     by_code: Mapping[str, SeatBaseline],
     config: SwingModelConfig,
 ) -> tuple[ChamberSeat, ...]:
-    """The chamber's left-to-right order: safest Government to safest Opposition.
+    """The chamber's left-to-right order: safest Government to safest Non-government.
 
     Sorted on margin across the whole Government side rather than bloc by bloc.
     The mockup grouped blocs first, which put a marginal BN Seat well to the
@@ -601,8 +616,8 @@ def _ordered_seats(
             )
         )
     government = sorted((s for s in seats if s.government), key=lambda s: (-s.margin, s.code))
-    opposition = sorted((s for s in seats if not s.government), key=lambda s: (s.margin, s.code))
-    return tuple(government + opposition)
+    non_government = sorted((s for s in seats if not s.government), key=lambda s: (s.margin, s.code))
+    return tuple(government + non_government)
 
 
 def _ledger(
@@ -1442,9 +1457,9 @@ def _stress(model: PageModel, language: Language = Language.EN) -> str:
             model.if_every_marginal_held,
             t(
                 language,
-                f"The {model.opposition_too_close} Seats inside six points on the "
+                f"The {model.non_government_too_close} Seats inside six points on the "
                 "other side fall to the Government Coalition instead.",
-                f"{model.opposition_too_close} Kerusi dalam lingkungan enam mata di pihak "
+                f"{model.non_government_too_close} Kerusi dalam lingkungan enam mata di pihak "
                 "sebelah pula jatuh kepada Gabungan Kerajaan.",
             ),
         ),
@@ -3269,16 +3284,12 @@ def render_html(model: PageModel, language: Language = Language.EN) -> str:
 """
 
 
-def build_page(engine: Engine, *, language: Language = Language.EN) -> tuple[str, date]:
-    """Read Storage and render the page. The whole I/O half, in one place.
+def load_projection_bundle(engine: Engine) -> ProjectionBundle:
+    """Read Storage and assemble the current PageModel and its source data (#158).
 
-    Separate from `main` so the preview server in `scripts/` can render
-    exactly what the Action publishes, rather than a second wiring of the
-    same parts that can drift from it. Returns the day rendered alongside
-    the HTML (#55) rather than a bare `str` — `main` needs it to name the
-    dated permalink, and re-reading `load_projections` a second time to get
-    it could race a concurrent write and name the file after a different
-    day than the one actually rendered into it.
+    Shared by `build_page`, `politikku_projection.build_projection`, and
+    `public_export.build_export` so all three read the same data with the
+    same SystemExit guards, avoiding duplicated fetch-and-assemble logic.
     """
     from lpa.config import (
         coalition_names,
@@ -3302,6 +3313,7 @@ def build_page(engine: Engine, *, language: Language = Language.EN) -> tuple[str
         raise SystemExit("No Seat Baseline in Storage. Run `python -m lpa.baseline_loader` first.")
 
     config = load_coalition_config()
+    names = coalition_names(config)
     snapshots = load_sentiment_snapshots(engine)
     latest = snapshots[-1].sentiment if snapshots else None
     model = page_model(
@@ -3309,7 +3321,7 @@ def build_page(engine: Engine, *, language: Language = Language.EN) -> tuple[str
         baseline=baseline,
         status=load_election_status(),
         config=swing_model_config(config),
-        names=coalition_names(config),
+        names=names,
         sentiment=latest,
         state_election_signals=load_state_election_signals(),
         total_seats=config["total_seats"],
@@ -3320,6 +3332,31 @@ def build_page(engine: Engine, *, language: Language = Language.EN) -> tuple[str
         # states.
         history=projections,
     )
+    return ProjectionBundle(
+        model=model,
+        projection=projections[-1],
+        baseline=baseline,
+        names=names,
+    )
+
+
+def load_projection_page_model(engine: Engine) -> PageModel:
+    """Read Storage and assemble the current PageModel (#158)."""
+    return load_projection_bundle(engine).model
+
+
+def build_page(engine: Engine, *, language: Language = Language.EN) -> tuple[str, date]:
+    """Read Storage and render the page. The whole I/O half, in one place.
+
+    Separate from `main` so the preview server in `scripts/` can render
+    exactly what the Action publishes, rather than a second wiring of the
+    same parts that can drift from it. Returns the day rendered alongside
+    the HTML (#55) rather than a bare `str` — `main` needs it to name the
+    dated permalink, and re-reading `load_projections` a second time to get
+    it could race a concurrent write and name the file after a different
+    day than the one actually rendered into it.
+    """
+    model = load_projection_page_model(engine)
     return render_html(model, language), model.computed_at
 
 

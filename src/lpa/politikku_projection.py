@@ -378,9 +378,9 @@ def _stress(model: PageModel, language: Language) -> str:
             model.if_every_marginal_held,
             t(
                 language,
-                f"The {model.opposition_too_close} Seats inside six points on the "
+                f"The {model.non_government_too_close} Seats inside six points on the "
                 "other side fall to the Government Coalition instead.",
-                f"{model.opposition_too_close} Kerusi dalam lingkungan enam mata di pihak "
+                f"{model.non_government_too_close} Kerusi dalam lingkungan enam mata di pihak "
                 "sebelah pula jatuh kepada Gabungan Kerajaan.",
             ),
         ),
@@ -1589,8 +1589,8 @@ _CSS = """
 # ── I/O ───────────────────────────────────────────────────────────────────
 
 
-def _projection_page_model(engine: Engine) -> PageModel:
-    """One Storage read behind both pages.
+def load_projection_page_model(engine: Engine) -> PageModel:
+    """One Storage read behind both pages (#158).
 
     Mirrors `public_page.build_page` rather than the shorter read
     `politikku_homepage`/`_landing`/`_mp_profile` make: those pass no
@@ -1601,43 +1601,12 @@ def _projection_page_model(engine: Engine) -> PageModel:
     second that could pick up a day written in between and plot a right-hand
     end the rest of the page does not state.
     """
-    from lpa.config import (
-        coalition_names,
-        load_coalition_config,
-        load_election_status,
-        load_state_election_signals,
-        swing_model_config,
-    )
-    from lpa.public_page import page_model
-    from lpa.storage import (
-        load_projections,
-        load_seat_baselines,
-        load_sentiment_snapshots,
-        load_state_swing,
-    )
+    from lpa.public_page import load_projection_page_model as _load
 
-    projections = load_projections(engine)
-    if not projections:
-        raise SystemExit("No Projection stored. Run `python -m lpa.pipeline` to compute one.")
-    baseline = load_seat_baselines(engine)
-    if not baseline:
-        raise SystemExit("No Seat Baseline in Storage. Run `python -m lpa.baseline_loader` first.")
+    return _load(engine)
 
-    config = load_coalition_config()
-    snapshots = load_sentiment_snapshots(engine)
-    latest = snapshots[-1].sentiment if snapshots else None
-    return page_model(
-        projection=projections[-1],
-        baseline=baseline,
-        status=load_election_status(),
-        config=swing_model_config(config),
-        names=coalition_names(config),
-        sentiment=latest,
-        state_election_signals=load_state_election_signals(),
-        total_seats=config["total_seats"],
-        state_swing=load_state_swing(engine, projections[-1].computed_at),
-        history=projections,
-    )
+
+_projection_page_model = load_projection_page_model
 
 
 def build_projection(engine: Engine, *, language: Language = Language.EN) -> tuple[str, date]:

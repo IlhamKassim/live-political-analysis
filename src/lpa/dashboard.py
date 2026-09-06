@@ -330,8 +330,8 @@ def election_status_statement(status: ElectionStatus, today: date) -> str:
     Four states, because the reader's question is different in each: an
     election nobody has called yet, one called with no polling day announced,
     one with a day to count towards, and one already polled. The last matters
-    even though this is a forecasting tool — the moment polling passes, the
-    page stops being a forecast, and a stale data file must not have it
+    even though this is a projection tool — the moment polling passes, the
+    page stops projecting a future election, and a stale data file must not have it
     counting down to a date in the past.
 
     `today` is passed in rather than read here so the phrasing has one input
@@ -368,7 +368,7 @@ def election_status_statement(status: ElectionStatus, today: date) -> str:
             )
         return (
             f"**GE16 was held on {polls}.** This page projects an election "
-            "that has already happened; it is no longer a forecast."
+            "that has already happened; it is no longer an estimate of a future election."
         )
     return (
         f"**GE16 has been called.** The Dewan Rakyat was dissolved on "
@@ -381,7 +381,7 @@ def render_election_status(status: ElectionStatus, today: date) -> None:
     """The temporal context for the Projection, directly under the headline.
 
     Placed here rather than in the footer because it changes what the numbers
-    above mean: a Projection for an election with a date is a forecast of a
+    above mean: a Projection for an election with a date is an estimate of a
     known event, and one for an election nobody has called is a reading of the
     present (issue #1, story 8).
     """

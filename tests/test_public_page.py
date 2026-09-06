@@ -156,6 +156,7 @@ def test_the_stress_numbers_are_the_buffer_worked_both_ways():
     assert model.buffer == 0
     assert model.government_majority is True
     assert model.government_too_close == 1
+    assert model.non_government_too_close == 0
     assert model.opposition_too_close == 0
     assert model.if_every_marginal_fell == 3
     assert model.if_every_marginal_held == 4
@@ -1545,3 +1546,28 @@ def test_the_en_page_is_unchanged_apart_from_the_ms_wiring():
     stamp = page.split('<div class="stamp">')[1].split("</div>\n  </header>")[0]
     assert stamp.count("<a ") == 4
     assert stamp.count("<button") == 1
+
+
+def test_load_projection_bundle_and_page_model_from_storage():
+    from fixtures import government_config, two_coalition_seats
+
+    from lpa.aggregate import AggregatedSentiment
+    from lpa.public_page import load_projection_bundle, load_projection_page_model
+    from lpa.storage import connect, save_seat_baselines, save_snapshot
+    from lpa.swing_model import swing_model
+
+    engine = connect("sqlite+pysqlite:///:memory:")
+    baselines = two_coalition_seats()
+    save_seat_baselines(engine, baselines)
+    proj = swing_model(baselines, {}, [], government_config(), date(2026, 8, 20))
+    sentiment = AggregatedSentiment(scores={}, article_counts={}, total_articles=0, sources=[])
+    save_snapshot(engine, proj, sentiment, {})
+
+    bundle = load_projection_bundle(engine)
+    assert bundle.model.government_seats == proj.coalition_seat_totals[PH]
+    assert bundle.projection.computed_at == proj.computed_at
+    assert len(bundle.baseline) == len(baselines)
+    assert bundle.names[PH] == "Pakatan Harapan"
+
+    model = load_projection_page_model(engine)
+    assert model.government_seats == bundle.model.government_seats

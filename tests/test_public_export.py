@@ -174,3 +174,25 @@ def test_the_json_export_round_trips_the_new_fields_too():
         trend=[TrendReading(day=date(2026, 8, 20), government_seats=112, margin=0)],
     )
     assert json.loads(to_json(payload)) == payload
+
+
+def test_build_export_reads_storage_and_produces_json_and_csv():
+    from fixtures import government_config, two_coalition_seats
+
+    from lpa.aggregate import AggregatedSentiment
+    from lpa.public_export import build_export
+    from lpa.storage import connect, save_seat_baselines, save_snapshot
+    from lpa.swing_model import swing_model
+
+    engine = connect("sqlite+pysqlite:///:memory:")
+    baselines = two_coalition_seats()
+    save_seat_baselines(engine, baselines)
+    proj = swing_model(baselines, {}, [], government_config(), date(2026, 8, 20))
+    sentiment = AggregatedSentiment(scores={}, article_counts={}, total_articles=0, sources=[])
+    save_snapshot(engine, proj, sentiment, {})
+
+    json_str, csv_str = build_export(engine)
+    data = json.loads(json_str)
+    assert data["schema_version"] == SCHEMA_VERSION
+    assert len(data["seats"]) == len(baselines)
+    assert "P001" in csv_str

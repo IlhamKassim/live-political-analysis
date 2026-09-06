@@ -417,7 +417,7 @@ def test_too_close_lists_exactly_the_tight_seats_smallest_margin_first(language)
 
     codes = re.findall(r'<tr data-seat="([^"]+)"', section)
     assert codes == [seat.code for seat in model.too_close_seats]
-    assert len(codes) == model.government_too_close + model.opposition_too_close
+    assert len(codes) == model.government_too_close + model.non_government_too_close
     # It introduces no threshold and no cutoff of its own: every TIGHT Seat
     # is here, none of them by a judgement this section made.
     assert str(len(codes)) in section and str(model.total_seats) in section
