@@ -37,7 +37,14 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date
 
-from lpa.domain import Coalition
+from lpa.domain import (
+    TOTAL_SEATS as _TOTAL_SEATS,
+)
+from lpa.domain import (
+    Coalition,
+    division_members_accounted,
+    validate_division_tallies,
+)
 
 AYE = "aye"
 NO = "no"
@@ -53,7 +60,7 @@ would be hiding something the record actually states.
 """
 
 
-TOTAL_SEATS = 222
+TOTAL_SEATS = _TOTAL_SEATS
 """Seats in the Dewan Rakyat.
 
 A constant here rather than `coalitions.json`'s `total_seats`, which is
@@ -91,14 +98,13 @@ class Division:
     def __post_init__(self) -> None:
         if self.vote not in VOTES:
             raise ValueError(f"{self.vote!r} is not one of {VOTES}")
-        if min(self.ayes, self.noes, self.abstentions, self.absent) < 0:
-            raise ValueError(f"Division on {self.sitting_date} has a negative tally")
-        if self.members_accounted > TOTAL_SEATS:
-            raise ValueError(
-                f"the Division on {self.sitting_date} accounts for "
-                f"{self.members_accounted} Members, more than the {TOTAL_SEATS} Seats "
-                "in the Dewan Rakyat"
-            )
+        validate_division_tallies(
+            self.ayes,
+            self.noes,
+            self.abstentions,
+            self.absent,
+            self.sitting_date,
+        )
 
     @property
     def members_accounted(self) -> int:
@@ -111,7 +117,7 @@ class Division:
         reject a record, and this is deliberately a figure to read rather
         than an invariant to assert.
         """
-        return self.ayes + self.noes + self.abstentions + self.absent
+        return division_members_accounted(self.ayes, self.noes, self.abstentions, self.absent)
 
 
 @dataclass(frozen=True)

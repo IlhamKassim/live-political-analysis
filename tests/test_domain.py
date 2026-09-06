@@ -59,3 +59,33 @@ def test_a_seat_missing_from_one_side_is_skipped_not_reported():
     )
 
     assert changed_seat_calls(older, newer) == ()
+
+
+def test_division_members_accounted_sums_positions():
+    from lpa.domain import division_members_accounted
+
+    assert division_members_accounted(100, 50, 10, 20) == 180
+
+
+def test_validate_division_tallies_accepts_valid_tallies():
+    from lpa.domain import validate_division_tallies
+
+    validate_division_tallies(120, 80, 0, 22, date(2025, 8, 28))
+
+
+def test_validate_division_tallies_rejects_negative_tally():
+    import pytest
+
+    from lpa.domain import validate_division_tallies
+
+    with pytest.raises(ValueError, match="negative tally"):
+        validate_division_tallies(120, -1, 0, 22, date(2025, 8, 28))
+
+
+def test_validate_division_tallies_rejects_exceeding_total_seats():
+    import pytest
+
+    from lpa.domain import validate_division_tallies
+
+    with pytest.raises(ValueError, match="more than the 222 Seats in the Dewan Rakyat"):
+        validate_division_tallies(120, 80, 10, 50, date(2025, 8, 28))

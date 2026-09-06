@@ -47,7 +47,10 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date
 
-from lpa.mp_profile import TOTAL_SEATS
+from lpa.domain import (
+    division_members_accounted,
+    validate_division_tallies,
+)
 
 _CODE_YEAR = re.compile(r"^D\.R\.\s*\d+/(\d{4})$")
 
@@ -73,18 +76,17 @@ class DivisionResult:
     hansard_url: str
 
     def __post_init__(self) -> None:
-        if min(self.ayes, self.noes, self.abstentions, self.absent) < 0:
-            raise ValueError(f"Division on {self.sitting_date} has a negative tally")
-        if self.members_accounted > TOTAL_SEATS:
-            raise ValueError(
-                f"the Division on {self.sitting_date} accounts for "
-                f"{self.members_accounted} Members, more than the {TOTAL_SEATS} Seats "
-                "in the Dewan Rakyat"
-            )
+        validate_division_tallies(
+            self.ayes,
+            self.noes,
+            self.abstentions,
+            self.absent,
+            self.sitting_date,
+        )
 
     @property
     def members_accounted(self) -> int:
-        return self.ayes + self.noes + self.abstentions + self.absent
+        return division_members_accounted(self.ayes, self.noes, self.abstentions, self.absent)
 
 
 @dataclass(frozen=True)

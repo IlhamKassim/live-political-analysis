@@ -265,3 +265,42 @@ class Outlet:
 
     name: str
     feed_url: str
+
+
+TOTAL_SEATS = 222
+"""Seats in the Dewan Rakyat.
+
+A constant rather than coalitions.json's total_seats, which is
+current configuration: a Division is a historical fact about the House as it
+stood that day, and must not start failing to load because a future
+delimitation changed the count.
+"""
+
+
+def division_members_accounted(ayes: int, noes: int, abstentions: int, absent: int) -> int:
+    """Members a declared Division result accounts for, across all four positions (#159)."""
+    return ayes + noes + abstentions + absent
+
+
+def validate_division_tallies(
+    ayes: int,
+    noes: int,
+    abstentions: int,
+    absent: int,
+    sitting_date: date,
+    total_seats: int = TOTAL_SEATS,
+) -> None:
+    """Validate invariant tallies for a Dewan Rakyat Division (#159).
+
+    Raises ValueError if any tally is negative, or if the declared positions
+    sum to more than total_seats (222).
+    """
+    if min(ayes, noes, abstentions, absent) < 0:
+        raise ValueError(f"Division on {sitting_date} has a negative tally")
+    accounted = division_members_accounted(ayes, noes, abstentions, absent)
+    if accounted > total_seats:
+        raise ValueError(
+            f"the Division on {sitting_date} accounts for "
+            f"{accounted} Members, more than the {total_seats} Seats "
+            "in the Dewan Rakyat"
+        )
