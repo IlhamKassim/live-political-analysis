@@ -727,20 +727,29 @@ _SOCIAL_META: dict[str, tuple[str, Any]] = {
 _SOCIAL_ORDER: tuple[str, ...] = ("fb", "ig", "tw", "tiktok", "youtube", "telegram", "web")
 
 
+FALLBACK_BUST_SVG = (
+    '<svg class="pol-fallback-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+    'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
+)
+
+
 def person_photo_html(name: str, photo: str | None, cls: str = "") -> str:
-    """Render photo thumbnail or deterministic monogram fallback."""
+    """Render photo thumbnail or deterministic fallback badge."""
     esc_name = html.escape(name)
     esc_cls = html.escape(cls)
     if photo:
+        photo_src = f"/{photo}" if not photo.startswith(("/", "http://", "https://")) else photo
         return (
-            f'<img class="pol-photo {esc_cls}" src="{html.escape(photo)}" '
+            f'<img class="pol-photo {esc_cls}" src="{html.escape(photo_src)}" '
             f'alt="{esc_name}" loading="lazy" decoding="async" width="72" height="72">'
         )
-    color = monogram_color(name or "")
     initials = html.escape(person_initials(name))
     return (
-        f'<span class="pol-photo pol-monogram {esc_cls}" style="background:{color}" '
-        f'aria-hidden="true">{initials}</span>'
+        f'<span class="pol-photo pol-fallback pol-monogram {esc_cls}" aria-hidden="true">'
+        f"{FALLBACK_BUST_SVG}"
+        f'<span class="pol-fallback-initials">{initials}</span>'
+        "</span>"
     )
 
 

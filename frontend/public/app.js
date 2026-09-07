@@ -500,14 +500,16 @@ function personInitials(name) {
   const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
   return (first + last).toUpperCase();
 }
+const FALLBACK_BUST_SVG = `<svg class="pol-fallback-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+
 function personPhotoHTML(name, photo, cls = "") {
   if (photo) {
     return `<img class="pol-photo ${cls}" src="${esc(photo)}" alt="${esc(name)}" loading="lazy" decoding="async" width="72" height="72">`;
   }
-  return `<span class="pol-photo pol-monogram ${cls}" style="background:${monogramColor(name || "")}" aria-hidden="true">${esc(personInitials(name))}</span>`;
+  return `<span class="pol-photo pol-fallback pol-monogram ${cls}" aria-hidden="true">${FALLBACK_BUST_SVG}<span class="pol-fallback-initials">${esc(personInitials(name))}</span></span>`;
 }
 // Hotlinked candidate/person portraits (Sinar Harian, state-gov sites) can 404 or
-// block hotlinking — swap any broken .pol-photo <img> for the SAME monogram it would
+// block hotlinking — swap any broken .pol-photo <img> for the SAME fallback badge it would
 // have had with no photo, so a broken-image glyph never shows. Capture phase because
 // <img> 'error' does not bubble.
 document.addEventListener("error", (e) => {
@@ -515,10 +517,9 @@ document.addEventListener("error", (e) => {
   if (!(img instanceof HTMLImageElement) || !img.classList.contains("pol-photo")) return;
   const name = img.getAttribute("alt") || "";
   const span = document.createElement("span");
-  span.className = ["pol-photo", "pol-monogram", ...[...img.classList].filter((c) => c !== "pol-photo")].join(" ");
-  span.style.background = monogramColor(name);
+  span.className = ["pol-photo", "pol-fallback", "pol-monogram", ...[...img.classList].filter((c) => c !== "pol-photo")].join(" ");
   span.setAttribute("aria-hidden", "true");
-  span.textContent = personInitials(name);
+  span.innerHTML = `${FALLBACK_BUST_SVG}<span class="pol-fallback-initials">${esc(personInitials(name))}</span>`;
   img.replaceWith(span);
 }, true);
 // brand glyphs (inline SVG, currentColor — theme-safe, no external requests)

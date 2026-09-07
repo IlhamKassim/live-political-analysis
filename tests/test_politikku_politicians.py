@@ -87,7 +87,8 @@ def test_person_initials_and_photo_html():
     assert 'src="https://example.com/anwar.jpg"' in img_html
 
     monogram_html = person_photo_html("Anwar Ibrahim", None)
-    assert '<span class="pol-photo pol-monogram "' in monogram_html
+    assert '<span class="pol-photo pol-fallback pol-monogram "' in monogram_html
+    assert "pol-fallback-icon" in monogram_html
     assert ">AI</span>" in monogram_html
 
 
