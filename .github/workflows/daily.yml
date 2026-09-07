@@ -186,6 +186,11 @@ jobs:
         # ts/ bundle built above fetches at runtime in the browser — not
         # read by any step in this workflow, so it has no ordering
         # dependency on the bundle build either.
+        #
+        # continue-on-error stays: a failure here must not skip every step
+        # after it. The loudness moved to the smoke-check below instead,
+        # which asserts the file it writes and fails the run there — after
+        # the other renders have had their chance to succeed.
         continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -361,6 +366,17 @@ jobs:
           fi
           if [ ! -f "public/fonts/space-grotesk-latin.woff2" ]; then
             echo "::error::public/fonts/ is missing the shell's webfonts — every page loses its typography."
+            missing=1
+          fi
+          # The Seat lookup's only data file, written by the
+          # continue-on-error step above. Without it the postcode field on
+          # the site root resolves nothing and tells the visitor to "check
+          # your connection" — blaming them for a failed build step. Greps
+          # for a key rather than testing existence, so a truncated or
+          # empty write fails too (the same lesson the lang="ms" check
+          # above records).
+          if ! grep -q '"postcodes"' public/data/lookup-index.json 2>/dev/null; then
+            echo "::error::public/data/lookup-index.json is missing or malformed — the Seat lookup cannot resolve a postcode."
             missing=1
           fi
           for page in public/bills/index.html public/dewan/index.html public/politicians/index.html; do
