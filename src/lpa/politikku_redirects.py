@@ -27,13 +27,15 @@ import html
 from pathlib import Path
 
 from lpa.config import load_mp_profiles
-from lpa.politikku_shell import BILLS_PAGE, HOMEPAGE_PAGE, MP_PROFILE_DIR, SITE_URL
+from lpa.politikku_shell import APP_URL, BILLS_PAGE, HOMEPAGE_PAGE, MP_PROFILE_DIR, SITE_URL
 
 # Static (non-Seat-specific) old path -> new root-relative real paths.
-# HOMEPAGE_PAGE was the secondary "Dashboard" nav page (ADR 0011); the
-# root map view is its closest equivalent, so it redirects to "/".
+# HOMEPAGE_PAGE was the secondary "Dashboard" nav page (ADR 0011); the map
+# view is its closest equivalent, so it redirects there. That was "/" until
+# ADR 0017 moved the map to /app/ and gave "/" to the landing page — the
+# reasoning is unchanged, the address is not.
 STATIC_REDIRECTS = {
-    HOMEPAGE_PAGE: "/",
+    HOMEPAGE_PAGE: APP_URL,
     # Trailing slash matters: GitHub Pages resolves the extensionless
     # request "/bills" to this stub file (`bills.html`) in preference over
     # the real `bills/index.html` directory it now shadows. A target of

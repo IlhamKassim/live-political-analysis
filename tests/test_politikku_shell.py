@@ -114,23 +114,18 @@ def test_no_nav_link_opts_out_of_language_routing():
     # through `/ms/` from a BM page.
     en_header = render_header(active_nav="home", language=Language.EN, page_path="")
     ms_header = render_header(active_nav="home", language=Language.MS, page_path="")
-    # Three independent things legitimately render href="/" on a BM page —
-    # none of them a bug, all of them the #149 Wave-3 fix for the /ms/ dead
-    # end: the root is a single static file with no /ms/ twin, so nothing
-    # that points "home" has a Malay-specific target to route to.
-    #   1. The language toggle's own EN link (2: sidebar + topbar) — since
-    #      #104 put PolitikKu at the site root, that's `/`, the same href
-    #      the Home nav item has in English.
-    #   2. The "Map" NAV_LINKS entry, via `external="/"` — the same escape
-    #      hatch `external` already provides for Bills (2: sidebar + topbar).
-    #   3. The wordmark/brand links — `sb-brand`, `brand-home`,
-    #      `topbar-title` — which route through `home_href` in
-    #      `render_sidebar`/`render_topbar`, not through NAV_LINKS at all
-    #      (3: one in the sidebar, two in the topbar).
-    # Total: 7. A nav item or brand link that newly opts out this way would
-    # push the count above 7.
+    # What legitimately renders href="/" on a BM page: the language
+    # toggle's own EN link, twice (sidebar + topbar). Nothing else.
+    #
+    # It used to be 7. ADR 0017 moved the other five to /app/ — the "Map"
+    # NAV_LINKS entry (2) and the three brand links, `sb-brand`,
+    # `brand-home` and `topbar-title` (3) — because the map left the root
+    # and they are all labelled for the map. They still opt out of language
+    # routing, for the reason they always did: /app/ has no /ms/ twin
+    # either. They just opt out toward a different address.
     toggle_en_href = f'href="{route(Language.EN, "")}"'
-    assert ms_header.count(toggle_en_href) == 7
+    assert ms_header.count(toggle_en_href) == 2
+    assert ms_header.count('href="/app/"') == 5
     for link in NAV_LINKS:
         if link.external is not None:
             continue
@@ -226,18 +221,29 @@ def test_the_root_familys_persistence_script_rewrites_the_leading_slash():
     assert "path.indexOf('/ms/') === 0" in page
 
 
-def test_the_wordmark_always_points_at_the_shared_site_root():
-    # Was "stays in the current language" — the wordmark linked /ms/ on a
-    # Malay page, which 404s (#149 Wave 3): the root is a single static file
-    # with no /ms/ twin, so there is nothing for "the current language" to
-    # mean here. Both languages now get the same href, matching how the
-    # "Map" NAV_LINKS entry and landing_url already handle this.
+def test_the_wordmark_points_at_the_map_in_both_languages():
+    # Two separate fixes live in this assertion.
+    #
+    # #149 Wave 3: the wordmark used to link /ms/ on a Malay page, which
+    # 404s — its target is a single static file with no /ms/ twin, so there
+    # is nothing for "the current language" to mean here. Both languages get
+    # the same href.
+    #
+    # ADR 0017: that href is now /app/, not /. Every brand link is labelled
+    # "Show the whole map", and the map moved off the root when the landing
+    # page took it — so pointing at / meant the wordmark stopped doing what
+    # its own accessible name promised, and landed a reader who wanted the
+    # map on the front door instead.
     en_header = render_header(active_nav="home", language=Language.EN, page_path="")
     ms_header = render_header(active_nav="home", language=Language.MS, page_path="")
-    assert 'class="brand brand-home wordmark" href="/"' in en_header
-    assert 'class="brand brand-home wordmark" href="/"' in ms_header
-    assert 'id="sb-brand" class="sb-brand" href="/"' in en_header
-    assert 'id="sb-brand" class="sb-brand" href="/"' in ms_header
+    for header in (en_header, ms_header):
+        assert 'class="brand brand-home wordmark" href="/app/"' in header
+        assert 'id="sb-brand" class="sb-brand" href="/app/"' in header
+        assert 'id="topbar-title" class="topbar-title" href="/app/"' in header
+    # The footer's "What is PolitikKu?" link is the counterpart and must NOT
+    # move: the landing page is the answer to that question.
+    assert f'href="{landing_url()}"' in render_methodology_footer(language=Language.EN)
+    assert landing_url() == "/"
 
 
 def test_the_language_persistence_script_is_present_and_reads_localstorage():

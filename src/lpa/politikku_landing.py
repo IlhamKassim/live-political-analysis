@@ -75,6 +75,7 @@ from lpa.politikku_i18n import (
     USE_MY_LOCATION_MS,
 )
 from lpa.politikku_shell import (
+    APP_URL,
     LANDING_PAGE,
     Language,
     _en_route,
@@ -89,10 +90,9 @@ PAGE_PATH = LANDING_PAGE
 shell rather than restated so `landing_url()`, this page's own canonical
 URL, and its hreflang alternates cannot drift apart."""
 
-APP_URL = "/app/"
-"""Where the map link, and the gate script's two redirects, point. Until ADR
-0017 this path did not exist: `daily.yml`'s fold-in step copied
-`frontend/public/` to the root only, despite a comment claiming both."""
+"""`APP_URL` is imported from `politikku_shell` rather than restated here:
+the map link on this page and the `map` nav item on every other page must
+resolve to the same path, and two copies of "/app/" is how they drift."""
 
 PROJECTION_JSON = Path("public/projection.json")
 """Written by `python -m lpa.public_export` earlier in the same workflow

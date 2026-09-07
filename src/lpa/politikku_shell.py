@@ -41,6 +41,15 @@ LANDING_URL = f"{POLITIKKU_PREFIX}{LANDING_PAGE}"
 HOMEPAGE_PAGE = "home.html"
 """Retired homepage path kept for redirects."""
 
+APP_URL = "/app/"
+"""Where the map SPA is served from (ADR 0017). Everything labelled "show
+the map" points here: the `map` nav item and the wordmark/brand links.
+
+Distinct from `LANDING_URL` on purpose. `/` is the landing page — what the
+footer's "What is PolitikKu?" link is asking for — and `/app/` is the map.
+Before ADR 0017 they were the same URL, which is why so much of this module
+still reads as though "home" and "the map" are one place."""
+
 
 class Language(StrEnum):
     """The two languages a PolitikKu page can be served in."""
@@ -80,7 +89,7 @@ NAV_LINKS: tuple[NavLink, ...] = (
         "Peta",
         "",
         "map",
-        external="/",
+        external=APP_URL,
         icon_svg=(
             '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
             'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
@@ -371,9 +380,11 @@ def render_sidebar(
     *, active_nav: str, language: Language, page_path: str, prefix: str = POLITIKKU_PREFIX
 ) -> str:
     """Render the SPA-matching sidebar navigation aside."""
-    # Always the EN route: the root is a single static file with no /ms/
-    # twin (see NAV_LINKS' "map" entry and landing_url for the same fix).
-    home_href = route(Language.EN, "")
+    # The map, not the site root. Both brand links are labelled "Show the
+    # whole map", and since ADR 0017 the root is the landing page — so this
+    # href stopped matching its own label. No /ms/ variant: /app/ is a
+    # single static file with no Malay twin.
+    home_href = APP_URL
     about_label = t(language, "About", "Tentang")
     about_href = methodology_url(language)
 
@@ -453,9 +464,11 @@ def render_topbar(
     status: ElectionStatus | None = None,
 ) -> str:
     """Render the SPA-matching topbar header."""
-    # Always the EN route: the root is a single static file with no /ms/
-    # twin (see NAV_LINKS' "map" entry and landing_url for the same fix).
-    home_href = route(Language.EN, "")
+    # The map, not the site root. Both brand links are labelled "Show the
+    # whole map", and since ADR 0017 the root is the landing page — so this
+    # href stopped matching its own label. No /ms/ variant: /app/ is a
+    # single static file with no Malay twin.
+    home_href = APP_URL
     whole_map_label = t(language, "Show the whole map", "Tunjukkan seluruh peta")
     lang_aria = t(language, "Language", "Bahasa")
     open_menu_label = t(language, "Open menu", "Buka menu")

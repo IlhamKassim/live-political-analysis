@@ -184,17 +184,31 @@ retired by ADR 0014 along with their CSS.
 
 ## Consequence
 
-**The wordmark, the "Map" nav item, and the footer's "What is PolitikKu?"
-link on every other page now land on the landing page.** All three point at
-`/`. Before the revision above this was a `location.replace` hop through to
-`/app/` for a returning visitor; now it is a stop. Anyone on a content page
-who clicks the wordmark expecting the map gets the landing page instead.
+**~~The wordmark, the "Map" nav item, and the footer's "What is PolitikKu?"
+link on every other page now land on the landing page.~~ Done — in-site
+navigation goes to the map.** *(Revised, same day.)*
 
-This is the sharpest edge of removing the skip, and the cheapest place to
-fix it if it grates: repoint `NAV_LINKS`' `map` entry and `landing_url()` at
-`/app/`, so in-site navigation goes to the map and only a cold arrival at
-`politikku.my` gets the landing page. That is a deliberate, separate change
-and is not made here.
+Removing the skip turned what had been a `location.replace` hop through to
+`/app/` into a stop: anyone on a content page who clicked the wordmark
+expecting the map got the landing page instead. The wordmark's own
+accessible name is "Show the whole map", so it had stopped doing what it
+said.
+
+Fixed by pointing at `APP_URL` the things that mean *the map* — `NAV_LINKS`'
+`map` entry, and the three brand links (`sb-brand`, `brand-home`,
+`topbar-title`) — and by moving `home.html`'s redirect stub with them, since
+its own comment already said the map view was its closest equivalent.
+
+**`landing_url()` deliberately did NOT move**, contrary to what an earlier
+draft of this note proposed. It backs the footer's "What is PolitikKu?"
+link, and the landing page is the answer to that question. `/` is the
+landing page and `/app/` is the map; they were the same URL before this ADR,
+which is why so much of `politikku_shell.py` still reads as though "home"
+and "the map" are one place. `APP_URL` now lives beside `LANDING_URL` in
+that module so the distinction is stated once.
+
+Net effect: a cold arrival at `politikku.my` gets the landing page; every
+click inside the site that means "the map" goes straight to it.
 
 **`public/data/` is no longer populated by the fold-in.** The frontend's data
 files now land at `public/app/data/`, which is where the SPA fetches them from
