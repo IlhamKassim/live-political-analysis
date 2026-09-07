@@ -323,15 +323,8 @@ def test_sentiment_stays_a_link_because_it_has_no_export_to_preview():
 def test_preview_section_note_disambiguates_daily_projections_from_parliament_records():
     en = render_landing_body(model(), Language.EN)
     ms = render_landing_body(model(), Language.MS)
-    assert (
-        "Projections updated daily. Parliamentary records reflect official sittings."
-        in en
-    )
-    assert (
-        "Unjuran dikemas kini setiap hari. Rekod parlimen mencerminkan persidangan rasmi."
-        in ms
-    )
-
+    assert "Projections updated daily. Parliamentary records reflect official sittings." in en
+    assert "Unjuran dikemas kini setiap hari. Rekod parlimen mencerminkan persidangan rasmi." in ms
 
 
 # ── Fallbacks ─────────────────────────────────────────────────────────────

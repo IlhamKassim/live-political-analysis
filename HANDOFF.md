@@ -159,11 +159,16 @@ uv run --python 3.11 python scripts/deepseek_agent.py \
   --work-dir <scratch>/wt-<name>
 ```
 
-Models: `gpt-5.6-sol` (flagship — use for judgment work), `gpt-5.6-terra`
-(mid-tier — fine for well-specified mechanical work), `gpt-5.6-luna`
-(cheapest), `deepseek-v4-flash` (1M context, but used 2× the input tokens of
-the GPT models for an identical request). All 8 honour
+Models exercised this session: `gpt-5.6-sol` (flagship — use for judgment
+work), `gpt-5.6-terra` (mid-tier — fine for well-specified mechanical work),
+`gpt-5.6-luna` (cheapest), `deepseek-v4-flash` (1M context, but used 2× the
+input tokens of the GPT models for an identical request). All honour
 `tool_choice: "required"`.
+
+Also available on the same key/`--base-url` per the user (2026-09-07,
+untested by this repo's scripts so far — no tier/task-fit judgment yet,
+confirm with a real dispatch before relying on one for judgment work):
+`gpt-5.4-nano`, `gpt-5.4-mini`, `gpt-5.4`, `gpt-5.5`, `gpt-6-astra`.
 
 The agent commits **in its own worktree** and cannot push, merge, or open a PR
 — no such verb exists in its tool schema. Recover its work with
