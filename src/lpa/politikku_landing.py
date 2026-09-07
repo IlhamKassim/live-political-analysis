@@ -357,12 +357,22 @@ GATE_SCRIPT = """
 <script>
 (function () {
   var APP = '__APP_URL__';
+  var SWITCH = 'pk-landing-lang-switch';
+  document.addEventListener('click', function (event) {
+    var el = event.target.closest && event.target.closest('[data-pk-set-lang]');
+    if (el) { try { window.sessionStorage.setItem(SWITCH, '1'); } catch (e) {} }
+  });
   try {
     if (location.hash) { location.replace(APP + location.hash); return; }
   } catch (e) { return; }
-  var store;
+  var store, session;
   try { store = window.localStorage; } catch (e) { return; }
+  try { session = window.sessionStorage; } catch (e) { session = null; }
   try {
+    if (session && session.getItem(SWITCH) === '1') {
+      session.removeItem(SWITCH);
+      return;
+    }
     if (store.getItem('pk-landing-seen') === '1') { location.replace(APP); return; }
     var stored = store.getItem('pk-language');
     var onMs = location.pathname.indexOf('/ms/') === 0;
@@ -374,7 +384,7 @@ GATE_SCRIPT = """
 """Runs before first paint, and before `_language_persistence_script` — see
 `render_shell`'s `extra_head_script` docstring for why that order matters.
 
-Four decisions worth not undoing:
+Five decisions worth not undoing:
 
 - **The hash check is first and unconditional.** Every existing SPA deep
   link (`/#seat-P.102`) was a root URL until this page took the root over.
@@ -391,10 +401,28 @@ Four decisions worth not undoing:
   would have the flag set on `/`, get redirected to `/ms/`, and be bounced
   straight to `/app/` — skipping the gate entirely on their first ever
   visit. The flag is only written on the page the reader actually stays on.
+- **`pk-landing-lang-switch` makes the language toggle usable.** The guard
+  above stops the flag being *written* on a page the reader is about to
+  leave; it does nothing about the flag being *read* when the reader
+  deliberately switches language. Clicking BM on `/` writes
+  `pk-language=ms` and navigates to `/ms/` — where the flag, set moments
+  earlier by `/`'s own load, forwarded straight to `/app/`. The toggle was
+  unusable on the gate. The listener above arms a one-shot `sessionStorage`
+  marker on any `[data-pk-set-lang]` click, and the check consumes it:
+  switching language keeps you on the gate, in the language you asked for.
+  It is *consumed*, not merely read, so it holds exactly one navigation —
+  a later bare visit still forwards. `sessionStorage`, not `localStorage`,
+  so it cannot outlive the tab.
+
+Ordering inside the script is load-bearing twice over. The click listener
+registers before any early `return`, so it is armed even on a load that
+immediately redirects. The switch check runs before the `pk-landing-seen`
+check, because that is the whole point of it.
 
 Every branch sits in `try/catch`: storage throws outright in some private
-browsing modes, and the degraded behaviour there is "always show the gate,"
-never a blank page.
+browsing modes. With `localStorage` unavailable the gate always shows; with
+only `sessionStorage` unavailable the toggle reverts to the old broken
+behaviour rather than breaking the page. Never a blank page.
 """
 
 

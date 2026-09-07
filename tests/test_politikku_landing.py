@@ -473,6 +473,40 @@ def test_the_gate_script_survives_blocked_storage():
     assert script.count("try {") >= 3
 
 
+def test_switching_language_on_the_gate_keeps_you_on_the_gate():
+    # The bug this guards: clicking BM on `/` writes pk-language=ms and
+    # navigates to `/ms/`, where pk-landing-seen — set moments earlier by
+    # `/`'s own load — forwarded straight to /app/. The language toggle was
+    # unusable on the gate. A one-shot sessionStorage marker, armed on the
+    # click and consumed on the next load, is what holds the reader.
+    script = gate_script()
+    assert "pk-landing-lang-switch" in script
+    assert "sessionStorage" in script
+    assert "data-pk-set-lang" in script
+    # Consumed, not just read: one navigation only, so a later bare visit
+    # still forwards to /app/.
+    assert "removeItem(SWITCH)" in script
+    # Checked before the seen-flag, or it could never win.
+    assert script.index("getItem(SWITCH)") < script.index("pk-landing-seen")
+
+
+def test_the_switch_listener_is_armed_before_any_early_return():
+    # Registered above the redirects on purpose: a load that immediately
+    # forwards must still arm the marker, or the toggle breaks again on
+    # exactly the pages that redirect.
+    script = gate_script()
+    assert script.index("addEventListener") < script.index("location.hash")
+
+
+def test_blocked_session_storage_degrades_without_breaking_the_page():
+    # localStorage and sessionStorage are read into separate try/catch
+    # blocks: losing sessionStorage must not take the whole gate down with
+    # it, so `session` falls back to null rather than returning early.
+    script = gate_script()
+    assert "session = null" in script
+    assert "session &&" in script
+
+
 def test_the_gate_script_runs_before_the_language_script():
     page = render_landing_page(model())
     assert page.index("pk-landing-seen") < page.index("pk-language")
