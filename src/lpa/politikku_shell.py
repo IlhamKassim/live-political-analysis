@@ -288,7 +288,7 @@ def trust_strip_status_text(status: ElectionStatus, language: Language = Languag
             f"PRU16 belum diisytiharkan — tarikh akhir perlembagaan {deadline}",
         )
     if status.polling_date is None:
-        dissolved = short_date(status.dissolved_on)
+        dissolved = short_date(status.dissolved_on)  # type: ignore[arg-type]
         return t(
             language,
             f"GE16 called, dissolved {dissolved} — polling day not yet announced",
