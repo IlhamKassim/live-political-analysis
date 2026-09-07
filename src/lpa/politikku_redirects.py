@@ -78,21 +78,25 @@ def mp_profile_redirects() -> dict[str, str]:
     return {f"{MP_PROFILE_DIR}/{code}.html": f"/mp/{code}/" for code in load_mp_profiles()}
 
 
-def ms_landing_redirect(public_dir: Path) -> None:
-    """Redirect /ms/ to the single client-side bilingual site root.
-
-    Unlike retired paths, this must not write public/index.html, which is the real site.
-    """
-    out = public_dir / "ms" / "index.html"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(_stub_html("/"), encoding="utf-8")
+# `ms_landing_redirect()` was removed by ADR 0017. It wrote a stub at
+# `public/ms/index.html` pointing back at `/`, which was correct under ADR
+# 0014: the root was the SPA, a single client-side bilingual page with no
+# `/ms/` twin, so `/ms/` had nothing real to serve.
+#
+# `politikku_landing.py` now renders a real Bahasa Malaysia page at exactly
+# that path, and this module's step runs *after* it in `daily.yml` — so the
+# stub silently clobbered the BM landing page on every deploy. It survived
+# the smoke-check because a stub is a file, and `[ -f ... ]` cannot tell a
+# page from a redirect; the check now asserts `lang="ms"` in the file's
+# content for that reason.
+#
+# Do not reinstate this without first confirming nothing renders `/ms/`.
 
 
 def build_redirects(public_dir: Path) -> int:
     redirects = {**STATIC_REDIRECTS, **mp_profile_redirects()}
     for relative_path, target in redirects.items():
         _write_stub(public_dir, relative_path, target)
-    ms_landing_redirect(public_dir)
     return len(redirects)
 
 

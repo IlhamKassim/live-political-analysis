@@ -540,3 +540,26 @@ def test_writing_both_pages_lands_at_the_paths_gitignore_names(tmp_path, majorit
     assert (tmp_path / "index.html").is_file()
     assert (tmp_path / "ms" / "index.html").is_file()
     assert "<!doctype html>" in (tmp_path / "index.html").read_text(encoding="utf-8")
+
+
+def test_the_redirect_stubs_no_longer_clobber_the_bm_landing_page(tmp_path):
+    # politikku_redirects.ms_landing_redirect() wrote a "Moved" stub at
+    # public/ms/index.html — correct under ADR 0014, when the root was the
+    # SPA and /ms/ had no real twin. Its step runs AFTER the landing render
+    # in daily.yml, so once this module started rendering a real BM page at
+    # that path the stub silently clobbered it on every deploy. It shipped
+    # to production twice before anyone loaded /ms/ and read the content.
+    from lpa import politikku_landing
+    from lpa.politikku_redirects import build_redirects
+
+    politikku_landing.build_and_write_landing_pages(tmp_path)
+    build_redirects(tmp_path)
+
+    ms = (tmp_path / "ms" / "index.html").read_text(encoding="utf-8")
+    assert '<html lang="ms">' in ms
+    assert "Moved" not in ms
+    # The stubs that SHOULD exist still do.
+    assert (tmp_path / "home.html").is_file()
+    assert (tmp_path / "ms" / "home.html").is_file()
+    # And the EN root is untouched too.
+    assert '<html lang="en">' in (tmp_path / "index.html").read_text(encoding="utf-8")

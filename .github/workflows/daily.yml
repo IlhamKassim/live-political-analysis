@@ -342,8 +342,13 @@ jobs:
             echo "::error::public/index.html is missing — the landing page failed to render."
             missing=1
           fi
-          if [ ! -f "public/ms/index.html" ]; then
-            echo "::error::public/ms/index.html is missing — the landing page failed to render."
+          # Content, not just existence: politikku_redirects.py used to write
+          # a "Moved" stub at this exact path (ADR 0014's /ms/ -> / redirect),
+          # and its step runs after the landing render — so the BM page was
+          # silently clobbered on every deploy while `[ -f ]` reported success.
+          # lang="ms" is the cheapest thing only the real page has.
+          if ! grep -q '<html lang="ms">' public/ms/index.html 2>/dev/null; then
+            echo "::error::public/ms/index.html is missing or is not the BM landing page (a redirect stub would also pass a bare -f check)."
             missing=1
           fi
           if [ ! -f "public/app/index.html" ]; then
