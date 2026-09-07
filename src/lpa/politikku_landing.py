@@ -992,8 +992,8 @@ def render_previews(model: LandingModel, language: Language) -> str:
     heading = t(language, "What the site is tracking", "Apa yang dijejaki laman ini")
     note = t(
         language,
-        "Updated once a day. Modelled figures are labelled as modelled.",
-        "Dikemas kini sekali sehari. Angka model dilabel sebagai angka model.",
+        "Projections updated daily. Parliamentary records reflect official sittings.",
+        "Unjuran dikemas kini setiap hari. Rekod parlimen mencerminkan persidangan rasmi.",
     )
     links = (
         (route(language, "sentiment/"), t(language, "Sentiment", "Sentimen")),
