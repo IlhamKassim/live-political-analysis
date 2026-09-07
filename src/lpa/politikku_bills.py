@@ -147,8 +147,13 @@ def _pill_style(
     return f"background:{bg};color:{fg};border:1px solid {border};"
 
 
-def _bill_stage_style(stage: str) -> str:
-    """Map bill stage string to tokenized pill style."""
+def bill_stage_style(stage: str) -> str:
+    """Map bill stage string to tokenized pill style.
+
+    Public because `politikku_landing.py`'s Bill-tracker teaser renders the
+    same stage pills for the two most recent Bills. One function means the
+    landing page and this page cannot show the same stage in two different
+    colours."""
     s = stage.lower()
     if "lulus" in s:
         return _pill_style("var(--positive-bg)", "var(--accent)", "var(--positive-border)")
@@ -168,7 +173,7 @@ def _bill_row(bill: Bill, language: Language) -> str:
     """One `<dt>`/`<dd>` pair, matching `renderBillsRows()`'s markup exactly
     so `app.js` can re-render on top of this without a DOM shape change."""
     stage_pill = (
-        f'<span class="pill" style="{_bill_stage_style(bill.stage)}">'
+        f'<span class="pill" style="{bill_stage_style(bill.stage)}">'
         f"{html.escape(bill.stage)}</span>"
     )
     division_pill = (

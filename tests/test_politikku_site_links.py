@@ -12,16 +12,17 @@ tree.
 ADR 0014 (the mypolitik-frontend root swap) retired `politikku_landing.py`,
 `politikku_homepage.py`, `politikku_bills.py` and `politikku_mp_profile.py`
 together — this module used to render all seven PolitikKu pages and follow
-links between them; now it renders the four that survive
-(`politikku_projection`, `politikku_sentiment`, `politikku_learn`'s three
-pages) plus the hand-authored `learn/` pages. `/`, `/app/...` and the old
-retired-page paths are no longer written by any Python renderer at all — the
-site root and `/app/` come from the frontend fold-in step in `daily.yml`
-(a plain file copy, nothing this suite can exercise), and the retired pages'
-old paths are `politikku_redirects.py` stubs. Both are excluded from the
-link-resolution sweep below, the same way `GENERATED_BY_ANOTHER_BUILD_STEP`
-already excludes `/lookup.js` and friends — not because nothing points at
-them, but because nothing here can render them to check.
+links between them; then it rendered only the four that survived. ADR 0017
+brings `politikku_landing.py` back, as the orientation gate at `/` and
+`/ms/`, so those two paths are covered here again: they are the pages every
+other page's wordmark and methodology footer point at, and the sweep now
+follows the map link, the two data panels' "full ledger"/"all Bills" links,
+the Sentiment/Dewan/Politicians link row and the glossary link on each.
+
+Still excluded, for `GENERATED_BY_ANOTHER_BUILD_STEP`'s own reason — nothing
+here can render them to check, not that nothing points at them: `/app/...`
+(the frontend fold-in step's plain `cp -r` in `daily.yml`) and the retired
+pages' old paths (`politikku_redirects.py` stubs).
 
 Fixture data throughout, reusing the models the per-page test modules
 already build, so this needs no Storage — it is a check on routing, not on
@@ -37,6 +38,8 @@ from pathlib import Path
 import pytest
 from test_politikku_projection import NAMES, _projection_model
 
+from lpa.bill_tracker import Bill
+from lpa.politikku_landing import CoalitionRow, LandingModel, render_landing_page
 from lpa.politikku_projection import (
     METHODOLOGY_PAGE,
     PROJECTION_PAGE,
@@ -45,7 +48,13 @@ from lpa.politikku_projection import (
     render_projection,
 )
 from lpa.politikku_sentiment import render_sentiment_page, sentiment_page_model
-from lpa.politikku_shell import NAV_LINKS, POLITIKKU_PREFIX, Language
+from lpa.politikku_shell import (
+    NAV_LINKS,
+    POLITIKKU_PREFIX,
+    Language,
+    _en_route,
+    _ms_route,
+)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -72,8 +81,6 @@ this module exists to catch, one build step over."""
 
 _APP_ROOTED_EXACT = frozenset(
     {
-        "/",
-        "/ms/",
         "/bills/",
         "/politicians/",
         "/dewan/",
@@ -82,14 +89,17 @@ _APP_ROOTED_EXACT = frozenset(
     }
 )
 _APP_ROOTED_PREFIXES = ("/app/", "/mp/")
-"""What the frontend fold-in step (`daily.yml`'s plain `cp -r`, not a Python
-renderer) is responsible for, post-ADR-0014: the site root itself (`"/"`, the
-Home nav item's href — every root-*relative* link starts with `/` too, so
-this is an exact match, not a prefix), the Bills page (`"/bills/"`),
-Politicians and Dewan directory routes, and
-every `/app/#...` or `/mp/<code>/` link. Excluded from link resolution below for
+"""Routes no page renderer in this fixture writes: the Bills page
+(`"/bills/"` — `politikku_bills.py` renders it, but from
+`frontend/public/data/bills.json`, which this routing-only fixture does not
+load), the Politicians and Dewan directory routes, and every `/app/#...` or
+`/mp/<code>/` link. Excluded from link resolution below for
 `GENERATED_BY_ANOTHER_BUILD_STEP`'s own reason — nothing here can render
-them to check."""
+them to check.
+
+`"/"` and `"/ms/"` came off this list with ADR 0017: `politikku_landing.py`
+renders them again, the fixture below writes them, and their links are now
+followed like any other page's."""
 
 
 def _is_app_rooted(link: str) -> bool:
@@ -173,6 +183,43 @@ def rendered_site(tmp_path_factory) -> Path:
             f"{ms}{projection_dir}/{PROJECTION_PAGE}",
             render_projection(page, language=language),
         )
+        # ADR 0017's orientation gate at `/` and `/ms/`. Fixture model, so
+        # nothing here reads `public/projection.json` or `bills.json` —
+        # this sweep checks routing, and no figure on the page changes a
+        # single href. The Coalition rows and Bills are non-empty on
+        # purpose, though: an empty model would drop the two data panels
+        # and take their `/projection/` and `/bills/` links out of the
+        # sweep along with them.
+        _write(
+            root,
+            f"{ms}index.html",
+            render_landing_page(
+                LandingModel(
+                    government_majority=True,
+                    coalitions=(
+                        CoalitionRow("PH", 75, "#d7263d", True),
+                        CoalitionRow("PN", 69, "#15387c", False),
+                    ),
+                    bills=(
+                        Bill(
+                            code="D.R.22/2026",
+                            title="RUU Contoh 2026",
+                            year=2026,
+                            stage="Lulus",
+                            stage_date=date(2026, 7, 16),
+                            summary="Petikan.",
+                            summary_source_url="https://www.parlimen.gov.my/x.pdf",
+                        ),
+                    ),
+                    majority_threshold=112,
+                    total_seats=222,
+                    updated_at=date(2026, 1, 1),
+                    sources_count=7,
+                    status=page.status,
+                ),
+                language=language,
+            ),
+        )
     return root
 
 
@@ -228,12 +275,14 @@ def test_the_spa_sidebar_and_nav_links_agree_on_which_destinations_exist():
 def test_every_page_is_written_under_the_site_root_not_a_sub_prefix(rendered_site):
     # The cutover itself, stated as file paths: PolitikKu's own pages sit at
     # the root of the published directory. A `politikku/` directory here
-    # would mean a page's `main()` still writes the staging prefix. The site
-    # root's own `index.html` is out of scope for this assertion since ADR
-    # 0014: it is the frontend fold-in step's `cp -r`, not any Python
-    # renderer's `main()`, that writes it now.
+    # would mean a page's `main()` still writes the staging prefix. Since
+    # ADR 0017 the site root's own `index.html` is in scope again —
+    # `politikku_landing.build_and_write_landing_pages` writes it, not the
+    # frontend fold-in's `cp -r`.
     assert POLITIKKU_PREFIX == "/"
     assert not (rendered_site / "politikku").exists()
+    assert (rendered_site / "index.html").is_file()
+    assert (rendered_site / "ms" / "index.html").is_file()
 
 
 def test_every_internal_link_on_every_page_resolves_to_a_rendered_file(rendered_site):
@@ -260,12 +309,20 @@ def test_the_language_toggle_on_every_page_reaches_the_other_language(rendered_s
     # `prefix`, not from a nav table. Every page built on the PolitikKu
     # shell, which is every page here except the hand-authored `learn/`
     # ones (they predate PolitikKu and carry no shell — #26/#27/#28).
+    #
+    # Four toggle links on a chrome-bearing page: EN and BM, rendered once
+    # in the sidebar and again in the topbar. The landing page renders
+    # `chrome=False` (ADR 0017) and carries the pair once, in its own
+    # header — one toggle, still both languages, which is the property this
+    # test is actually about.
     for page_path in sorted(rendered_site.rglob("*.html")):
         if page_path.parent.name == "learn":
             continue
         page = page_path.read_text(encoding="utf-8")
         toggles = re.findall(r'href="([^"]+)" (?:aria-current="page" )?data-pk-set-lang=', page)
-        assert len(toggles) == 4, page_path
+        bare = 'class="pk-bare"' in page
+        assert len(toggles) == (2 if bare else 4), page_path
+        assert set(toggles) == {_en_route(""), _ms_route("")} if bare else True
         for link in toggles:
             assert _resolve(rendered_site, link).is_file(), (page_path, link)
 

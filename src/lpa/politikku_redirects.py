@@ -9,9 +9,12 @@ existing bookmarks, backlinks, and Google's already-indexed results land on
 real root-relative paths (`/`, `/bills`, `/mp/<code>/`) instead of 404ing.
 
 `politikku_landing.py`'s own output path (`public/index.html`, the site
-root) needs no stub here: ADR 0014 has the frontend fold-in step overwrite
-that path directly with the app's own content, so the root just *is* the
-new content rather than redirecting to it.
+root) needs no stub here — but the reason changed with ADR 0017. Under ADR
+0014 it was that the frontend fold-in overwrote the root with the app's
+content, so the root just *was* the new content. `politikku_landing.py` is
+no longer retired: it renders that path again, as the orientation gate, and
+forwards on to `/app/` client-side. Either way there is nothing at the old
+path to redirect *from*, so this module stays correct and unchanged.
 
 Driven off `load_mp_profiles()` for the MP Profile stubs — the same source
 of truth `politikku_mp_profile.py` used to render from — so this stays

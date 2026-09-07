@@ -62,7 +62,26 @@ public/data/
 # permalinks written beside it (public/projection/<year>/<month>/<day>.html)
 # — see the #55 note further down, which those files are the whole point of.
 public/projection/index.html
+# `_ms_route`'s "ms segment leads" rule (politikku_shell.py) means the BM
+# page is written to public/ms/projection/, never public/projection/ms/ —
+# the first entry below was the only shape ever listed here, and it was the
+# wrong one, which is why the real file kept showing up untracked in
+# `git status`. Nothing writes public/projection/ms/ any more; its entry
+# stays only so a stale local copy left over from before the route flip
+# doesn't reappear as noise now that the correct path is also listed.
 public/projection/ms/index.html
+public/ms/projection/index.html
+
+# Copied out of frontend/public/ by daily.yml's fold-in step (ADR 0017 —
+# public/app/ is that step's only target now, and public/fonts/ carries the
+# shell's own @font-face files, which used to arrive at the root by side
+# effect). Generated, published by the Action, not carried in the repo —
+# except the four legacy woff2 files already tracked under public/fonts/,
+# which git keeps regardless of the pattern below.
+public/app/
+public/fonts/jetbrains-mono-*.woff2
+public/fonts/redaction-*.woff2
+public/fonts/space-grotesk-*.woff2
 
 # ts/src/lookup.ts's compiled output (#77, `node build.mjs`) — generated,
 # not committed, the same call already made for the Python-rendered pages

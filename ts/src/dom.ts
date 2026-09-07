@@ -331,7 +331,11 @@ function notFoundView(
         });
       } else {
         if (id === "browseAllSeats") {
-          a.href = currentLanguage() === "ms" ? "/projection/ms/" : "/projection/";
+          // `_ms_route` puts the ms segment FIRST (politikku_shell.py):
+          // politikku_projection writes public/ms/projection/index.html, so
+          // "/projection/ms/" is a 404. Latent until ADR 0017 put this
+          // no-match state on the site root, where a BM reader meets it.
+          a.href = currentLanguage() === "ms" ? "/ms/projection/" : "/projection/";
         } else {
           a.href = ROUTE_HREFS[id];
         }

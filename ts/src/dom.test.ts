@@ -125,14 +125,14 @@ describe("mountLookup", () => {
     expect(browseLink?.getAttribute("href")).toBe("/projection/");
   });
 
-  it("browse all seats links to /projection/ms/ when in BM", async () => {
+  it("browse all seats links to /ms/projection/ when in BM", async () => {
     document.documentElement.lang = "ms";
     const container = buildContainer();
     mountLookup(container);
     await submit(container, "99999");
     const links = [...container.querySelectorAll<HTMLAnchorElement>(".pk-lookup-routes a")];
     const browseLink = links.find((a) => a.textContent === "Lihat semua 222 Kerusi");
-    expect(browseLink?.getAttribute("href")).toBe("/projection/ms/");
+    expect(browseLink?.getAttribute("href")).toBe("/ms/projection/");
   });
 
   it("clicking \"Search by name\" clears the input, focuses it, and returns to idle", async () => {

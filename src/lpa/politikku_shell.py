@@ -682,20 +682,54 @@ def render_shell(
     status: ElectionStatus,
     body_html: str,
     prefix: str = POLITIKKU_PREFIX,
+    extra_head_script: str = "",
+    chrome: bool = True,
+    header_html: str = "",
 ) -> str:
-    """Wrap body_html in the full PolitikKu page shell."""
-    sidebar = render_sidebar(
-        active_nav=active_nav, language=language, page_path=page_path, prefix=prefix
+    """Wrap body_html in the full PolitikKu page shell.
+
+    `extra_head_script` is raw `<script>` markup injected as the FIRST thing
+    in `<head>` after the charset, *ahead* of `_language_persistence_script`.
+    Only `politikku_landing.py` passes one today (its gate/redirect script,
+    ADR 0017) and the order is load-bearing for it: the language script
+    redirects on `location.pathname` alone, so a `/#seat-P.102` deep link
+    that reached the language script first would arrive at `/ms/` with the
+    fragment already dropped. Running the gate script first forwards the
+    hash intact. Defaults to `""`, so every other call site is unaffected.
+
+    `chrome=False` drops the app's own navigation — the sidebar and the
+    topbar — and replaces the topbar slot with `header_html`, the caller's
+    own full-width header. It also stamps `class="pk-bare"` on `<body>`,
+    which is what zeroes `#main-content`'s 56px topbar offset and the
+    sidebar's 232px `#app` margin (see `_CSS_TEMPLATE`). The landing page
+    is the only caller: a first-time visitor has not entered the app yet,
+    so framing the page in the app's internal navigation makes it read as
+    an empty dashboard tab rather than a way in.
+
+    Everything else is deliberately unaffected by `chrome=False` — the head
+    (canonical, hreflang, OG, JSON-LD), the design tokens, the methodology
+    footer, and the lookup bundle all still come from here, so a bare page
+    cannot quietly fork into a second design system (ADR 0015).
+    """
+    sidebar = (
+        render_sidebar(active_nav=active_nav, language=language, page_path=page_path, prefix=prefix)
+        if chrome
+        else ""
     )
-    topbar = render_topbar(
-        active_nav=active_nav,
-        language=language,
-        page_path=page_path,
-        prefix=prefix,
-        updated_at=updated_at,
-        sources_count=sources_count,
-        status=status,
+    topbar = (
+        render_topbar(
+            active_nav=active_nav,
+            language=language,
+            page_path=page_path,
+            prefix=prefix,
+            updated_at=updated_at,
+            sources_count=sources_count,
+            status=status,
+        )
+        if chrome
+        else header_html
     )
+    body_class = "" if chrome else ' class="pk-bare"'
     lang_attr = "ms" if language is Language.MS else "en"
     escaped_title = html.escape(title)
     escaped_description = html.escape(description)
@@ -723,6 +757,7 @@ def render_shell(
 <html lang="{lang_attr}">
 <head>
 <meta charset="utf-8">
+{extra_head_script}
 {_language_persistence_script(prefix)}
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{escaped_title}</title>
@@ -746,7 +781,7 @@ def render_shell(
 </script>
 <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{{"token": "5eadc388fb2a4518b8e846b059fb102c"}}'></script><!-- End Cloudflare Web Analytics --> <!-- gitleaks:allow -->
 </head>
-<body>
+<body{body_class}>
 {sidebar}
 <div id="app">
 {topbar}
@@ -1023,6 +1058,13 @@ _CSS_TEMPLATE = """
   #main-content {
     flex: 1;
     padding-top: 56px;
+  }
+  /* render_shell(chrome=False): no fixed topbar to clear and no sidebar to
+     sit beside, so both of the offsets above stop applying. The landing
+     page is the only page in this state. */
+  body.pk-bare #main-content { padding-top: 0; }
+  @media (min-width: 640px) {
+    body.pk-bare #app { margin-left: 0; }
   }
 
   /* Ported page primitives */

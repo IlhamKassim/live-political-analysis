@@ -248,6 +248,23 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m lpa.public_export
 
+      - name: Render the PolitikKu landing page
+        # ADR 0017: writes public/index.html (the site root) and
+        # public/ms/index.html. Placed directly after the Projection export
+        # because it reads that step's public/projection.json for the
+        # majority-call teaser; it falls back to static orientation copy if
+        # that read comes back empty, so a failed export degrades the tile,
+        # not the page. Order against the frontend fold-in no longer
+        # matters — the fold-in stops touching public/index.html entirely.
+        #
+        # NOT continue-on-error, unlike the other page renderers: public/ is
+        # gitignored, so a failed render leaves the artifact with no root
+        # page at all rather than yesterday's copy, and deploy-pages
+        # replaces the live site wholesale.
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m lpa.politikku_landing
+
       - name: Render the shareable Seat Call cards
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -272,20 +289,29 @@ jobs:
       - name: Fold frontend/ into the Pages artifact
         # #134 (Step 5) originally folded frontend/ in under public/app/ only,
         # a new subpath alongside the root PolitikKu pages then owned it.
-        # ADR 0014 (the mypolitik-frontend root swap) makes /app/'s content
-        # the site root too: the four PolitikKu renderers that used to own
-        # public/index.html and friends are retired above, so this step now
-        # copies frontend/public/ to BOTH public/ (the root) and public/app/
-        # (kept as a live subpath — it's what the old-URL redirect stubs
-        # below point at). NOT continue-on-error, unlike the original
-        # #134 step: this now writes the site root, the same strictness
-        # `politikku_landing.py`'s render step used to carry for the same
-        # reason — public/ is gitignored, so a failed copy leaves the
-        # uploaded artifact with no root page at all rather than
-        # yesterday's copy, and deploy-pages replaces the live site
-        # wholesale. The Cloudflare Worker deploy originally planned
-        # alongside #134 is out of scope here — Cloudflare's own dashboard
-        # Git-integration handles that deploy separately.
+        # ADR 0014 (the mypolitik-frontend root swap) made /app/'s content
+        # the site root too — or said it did: this step's comment claimed a
+        # copy to BOTH public/ and public/app/, while the `run:` below only
+        # ever had the one `cp` to public/. /app/ was never a real path.
+        # ADR 0017 resolves that drift in the other direction: the landing
+        # page (its own render step above) owns public/index.html, and
+        # public/app/ is now this step's ONLY target — the SPA's first real
+        # home there. NOT continue-on-error, unchanged: public/ is
+        # gitignored, so a failed copy leaves the uploaded artifact with no
+        # app at all rather than yesterday's, and deploy-pages replaces the
+        # live site wholesale. The Cloudflare Worker deploy originally
+        # planned alongside #134 is out of scope here — Cloudflare's own
+        # dashboard Git-integration handles that deploy separately.
+        #
+        # The second cp is not redundant. politikku_shell.py's six
+        # @font-face rules point at /fonts/*.woff2 and are used by EVERY
+        # server-rendered page, not just the app; those files reached
+        # public/fonts/ purely as a side effect of the old wholesale root
+        # copy. Retargeting to public/app/ alone would 404 them site-wide —
+        # silently, since the pages still render, just with fallback
+        # typography. This preserves that previously-accidental,
+        # actually load-bearing behaviour explicitly, and the smoke-check
+        # below now asserts it.
         #
         # Runs BEFORE "Generate sitemap": politikku_sitemap.py auto-discovers
         # every public/**/*.html file, including public/app/index.html and
@@ -295,22 +321,41 @@ jobs:
         # produced a sitemap with no /app/ entries, caught by a user asking
         # why the new frontend wasn't showing up for Google.
         run: |
-          cp -r frontend/public/. public/
+          mkdir -p public/app public/fonts
+          cp -r frontend/public/. public/app/
+          cp -r frontend/public/fonts/. public/fonts/
 
       - name: Smoke-check the frontend fold-in and pre-rendered pages
         # Loud on purpose (no continue-on-error): a silently-broken copy
         # would ship a Pages artifact with a dead root, and nobody would
-        # notice until a visitor did. index.html proves the static app itself
-        # copied; data/bills.json proves the data directory came along.
-        # Pre-rendered bills, dewan, and politicians pages must exist.
+        # notice until a visitor did. Since ADR 0017 the root and the app
+        # come from two different steps, so each is checked for what it
+        # actually proves: public/index.html means the landing page
+        # rendered, public/app/index.html means the fold-in landed at its
+        # new home, and app/data/bills.json means the data directory came
+        # along with it. The font check is the highest-value line here —
+        # that failure mode is silent (pages render, just wrong-fonted),
+        # and no pytest exercises the fold-in.
         run: |
           missing=0
           if [ ! -f "public/index.html" ]; then
-            echo "::error::public/index.html is missing — frontend fold-in failed."
+            echo "::error::public/index.html is missing — the landing page failed to render."
             missing=1
           fi
-          if [ ! -f "public/data/bills.json" ]; then
-            echo "::error::public/data/bills.json is missing — frontend fold-in failed."
+          if [ ! -f "public/ms/index.html" ]; then
+            echo "::error::public/ms/index.html is missing — the landing page failed to render."
+            missing=1
+          fi
+          if [ ! -f "public/app/index.html" ]; then
+            echo "::error::public/app/index.html is missing — frontend fold-in failed."
+            missing=1
+          fi
+          if [ ! -f "public/app/data/bills.json" ]; then
+            echo "::error::public/app/data/bills.json is missing — frontend fold-in failed."
+            missing=1
+          fi
+          if [ ! -f "public/fonts/space-grotesk-latin.woff2" ]; then
+            echo "::error::public/fonts/ is missing the shell's webfonts — every page loses its typography."
             missing=1
           fi
           for page in public/bills/index.html public/dewan/index.html public/politicians/index.html; do
