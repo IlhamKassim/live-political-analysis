@@ -20,15 +20,13 @@ dist/
 .DS_Store
 
 # Rendered by `python -m lpa.politikku_landing` (the landing page owns the
-# site root since the landing-page cutover — `lpa.politikku_homepage` owned
-# it from #104 until then, and `lpa.public_page` before that; neither is
-# rendered or published at this path any more); the Action publishes it,
-# the repo does not carry it.
+# site root under ADR 0017; `lpa.public_page` formerly owned that published
+# surface). The Action publishes it; the repo does not carry it.
 public/index.html
 public/ms/index.html
 
-# Rendered by `python -m lpa.politikku_homepage` — moved off the site root
-# to `public/home.html` (the "Dashboard" nav page) at the same cutover.
+# Written by `python -m lpa.politikku_redirects` as compatibility stubs for
+# the retired `politikku_homepage.py` route.
 public/home.html
 public/ms/home.html
 

@@ -42,9 +42,9 @@ PolitikKu's is not: `paper`/`paper-alt` bands at a fixed gutter, rounded
 and, explicitly, *no party colours at all* (`politikku_shell`'s own
 docstring). So:
 
-- Every table uses the one table idiom `politikku_homepage`'s sentiment
-  table already established (white card, `--line` border, mono uppercase
-  headers, `--line-soft` row rules) rather than six new ones.
+- Every table uses the established PolitikKu table idiom (white card,
+  `--line` border, mono uppercase headers, `--line-soft` row rules) rather
+  than six new ones.
 - `public_page._swatch`'s per-Coalition inks (`--ph`/`--bn`/`--pn`/…) do not
   come across. Rows are marked Government/Non-government with
   `--data-government`/`--data-nongovernment`, the axis
@@ -130,10 +130,10 @@ from lpa.public_page import (
 
 PROJECTION_PAGE = "index.html"
 """`/projection/` is a directory route, so its file is an `index.html` —
-the same shape `politikku_homepage` uses for `/`. This is the
+the same shape `politikku_landing` uses for `/`. This is the
 *filename* `main` writes, and only that: the page's own `page_path` (which
 drives the EN/BM toggle) is `""`, the directory route itself, exactly as
-`politikku_homepage.render_homepage` passes `""` for `/`. Spelling
+`politikku_landing.render_landing` passes `""` for `/`. Spelling
 the file name into the toggle instead would give one page two canonical
 URLs — `projection_url()` and the header nav both say `/projection/`, and a
 toggle saying `/projection/index.html` would quietly disagree with them."""
@@ -1334,8 +1334,8 @@ def render_methodology(model: PageModel, *, language: Language = Language.EN) ->
 
 
 _CSS = """
-  /* `.pk-eyebrow` is defined in `politikku_homepage`'s own page CSS, not the
-     shell's, so a page that does not load the homepage cannot inherit it —
+  /* `.pk-eyebrow` is page-specific rather than shell CSS, so a page cannot
+     inherit it from another renderer —
      defined here rather than assumed. */
   .pk-eyebrow {
     font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
@@ -1593,7 +1593,7 @@ def load_projection_page_model(engine: Engine) -> PageModel:
     """One Storage read behind both pages (#158).
 
     Mirrors `public_page.build_page` rather than the shorter read
-    `politikku_homepage`/`_landing`/`_mp_profile` make: those pass no
+    `politikku_landing`/`_mp_profile` make: those pass no
     `history`, which leaves `PageModel.trend` holding today's run alone and
     the Majority-margin section (#45) permanently stuck on its "one run is
     stored" sentence. This page *is* the trend's home, so it passes the same

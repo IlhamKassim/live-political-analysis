@@ -9,15 +9,14 @@ reader would — renders every page at the path its own `main()` writes it to,
 walks every `href`/`src` on each one, and resolves it against that rendered
 tree.
 
-ADR 0014 (the mypolitik-frontend root swap) retired `politikku_landing.py`,
-`politikku_homepage.py`, `politikku_bills.py` and `politikku_mp_profile.py`
-together — this module used to render all seven PolitikKu pages and follow
-links between them; then it rendered only the four that survived. ADR 0017
-brings `politikku_landing.py` back, as the orientation gate at `/` and
-`/ms/`, so those two paths are covered here again: they are the pages every
-other page's wordmark and methodology footer point at, and the sweep now
-follows the map link, the two data panels' "full ledger"/"all Bills" links,
-the Sentiment/Dewan/Politicians link row and the glossary link on each.
+ADR 0014 retired the old `politikku_homepage.py` surface. Its legacy routes
+remain outside this renderer sweep as redirect stubs. ADR 0017 restored
+`politikku_landing.py` as the orientation page at `/` and `/ms/`, while the
+Bills and MP-profile renderers use their current directory routes. Those
+paths are covered here: they are the pages every other page's wordmark and
+methodology footer point at, and the sweep follows the map link, the two data
+panels' "full ledger"/"all Bills" links, the Sentiment/Dewan/Politicians link
+row and the glossary link on each.
 
 Still excluded, for `GENERATED_BY_ANOTHER_BUILD_STEP`'s own reason — nothing
 here can render them to check, not that nothing points at them: `/app/...`

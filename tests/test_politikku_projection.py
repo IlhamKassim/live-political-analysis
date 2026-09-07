@@ -13,11 +13,11 @@ second derivation of them, that the BM route carries BM copy including the
 caveats ADR 0005 makes load-bearing, and that the routing/permalink paths the
 page prints match the files `main` writes.
 
-The 222-Seat fixture (`_baseline_222`/`NAMES` below) was `test_politikku_homepage`'s
-own until ADR 0014 retired that module — `politikku_hemicycle.HemicycleCounts`
-rejects any chamber that is not exactly 222 real Seats, so a hand-sized
-baseline cannot reach `render_projection` at all, and this is the last
-surviving consumer of that fixture.
+The 222-Seat fixture (`_baseline_222`/`NAMES` below) originated in
+`test_politikku_homepage` before ADR 0014 retired that module —
+`politikku_hemicycle.HemicycleCounts` rejects any chamber that is not exactly
+222 real Seats, so a hand-sized baseline cannot reach `render_projection` at
+all, and this is the last surviving consumer of that fixture.
 """
 
 from __future__ import annotations
@@ -658,9 +658,8 @@ def test_seat_table_and_too_close_link_to_mp_profile_when_available(monkeypatch)
     # Only presence in `load_mp_profiles()`'s mapping matters here — the
     # seat-table/too-close links this checks fire off `seat_code in
     # profiles` alone, never a profile field — so the values below are
-    # arbitrary, not a real MPProfile fixture (that lived in
-    # `test_politikku_mp_profile.py`, retired with `politikku_mp_profile.py`
-    # by ADR 0014).
+    # arbitrary, not a real MPProfile fixture from
+    # `test_politikku_mp_profile.py`.
     from lpa.mp_profile import Contact, GE15Result, MPProfile
 
     fake_profile = MPProfile(

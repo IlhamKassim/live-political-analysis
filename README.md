@@ -127,20 +127,23 @@ database. It is served at [politikku.my](https://politikku.my)
 (`public/CNAME`).
 
 Since #104's cutover ([ADR
-0011](docs/adr/0011-politikku-becomes-the-site-old-dashboard-moves-to-projection.md))
-the site *is* PolitikKu: the homepage at `/`, the landing page at
-`/landing.html`, one MP profile per Seat under `/mp/`, and the seat
-projection — one day's Projection drawn as the Dewan Rakyat, with all 222
-Seats called individually — at `/projection/`, with the full methodology at
-`/methodology.html`. Each page has a Bahasa Malaysia sibling under `/ms/`
-(`/ms/`, `/ms/landing.html`, `/projection/ms/`, …).
+0011](docs/adr/0011-politikku-becomes-the-site-old-dashboard-moves-to-projection.md)),
+as revised by [ADR
+0017](docs/adr/0017-an-orientation-gate-supersedes-app-at-the-site-root.md),
+the site *is* PolitikKu: the landing page at `/`, the interactive map at
+`/app/`, one MP profile per Seat under `/mp/`, and the seat Projection — one
+day's Projection drawn as the Dewan Rakyat, with all 222 Seats called
+individually — at `/projection/`, with the full methodology at
+`/methodology.html`. Each server-rendered page has a Bahasa Malaysia sibling
+under `/ms/` (`/ms/`, `/ms/projection/`, …).
 
 ```sh
-.venv/bin/python -m lpa.politikku_homepage      # public/index.html + public/ms/
-.venv/bin/python -m lpa.politikku_landing
+.venv/bin/python -m lpa.politikku_landing       # public/index.html + public/ms/index.html
 .venv/bin/python -m lpa.politikku_projection    # /projection/ + /methodology.html
-.venv/bin/python -m lpa.politikku_mp_profile
+.venv/bin/python -m lpa.politikku_bills          # /bills/ + /ms/bills/
+.venv/bin/python -m lpa.politikku_politicians   # directory + current /mp/<code>/ pages
 .venv/bin/python -m lpa.politikku_lookup_index  # public/data/lookup-index.json
+.venv/bin/python -m lpa.politikku_redirects     # legacy home.html, bills.html, mp/<code>.html stubs
 (cd ts && npm ci && npm run build)              # public/lookup.js
 ```
 
@@ -269,10 +272,11 @@ against fixtures with no network, so CI stays fast and offline.
 | `lpa/dashboard.py` | Streamlit page rendering the latest stored Projection |
 | `lpa/public_page.py` | `page_model()` — every figure the public pages state, computed from Storage (ADR 0006). Its own renderer is retired as a published page (ADR 0011) |
 | `lpa/politikku_shell.py` | The persistent site chrome (header, trust strip, EN/BM toggle, footer) and the one routing table behind every internal link |
-| `lpa/politikku_homepage.py` | The homepage at `/` |
-| `lpa/politikku_landing.py` | The landing page at `/landing.html` |
+| `lpa/politikku_landing.py` | The landing page at `/` and `/ms/`; deep links enter the map at `/app/` |
+| `lpa/politikku_bills.py` | The Bills tracker at `/bills/` and `/ms/bills/` |
 | `lpa/politikku_projection.py` | `/projection/` + `/methodology.html` + the dated permalink |
 | `lpa/politikku_mp_profile.py` | One MP profile page per Seat, under `/mp/` |
+| `lpa/politikku_redirects.py` | Static compatibility stubs for legacy `home.html`, `bills.html`, and `mp/<code>.html` routes |
 | `lpa/politikku_lookup_index.py` | `public/data/lookup-index.json`, the constituency lookup's client-side data |
 | `lpa/public_export.py` | The Projection as `projection.json`/`projection.csv` |
 | `lpa/seat_call_card.py` | One shareable SVG per Seat Call, written to `public/cards/` |

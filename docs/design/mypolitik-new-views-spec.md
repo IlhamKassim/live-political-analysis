@@ -9,9 +9,11 @@ language — this is new frontend work, not a wiring job. This file pins the
 exact data contract and exact UI components to reuse, so whoever builds
 each view (Antigravity, a Claude Code subagent, or by hand) isn't guessing.
 
-**Do not retire any old Python-rendered page** (`politikku_homepage.py`,
-`politikku_bills.py`, `politikku_landing.py`) until its replacement here is
-built and verified — per the Step 4 decision already made.
+**Historical note.** This pre-ADR-0014 implementation instruction is no
+longer current: `politikku_homepage.py` was retired, while the active
+`politikku_landing.py` and `politikku_bills.py` render the current root and
+Bills routes. Do not remove active renderers or their compatibility redirects
+without a separately specified routing decision.
 
 ## How a new view gets added (mechanical pattern — reuse exactly)
 

@@ -5,15 +5,16 @@ database is never touched at request time. `dashboard.py` remains the
 internal view and is not what this replaces.
 
 **No longer published** (#104, ADR 0011). This page owned `/` until
-PolitikKu's cutover; `politikku_homepage` owns that path now, this module's
-content lives at `/projection/` (`politikku_projection`, redrawn rather than
-relocated), and `daily.yml` no longer runs `main()`. What did *not* move is
-everything above the rendering half: `page_model` is still where every
-figure on every published page is computed, `politikku_homepage`/`_landing`/
-`_mp_profile`/`_projection` all read it, `seat_call_card` and `telegram_post`
-import `Tier`/`tier_for`/`TIER_LABEL` from here, and `render_html`/`main`
-still work — `scripts/preview_public_page.py` is still the fastest way to
-iterate on the shared model. Nothing here is dead; one output of it is.
+PolitikKu's cutover; ADR 0017 later restored that path as the
+`politikku_landing` orientation page. This module's analytical content lives
+at `/projection/` (`politikku_projection`, redrawn rather than relocated),
+and `daily.yml` no longer runs `main()`. What did *not* move is everything
+above the rendering half: `page_model` is still where every figure on every
+published page is computed, `politikku_landing`/`_bills`/`_mp_profile`/
+`_projection` all read it, `seat_call_card` and `telegram_post` import
+`Tier`/`tier_for`/`TIER_LABEL` from here, and `render_html`/`main` still work
+— `scripts/preview_public_page.py` is still the fastest way to iterate on the
+shared model. Nothing here is dead; one output of it is.
 
 The module is in two halves, and the seam between them is the point:
 

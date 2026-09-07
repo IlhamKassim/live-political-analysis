@@ -5,8 +5,7 @@ Bills before the 15th Parliament with verbatim explanatory summaries from
 Parliament's official PDFs (ADR 0010) and recorded Division voting results
 (ADR 0009).
 
-Recovered from git history (`2bf8e68^:src/lpa/politikku_bills.py`, retired by
-ADR 0014) and rebuilt against #143's two decisions: the model reads
+Rebuilt from the pre-ADR-0014 renderer against #143's two decisions: the model reads
 `frontend/public/data/bills.json` directly — the exact file `app.js` already
 fetches for the client-rendered `#bills-view` — rather than recomputing
 anything from Storage, so the Python and JS renderings of this page can never

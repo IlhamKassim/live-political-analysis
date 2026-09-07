@@ -1,12 +1,12 @@
-"""Stub redirect pages for the four renderers ADR 0014 retired.
+"""Stub redirect pages for retired legacy file routes.
 
 GitHub Pages is static-only — there is no server-side redirect layer — so
 the standard static-hosting fallback is a stub HTML file at the old path
 with a `<meta http-equiv="refresh">` to the new one. This module writes
-those stubs at the exact paths `politikku_landing.py`, `politikku_homepage.py`,
-`politikku_bills.py`, and `politikku_mp_profile.py` used to render to, so
+those stubs at the exact paths `politikku_homepage.py` used to render and the
+active Bills and MP-profile renderers replaced with directory routes, so
 existing bookmarks, backlinks, and Google's already-indexed results land on
-real root-relative paths (`/`, `/bills`, `/mp/<code>/`) instead of 404ing.
+real root-relative paths (`/app/`, `/bills/`, `/mp/<code>/`) instead of 404ing.
 
 `politikku_landing.py`'s own output path (`public/index.html`, the site
 root) needs no stub here — but the reason changed with ADR 0017. Under ADR

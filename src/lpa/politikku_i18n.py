@@ -99,10 +99,10 @@ profile chip has no "clear" to qualify)."""
 MAJORITY_EN = "Majority"
 MAJORITY_MS = "Majoriti"
 """From the settled `Majority 112` -> `Majoriti 112` row. Reused for both of
-this codebase's two senses of the English word "majority" — the 112-seat
-Majority threshold (`politikku_homepage`'s hemicycle label) and a single
-Seat's GE15 winning majority (`politikku_mp_profile`'s stat caption) — since
-BM does not distinguish the two any more than the English word does."""
+this codebase's two senses of the English word "majority" — the 112-Seat
+Majority threshold and a single Seat's GE15 winning majority
+(`politikku_mp_profile`'s stat caption) — since BM does not distinguish the
+two any more than the English word does."""
 
 GE16_EN = "GE16"
 GE16_MS = "PRU16"

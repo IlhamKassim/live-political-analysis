@@ -391,10 +391,11 @@ jobs:
           echo "Frontend fold-in and pre-rendered pages verified."
 
       - name: Generate old-URL redirect stubs
-        # ADR 0014: politikku_landing.py/homepage.py/bills.py/mp_profile.py
-        # are retired, but their old URLs (home.html, bills.html, mp/*.html)
-        # are indexed by Google and linked from real bookmarks/backlinks —
-        # this writes a stub HTML page at each old path
+        # `politikku_homepage.py` is retired; the active landing, Bills, and
+        # MP-profile renderers use directory routes. Their legacy file routes
+        # (home.html, bills.html, mp/*.html) are indexed by Google and linked
+        # from real bookmarks/backlinks — this writes a stub HTML page at each
+        # old path
         # (`<meta http-equiv="refresh">`) pointing at its root-relative equivalent,
         # so those don't just 404. Must run after the fold-in step above:
         # it writes into public/, which the fold-in's `cp -r` would

@@ -57,34 +57,31 @@ change touches — do them in this order unless a dependency forces otherwise.
 
 ### 1. Bills tracker page (`src/lpa/politikku_bills.py`)
 
-Never had a dedicated UI/UX pass. The homepage's bill cards
-(`_bill_card()` in `src/lpa/politikku_homepage.py:355`) were just upgraded
-with status pills, division/vote badges, and sentiment styling (`45b816f`) —
-bring the tracker page's own card/status treatment in line with that pattern
-so the two don't visibly diverge when a user moves between them.
+Never had a dedicated UI/UX pass. Keep its status pills, Division/vote badges,
+and Sentiment styling aligned with the current landing page's Bills panel so
+the two do not visibly diverge when a reader moves between them.
 
 ### 2. Shell chrome (`src/lpa/politikku_shell.py` nav/header/footer, `src/lpa/politikku_landing.py`)
 
 Persistent across every page — improvements here compound. Check the
-language toggle and trust-strip treatment for the same polish level the
-homepage hero now has (popular-search chips, upgraded card style).
+language toggle and trust-strip treatment for the same polish level as the
+landing-page hero (popular-search chips, upgraded card style).
 
 ### 3. Site-wide mobile/accessibility sweep
 
-- Confirm the `@media (max-width: 900px)` breakpoint pattern already used
-  in the homepage CSS (`src/lpa/politikku_homepage.py:649`) is applied
-  consistently on the bills tracker and shell chrome once workstreams 1–2
+- Confirm the landing page's responsive breakpoint pattern is applied
+  consistently on the Bills tracker and shell chrome once workstreams 1–2
   land.
 - Contrast-check `--muted` / `--ink-secondary` text against `--paper` /
   `--paper-alt` backgrounds (see token values in `politikku_shell.py`).
 - Keyboard-nav and focus-state check on every interactive element: search
   chips, language toggle, the MP/constituency lookup form.
 
-### 4. Homepage, further iteration
+### 4. Landing page, further iteration
 
-Lowest priority — `45b816f` just shipped a homepage pass. Only revisit if
+Lowest priority — `45b816f` just shipped a landing-page pass. Only revisit if
 the sweep above (workstream 3) surfaces a cross-page inconsistency that
-traces back to the homepage specifically.
+traces back to the landing page specifically.
 
 ## Acceptance criteria (all workstreams)
 
