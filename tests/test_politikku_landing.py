@@ -26,7 +26,7 @@ from lpa.politikku_landing import (
     _coalition_rows,
     _read_bills,
     _read_projection,
-    gate_script,
+    deep_link_script,
     landing_model,
     render_landing_body,
     render_landing_page,
@@ -440,79 +440,55 @@ def test_landing_model_passes_through_everything_it_is_given():
     assert built.updated_at == date(2026, 8, 23)
 
 
-# ── The gate script ───────────────────────────────────────────────────────
+# ── The deep-link forwarder ───────────────────────────────────────────────
 
 
-def test_the_gate_script_forwards_a_hash_before_anything_else():
-    script = gate_script()
-    assert "location.replace(APP + location.hash)" in script
-    assert script.index("location.hash") < script.index("pk-landing-seen")
+def test_a_root_deep_link_still_forwards_to_the_app_with_its_fragment():
+    # Every SPA deep link was a root URL until ADR 0017 moved the SPA to
+    # /app/. This is the one client-side redirect the page still does, and
+    # the whole existing set of shared links depends on it.
+    script = deep_link_script()
+    assert "location.hash" in script
+    assert "location.replace('/app/' + location.hash)" in script
 
 
-def test_the_gate_script_skips_a_returning_visitor():
-    script = gate_script()
-    assert "pk-landing-seen" in script
-    assert "localStorage" in script
+def test_the_forwarder_uses_replace_so_back_leaves_the_site():
+    script = deep_link_script()
     assert "location.href" not in script
-    assert script.count("location.replace") == 2
+    assert script.count("location.replace") == 1
 
 
-def test_the_gate_script_does_not_mark_seen_on_a_page_it_is_about_to_leave():
-    # The language script runs next and may redirect `/` to `/ms/`. Without
-    # this guard a BM reader has the flag set on `/`, gets redirected, and
-    # is bounced straight to /app/ — skipping the gate on their first ever
-    # visit.
-    script = gate_script()
-    assert "(stored === 'ms') === onMs" in script
-    assert "pk-language" in script
-
-
-def test_the_gate_script_survives_blocked_storage():
-    script = gate_script()
-    assert script.count("try {") == script.count("catch (e)")
-    assert script.count("try {") >= 3
-
-
-def test_switching_language_on_the_gate_keeps_you_on_the_gate():
-    # The bug this guards: clicking BM on `/` writes pk-language=ms and
-    # navigates to `/ms/`, where pk-landing-seen — set moments earlier by
-    # `/`'s own load — forwarded straight to /app/. The language toggle was
-    # unusable on the gate. A one-shot sessionStorage marker, armed on the
-    # click and consumed on the next load, is what holds the reader.
-    script = gate_script()
-    assert "pk-landing-lang-switch" in script
-    assert "sessionStorage" in script
-    assert "data-pk-set-lang" in script
-    # Consumed, not just read: one navigation only, so a later bare visit
-    # still forwards to /app/.
-    assert "removeItem(SWITCH)" in script
-    # Checked before the seen-flag, or it could never win.
-    assert script.index("getItem(SWITCH)") < script.index("pk-landing-seen")
-
-
-def test_the_switch_listener_is_armed_before_any_early_return():
-    # Registered above the redirects on purpose: a load that immediately
-    # forwards must still arm the marker, or the toggle breaks again on
-    # exactly the pages that redirect.
-    script = gate_script()
-    assert script.index("addEventListener") < script.index("location.hash")
-
-
-def test_blocked_session_storage_degrades_without_breaking_the_page():
-    # localStorage and sessionStorage are read into separate try/catch
-    # blocks: losing sessionStorage must not take the whole gate down with
-    # it, so `session` falls back to null rather than returning early.
-    script = gate_script()
-    assert "session = null" in script
-    assert "session &&" in script
-
-
-def test_the_gate_script_runs_before_the_language_script():
+def test_the_forwarder_runs_before_the_language_script():
+    # The language script redirects on pathname alone, so a deep link
+    # reaching it first would arrive at /ms/ with the fragment dropped.
     page = render_landing_page(model())
-    assert page.index("pk-landing-seen") < page.index("pk-language")
+    assert page.index("location.hash") < page.index("pk-language")
 
 
-def test_no_other_page_gets_a_gate_script():
+def test_the_landing_page_is_not_skipped_for_returning_visitors():
+    # The removed feature, asserted as removed. ADR 0017 originally shipped
+    # a pk-landing-seen flag that sent a returning visitor straight to
+    # /app/, plus a pk-landing-lang-switch marker to stop that flag
+    # hijacking the language toggle. Both are gone; `/` is the front door
+    # and shows on every visit.
+    page = render_landing_page(model())
+    for gone in ("pk-landing-seen", "pk-landing-lang-switch"):
+        assert gone not in page, gone
+    # No storage read decides whether this page renders any more.
+    script = deep_link_script()
+    assert "localStorage" not in script
+    assert "sessionStorage" not in script
+
+
+def test_the_forwarder_touches_nothing_when_there_is_no_hash():
+    # A bare `/` visit must fall through to the page, not to a redirect —
+    # the entire body of the script is inside the hash branch.
+    script = deep_link_script()
+    body = script[script.index("(function") :]
+    assert body.count("if (") == 1
+
+
+def test_no_other_page_gets_the_forwarder():
     from lpa.politikku_shell import render_shell
 
     page = render_shell(
@@ -526,7 +502,7 @@ def test_no_other_page_gets_a_gate_script():
         status=STATUS,
         body_html="<p>body</p>",
     )
-    assert "pk-landing-seen" not in page
+    assert "location.replace('/app/'" not in page
 
 
 # ── Glossary, metadata, output paths ──────────────────────────────────────

@@ -1,4 +1,15 @@
-# An orientation gate supersedes `/app/` at the site root
+# A landing page supersedes `/app/` at the site root
+
+> **Revised 2026-09-07, the day this ADR shipped.** As first written this
+> was an orientation *gate*: shown once, then skipped for returning
+> visitors via a `pk-landing-seen` flag. That skip is removed — the landing
+> page is the site's front door and shows on every visit to `/`. The
+> sections it changed are marked inline rather than rewritten away, because
+> the reasoning it replaced is the reasoning a future reader is most likely
+> to want to re-open. Amended in place rather than superseded by an ADR
+> 0018: this decision is hours old and never lived with, and two ADRs
+> disagreeing about the same week would read worse than one that shows its
+> own correction.
 
 > **Supersedes [ADR 0014](0014-app-becomes-the-site-root-audience-loses-its-page.md)'s
 > root-routing decision.** ADR 0014 put the `mypolitik` SPA at `/` so a
@@ -83,15 +94,34 @@ Retargeting without that second copy would have 404'd them site-wide, silently
 — pages still render, just with fallback typography. The smoke-check now
 asserts a font file, since no test exercises the fold-in.
 
-**A repeat visitor never sees the gate twice.** An inline head script, running
-before first paint, sets `pk-landing-seen` in `localStorage` on gate *load*
-and `location.replace`s straight to `/app/` on any later bare visit. This is
-the direct answer to "doesn't this just re-add the friction ADR 0014 removed":
-the second visit onward costs nothing.
+**~~A repeat visitor never sees the gate twice.~~ Every visit to `/` shows
+the landing page.** *(Revised — see the note under the title.)* The original
+decision was a `pk-landing-seen` flag in `localStorage`, set on load, that
+`location.replace`d a returning visitor straight to `/app/`. It was offered
+as the direct answer to "doesn't this just re-add the friction ADR 0014
+removed".
+
+It was removed for two reasons. The smaller one is that it cost a second
+piece of client state to keep in step, and got that wrong on the first
+attempt: the flag hijacked the language toggle, sending a reader who clicked
+BM to the map instead of the Malay page, and needed a
+`pk-landing-lang-switch` marker to counteract it. The larger one is that the
+friction it was avoiding is a click, and the thing it was skipping is now a
+working Seat lookup and live projection and Parliament data — a page worth
+landing on rather than one to get past. A front door that hides itself from
+everyone who has been here before is not a front door.
+
+The honest consequence, stated plainly rather than argued away: **ADR 0014's
+concern is now real and unmitigated.** An Engaged Reader going to
+`politikku.my` gets the landing page every time and clicks once more to
+reach the map. If that proves to be the wrong trade, the fix is a
+preference the reader sets deliberately — not a flag set behind their back
+on their first visit.
 
 **Any `/` visit carrying a fragment forwards to `/app/<hash>` immediately**,
-before the language check and regardless of `pk-landing-seen`. Every existing
-SPA deep link was a root URL until now; this is what keeps them working.
+before the language check. Every existing SPA deep link was a root URL until
+now; this is what keeps them working, and it is the only client-side
+redirect the landing page still performs.
 
 **Every figure is baked in at build time** — `public/projection.json` for
 the Seat totals, `frontend/public/data/bills.json` for the Bills — read
@@ -155,12 +185,16 @@ retired by ADR 0014 along with their CSS.
 ## Consequence
 
 **The wordmark, the "Map" nav item, and the footer's "What is PolitikKu?"
-link on every other page now transit the gate.** All three point at `/`. For a
-repeat visitor that is one `location.replace` hop to `/app/` rather than a
-direct landing. This is inherent to putting a gate at the root, not a bug, and
-is named here so a reviewer does not have to rediscover it. If the hop ever
-proves to be worth removing, the fix is to repoint `NAV_LINKS`' `map` entry
-and `landing_url()` at `/app/` — a deliberate, separate change.
+link on every other page now land on the landing page.** All three point at
+`/`. Before the revision above this was a `location.replace` hop through to
+`/app/` for a returning visitor; now it is a stop. Anyone on a content page
+who clicks the wordmark expecting the map gets the landing page instead.
+
+This is the sharpest edge of removing the skip, and the cheapest place to
+fix it if it grates: repoint `NAV_LINKS`' `map` entry and `landing_url()` at
+`/app/`, so in-site navigation goes to the map and only a cold arrival at
+`politikku.my` gets the landing page. That is a deliberate, separate change
+and is not made here.
 
 **`public/data/` is no longer populated by the fold-in.** The frontend's data
 files now land at `public/app/data/`, which is where the SPA fetches them from

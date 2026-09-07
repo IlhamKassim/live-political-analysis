@@ -1,6 +1,6 @@
 # Landing page design spec
 
-Settled requirements for the new gate page at `politikku.my/`, reached
+Settled requirements for the landing page at `politikku.my/`, reached
 through a full requirements-grilling session (routing, audience,
 above/below-the-fold content, bilingual scope, and mobile constraints each
 explicitly decided, not assumed — see the implementation plan for the full
@@ -109,9 +109,15 @@ Nothing on this page should introduce a new radius value.
 
 ### Shell: no app chrome
 
+> **The landing page shows on every visit to `/`.** An earlier revision
+> skipped it for returning visitors via a `localStorage` flag; that is
+> removed (ADR 0017's revision note). The only client-side redirect left
+> forwards a `/#<hash>` deep link to `/app/#<hash>`. Do not add a "seen"
+> flag back without reading that note.
+
 `render_shell(chrome=False)`. The sidebar and topbar are the *app's*
 internal navigation; a first-time visitor has not entered the app yet, and
-framing the gate inside them is most of what made the first build read as
+framing the landing page inside them is most of what made the first build read as
 a dashboard tab. The page renders full-width with its own slim header —
 wordmark and language toggle, nothing else.
 

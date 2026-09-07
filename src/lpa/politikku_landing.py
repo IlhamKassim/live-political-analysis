@@ -1,13 +1,18 @@
-"""The PolitikKu landing page — the orientation gate at the site root (ADR 0017).
+"""The PolitikKu landing page at the site root (ADR 0017).
 
 Renders `/` (English) and `/ms/` (Bahasa Malaysia) from
 `docs/design/landing-page-spec.md`. ADR 0014 made the `mypolitik` SPA the
 site root so a visitor got the interactive tool immediately, and named the
 loss of a general on-ramp as a deliberate, accepted gap. This page reopens
-that gap: a first-time visitor gets a plain-language orientation, a working
-Seat lookup, and real projection and Parliament data before being routed
-into the map, which moves to `/app/` — its first time actually living at
-that path.
+that gap: a visitor gets a plain-language orientation, a working Seat
+lookup, and real projection and Parliament data, with the map one click
+away at `/app/` — its first time actually living at that path.
+
+**This is the site's front door, not a one-time gate.** It shows on every
+visit to `/`. ADR 0017 originally skipped it for returning visitors via a
+`pk-landing-seen` localStorage flag; that was removed (see the ADR's
+revision note and `DEEP_LINK_SCRIPT` below). The only client-side
+redirect left forwards `/#<hash>` deep links to `/app/#<hash>`.
 
 Decisions here that are easy to undo by accident:
 
@@ -351,97 +356,79 @@ def landing_model(
     )
 
 
-# ── The gate script ───────────────────────────────────────────────────────
+# ── The deep-link forwarder ───────────────────────────────────────────────
 
-GATE_SCRIPT = """
+DEEP_LINK_SCRIPT = """
 <script>
 (function () {
-  var APP = '__APP_URL__';
-  var SWITCH = 'pk-landing-lang-switch';
-  document.addEventListener('click', function (event) {
-    var el = event.target.closest && event.target.closest('[data-pk-set-lang]');
-    if (el) { try { window.sessionStorage.setItem(SWITCH, '1'); } catch (e) {} }
-  });
   try {
-    if (location.hash) { location.replace(APP + location.hash); return; }
-  } catch (e) { return; }
-  var store, session;
-  try { store = window.localStorage; } catch (e) { return; }
-  try { session = window.sessionStorage; } catch (e) { session = null; }
-  try {
-    if (session && session.getItem(SWITCH) === '1') {
-      session.removeItem(SWITCH);
-      return;
-    }
-    if (store.getItem('pk-landing-seen') === '1') { location.replace(APP); return; }
-    var stored = store.getItem('pk-language');
-    var onMs = location.pathname.indexOf('/ms/') === 0;
-    if (!stored || (stored === 'ms') === onMs) { store.setItem('pk-landing-seen', '1'); }
+    if (location.hash) { location.replace('__APP_URL__' + location.hash); return; }
   } catch (e) {}
 })();
 </script>
 """
-"""Runs before first paint, and before `_language_persistence_script` — see
-`render_shell`'s `extra_head_script` docstring for why that order matters.
+"""Forwards `/#<hash>` to `/app/#<hash>`, and does nothing else.
 
-Five decisions worth not undoing:
+Every SPA deep link (`politikku.my/#parlimen/parti`, `/#seat-P.102`) was a
+root URL until ADR 0017 moved the SPA to `/app/`. Without this the whole
+existing set of shared links, bookmarks and indexed results would land on
+the landing page carrying a fragment that means nothing here.
 
-- **The hash check is first and unconditional.** Every existing SPA deep
-  link (`/#seat-P.102`) was a root URL until this page took the root over.
-  Forwarding the fragment before anything else is what keeps those links
-  working; a `location.replace` on `pathname` alone would silently drop it.
+Two properties are load-bearing:
+
+- **It runs before `_language_persistence_script`.** That script redirects
+  on `location.pathname` alone, so a deep link reaching it first would
+  arrive at `/ms/` with the fragment already dropped. See `render_shell`'s
+  `extra_head_script` docstring.
 - **`location.replace`, never `.href`.** No extra history entry, so Back
-  from `/app/` leaves the site instead of bouncing off the gate — matching
-  every other redirect in this codebase.
-- **The flag is set on gate *load*, not on any click.** Someone who lands,
-  reads, and leaves without clicking has still seen the orientation
-  content and should not be shown it again.
-- **`(stored === 'ms') === onMs` guards that write.** The language script
-  runs next and may redirect `/` to `/ms/`. Without the guard a BM reader
-  would have the flag set on `/`, get redirected to `/ms/`, and be bounced
-  straight to `/app/` — skipping the gate entirely on their first ever
-  visit. The flag is only written on the page the reader actually stays on.
-- **`pk-landing-lang-switch` makes the language toggle usable.** The guard
-  above stops the flag being *written* on a page the reader is about to
-  leave; it does nothing about the flag being *read* when the reader
-  deliberately switches language. Clicking BM on `/` writes
-  `pk-language=ms` and navigates to `/ms/` — where the flag, set moments
-  earlier by `/`'s own load, forwarded straight to `/app/`. The toggle was
-  unusable on the gate. The listener above arms a one-shot `sessionStorage`
-  marker on any `[data-pk-set-lang]` click, and the check consumes it:
-  switching language keeps you on the gate, in the language you asked for.
-  It is *consumed*, not merely read, so it holds exactly one navigation —
-  a later bare visit still forwards. `sessionStorage`, not `localStorage`,
-  so it cannot outlive the tab.
+  from `/app/` leaves the site rather than bouncing off the landing page —
+  matching every other redirect in this codebase.
 
-Ordering inside the script is load-bearing twice over. The click listener
-registers before any early `return`, so it is armed even on a load that
-immediately redirects. The switch check runs before the `pk-landing-seen`
-check, because that is the whole point of it.
+**This is deliberately not a gate.** ADR 0017 originally shipped a
+`pk-landing-seen` flag in `localStorage` that sent a returning visitor
+straight to `/app/`, so the landing page was shown exactly once, plus a
+`pk-landing-lang-switch` marker to stop that flag hijacking the language
+toggle. Both are gone: the landing page is the site's front door and shows
+on every visit to `/`. Do not reintroduce a "seen" flag without reading
+ADR 0017's revision note first — the skip is what made the language toggle
+unusable, and re-adding it re-adds that bug along with a second piece of
+storage state to keep in step.
 
-Every branch sits in `try/catch`: storage throws outright in some private
-browsing modes. With `localStorage` unavailable the gate always shows; with
-only `sessionStorage` unavailable the toggle reverts to the old broken
-behaviour rather than breaking the page. Never a blank page.
+Anything that fails here fails silently into showing the landing page,
+which is the correct page for `/` to show.
 """
 
 
-def gate_script(app_url: str = APP_URL) -> str:
-    """`GATE_SCRIPT` with its redirect target substituted in."""
-    return GATE_SCRIPT.replace("__APP_URL__", app_url)
+def deep_link_script(app_url: str = APP_URL) -> str:
+    """`DEEP_LINK_SCRIPT` with its redirect target substituted in."""
+    return DEEP_LINK_SCRIPT.replace("__APP_URL__", app_url)
 
 
 # ── Rendering ─────────────────────────────────────────────────────────────
 
 _LANDING_CSS = """
-  .pk-landing { --pk-col: 1100px; }
+  /* On :root, not on .pk-landing: the page header is a *sibling* of the
+     content column, and custom properties only inherit downward — declared
+     on .pk-landing it never reached .pk-top, whose max-width then computed
+     to `none`. Both share the token from here. */
+  :root { --pk-col: 1100px; }
 
   /* ── Page header (not the app's topbar — see render_shell(chrome=False)) */
+  /* Three columns, not space-between: the outer two are equal `1fr`, so the
+     wordmark is centred against the *header*, not against whatever is left
+     over beside the toggle. The toggle stays pinned right on the same row. */
   .pk-top {
-    display: flex; align-items: center; justify-content: space-between; gap: 16px;
-    max-width: var(--pk-col); margin: 0 auto;
+    display: grid; grid-template-columns: 1fr auto 1fr;
+    align-items: center; gap: 12px;
+    /* width:100% is load-bearing beside `margin: 0 auto`. #app is a column
+       flex container, and auto margins on a flex item make it shrink-to-fit
+       its content instead of filling to max-width — which collapsed this
+       header into a narrow island floating above the content column. */
+    width: 100%; max-width: var(--pk-col); margin: 0 auto;
     padding: 18px var(--gutter-mobile);
   }
+  .pk-top-word { grid-column: 2; justify-self: center; }
+  .pk-top .lang-seg { grid-column: 3; justify-self: end; }
   .pk-top-word {
     font-family: var(--font-display); font-size: 21px; color: var(--ink);
     text-decoration: none;
@@ -1166,7 +1153,7 @@ def render_landing_page(model: LandingModel, language: Language = Language.EN) -
         sources_count=model.sources_count,
         status=model.status,
         body_html=render_landing_body(model, language),
-        extra_head_script=gate_script(),
+        extra_head_script=deep_link_script(),
         chrome=False,
         header_html=render_page_header(language),
     )
