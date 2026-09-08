@@ -913,7 +913,7 @@ def test_resolve_repo_root_with_no_explicit_root_finds_the_real_repo():
     root = resolve_repo_root(None)
 
     assert (root / "pyproject.toml").is_file()
-    assert root.name == "live-political-analysis"
+    assert root.name in ("live-political-analysis", "politikku")
 
 
 # --- worktree lifecycle: a real scratch git repo ---------------------------
