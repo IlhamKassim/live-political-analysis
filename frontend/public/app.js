@@ -2921,6 +2921,12 @@ function renderPanel(seat) {
 // #tier/mode/code) and copies it to the clipboard, with a transient toast. The
 // clipboard API is guarded — on any failure we tell the user to copy from the URL bar.
 let toastTimer = null;
+function clearToast() {
+  if (!TOAST) return;
+  clearTimeout(toastTimer);
+  TOAST.classList.remove("show");
+  TOAST.hidden = true;
+}
 function showToast(key, params) {
   if (!TOAST) return;
   TOAST.textContent = t(key, params);
@@ -2930,7 +2936,7 @@ function showToast(key, params) {
   }
   TOAST.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { TOAST.classList.remove("show"); TOAST.hidden = true; }, 2600);
+  toastTimer = setTimeout(clearToast, 2600);
 }
 function showToastText(msg) {
   if (!TOAST || !msg) return;
@@ -2941,8 +2947,15 @@ function showToastText(msg) {
   }
   TOAST.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { TOAST.classList.remove("show"); TOAST.hidden = true; }, 2800);
+  toastTimer = setTimeout(clearToast, 2800);
 }
+TOAST?.addEventListener("click", clearToast);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    TOOLTIP.hidden = true;
+    clearToast();
+  }
+});
 async function shareLink() {
   const url = location.origin + location.pathname + encodeHash(state);
   let ok = false;
@@ -3741,6 +3754,7 @@ function clearStateHover() {
 }
 function clearHoverUI() {
   TOOLTIP.hidden = true;
+  clearToast();
   setStageSubLabel("");
   clearStateHover();
 }
@@ -3868,7 +3882,7 @@ SVG.addEventListener("click", (e) => {
     return;
   }
   const tgt = e.target;   // NOT `t` — that name is the module-level i18n fn t(); shadowing it would break any t("key") added here
-  TOOLTIP.hidden = true; clearStateHover();  // dismiss any lingering hover tooltip / state highlight
+  TOOLTIP.hidden = true; clearToast(); clearStateHover();  // dismiss any lingering hover tooltip / state highlight / toast
   const isSeat = !!(tgt.classList && tgt.classList.contains("seat"));
   const seat = isSeat && state.data[state.tier] && state.data[state.tier].byCode.get(tgt.dataset.code);
   // mobile seat-detail: tapping a district OF THE OPEN STATE opens the inspect tray.
@@ -6361,6 +6375,8 @@ function setMapInspectWithoutRefit(open) {
   }
 }
 function setMapInspect(open) {
+  TOOLTIP.hidden = true;
+  clearToast();
   const next = !!open && !!state.openState && MOBILE_MAP_INSPECT_MQ.matches;
   if (state.mapInspect === next) {
     renderMapInspectTray();
@@ -6501,6 +6517,8 @@ function locateMapInspectDistrict(btn, options = {}) {
 
 let mapInspectDetailsAnimating = false;
 async function showMapInspectDetails(options = {}) {
+  TOOLTIP.hidden = true;
+  clearToast();
   const code = state.selected;
   if (!code) return;
   const seat = state.data[state.tier] && state.data[state.tier].byCode.get(code);
@@ -7138,6 +7156,8 @@ async function openPrnMode() {
   }
 }
 function closePrnMode(options = {}) {
+  TOOLTIP.hidden = true;
+  clearToast();
   if (!state.prnMode) return;
   state.prnMode = false;
   clearTimeout(prnLiveTimer);
@@ -9231,6 +9251,8 @@ function showDistrict(code) {
 
 // two-level back: a chosen district → back to the state make-up; the state → overview.
 function goBack() {
+  TOOLTIP.hidden = true;
+  clearToast();
   if (state.selected && state.openState) {
     state.selected = null;
     clearSelectedDistrict();
@@ -9286,6 +9308,8 @@ function deferHomeTierReset() {
 }
 
 function backToControls(options = {}) {
+  TOOLTIP.hidden = true;
+  clearToast();
   const wasBento = document.body.classList.contains("bento-on");
   const closingState = state.openState;
   const mobile = MOBILE_MAP_INSPECT_MQ.matches;
