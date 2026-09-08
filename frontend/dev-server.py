@@ -13,13 +13,37 @@ import re
 import socket
 import socketserver
 
-ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public")
+ROOT = os.environ.get("DEV_ROOT") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "public")
+REPO_PUBLIC = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "public"))
 PORT = int(os.environ.get("PORT", "4178"))
 
 
 class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
+    def translate_path(self, path):
+        clean_path = path.split("?", 1)[0].split("#", 1)[0]
+        orig = super().translate_path(clean_path)
+        if os.path.exists(orig):
+            return orig
+        words = [w for w in clean_path.split("/") if w]
+        cand = REPO_PUBLIC
+        for word in words:
+            if word not in (os.curdir, os.pardir):
+                cand = os.path.join(cand, word)
+        if clean_path.endswith("/") and os.path.isdir(cand):
+            idx = os.path.join(cand, "index.html")
+            if os.path.isfile(idx):
+                return idx
+        if os.path.exists(cand):
+            return cand
+        return orig
+
     def rewrite_api_path(self):
         req_path = self.path.split("?", 1)[0]
+        query = ("?" + self.path.split("?", 1)[1]) if "?" in self.path else ""
+        if req_path.startswith("/app/"):
+            req_path = req_path[4:]
+            self.path = req_path + query
+
         m = re.match(r"^/api/live/([a-zA-Z0-9_-]+)$", req_path)
         if m:
             eid = m.group(1)
@@ -32,9 +56,25 @@ class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
             for cand in candidates:
                 disk_path = os.path.join(ROOT, cand.lstrip("/"))
                 if os.path.isfile(disk_path):
-                    self.path = cand
+                    self.path = cand + query
                     return
-            self.path = "/data/live-johor.json"
+            self.path = "/data/live-johor.json" + query
+            return
+
+        # Prerendered page in REPO_PUBLIC: serve directly
+        repo_cand = os.path.join(REPO_PUBLIC, req_path.lstrip("/"))
+        if os.path.isdir(repo_cand) and os.path.isfile(os.path.join(repo_cand, "index.html")):
+            return
+        if os.path.isfile(repo_cand):
+            return
+
+        # SPA fallback for dev: if a route like /dewan/ or /bills/ has no disk file, serve index.html
+        disk_path = os.path.join(ROOT, req_path.lstrip("/"))
+        if disk_path.endswith("/") and os.path.isdir(disk_path) and os.path.isfile(os.path.join(disk_path, "index.html")):
+            return
+        if not os.path.exists(disk_path) and not req_path.startswith("/data/"):
+            if any(req_path.strip("/").startswith(prefix) for prefix in ("dewan", "ms/dewan", "bills", "ms/bills", "politicians", "ms/politicians", "sentiment", "ms/sentiment", "projection", "ms/projection", "mp", "ms/mp")):
+                self.path = "/index.html" + query
 
     def do_GET(self):
         self.rewrite_api_path()

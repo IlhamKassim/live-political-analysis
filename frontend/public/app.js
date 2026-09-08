@@ -11,6 +11,76 @@ import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSe
   calculateHemicycleSlots, orderProjectionSeatsForHemicycle, buildHemicycleSVG } from "./lib.js?v=145";
 import { I18N } from "./i18n.js?v=153";
 
+// Route relative data/ and learn/ fetches to /app/
+(() => {
+  const _origFetch = window.fetch;
+  window.fetch = function(input, init) {
+    if (typeof input === "string") {
+      if (input.startsWith("data/") || input.startsWith("learn/")) {
+        input = "/app/" + input;
+      }
+    }
+    return _origFetch.call(this, input, init);
+  };
+})();
+
+function updateViewRoute(viewName) {
+  const isMs = typeof lang !== "undefined" && lang === "ms";
+  const prefix = isMs ? "/ms" : "";
+  let targetPath = "/app/";
+  if (viewName === "dewan") targetPath = prefix + "/dewan/";
+  else if (viewName === "bills") targetPath = prefix + "/bills/";
+  else if (viewName === "politicians") targetPath = prefix + "/politicians/";
+  else if (viewName === "sentiment") targetPath = prefix + "/sentiment/";
+  else if (viewName === "projection") targetPath = prefix + "/projection/";
+  else if (viewName === "methodology") targetPath = prefix + "/methodology.html";
+  else if (viewName && viewName.startsWith("mp/")) targetPath = prefix + "/" + viewName + "/";
+
+  if (viewName === "map") {
+    if (location.pathname !== "/app/" && location.pathname !== "/") {
+      history.pushState(null, "", "/app/");
+    }
+  } else if (location.pathname !== targetPath) {
+    history.pushState(null, "", targetPath);
+  }
+  document.documentElement.setAttribute("data-render-complete", viewName);
+}
+
+window.__renderRoute = async function(routePath, targetLang) {
+  if (targetLang && targetLang !== lang) {
+    setLang(targetLang);
+  }
+  const p = routePath.replace(/^\/ms\//, "").replace(/^\//, "").replace(/\/$/, "");
+  if (!p.startsWith("mp/")) {
+    closeCandidateModal();
+  }
+  closePoliticians({ silent: true });
+  closeDewanPage({ silent: true });
+  closeBillsPage({ silent: true });
+  closeSentimentPage({ silent: true });
+  closeProjectionPage({ silent: true });
+  closeMethodologyPage({ silent: true });
+
+  if (p === "dewan") {
+    await openDewanPage();
+  } else if (p === "bills") {
+    await openBillsPage();
+  } else if (p === "sentiment") {
+    await openSentimentPage();
+  } else if (p === "projection") {
+    await openProjectionPage();
+  } else if (p === "politicians") {
+    await openPoliticians();
+  } else if (p === "methodology" || p === "methodology.html") {
+    await openMethodologyPage();
+  } else if (p.startsWith("mp/")) {
+    const code = p.split("/")[1];
+    if (code) openPoliticianModal(code);
+  } else {
+    document.documentElement.setAttribute("data-render-complete", "map");
+  }
+};
+
 const SVG = document.getElementById("map");
 const STATE_OUTLINES = document.getElementById("state-outlines");
 const SEATS = document.getElementById("seats");
@@ -98,9 +168,14 @@ const LANG_KEY = "mypolitik-lang";
 const LEGACY_LANG_KEY = "peta-yb-lang";
 let lang = "ms";
 try {
+  const p = location.pathname;
+  const isMsPath = p.startsWith("/ms/") || p === "/ms";
+  const isEnPath = !isMsPath && (p.startsWith("/dewan") || p.startsWith("/bills") || p.startsWith("/politicians") || p.startsWith("/sentiment") || p.startsWith("/projection") || p.startsWith("/methodology") || p.startsWith("/mp/"));
   const urlLang = new URLSearchParams(location.search).get("lang");
-  const saved = (urlLang === "ms" || urlLang === "en") ? urlLang : (localStorage.getItem(LANG_KEY) || localStorage.getItem(LEGACY_LANG_KEY));
+  const saved = isMsPath ? "ms" : (isEnPath ? "en" : (urlLang === "ms" || urlLang === "en" ? urlLang : (localStorage.getItem(LANG_KEY) || localStorage.getItem(LEGACY_LANG_KEY))));
   lang = pickInitialLang(saved, navigator.languages);
+  if (isMsPath) lang = "ms";
+  else if (isEnPath) lang = "en";
 } catch (_) { lang = pickInitialLang(null, null); }
 
 function t(key, params) {
@@ -191,6 +266,17 @@ function setLang(l) {
   if (document.body.classList.contains("projection-open")) renderProjectionPage(); // GE16 projection page
   if (document.body.classList.contains("methodology-open")) openMethodologyPage();
   if (PLEDGES_MODAL && PLEDGES_MODAL.open) openPledgesModal();
+  if (CAND_MODAL && CAND_MODAL.open && CAND_MODAL.dataset.polBento) {
+    openPoliticianModal(CAND_MODAL.dataset.polBento, candidateModalReturnTo);
+  }
+  const cp = location.pathname;
+  if (l === "ms" && !cp.startsWith("/ms/")) {
+    if (cp === "/dewan/" || cp === "/bills/" || cp === "/politicians/" || cp === "/sentiment/" || cp === "/projection/" || cp === "/methodology.html" || cp.startsWith("/mp/")) {
+      history.replaceState(null, "", "/ms" + cp);
+    }
+  } else if (l === "en" && cp.startsWith("/ms/")) {
+    history.replaceState(null, "", cp.replace(/^\/ms/, ""));
+  }
 }
 
 // ---- helpers ----
@@ -1010,7 +1096,7 @@ async function openPoliticians() {
   document.body.classList.add("politicians-open");
   renderPoliticiansDirectory();
   syncSidebar();
-  if (location.hash !== "#politicians") history.pushState(null, "", "#politicians");
+  updateViewRoute("politicians");
   POL_VIEW.querySelector(".pol-dir")?.scrollTo?.(0, 0);
 }
 function closePoliticians(options = {}) {
@@ -1018,7 +1104,7 @@ function closePoliticians(options = {}) {
   document.body.classList.remove("politicians-open");
   if (POL_VIEW) POL_VIEW.innerHTML = "";
   syncSidebar();
-  if (!options.silent) writeHash();
+  if (!options.silent) { updateViewRoute("map"); writeHash(); }
 }
 function openSeatFromPolitician(code) {
   closePoliticians({ silent: true });
@@ -1390,8 +1476,11 @@ function openPoliticianModal(code, returnTo = null) {
   CAND_MODAL.setAttribute("aria-label", t("pol_bento_aria"));
   CAND_MODAL.dataset.polBento = code;
   CAND_MODAL.innerHTML = politicianBentoHTML(b);
-  if (typeof CAND_MODAL.showModal === "function") CAND_MODAL.showModal();
-  else CAND_MODAL.setAttribute("open", "");
+  updateViewRoute("mp/" + code);
+  if (!CAND_MODAL.open) {
+    if (typeof CAND_MODAL.showModal === "function") CAND_MODAL.showModal();
+    else CAND_MODAL.setAttribute("open", "");
+  }
   CAND_MODAL.querySelector(".pol-modal-close")?.focus();
   // the news tile fills once the headline pool is in — sync PRN items + name matches
   ensurePoliticalNews().then(() => {
@@ -4254,6 +4343,24 @@ document.querySelectorAll("#stage > fluid-bg").forEach(randomizeFluidPhase);
 
 // ---- shareable URL state  (#tier/mode[/code]) ----
 function writeHash() {
+  const cleanPath = location.pathname.replace(/^\/ms/, "").replace(/\/$/, "");
+  if (cleanPath === "/dewan" ||
+      cleanPath === "/bills" ||
+      cleanPath === "/politicians" ||
+      cleanPath === "/sentiment" ||
+      cleanPath === "/projection" ||
+      cleanPath === "/methodology" ||
+      cleanPath === "/methodology.html" ||
+      cleanPath.startsWith("/mp/") ||
+      document.body.classList.contains("dewan-open") ||
+      document.body.classList.contains("bills-open") ||
+      document.body.classList.contains("politicians-open") ||
+      document.body.classList.contains("sentiment-open") ||
+      document.body.classList.contains("projection-open") ||
+      document.body.classList.contains("methodology-open") ||
+      location.pathname.includes("/mp/")) {
+    return;
+  }
   const h = encodeHash(state);
   if (location.hash !== h) history.replaceState(null, "", h);
 }
@@ -4660,16 +4767,23 @@ document.getElementById("sidebar")?.addEventListener("click", (ev) => {
   writeHash();       // normalise URL to the actually-active state — a gated mode (Skor) or bad seat
                      // code in the deep link gets dropped so a re-shared link can't misrepresent state
                      // (replaceState → no extra history entry)
-  if (bootHash === "#politicians") await openPoliticians();
-  if (bootHash === "#news") openNewsPage();   // deep-linked news page
-  if (bootHash === "#dewan") await openDewanPage();
-  if (bootHash === "#bills") await openBillsPage();
-  if (bootHash === "#sentiment") await openSentimentPage();
-  if (bootHash === "#projection") await openProjectionPage();
-  if (bootHash === "#methodology") await openMethodologyPage();
-  if (bootHash === "#glossary") await openGlossaryPage();
-  if (bootHash === "#coalitions") await openCoalitionsPage();
-  if (bootHash === "#ge16-process") await openProcessPage();
+  const cleanPath = location.pathname.replace(/^\/ms/, "").replace(/\/$/, "");
+  if (cleanPath === "/politicians" || bootHash === "#politicians") await openPoliticians();
+  else if (cleanPath === "/news" || bootHash === "#news") openNewsPage();
+  else if (cleanPath === "/dewan" || bootHash === "#dewan") await openDewanPage();
+  else if (cleanPath === "/bills" || bootHash === "#bills") await openBillsPage();
+  else if (cleanPath === "/sentiment" || bootHash === "#sentiment") await openSentimentPage();
+  else if (cleanPath === "/projection" || bootHash === "#projection") await openProjectionPage();
+  else if (cleanPath === "/methodology" || cleanPath === "/methodology.html" || bootHash === "#methodology") await openMethodologyPage();
+  else if (bootHash === "#glossary") await openGlossaryPage();
+  else if (bootHash === "#coalitions") await openCoalitionsPage();
+  else if (bootHash === "#ge16-process") await openProcessPage();
+  else if (cleanPath.startsWith("/mp/")) {
+    const code = cleanPath.split("/")[2];
+    if (code) openPoliticianModal(code);
+  } else {
+    document.documentElement.setAttribute("data-render-complete", "map");
+  }
   maybeShowHint();   // fresh visit, nothing selected → nudge that seats are tappable
   try { syncMapToCard(); } catch (_) {}
   // body.sb-collapsed is set above; drop the html pre-paint hint
@@ -4764,19 +4878,20 @@ POL_VIEW?.addEventListener("keydown", (e) => {
 });
 // browser back closes in-app views if open
 window.addEventListener("popstate", () => {
-  if (location.hash === "#politicians") { openPoliticians(); }
+  const cleanPath = location.pathname.replace(/^\/ms/, "").replace(/\/$/, "");
+  if (cleanPath === "/politicians" || location.hash === "#politicians") { openPoliticians(); }
   else if (document.body.classList.contains("politicians-open")) closePoliticians({ silent: true });
-  if (location.hash === "#news") openNewsPage();
+  if (cleanPath === "/news" || location.hash === "#news") openNewsPage();
   else if (document.body.classList.contains("news-open")) closeNewsPage({ silent: true });
-  if (location.hash === "#dewan") { openDewanPage(); }
+  if (cleanPath === "/dewan" || location.hash === "#dewan") { openDewanPage(); }
   else if (document.body.classList.contains("dewan-open")) closeDewanPage({ silent: true });
-  if (location.hash === "#bills") { openBillsPage(); }
+  if (cleanPath === "/bills" || location.hash === "#bills") { openBillsPage(); }
   else if (document.body.classList.contains("bills-open")) closeBillsPage({ silent: true });
-  if (location.hash === "#sentiment") { openSentimentPage(); }
+  if (cleanPath === "/sentiment" || location.hash === "#sentiment") { openSentimentPage(); }
   else if (document.body.classList.contains("sentiment-open")) closeSentimentPage({ silent: true });
-  if (location.hash === "#projection") openProjectionPage();
+  if (cleanPath === "/projection" || location.hash === "#projection") openProjectionPage();
   else if (document.body.classList.contains("projection-open")) closeProjectionPage({ silent: true });
-  if (location.hash === "#methodology") { openMethodologyPage(); }
+  if (cleanPath === "/methodology" || cleanPath === "/methodology.html" || location.hash === "#methodology") { openMethodologyPage(); }
   else if (document.body.classList.contains("methodology-open")) closeMethodologyPage({ silent: true });
   if (location.hash === "#glossary") { openGlossaryPage(); }
   else if (document.body.classList.contains("glossary-open")) closeGlossaryPage({ silent: true });
@@ -4784,6 +4899,12 @@ window.addEventListener("popstate", () => {
   else if (document.body.classList.contains("coalitions-open")) closeCoalitionsPage({ silent: true });
   if (location.hash === "#ge16-process") { openProcessPage(); }
   else if (document.body.classList.contains("process-open")) closeProcessPage({ silent: true });
+  if (cleanPath.startsWith("/mp/")) {
+    const code = cleanPath.split("/")[2];
+    if (code) openPoliticianModal(code);
+  } else if (CAND_MODAL && CAND_MODAL.open) {
+    closeCandidateModal();
+  }
 });
 
 /* ===== Dewan activity page: the Hansard league table (its own full page) ===== */
@@ -4941,7 +5062,7 @@ async function openDewanPage() {
   document.body.classList.add("dewan-open");
   renderDewanPage();
   syncSidebar();
-  if (location.hash !== "#dewan") history.pushState(null, "", "#dewan");
+  updateViewRoute("dewan");
   DEWAN_VIEW.querySelector(".pol-dir")?.scrollTo?.(0, 0);
 }
 function closeDewanPage(options = {}) {
@@ -4949,7 +5070,7 @@ function closeDewanPage(options = {}) {
   document.body.classList.remove("dewan-open");
   if (DEWAN_VIEW) DEWAN_VIEW.innerHTML = "";
   syncSidebar();
-  if (!options.silent) writeHash();
+  if (!options.silent) { updateViewRoute("map"); writeHash(); }
 }
 
 DEWAN_VIEW?.addEventListener("click", (e) => {
@@ -5146,7 +5267,7 @@ async function openBillsPage() {
   document.body.classList.add("bills-open");
   renderBillsPage();
   syncSidebar();
-  if (location.hash !== "#bills") history.pushState(null, "", "#bills");
+  updateViewRoute("bills");
   BILLS_VIEW.querySelector(".pol-dir")?.scrollTo?.(0, 0);
 }
 
@@ -5155,7 +5276,7 @@ function closeBillsPage(options = {}) {
   document.body.classList.remove("bills-open");
   if (BILLS_VIEW) BILLS_VIEW.innerHTML = "";
   syncSidebar();
-  if (!options.silent) writeHash();
+  if (!options.silent) { updateViewRoute("map"); writeHash(); }
 }
 
 BILLS_VIEW?.addEventListener("click", (e) => {
@@ -5295,7 +5416,7 @@ async function openSentimentPage() {
   document.body.classList.add("sentiment-open");
   renderSentimentPage();
   syncSidebar();
-  if (location.hash !== "#sentiment") history.pushState(null, "", "#sentiment");
+  updateViewRoute("sentiment");
   SENTIMENT_VIEW.querySelector(".pol-dir")?.scrollTo?.(0, 0);
 }
 
@@ -5304,7 +5425,7 @@ function closeSentimentPage(options = {}) {
   document.body.classList.remove("sentiment-open");
   if (SENTIMENT_VIEW) SENTIMENT_VIEW.innerHTML = "";
   syncSidebar();
-  if (!options.silent) writeHash();
+  if (!options.silent) { updateViewRoute("map"); writeHash(); }
 }
 
 SENTIMENT_VIEW?.addEventListener("click", (e) => {
@@ -5629,7 +5750,7 @@ async function openProjectionPage() {
   document.body.classList.add("projection-open");
   renderProjectionPage();
   syncSidebar();
-  if (location.hash !== "#projection") history.pushState(null, "", "#projection");
+  updateViewRoute("projection");
   PROJECTION_VIEW.querySelector(".pol-dir")?.scrollTo?.(0, 0);
 }
 
@@ -5638,7 +5759,7 @@ function closeProjectionPage(options = {}) {
   document.body.classList.remove("projection-open");
   if (PROJECTION_VIEW) PROJECTION_VIEW.innerHTML = "";
   syncSidebar();
-  if (!options.silent) writeHash();
+  if (!options.silent) { updateViewRoute("map"); writeHash(); }
 }
 
 PROJECTION_VIEW?.addEventListener("click", (e) => {
@@ -5699,7 +5820,7 @@ async function openMethodologyPage() {
   document.body.classList.add("methodology-open");
   renderMethodologyPage();
   syncSidebar();
-  if (location.hash !== "#methodology") history.pushState(null, "", "#methodology");
+  updateViewRoute("methodology");
   METHODOLOGY_VIEW.querySelector(".pol-dir")?.scrollTo?.(0, 0);
 }
 
@@ -5728,7 +5849,7 @@ function closeMethodologyPage(options = {}) {
   document.body.classList.remove("methodology-open");
   if (METHODOLOGY_VIEW) METHODOLOGY_VIEW.innerHTML = "";
   syncSidebar();
-  if (!options.silent) writeHash();
+  if (!options.silent) { updateViewRoute("map"); writeHash(); }
 }
 
 METHODOLOGY_VIEW?.addEventListener("click", (e) => {
@@ -8196,6 +8317,7 @@ function candidateModalHTML(seat, entry, candidate, profile) {
 }
 function closeCandidateModal() {
   if (!CAND_MODAL) return;
+  const wasMp = location.pathname.includes("/mp/");
   if (CAND_MODAL.open && typeof CAND_MODAL.close === "function") CAND_MODAL.close();
   else {
     CAND_MODAL.removeAttribute("open");
@@ -8203,6 +8325,10 @@ function closeCandidateModal() {
     const returnTo = candidateModalReturnTo;
     candidateModalReturnTo = null;
     if (returnTo && document.contains(returnTo)) returnTo.focus({ preventScroll: true });
+  }
+  if (wasMp) {
+    if (document.body.classList.contains("politicians-open")) updateViewRoute("politicians");
+    else updateViewRoute("map");
   }
 }
 // the full field, one screen: every 2026 candidate grouped by seat. Seat headers

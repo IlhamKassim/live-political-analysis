@@ -9,8 +9,8 @@ import json
 from datetime import date
 
 from lpa.domain import ElectionStatus
-from lpa.politikku_sentiment import HistoricalSentimentPoint, SentimentPageModel, SentimentPageRow
 from lpa.sentiment_export import HISTORY_LIMIT, SCHEMA_VERSION, export_model, to_json
+from lpa.sentiment_model import HistoricalSentimentPoint, SentimentPageModel, SentimentPageRow
 
 PH = "PH"
 PN = "PN"

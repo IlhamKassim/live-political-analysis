@@ -245,8 +245,8 @@ def _coalition_rows(totals: Mapping[str, int]) -> tuple[CoalitionRow, ...]:
     """
     if not totals:
         return ()
+    from lpa.coalition_colors import party_color
     from lpa.config import load_coalition_config
-    from lpa.politikku_politicians import party_color
 
     try:
         government = frozenset(load_coalition_config()["government_coalitions"])
@@ -948,7 +948,7 @@ def _bills_preview(model: LandingModel, language: Language) -> str:
     """
     if not model.bills:
         return ""
-    from lpa.politikku_bills import bill_stage_style
+    from lpa.bill_tracker import bill_stage_style
 
     body = "".join(
         f'<div class="pk-bill-row">'

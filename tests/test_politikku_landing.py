@@ -256,9 +256,7 @@ def test_the_bar_is_labelled_modelled_and_the_bills_are_not():
 
 
 def test_coalition_colours_come_from_the_map_s_own_table():
-    # Not restated here: a second copy is how the landing page and the map
-    # end up disagreeing about what colour PH is.
-    from lpa.politikku_politicians import load_coalition_colors
+    from lpa.coalition_colors import load_coalition_colors
 
     colors = load_coalition_colors()
     rows = _coalition_rows({"PH": 75, "PN": 69})
@@ -305,7 +303,7 @@ def test_the_bills_teaser_shows_parliaments_own_stage_label_verbatim():
 
 
 def test_the_bills_teaser_uses_the_same_pill_styling_as_the_bills_page():
-    from lpa.politikku_bills import bill_stage_style
+    from lpa.bill_tracker import bill_stage_style
 
     page = render_landing_body(model())
     assert f'class="pill" style="{bill_stage_style("Lulus")}"' in page

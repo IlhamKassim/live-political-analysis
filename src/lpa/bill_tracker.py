@@ -144,3 +144,19 @@ def missing_fields(bill: Bill) -> tuple[str, ...]:
 def unexplained_fields(bill: Bill) -> tuple[str, ...]:
     """Fields left unset with no reason given — the failure this module exists to catch."""
     return tuple(name for name in missing_fields(bill) if name not in bill.unverified)
+
+
+def bill_stage_style(stage: str) -> str:
+    """Map bill stage string to tokenized pill style."""
+    s = stage.lower()
+    if "lulus" in s:
+        return "background:var(--positive-bg);color:var(--accent);border:1px solid var(--positive-border);"
+    if "jkpk" in s or "jawatankuasa" in s:
+        return "background:var(--caution-bg);color:var(--caution);border:1px solid var(--caution-border);"
+    if "bacaan" in s:
+        return (
+            "background:var(--paper-alt);color:var(--accent);border:1px solid var(--line-strong);"
+        )
+    if "tidak mendapat undi" in s or "tolak" in s:
+        return "background:var(--paper-alt);color:var(--muted);border:1px solid var(--line-strong);"
+    return "background:var(--paper-alt);color:var(--ink-secondary);border:1px solid var(--line-strong);"

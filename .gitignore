@@ -55,6 +55,14 @@ public/methodology.html
 public/ms/methodology.html
 public/mp/
 public/ms/mp/
+public/dewan/
+public/ms/dewan/
+public/bills/
+public/ms/bills/
+public/politicians/
+public/ms/politicians/
+public/sentiment/
+public/ms/sentiment/
 public/data/
 # The projection page (#102) itself, but deliberately *not* the dated
 # permalinks written beside it (public/projection/<year>/<month>/<day>.html)

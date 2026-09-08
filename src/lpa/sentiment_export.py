@@ -27,7 +27,7 @@ from typing import Any
 from sqlalchemy.engine import Engine
 
 from lpa.domain import Coalition
-from lpa.politikku_sentiment import SentimentPageModel
+from lpa.sentiment_model import SentimentPageModel
 
 SCHEMA_VERSION = 1
 
@@ -88,7 +88,7 @@ def to_json(payload: Mapping[str, Any]) -> str:
 def build_export(engine: Engine) -> str:
     """Read Storage and return the JSON body for the latest Sentiment."""
     from lpa.config import coalition_names, load_coalition_config
-    from lpa.politikku_sentiment import sentiment_page_model
+    from lpa.sentiment_model import sentiment_page_model
 
     names = coalition_names(load_coalition_config())
     model = sentiment_page_model(engine=engine, names=names)

@@ -60,3 +60,11 @@ above.
   machine.
 - Run the existing test suite before reporting a task done; don't claim
   success from your own narrative if the tests weren't actually run.
+
+## Communication style: Plain & easy language
+
+All answers, explanations, and comments must use plain, easy-to-understand language:
+- Use simple words and direct phrasing. Avoid dense academic jargon and verbose filler.
+- Keep sentences short and clear. One idea per sentence where possible.
+- While adhering strictly to the exact canonical domain terms from `CONTEXT.md` (*Seat*, *Majority*, *Government Coalition*, *Projection*, *Seat Call*), explain what they mean in everyday language whenever helpful.
+- Be concrete and direct: state plainly what changed, what was done, or what questions remain.

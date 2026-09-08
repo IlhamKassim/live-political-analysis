@@ -98,7 +98,11 @@ jobs:
         # deps of its own. Postgres extra for the hosted database both the
         # pipeline and public_page read. telegram (Pillow) for #40's card
         # rendering — cheap, no system deps beyond the fonts above.
-        run: pip install -e ".[sentiment,postgres,telegram]"
+        # prerender (Playwright) drives headless Chromium to prerender SPA routes.
+        run: pip install -e ".[sentiment,postgres,telegram,prerender]"
+
+      - name: Install Chromium for prerendering
+        run: playwright install --with-deps chromium
 
       - name: Build the PolitikKu lookup bundle
         # #77/#103: the only client-side build in this pipeline. Independent
@@ -132,48 +136,40 @@ jobs:
       # projection page" below uses is computed — it just no longer renders
       # or publishes a page of its own.
 
-      - name: Render the PolitikKu projection and methodology pages
-        # #102/#104: the old dashboard's analytical depth, redrawn in
-        # PolitikKu's register at /projection/ (plus /methodology.html and
-        # both BM variants), and the dated permalinks #55 needs — this one
-        # invocation writes all six files. Nothing rendered this page until
-        # now; #102 built it while public_page was still the deployed site.
-        #
-        # Fail-fast for the homepage step's reason: this is where every
-        # figure the retired dashboard used to publish now lives, and
-        # "Seat Projection" is a nav item on every single PolitikKu page.
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: python -m lpa.politikku_projection
+      - name: Fold frontend/ into the Pages artifact
+        # Fold frontend SPA assets into public/app and fonts into public/fonts
+        # before prerendering, so headless Chromium and subsequent steps have
+        # complete local assets.
+        run: |
+          mkdir -p public/app public/fonts
+          cp -r frontend/public/. public/app/
+          cp -r frontend/public/fonts/. public/fonts/
 
-      - name: Render the PolitikKu sentiment page
-        continue-on-error: true
+      - name: Export the Projection as JSON/CSV
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: python -m lpa.politikku_sentiment
+        run: python -m lpa.public_export
 
-      - name: Render the PolitikKu bills tracker
-        continue-on-error: true
+      - name: Render the PolitikKu landing page
+        # ADR 0017: writes public/index.html (the site root) and
+        # public/ms/index.html.
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: python -m lpa.politikku_bills
+        run: python -m lpa.politikku_landing
 
-      - name: Render the PolitikKu Dewan page
-        continue-on-error: true
+      - name: Render the PolitikKu methodology page
+        # Analytical colophon at /methodology.html and /ms/methodology.html
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: python -m lpa.politikku_dewan
+        run: python -m lpa.politikku_methodology
 
-      - name: Render the PolitikKu politicians directory
-        # politikku_politicians.main() already renders the per-seat MP
-        # profile pages itself (it calls into
-        # build_and_write_mp_profile_pages internally) — no separate
-        # invocation needed, and no `||` fallback: a real bug here should
-        # fail this step, not silently reroute to a narrower code path.
-        continue-on-error: true
+      - name: Prerender PolitikKu app routes
+        # ADR 0018: Headless Chromium prerenders /dewan/, /bills/, /politicians/,
+        # /sentiment/, /projection/, and all MP profiles in EN and MS with 100% SEO,
+        # Open Graph, and JSON-LD metadata.
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: python -m lpa.politikku_politicians
+        run: python -m lpa.politikku_prerender
 
       - name: Render the PolitikKu learn pages
         continue-on-error: true
@@ -248,27 +244,6 @@ jobs:
             exit 1
           fi
 
-      - name: Export the Projection as JSON/CSV
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: python -m lpa.public_export
-
-      - name: Render the PolitikKu landing page
-        # ADR 0017: writes public/index.html (the site root) and
-        # public/ms/index.html. Placed directly after the Projection export
-        # because it reads that step's public/projection.json for the
-        # majority-call teaser; it falls back to static orientation copy if
-        # that read comes back empty, so a failed export degrades the tile,
-        # not the page. Order against the frontend fold-in no longer
-        # matters — the fold-in stops touching public/index.html entirely.
-        #
-        # NOT continue-on-error, unlike the other page renderers: public/ is
-        # gitignored, so a failed render leaves the artifact with no root
-        # page at all rather than yesterday's copy, and deploy-pages
-        # replaces the live site wholesale.
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: python -m lpa.politikku_landing
 
       - name: Render the shareable Seat Call cards
         env:
@@ -290,45 +265,6 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
         run: python -m lpa.telegram_post
-
-      - name: Fold frontend/ into the Pages artifact
-        # #134 (Step 5) originally folded frontend/ in under public/app/ only,
-        # a new subpath alongside the root PolitikKu pages then owned it.
-        # ADR 0014 (the mypolitik-frontend root swap) made /app/'s content
-        # the site root too — or said it did: this step's comment claimed a
-        # copy to BOTH public/ and public/app/, while the `run:` below only
-        # ever had the one `cp` to public/. /app/ was never a real path.
-        # ADR 0017 resolves that drift in the other direction: the landing
-        # page (its own render step above) owns public/index.html, and
-        # public/app/ is now this step's ONLY target — the SPA's first real
-        # home there. NOT continue-on-error, unchanged: public/ is
-        # gitignored, so a failed copy leaves the uploaded artifact with no
-        # app at all rather than yesterday's, and deploy-pages replaces the
-        # live site wholesale. The Cloudflare Worker deploy originally
-        # planned alongside #134 is out of scope here — Cloudflare's own
-        # dashboard Git-integration handles that deploy separately.
-        #
-        # The second cp is not redundant. politikku_shell.py's six
-        # @font-face rules point at /fonts/*.woff2 and are used by EVERY
-        # server-rendered page, not just the app; those files reached
-        # public/fonts/ purely as a side effect of the old wholesale root
-        # copy. Retargeting to public/app/ alone would 404 them site-wide —
-        # silently, since the pages still render, just with fallback
-        # typography. This preserves that previously-accidental,
-        # actually load-bearing behaviour explicitly, and the smoke-check
-        # below now asserts it.
-        #
-        # Runs BEFORE "Generate sitemap": politikku_sitemap.py auto-discovers
-        # every public/**/*.html file, including public/app/index.html and
-        # public/app/embed.html once they exist — but only if they already
-        # exist when it scans. Folding frontend/ in first is what makes
-        # /app/ show up in sitemap.xml at all; the reverse order silently
-        # produced a sitemap with no /app/ entries, caught by a user asking
-        # why the new frontend wasn't showing up for Google.
-        run: |
-          mkdir -p public/app public/fonts
-          cp -r frontend/public/. public/app/
-          cp -r frontend/public/fonts/. public/fonts/
 
       - name: Smoke-check the frontend fold-in and pre-rendered pages
         # Loud on purpose (no continue-on-error): a silently-broken copy
@@ -379,7 +315,7 @@ jobs:
             echo "::error::public/data/lookup-index.json is missing or malformed — the Seat lookup cannot resolve a postcode."
             missing=1
           fi
-          for page in public/bills/index.html public/dewan/index.html public/politicians/index.html; do
+          for page in public/bills/index.html public/dewan/index.html public/politicians/index.html public/sentiment/index.html public/projection/index.html public/methodology.html public/mp/P.107/index.html; do
             if [ ! -f "$page" ]; then
               echo "::error::$page is missing."
               missing=1

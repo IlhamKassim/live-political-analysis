@@ -48,3 +48,11 @@ parked async — so the `last-bug-review` tag normally advances with nothing
 left open by the time the run ends. Attended/manual dispatch only, never
 wired into a scheduled workflow, the same discipline ADR 0002 requires for
 the DeepSeek agent loop above. See `docs/agents/daily-check.md`.
+
+### Plain and easy language
+
+All agent answers, explanations, and reviews must use plain, easy-to-understand language:
+- Use simple words and direct phrasing. Avoid dense academic jargon and verbose filler.
+- Keep sentences short and clear. One idea per sentence where possible.
+- While adhering strictly to the exact canonical domain terms from `CONTEXT.md` (*Seat*, *Majority*, *Government Coalition*, *Projection*, *Seat Call*), explain what they mean in everyday language whenever helpful.
+- Be concrete and direct: state plainly what was done, what changed, or what needs to be decided.

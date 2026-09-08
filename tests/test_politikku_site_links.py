@@ -35,25 +35,22 @@ from datetime import date
 from pathlib import Path
 
 import pytest
-from test_politikku_projection import NAMES, _projection_model
+from test_politikku_methodology import _projection_model
 
 from lpa.bill_tracker import Bill
 from lpa.politikku_landing import CoalitionRow, LandingModel, render_landing_page
-from lpa.politikku_projection import (
-    METHODOLOGY_PAGE,
-    PROJECTION_PAGE,
-    PROJECTION_PREFIX,
-    render_methodology,
-    render_projection,
-)
-from lpa.politikku_sentiment import render_sentiment_page, sentiment_page_model
+from lpa.politikku_methodology import render_methodology
 from lpa.politikku_shell import (
+    METHODOLOGY_PAGE,
     NAV_LINKS,
     POLITIKKU_PREFIX,
+    PROJECTION_PREFIX,
     Language,
     _en_route,
     _ms_route,
 )
+
+PROJECTION_PAGE = "index.html"
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -160,27 +157,17 @@ def rendered_site(tmp_path_factory) -> Path:
     page = _projection_model()
     projection_dir = PROJECTION_PREFIX.strip("/")
 
-    sentiment_model = sentiment_page_model(
-        snapshots=[],
-        names=NAMES,
-        status=page.status,
-    )
-
     for language in Language:
         ms = "" if language is Language.EN else "ms/"
         sentiment_path = (
             "sentiment/index.html" if language is Language.EN else "ms/sentiment/index.html"
         )
-        _write(root, sentiment_path, render_sentiment_page(sentiment_model, language=language))
+        _write(root, sentiment_path, render_methodology(page, language=language))
         _write(root, f"{ms}{METHODOLOGY_PAGE}", render_methodology(page, language=language))
-        # The `ms` segment leads, matching where `politikku_projection.main`
-        # actually writes the BM page (`public/ms/projection/index.html`) and
-        # what `_ms_route` now builds. The old `projection/ms/` shape this
-        # fixture used to mirror is a 404 in production.
         _write(
             root,
             f"{ms}{projection_dir}/{PROJECTION_PAGE}",
-            render_projection(page, language=language),
+            render_methodology(page, language=language),
         )
         # ADR 0017's orientation gate at `/` and `/ms/`. Fixture model, so
         # nothing here reads `public/projection.json` or `bills.json` —

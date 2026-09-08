@@ -69,3 +69,13 @@ Issues live on GitHub (`IlhamKassim/live-political-analysis`) managed via the `g
 - **UI/UX Improvement Work**: `mypolitik`'s frontend design system
   (`docs/design/mypolitik-new-views-spec.md`) is the surviving visual
   direction — see ADR 0012. `docs/design/ui-ux-brief.md` is retired.
+
+---
+
+## 6. Plain & Easy Language
+
+All agent answers and explanations across every session must use plain, easy-to-understand language:
+- **Simple Phrasing**: Explain technical concepts, reasoning, and code changes simply and directly. Avoid unnecessarily dense academic jargon, complex nested clauses, and verbose filler.
+- **Short Sentences**: Keep sentences concise and clear. Prefer one idea per sentence.
+- **Clear Domain Explanations**: While strictly using the exact canonical domain terms from `CONTEXT.md` (*Seat*, *Majority*, *Government Coalition*, *Projection*, *Seat Call*), explain what they mean in everyday language whenever helpful.
+- **Concrete & Direct**: Say plainly what was done, what changed, or what needs to be done next without unnecessary fluff.
