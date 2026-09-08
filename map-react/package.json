@@ -1,0 +1,20 @@
+{
+  "name": "politikku-map-react-pilot",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "React pilot of the PolitikKu map seat-detail panel and tooltip (issue: testing declarative state against mobile dismiss bug).",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^6.0.5"
+  }
+}

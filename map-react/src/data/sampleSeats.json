@@ -1,0 +1,514 @@
+[
+  {
+    "code": "P.003",
+    "name": "Arau",
+    "state": "Perlis",
+    "result": {
+      "state": "Perlis",
+      "name": "Shahidan Bin Kassim",
+      "party": "PN",
+      "party_full": "Perikatan Nasional",
+      "coalition": "PN",
+      "coalition_full": "Perikatan Nasional",
+      "votes": 31458,
+      "vote_pct": 67.2,
+      "majority": 23216,
+      "majority_pct": 49.6,
+      "turnout": 78.2,
+      "n_candidates": 3,
+      "runner_up": {
+        "name": "Rozabil @ Rozamujib Bin Abdul Rahman",
+        "party": "BN",
+        "votes": 8242
+      }
+    },
+    "mp": {
+      "name": "Shahidan Kassim",
+      "party": "PN",
+      "coalition": "PN",
+      "dob": "1951-06-17",
+      "education": "Sekolah Menengah Sultan Abdul Halim",
+      "socials": {
+        "fb": "datoserishahidan.kassim"
+      },
+      "socials_source": null,
+      "wikidata": "https://www.wikidata.org/wiki/Q7461744",
+      "photo": "assets/politicians/P.003.webp",
+      "photo_credit": "Sledge hammer of God \u00b7 CC BY-SA 3.0",
+      "wikipedia": {
+        "en": {
+          "extract": "Shahidan bin Kassim is a Malaysian politician. He has served as the Member of Parliament (MP) for Arau from August 1986 to April 1995 and again since May 2013. He served as the Minister of Federal Territories.",
+          "url": "https://en.wikipedia.org/wiki/Shahidan_Kassim"
+        },
+        "ms": {
+          "extract": "Dato' Seri Dr. Shahidan bin Kassim Beliau berkhidmat sebagai Ahli Parlimen Arau dan sebagai bekas Menteri Wilayah Persekutuan.",
+          "url": "https://ms.wikipedia.org/wiki/Shahidan_Kassim"
+        }
+      },
+      "photo_license_url": "https://creativecommons.org/licenses/by-sa/3.0"
+    }
+  },
+  {
+    "code": "P.015",
+    "name": "Sungai Petani",
+    "state": "Kedah",
+    "result": {
+      "state": "Kedah",
+      "name": "Mohammed Taufiq Bin Johari",
+      "party": "PH",
+      "party_full": "Pakatan Harapan",
+      "coalition": "PH",
+      "coalition_full": "Pakatan Harapan",
+      "votes": 50580,
+      "vote_pct": 38.9,
+      "majority": 1115,
+      "majority_pct": 0.9,
+      "turnout": 77.8,
+      "n_candidates": 5,
+      "runner_up": {
+        "name": "Robert Ling Kui Ee",
+        "party": "PN",
+        "votes": 49465
+      }
+    },
+    "mp": {
+      "name": "Taufiq Johari",
+      "party": "PH",
+      "coalition": "PH",
+      "dob": null,
+      "education": null,
+      "socials": {
+        "ig": "taufiqjohari",
+        "tw": "taufiqjoharii"
+      },
+      "socials_source": null,
+      "wikidata": "https://www.wikidata.org/wiki/Q115590783",
+      "photo": "assets/politicians/P.015.webp",
+      "photo_credit": "Thegreatrebellion \u00b7 CC BY-SA 4.0",
+      "wikipedia": {
+        "en": {
+          "extract": "Mohammed Taufiq bin Johari is a Malaysian physician and politician who has served as the Minister of Youth and Sports since December 2025 and the Member of Parliament (MP) for Sungai Petani in Kedah since November 2022. He is a member and the Division Chief of Sungai Petani of the People's Justice Party (PKR), a component party of the Pakatan Harapan (PH) coalition.",
+          "url": "https://en.wikipedia.org/wiki/Mohammed_Taufiq_Johari"
+        },
+        "ms": {
+          "extract": "Dr. Mohammed Taufiq bin Tan Sri Dato\u2019 Dr. Johari ialah ahli politik Malaysia berketurunan Melayu. Beliau kini berkhidmat sebagai Menteri Belia dan Sukan sejak 2025 dan Ahli Parlimen Sungai Petani sejak 2022.",
+          "url": "https://ms.wikipedia.org/wiki/Mohammed_Taufiq_Johari"
+        }
+      },
+      "ballot_name": "Mohammed Taufiq Bin Johari",
+      "photo_license_url": "https://creativecommons.org/licenses/by-sa/4.0"
+    }
+  },
+  {
+    "code": "P.021",
+    "name": "Kota Bharu",
+    "state": "Kelantan",
+    "result": {
+      "state": "Kelantan",
+      "name": "Takiyuddin Bin Hassan",
+      "party": "PAS",
+      "party_full": "Parti Islam Se Malaysia",
+      "coalition": "PN",
+      "coalition_full": "Perikatan Nasional",
+      "votes": 41869,
+      "vote_pct": 53.7,
+      "majority": 22613,
+      "majority_pct": 29.0,
+      "turnout": 68.5,
+      "n_candidates": 6,
+      "runner_up": {
+        "name": "Hafidzah Binti Haji Mustakim",
+        "party": "PH",
+        "votes": 19256
+      }
+    },
+    "mp": {
+      "name": "Takiyuddin Hassan",
+      "party": "PAS",
+      "coalition": "PN",
+      "dob": "1961-11-24",
+      "education": "Kolej Islam Sultan Alam Shah",
+      "socials": {
+        "fb": "TakiyuddinMyLaw",
+        "ig": "takiyuddin.hassan",
+        "tw": "takiyuddin61"
+      },
+      "socials_source": null,
+      "wikidata": "https://www.wikidata.org/wiki/Q12710292",
+      "photo": "assets/politicians/P.021.webp",
+      "photo_credit": "Anne4321 \u00b7 CC BY-SA 4.0",
+      "wikipedia": {
+        "en": {
+          "extract": "Takiyuddin bin Hassan is a Malaysian politician and lawyer from the Malaysian Islamic Party (PAS), a component party of the Perikatan Nasional (PN) coalition who has served as the Member of Parliament (MP) for Kota Bharu since May 2013. He served as the Minister of Energy and Natural Resources in the Barisan Nasional (BN) administration under former Prime Minister Ismail Sabri Yaakob from August 2021 to the collapse of the BN administration in November 2022, the Minister in the Prime Minister's Department in charge of Parliament and Law in the PN administration under Prime Minister Muhyiddin Y",
+          "url": "https://en.wikipedia.org/wiki/Takiyuddin_Hassan"
+        },
+        "ms": {
+          "extract": "Takiyuddin bin Hassan ialah ahli politik Malaysia berketurunan Melayu. Beliau kini berkhidmat sebagai Ahli Parlimen Kota Bharu. Pada peringkat parti, beliau merupakan Setiausaha Agung Parti Islam Se-Malaysia.",
+          "url": "https://ms.wikipedia.org/wiki/Takiyuddin_Hassan"
+        }
+      },
+      "photo_license_url": "https://creativecommons.org/licenses/by-sa/4.0"
+    }
+  },
+  {
+    "code": "P.044",
+    "name": "Permatang Pauh",
+    "state": "Pulau Pinang",
+    "result": {
+      "state": "Pulau Pinang",
+      "name": "Muhammad Fawwaz Bin Mohamad Jan",
+      "party": "PN",
+      "party_full": "Perikatan Nasional",
+      "coalition": "PN",
+      "coalition_full": "Perikatan Nasional",
+      "votes": 37638,
+      "vote_pct": 43.0,
+      "majority": 5272,
+      "majority_pct": 6.0,
+      "turnout": 82.3,
+      "n_candidates": 4,
+      "runner_up": {
+        "name": "Nurul Izzah Binti Anwar",
+        "party": "PH",
+        "votes": 32366
+      }
+    },
+    "mp": {
+      "name": "Muhammad Fawwaz Mat Jan",
+      "party": "PN",
+      "coalition": "PN",
+      "dob": null,
+      "education": "Al-Azhar University",
+      "socials": {
+        "fb": "UstazMuhammadFawwaz",
+        "ig": "ustazfawwazmdjanofficial",
+        "tw": "fawwazjan",
+        "tiktok": "ustazfawwazmdjanofficial"
+      },
+      "socials_source": "community",
+      "wikidata": "https://www.wikidata.org/wiki/Q115647946",
+      "photo": null,
+      "photo_credit": null,
+      "wikipedia": {
+        "en": {
+          "extract": "Muhammad Fawwaz bin Mohamad Jan is a Malaysian politician who has served as the Member of Parliament (MP) for Permatang Pauh since November 2022. He is a member and the Penang State Information Chief of the Malaysian Islamic Party (PAS), a component party of the Perikatan Nasional (PN) coalition. His victory in the 2022 general election was a significant upset, as he defeated the incumbent MP, Nurul Izzah Anwar, the daughter of Prime Minister Anwar Ibrahim ending the family's 40-year hold on the parliamentary seat. As MP for Permatang Pauh, he has been controversial, attempting to ban the sale",
+          "url": "https://en.wikipedia.org/wiki/Muhammad_Fawwaz_Mohamad_Jan"
+        },
+        "ms": {
+          "extract": "Tuan Muhammad Fawwaz bin Mohamad Jan ialah ahli politik Malaysia berketurunan Melayu. Beliau kini berkhidmat sebagai Ahli Parlimen Permatang Pauh. Beliau juga merupakan Ketua Dewan Pemuda PAS Pulau Pinang.",
+          "url": "https://ms.wikipedia.org/wiki/Muhammad_Fawwaz_Mat_Jan"
+        }
+      },
+      "ballot_name": "Muhammad Fawwaz Bin Mohamad Jan"
+    }
+  },
+  {
+    "code": "P.075",
+    "name": "Bagan Datuk",
+    "state": "Perak",
+    "result": {
+      "state": "Perak",
+      "name": "Ahmad Zahid Bin Hamidi",
+      "party": "BN",
+      "party_full": "Barisan Nasional",
+      "coalition": "BN",
+      "coalition_full": "Barisan Nasional",
+      "votes": 16578,
+      "vote_pct": 39.6,
+      "majority": 348,
+      "majority_pct": 0.8,
+      "turnout": 73.4,
+      "n_candidates": 4,
+      "runner_up": {
+        "name": "Shamsul Iskandar @ Yusre Bin Mohd Akin",
+        "party": "PH",
+        "votes": 16230
+      }
+    },
+    "mp": {
+      "name": "Ahmad Zahid Hamidi",
+      "party": "BN",
+      "coalition": "BN",
+      "dob": "1953-01-14",
+      "education": "Universiti Malaya",
+      "socials": {
+        "fb": "zahidhamidi.fanpage",
+        "ig": "ahmadzahidhamidi",
+        "tw": "DrZahidHamidi",
+        "tiktok": "ahmadzahidhamidi"
+      },
+      "socials_source": null,
+      "wikidata": "https://www.wikidata.org/wiki/Q4695503",
+      "photo": "assets/politicians/P.075.webp",
+      "photo_credit": "US Embassy KL \u00b7 Public domain",
+      "wikipedia": {
+        "en": {
+          "extract": "Ahmad Zahid bin Hamidi is a Malaysian politician who is the deputy prime minister since 2022. A president of UMNO since 2018, he represented Bagan Datuk in Dewan Rakyat since 1995. Zahid is also the rural and regional development minister since 2022, as well as the leader and the chairman of the coalition Barisan Nasional (BN) since May 2018.",
+          "url": "https://en.wikipedia.org/wiki/Ahmad_Zahid_Hamidi"
+        },
+        "ms": {
+          "extract": "Ahmad Zahid bin Hamidi merupakan seorang ahli politik Malaysia yang telah berkhidmat sebagai Timbalan Perdana Menteri semasa pentadbiran dari 2015 sehingga 2018 dalam kerajaan Barisan Nasional kepada Perdana Menteri Dato' Sri Mohd. Najib Tun Razak dan juga dalam kerajaan perpaduan kepada Perdana Menteri Dato' Seri Anwar Ibrahim sejak 2022. Beliau merupakan tokoh Malaysia berketurunan Jawa, di mana bapanya berketurunan bangsawan Jawa dengan gelaran raden. Malah, kedua-dua ibu bapanya dilahirkan di Hindia Belanda, kemudian berpindah ke Persekutuan Tanah Melayu untuk bekerja. Dilahirkan di Perak.",
+          "url": "https://ms.wikipedia.org/wiki/Ahmad_Zahid_Hamidi"
+        }
+      },
+      "photo_license_url": ""
+    }
+  },
+  {
+    "code": "P.102",
+    "name": "Bangi",
+    "state": "Selangor",
+    "result": {
+      "state": "Selangor",
+      "name": "Syahredzan Bin Johan",
+      "party": "PH",
+      "party_full": "Pakatan Harapan",
+      "coalition": "PH",
+      "coalition_full": "Pakatan Harapan",
+      "votes": 141568,
+      "vote_pct": 58.0,
+      "majority": 69701,
+      "majority_pct": 28.5,
+      "turnout": 81.3,
+      "n_candidates": 8,
+      "runner_up": {
+        "name": "Muhammad Nazrul Hakim Bin Md Nazir",
+        "party": "PN",
+        "votes": 71867
+      }
+    },
+    "mp": {
+      "name": "Syahredzan Johan",
+      "party": "PH",
+      "coalition": "PH",
+      "dob": "1983-01-01",
+      "education": null,
+      "socials": {
+        "fb": "SyahredzanJohan",
+        "ig": "syahredzanjohan",
+        "tw": "syahredzan",
+        "tiktok": "syahredzan"
+      },
+      "socials_source": "community",
+      "wikidata": "https://www.wikidata.org/wiki/Q115477413",
+      "photo": "assets/politicians/P.102.webp",
+      "photo_credit": "Khairil Yusof \u00b7 CC BY-SA 4.0",
+      "wikipedia": {
+        "en": {
+          "extract": "Syahredzan bin Johan is a Malaysian politician, lawyer and activist who has served as the Member of Parliament (MP) for Bangi since November 2022. He is a member of the Democratic Action Party (DAP), a component party of the Pakatan Harapan (PH) coalition. He has also served as the National Vice Chairman of DAP since March 2025 and the State Political Education Director of DAP of Selangor since November 2024.",
+          "url": "https://en.wikipedia.org/wiki/Syahredzan_Johan"
+        },
+        "ms": {
+          "extract": "Yang Berhormat Tuan Syahredzan Johan ialah seorang ahli politik di Malaysia berketurunan Melayu. Beliau memegang jawatan Ahli Jawatankuasa Tertinggi Pusat Parti Tindakan Demokratik (DAP).",
+          "url": "https://ms.wikipedia.org/wiki/Syahredzan_Johan"
+        }
+      },
+      "photo_license_url": "https://creativecommons.org/licenses/by-sa/4.0"
+    }
+  },
+  {
+    "code": "P.104",
+    "name": "Subang",
+    "state": "Selangor",
+    "result": {
+      "state": "Selangor",
+      "name": "Wong Chen",
+      "party": "PH",
+      "party_full": "Pakatan Harapan",
+      "coalition": "PH",
+      "coalition_full": "Pakatan Harapan",
+      "votes": 138259,
+      "vote_pct": 77.7,
+      "majority": 115074,
+      "majority_pct": 64.7,
+      "turnout": 77.8,
+      "n_candidates": 3,
+      "runner_up": {
+        "name": "Ang Hiang Ni",
+        "party": "PN",
+        "votes": 23185
+      }
+    },
+    "mp": {
+      "name": "Wong Chen",
+      "party": "PH",
+      "coalition": "PH",
+      "dob": "1968-12-18",
+      "education": "United World College of South East Asia",
+      "socials": {
+        "fb": "WongChenMY",
+        "ig": "wongchen_my",
+        "tw": "WongChen_MY",
+        "tiktok": "wongchen_my",
+        "web": "https://www.wongchen.com/"
+      },
+      "socials_source": "community",
+      "wikidata": "https://www.wikidata.org/wiki/Q19841039",
+      "photo": "assets/politicians/P.104.webp",
+      "photo_credit": "Amirhamzahazmi \u00b7 CC BY-SA 3.0",
+      "wikipedia": {
+        "en": {
+          "extract": "Wong Chen is a Malaysian politician and lawyer. He was the Member of Parliament (MP) for Subang from May 2018 to August 2026, and Kelana Jaya from May 2013 to May 2018. He is a member of the Malaysian United Party (BERSAMA).",
+          "url": "https://en.wikipedia.org/wiki/Wong_Chen"
+        },
+        "ms": {
+          "extract": "Wong Chen ialah ahli politik Malaysia berketurunan Cina. Beliau pernah berkhidmat sebagai Ahli Parlimen Subang pada 2013 hingga 2026. Beliau ialah ahli Parti Bersama Malaysia (BERSAMA).",
+          "url": "https://ms.wikipedia.org/wiki/Wong_Chen"
+        }
+      },
+      "photo_license_url": "https://creativecommons.org/licenses/by-sa/3.0"
+    }
+  },
+  {
+    "code": "P.121",
+    "name": "Lembah Pantai",
+    "state": "W.P. Kuala Lumpur",
+    "result": {
+      "state": "W.P. Kuala Lumpur",
+      "name": "Ahmad Fahmi Bin Mohamed Fadzil",
+      "party": "PH",
+      "party_full": "Pakatan Harapan",
+      "coalition": "PH",
+      "coalition_full": "Pakatan Harapan",
+      "votes": 35359,
+      "vote_pct": 46.1,
+      "majority": 13912,
+      "majority_pct": 18.1,
+      "turnout": 76.1,
+      "n_candidates": 4,
+      "runner_up": {
+        "name": "Ramlan Bin Shahean @ Askolani",
+        "party": "BN",
+        "votes": 21447
+      }
+    },
+    "mp": {
+      "name": "Fahmi Fadzil",
+      "party": "PH",
+      "coalition": "PH",
+      "dob": "1981-02-04",
+      "education": "Purdue University",
+      "socials": {
+        "fb": "Fahmi.Fadzil.1",
+        "ig": "fahmifadzil.1",
+        "tw": "fahmi_fadzil",
+        "tiktok": "fahmi.fadzil",
+        "web": "http://fahmifadzil.com/"
+      },
+      "socials_source": null,
+      "wikidata": "https://www.wikidata.org/wiki/Q55611406",
+      "photo": "assets/politicians/P.121.webp",
+      "photo_credit": "ShafKass \u00b7 CC BY-SA 4.0",
+      "wikipedia": {
+        "en": {
+          "extract": "Ahmad Fahmi bin Mohamed Fadzil is a Malaysian politician, former actor and writer serving as the Minister of Communications since December 2023. A member of People's Justice Party (PKR), he has been Member of Parliament for Lembah Pantai since May 2018. Fahmi also serves as the government spokesperson for Anwar Ibrahim cabinet.",
+          "url": "https://en.wikipedia.org/wiki/Fahmi_Fadzil"
+        },
+        "ms": {
+          "extract": "Dato' Seri Ahmad Fahmi bin Datuk Mohamed Fadzil ialah seorang ahli politik, bekas pelakon dan penulis skrip Malaysia. Beliau kini berkhidmat sebagai Menteri Komunikasi Malaysia di kabinet Perdana Menteri Malaysia ke-10, YAB Dato' Seri Anwar Ibrahim.",
+          "url": "https://ms.wikipedia.org/wiki/Fahmi_Fadzil"
+        }
+      },
+      "ballot_name": "Ahmad Fahmi Bin Mohamed Fadzil",
+      "photo_license_url": "https://creativecommons.org/licenses/by-sa/4.0"
+    }
+  },
+  {
+    "code": "P.147",
+    "name": "Parit Sulong",
+    "state": "Johor",
+    "result": {
+      "state": "Johor",
+      "name": "Noraini Binti Ahmad",
+      "party": "BN",
+      "party_full": "Barisan Nasional",
+      "coalition": "BN",
+      "coalition_full": "Barisan Nasional",
+      "votes": 25740,
+      "vote_pct": 40.9,
+      "majority": 2021,
+      "majority_pct": 3.2,
+      "turnout": 80.1,
+      "n_candidates": 3,
+      "runner_up": {
+        "name": "Karim Bin Deraman",
+        "party": "PN",
+        "votes": 23719
+      }
+    },
+    "mp": {
+      "name": "Noraini Ahmad",
+      "party": "BN",
+      "coalition": "BN",
+      "dob": "1967-11-07",
+      "education": "University of Saskatchewan",
+      "socials": {
+        "fb": "DrNorainiAhmad"
+      },
+      "socials_source": null,
+      "wikidata": "https://www.wikidata.org/wiki/Q7050236",
+      "photo": "assets/politicians/P.147.webp",
+      "photo_credit": "NikoUMS \u00b7 CC BY-SA 4.0",
+      "wikipedia": {
+        "en": {
+          "extract": "Noraini binti Ahmad is a Malaysian politician who has served as Minister of Plantation and Commodities in the Unity Government administration under Prime Minister Anwar Ibrahim since December 2025 and the Member of Parliament (MP) for Parit Sulong since March 2008. She served as the Deputy Minister of Women, Family and Community Development in the Unity Government administration under Prime Minister Anwar and Minister Nancy Shukri from December 2023 to her re-promotion in December 2025, Minister of Higher Education for the second term under the Barisan Nasional (BN) administration under former",
+          "url": "https://en.wikipedia.org/wiki/Noraini_Ahmad"
+        },
+        "ms": {
+          "extract": "Datuk Seri Dr. Noraini binti Ahmad ialah ahli politik wanita Malaysia berketurunan Melayu. Beliau kini berkhidmat sebagai Menteri Perladangan dan Komoditi Malaysia dan Ahli Parlimen Parit Sulong. Di peringkat parti beliau ialah Ketua Wanita UMNO Pusat.",
+          "url": "https://ms.wikipedia.org/wiki/Noraini_Ahmad"
+        }
+      },
+      "photo_license_url": "https://creativecommons.org/licenses/by-sa/4.0"
+    }
+  },
+  {
+    "code": "P.197",
+    "name": "Kota Samarahan",
+    "state": "Sarawak",
+    "result": {
+      "state": "Sarawak",
+      "name": "Rubiah Binti Wang",
+      "party": "GPS",
+      "party_full": "Gabungan Parti Sarawak",
+      "coalition": "GPS",
+      "coalition_full": "Gabungan Parti Sarawak",
+      "votes": 42278,
+      "vote_pct": 76.7,
+      "majority": 29445,
+      "majority_pct": 53.4,
+      "turnout": 68.4,
+      "n_candidates": 2,
+      "runner_up": {
+        "name": "Abang Abdul Halil Bin Abang Naili",
+        "party": "PH",
+        "votes": 12833
+      }
+    },
+    "mp": {
+      "name": "Rubiah Wang",
+      "party": "GPS",
+      "coalition": "GPS",
+      "dob": null,
+      "education": "National University of Malaysia",
+      "socials": {
+        "fb": "RubiahWangMP197",
+        "ig": "officialrubiahwang"
+      },
+      "socials_source": "community",
+      "wikidata": "https://www.wikidata.org/wiki/Q17055379",
+      "photo": null,
+      "photo_credit": null,
+      "wikipedia": {
+        "en": {
+          "extract": "Rubiah binti Wang is a Malaysian politician, former civil servant and former educator who has served as the Deputy Minister of Rural and Regional Development in the Unity Government administration under Prime Minister Anwar Ibrahim and Minister Ahmad Zahid Hamidi since December 2022 and the Member of Parliament (MP) for Kota Samarahan since May 2013. She is a member of the Parti Pesaka Bumiputera Bersatu (PBB), a component party of the Gabungan Parti Sarawak (GPS) and formerly Barisan Nasional (BN) coalition.",
+          "url": "https://en.wikipedia.org/wiki/Rubiah_Wang"
+        },
+        "ms": {
+          "extract": "YB Datuk Hajah Rubiah binti Wang\u00a0ialah seorang ahli politik\u00a0Wanita Malaysia\u00a0dan Ahli Parlimen bagi Kota Samarahan\u00a0di Sarawak, mewakili Parti Pesaka Bumiputera Bersatu (PBB) di dalam pentadbiran Gabungan Parti Sarawak. Di peringat Akar Umbi Parti, Beliau merupakan Naib Ketua Pergerakan Wanita Parti Pesaka Bumiputera Bersatu Sarawak (PBB) Sejak 2018. Sebelum aktif dalam dunia politik, Rubiah merupakan seorang Guru bahasa melayu di SMK Openg dari tahun 1992 untuk tahun 1994.",
+          "url": "https://ms.wikipedia.org/wiki/Rubiah_Wang"
+        }
+      }
+    }
+  }
+]

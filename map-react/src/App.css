@@ -1,0 +1,293 @@
+/* App.css — Layout and verification harness for PolitikKu Map React Pilot */
+
+:root {
+  --bg: #0b0e13;
+  --bg-2: #11151d;
+  --panel: #0e1219;
+  --line: #1d2733;
+  --line-2: #2a3645;
+  --ink: #e7edf4;
+  --ink-dim: #93a1b3;
+  --ink-faint: #5d6b7d;
+  --accent: #4dd6c1;
+  --accent-2: #ffd166;
+  --select: #ffd166;
+  --radius: 10px;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans: "Space Grotesk", system-ui, -apple-system, sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  overflow-x: hidden;
+  overflow-y: auto !important;
+}
+
+.prototype-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header bar */
+.prototype-header {
+  padding: 14px 24px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.prototype-title-group h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.prototype-subtitle {
+  font-size: 12px;
+  color: var(--ink-dim);
+  margin-top: 3px;
+}
+
+.prototype-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.viewport-toggle {
+  display: inline-flex;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.viewport-toggle button {
+  background: none;
+  border: none;
+  color: var(--ink-dim);
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: var(--sans);
+  transition: all 0.15s ease;
+}
+
+.viewport-toggle button.active {
+  background: var(--line-2);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* Layout area */
+.prototype-body {
+  flex: 1;
+  padding: 24px;
+  max-width: 1400px;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 auto;
+}
+
+.prototype-layout-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px 340px;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .prototype-layout-grid {
+    grid-template-columns: 1fr 360px;
+  }
+  .audit-card {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 768px) {
+  .prototype-layout-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Mobile Simulation Mode */
+.is-mobile-sim {
+  background: #05070a;
+  padding: 20px 0;
+}
+
+.is-mobile-sim .prototype-body {
+  display: flex;
+  justify-content: center;
+}
+
+.mobile-device-frame {
+  width: 390px;
+  max-width: 100%;
+  border: 10px solid #222a35;
+  border-radius: 36px;
+  background: var(--bg);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-notch-bar {
+  background: #222a35;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-notch-pill {
+  width: 90px;
+  height: 12px;
+  background: #000;
+  border-radius: 999px;
+}
+
+.mobile-inner-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+}
+
+/* Seat cards list */
+.seat-trigger-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.seat-card-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.is-mobile-sim .seat-card-list {
+  grid-template-columns: 1fr;
+}
+
+.seat-trigger-btn {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.seat-trigger-btn:hover {
+  border-color: var(--line-2);
+  transform: translateY(-1px);
+}
+
+.seat-trigger-btn.is-selected {
+  box-shadow: 0 0 0 2px var(--select);
+}
+
+/* Force tooltip visibility in prototype even below 860px */
+.react-seat-tooltip {
+  display: block !important;
+}
+
+/* Audit Card */
+.audit-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.audit-state-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  background: var(--bg-2);
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+
+.audit-metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.audit-metric-label {
+  font-size: 11px;
+  color: var(--ink-dim);
+}
+
+.audit-checklist {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.audit-checklist li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-dim);
+}
+
+.audit-checklist li.is-passed {
+  color: var(--ink);
+}
+
+.audit-checklist li.is-passed .check-icon {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.check-icon {
+  width: 14px;
+  display: inline-block;
+  color: var(--ink-faint);
+}
+
+.audit-log-stream {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 11px;
+  max-height: 120px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.audit-log-line {
+  line-height: 1.4;
+  word-break: break-word;
+}
