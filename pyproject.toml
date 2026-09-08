@@ -92,3 +92,10 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = "PIL.*"
 ignore_missing_imports = true
+
+# Same reasoning for `playwright` (`.[prerender]`) — lazy-imported in
+# politikku_prerender.py so the rest of the package stays checkable in CI
+# without the headless browser extra installed.
+[[tool.mypy.overrides]]
+module = "playwright.*"
+ignore_missing_imports = true
