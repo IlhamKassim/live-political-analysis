@@ -5674,7 +5674,7 @@ const METHODOLOGY_VIEW = document.getElementById("methodology-view");
 async function openMethodologyPage() {
   if (!state.methodologyHtml || state.methodologyHtmlLang !== lang) {
     try {
-      const url = lang === "ms" ? "ms/methodology.html" : "methodology.html";
+      const url = lang === "ms" ? "/ms/methodology.html" : "/methodology.html";
       const res = await fetch(url);
       if (res.ok) {
         const doc = new DOMParser().parseFromString(await res.text(), "text/html");
@@ -5746,7 +5746,7 @@ const GLOSSARY_VIEW = document.getElementById("glossary-view");
 async function openGlossaryPage() {
   if (!state.glossaryHtml) {
     try {
-      const res = await fetch("learn/glossary.html");
+      const res = await fetch("/learn/glossary.html");
       if (res.ok) {
         const doc = new DOMParser().parseFromString(await res.text(), "text/html");
         const main = doc.getElementById("main-content");
@@ -5815,7 +5815,7 @@ const COALITIONS_VIEW = document.getElementById("coalitions-view");
 async function openCoalitionsPage() {
   if (!state.coalitionsHtml) {
     try {
-      const res = await fetch("learn/coalitions.html");
+      const res = await fetch("/learn/coalitions.html");
       if (res.ok) {
         const doc = new DOMParser().parseFromString(await res.text(), "text/html");
         const main = doc.getElementById("main-content");
@@ -5883,7 +5883,7 @@ const PROCESS_VIEW = document.getElementById("ge16-process-view");
 async function openProcessPage() {
   if (!state.processHtml) {
     try {
-      const res = await fetch("learn/ge16-process.html");
+      const res = await fetch("/learn/ge16-process.html");
       if (res.ok) {
         const doc = new DOMParser().parseFromString(await res.text(), "text/html");
         const main = doc.getElementById("main-content");
