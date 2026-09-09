@@ -1488,43 +1488,6 @@ button.dewan-tr:hover {
 .pol-monogram {
   font-family: var(--sans); font-weight: 700; font-size: 26px; line-height: 1; color: #fff; letter-spacing: .02em;
 }
-.pol-fallback {
-  background: var(--bg-2, #11151d) !important;
-  border: 1px solid var(--line-2, #2a3645);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  display: flex !important;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  user-select: none;
-  line-height: normal;
-}
-.pol-fallback-icon {
-  width: 38%;
-  height: 38%;
-  stroke: var(--ink-faint, #5d6b7d);
-  flex-shrink: 0;
-  display: block;
-}
-.pol-fallback-initials {
-  font-family: var(--mono, "JetBrains Mono", monospace);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--ink-dim, #93a1b3);
-  line-height: 1.2;
-}
-.pol-card .pol-fallback { gap: 8px; }
-.pol-card .pol-fallback .pol-fallback-icon { width: 44%; height: 44%; }
-.pol-card .pol-fallback .pol-fallback-initials { font-size: 15px; letter-spacing: 0.08em; }
-.pol-modal-photo.pol-fallback { gap: 6px; }
-.pol-modal-photo.pol-fallback .pol-fallback-icon,
-.cand-modal-photo.pol-fallback .pol-fallback-icon { width: 40%; height: 40%; }
-.pol-modal-photo.pol-fallback .pol-fallback-initials,
-.cand-modal-photo.pol-fallback .pol-fallback-initials { font-size: 14px; }
-.bento-cand-row .pol-fallback .pol-fallback-initials { display: none; }
-.bento-cand-row .pol-fallback .pol-fallback-icon { width: 60%; height: 60%; }
 .pol-socials { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .pol-socials-compact { gap: 5px; margin-top: 8px; }
 .pol-soc-icon {
