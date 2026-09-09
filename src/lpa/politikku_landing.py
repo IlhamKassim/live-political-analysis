@@ -43,7 +43,7 @@ Decisions here that are easy to undo by accident:
    leaving the projection untagged.
 5. **Coalition colours and Government membership are read, never
    restated.** Colours come from `frontend/public/lib.js` via
-   `politikku_politicians.load_coalition_colors()` (the same table the SPA
+   `lpa.coalition_colors.load_coalition_colors()` (the same table the SPA
    draws its map with) and Government Coalition membership from
    `data/coalitions.json`. A hardcoded `{"PH": "#d7263d", ...}` here is how
    the landing page and the map end up disagreeing about what colour PH is.
@@ -99,7 +99,7 @@ PROJECTION_JSON = Path("public/projection.json")
 run."""
 
 BILLS_JSON = Path("frontend/public/data/bills.json")
-"""The same file `politikku_bills.py` reads and `app.js` fetches — read here
+"""The same file `lpa.bill_tracker` reads and `app.js` fetches — read here
 too rather than via Storage, for the identical reason that module gives:
 two renderings of the same Bill must not be able to disagree."""
 
@@ -750,9 +750,10 @@ def render_page_header(language: Language) -> str:
     """
     en_href = html.escape(_en_route(PAGE_PATH))
     ms_href = html.escape(_ms_route(PAGE_PATH))
+    home_href = ms_href if language is Language.MS else en_href
     en_on = language is Language.EN
     return f"""<header class="pk-top">
-  <a class="pk-top-word" href="{en_href}">Politik<b>Ku</b></a>
+  <a class="pk-top-word" href="{home_href}">Politik<b>Ku</b></a>
   <div class="seg lang-seg" role="group" aria-label="{
         html.escape(t(language, "Language", "Bahasa"))
     }">
@@ -964,11 +965,12 @@ def _bills_preview(model: LandingModel, language: Language) -> str:
     heading = t(language, "Bill tracker", "Penjejak RUU")
     note = t(language, "Most recent in the Dewan Rakyat", "Terkini di Dewan Rakyat")
     more = t(language, "All Bills", "Semua RUU")
+    href = route(language, "bills/")
     return f"""
       <article class="bento-tile pk-preview">
         <div class="pk-preview-head">
           <h3>{html.escape(heading)}</h3>
-          <a class="pk-preview-more" href="/bills/">{html.escape(more)} &rarr;</a>
+          <a class="pk-preview-more" href="{html.escape(href)}">{html.escape(more)} &rarr;</a>
         </div>
         <span class="bento-kicker">{html.escape(note)}</span>
         <div class="pk-bill-rows">{body}</div>

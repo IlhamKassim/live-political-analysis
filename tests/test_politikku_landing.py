@@ -568,3 +568,23 @@ def test_the_redirect_stubs_no_longer_clobber_the_bm_landing_page(tmp_path):
     assert (tmp_path / "ms" / "home.html").is_file()
     # And the EN root is untouched too.
     assert '<html lang="en">' in (tmp_path / "index.html").read_text(encoding="utf-8")
+
+
+def test_landing_page_header_wordmark_preserves_language():
+    from lpa.politikku_landing import render_page_header
+
+    en_header = render_page_header(Language.EN)
+    ms_header = render_page_header(Language.MS)
+
+    assert '<a class="pk-top-word" href="/">Politik<b>Ku</b></a>' in en_header
+    assert '<a class="pk-top-word" href="/ms/">Politik<b>Ku</b></a>' in ms_header
+
+
+def test_landing_page_bills_preview_links_to_localized_route():
+    from lpa.politikku_landing import _bills_preview
+
+    en_preview = _bills_preview(model(), Language.EN)
+    ms_preview = _bills_preview(model(), Language.MS)
+
+    assert 'href="/bills/"' in en_preview
+    assert 'href="/ms/bills/"' in ms_preview
