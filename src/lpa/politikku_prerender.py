@@ -16,8 +16,10 @@ import re
 import threading
 import time
 from datetime import date, datetime
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote, urljoin, urlsplit
 
 from lpa.config import load_mp_profiles
 from lpa.pipeline import MALAYSIA_TIME
@@ -26,6 +28,48 @@ from lpa.politikku_seo import RouteMetadata, get_metadata_for_mp, get_metadata_f
 from lpa.politikku_shell import Language
 
 SECTIONS = ("dewan", "bills", "politicians", "sentiment", "projection")
+
+
+class _LocalAssetReferenceParser(HTMLParser):
+    """Collect resource URLs without treating ordinary navigation as an asset."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.references: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attributes = dict(attrs)
+        src = attributes.get("src")
+        if src:
+            self.references.append(src)
+        if tag == "link" and attributes.get("href"):
+            self.references.append(attributes["href"] or "")
+
+
+def validate_local_asset_references(html_doc: str, route_path: str, public_dir: Path) -> None:
+    """Raise when an HTML resource URL does not resolve inside the Pages artifact."""
+    parser = _LocalAssetReferenceParser()
+    parser.feed(html_doc)
+    page_url = urljoin("https://politikku.invalid/", route_path)
+
+    missing: list[str] = []
+    for reference in parser.references:
+        parsed_reference = urlsplit(reference)
+        if (
+            parsed_reference.scheme
+            or parsed_reference.netloc
+            or not parsed_reference.path
+            or reference.startswith("#")
+        ):
+            continue
+
+        resolved_path = unquote(urlsplit(urljoin(page_url, reference)).path).lstrip("/")
+        if not (public_dir / resolved_path).is_file():
+            missing.append(f"{reference!r} resolves to {resolved_path!r}")
+
+    if missing:
+        details = "; ".join(missing)
+        raise ValueError(f"Missing local assets on {route_path}: {details}")
 
 
 class StaticPrerenderHandler(http.server.SimpleHTTPRequestHandler):
@@ -80,15 +124,15 @@ def inject_metadata(html_doc: str, metadata: RouteMetadata) -> str:
         raise ValueError("No <head> tag found in HTML document")
     head_content = head_match.group(1)
 
-    # Strip existing generic title and meta tags
+    # Strip existing generic title and SEO meta tags (preserve viewport and theme-color)
     head_content = re.sub(r"<title>.*?</title>\s*", "", head_content, flags=re.DOTALL)
     head_content = re.sub(
-        r'<meta\s+(?:name|property|data-i18n-content)="[^"]*"\s*(?:name|property|data-i18n-content)="[^"]*"\s*content="[^"]*"\s*/?>\s*',
+        r'<meta\s+(?:name|property|data-i18n-content)="(?!viewport\b|theme-color\b)[^"]*"\s*(?:name|property|data-i18n-content)="[^"]*"\s*content="[^"]*"\s*/?>\s*',
         "",
         head_content,
     )
     head_content = re.sub(
-        r'<meta\s+(?:name|property)="[^"]*"\s*content="[^"]*"\s*/?>\s*',
+        r'<meta\s+(?:name|property)="(?!viewport\b|theme-color\b)[^"]*"\s*content="[^"]*"\s*/?>\s*',
         "",
         head_content,
     )
@@ -101,7 +145,12 @@ def inject_metadata(html_doc: str, metadata: RouteMetadata) -> str:
         flags=re.DOTALL,
     )
 
-    new_head_content = f"\n{metadata.head_html()}\n{head_content.lstrip()}"
+    viewport_fallback = (
+        ""
+        if re.search(r'<meta\s+name="viewport"', head_content)
+        else '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+    )
+    new_head_content = f"\n{viewport_fallback}{metadata.head_html()}\n{head_content.lstrip()}"
     return html_doc[: head_match.start(1)] + new_head_content + html_doc[head_match.end(1) :]
 
 
