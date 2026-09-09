@@ -38,7 +38,12 @@ import pytest
 from test_politikku_methodology import _projection_model
 
 from lpa.bill_tracker import Bill
-from lpa.politikku_landing import CoalitionRow, LandingModel, render_landing_page
+from lpa.politikku_landing import (
+    CoalitionRow,
+    LandingModel,
+    _copy_observatory_assets,
+    render_landing_page,
+)
 from lpa.politikku_methodology import render_methodology
 from lpa.politikku_shell import (
     METHODOLOGY_PAGE,
@@ -117,6 +122,7 @@ def rendered_site(tmp_path_factory) -> Path:
     """Every surviving PolitikKu page, in both languages, at the path its own
     `main()` writes it to."""
     root = tmp_path_factory.mktemp("public")
+    _copy_observatory_assets(root)
     # The committed, non-generated part of `public/`: the self-hosted fonts
     # the shell preloads (mirrored by name — symlinking is not portable
     # here), and `learn/`'s hand-authored civic-education pages, copied in

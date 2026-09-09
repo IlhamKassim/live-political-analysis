@@ -1,4 +1,9 @@
-# Landing page design spec
+# Landing page design spec (superseded)
+
+> The `codex/observatory-landing` branch replaces this earlier bento-style
+> landing-page design with the Observatory build in
+> `scrollcraft/builds/observatory/`. This document remains as the design
+> record for the previous landing page and its routing decisions.
 
 Settled requirements for the landing page at `politikku.my/`, reached
 through a full requirements-grilling session (routing, audience,
