@@ -78,6 +78,7 @@ this module exists to catch, one build step over."""
 _APP_ROOTED_EXACT = frozenset(
     {
         "/bills/",
+        "/ms/bills/",
         "/politicians/",
         "/dewan/",
         "/ms/politicians/",
