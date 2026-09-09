@@ -1,18 +1,18 @@
-# MyPolitik
+# PolitikKu
 
 **Interactive map of every Malaysian Parliament + DUN seat** — click your *kawasan*
 to see the wakil rakyat, party/bloc, GE15 margin, and (soon) a transparently
 computed performance score. Built on the [krackedmaps](https://maps.krackeddevs.com)
 projection so it aligns pixel-for-pixel with the state map.
 
-Self-contained, no build step. `public/` is a static app served by a tiny
-Cloudflare Worker.
+Self-contained, no build step. GitHub Pages serves `public/` as the main site.
+A small Cloudflare Worker provides the live-results API and an optional static
+preview.
 
 ```
 npm run data      # rebuild the core data layers (pipeline/01-04 only; 05-15 run standalone)
 npm run dev       # python http.server on :4178  -> http://localhost:4178
-npm run deploy:staging   # wrangler deploy --env staging
-npm run deploy           # prod
+npm run deploy    # manually deploy the Cloudflare Worker
 ```
 
 ## Invariants — read before editing
@@ -20,7 +20,7 @@ npm run deploy           # prod
 1. **The projection is FROZEN, copied verbatim from krackedmaps.** `pipeline/01_boundaries.py`
    hardcodes the exact `PROJECTION` constants (viewBox `0 0 799.85 352.74`, Mercator +
    Borneo-shift). **Do not recompute bounds from the seat data** — reusing the frozen
-   constants is what keeps MyPolitik aligned with maps.krackeddevs.com (seats could be
+   constants is what keeps PolitikKu aligned with maps.krackeddevs.com (seats could be
    overlaid on the state map). If krackedmaps ever re-bakes its projection, copy the new
    constants here; don't derive your own.
 2. **`code_parlimen` (`P.001`…`P.222`) is the universal join key.** DOSM boundaries,
@@ -71,28 +71,29 @@ Raw downloads are cached in `pipeline/raw/` (delete to refresh).
 - Scores (planned): public **Hansard** (parlimen.gov.my) via **Sinar Project** pardocs
 
 All inputs are public, official records. Scores (step 3) are computed in-house with a
-documented, transparent method — MyPolitik does not mirror any third party's proprietary
+documented, transparent method — PolitikKu does not mirror any third party's proprietary
 scores.
 
 ## Deploy
 
-Public/deploy name is **mypolitik**. Custom domains:
-`mypolitik.xyz` / `www.mypolitik.xyz` (prod), `mypolitik.krackeddevs.com` (prod alias), and
-`staging.mypolitik.krackeddevs.com` (staging).
+The main static site is deployed to GitHub Pages at
+[politikku.my](https://politikku.my). The Cloudflare Worker is deployed as
+**politikku** at `politikku.ilhamkassim2003.workers.dev`. It provides the
+election-night live-results API and can also serve a static preview from its
+`assets` binding.
 
 ```bash
-source ~/.kracked/deploy.env        # CLOUDFLARE_API_TOKEN + ACCOUNT_ID
-npx wrangler deploy --env staging   # → staging.mypolitik.krackeddevs.com
-npx wrangler deploy                 # → mypolitik.xyz (prod)
+npx wrangler deploy                 # → politikku.ilhamkassim2003.workers.dev
 ```
 
-`wrangler.jsonc` sets `run_worker_first: true` so `/api/health` reaches the Worker
-instead of being swallowed by the SPA asset fallback.
+`wrangler.jsonc` sets `run_worker_first: true` so `/api/health` and
+`/api/live/:electionId` reach the Worker instead of being swallowed by the SPA
+asset fallback. Production deployment remains manual and human-only.
 
 ## Status
 
-- ✅ **PROD LIVE** — [mypolitik.xyz](https://mypolitik.xyz) + mypolitik.krackeddevs.com
-  (staging: staging.mypolitik.krackeddevs.com). Prod deploy = `npm run deploy` (wrangler; no git-based deploy).
+- ✅ **PROD LIVE** — [politikku.my](https://politikku.my) on GitHub Pages, with
+  election-night live results served by the PolitikKu Cloudflare Worker.
 - ✅ Boundaries (parlimen + DUN), interactive map (hover/click/zoom/select/search/reset)
 - ✅ GE15 results layer: winner, party/bloc choropleth, majority, turnout, runner-up
 - ✅ **State dashboard (bento)** on wide screens: government/economy/key-numbers + seat spotlight

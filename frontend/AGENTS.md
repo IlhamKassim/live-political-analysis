@@ -1,7 +1,7 @@
-# Agent Coordination — MyPolitik (VPS night shift)
+# Agent Coordination — PolitikKu (VPS night shift)
 
-**MyPolitik** (folder `mypolitik`, deploys as "mypolitik") — interactive map of every Malaysian
-Parliament/DUN seat. Static `public/` app (vanilla JS, no build) + tiny CF Worker.
+**PolitikKu** (folder `frontend`, package and Worker name `politikku`) — interactive map of every
+Malaysian Parliament/DUN seat. Static `public/` app (vanilla JS, no build) + tiny CF Worker.
 
 **This is a VPS sandbox copy for autonomous overnight work.** It does NOT deploy and is separate
 from the laptop working copy. All work lands on the `night/<date>` branch for morning review — never master.
@@ -45,21 +45,14 @@ your seat → a beautiful, shareable card. The map is the *reward*, not the gate
 - Frontend is data-driven (`loadOptional`) — a mode lights up only when its data file exists. **Keep Skor GATED**
   ("Soon") even if `scores.json` appears.
 - Boundaries/results are official DOSM + Thevesh — never fabricate data.
-- Brand, folder, package, and Worker deploy names are **MyPolitik** / `mypolitik`.
+- Brand, package, and Worker deploy names are **PolitikKu** / `politikku`; this subtree lives in `frontend/`.
 - **Verify via syntax checks + unit tests + data validation only** — this is a headless box, no browser/screenshots.
 
-## Deploying to STAGING (laptop checkout only)
-The "no deploy" guardrail above is for the VPS sandbox. On the **laptop** checkout
-(`~/Desktop/Experiments/mypolitik`, where `~/.kracked/deploy.env` exists), any agent may
-push the working tree to staging with ONE command from the repo root:
+## Deployment
 
-    npm run deploy:staging
+GitHub Pages serves the main static site at `politikku.my`. The Cloudflare Worker
+is deployed as `politikku` at `politikku.ilhamkassim2003.workers.dev`. It provides
+the election-night live-results API and an optional static preview.
 
-It runs `scripts/deploy-staging.sh`: validates first (`node --check`, `lib.test.mjs`,
-`scripts/validate.sh` — any failure aborts before upload), deploys with
-`npx wrangler deploy --env staging` (use npx — bare `wrangler` is not on PATH), then
-verifies the live site: `/api/health` must return ok and staging's `app.js`/`styles.css`
-must hash-identical to the working tree. Deploys ship the WORKING TREE in `./public` —
-commit first so what's live is reproducible.
-
-**Production stays manual and human-only: never `npm run deploy` or bare `wrangler deploy`.**
+**Deployment stays manual and human-only. Agents must never run `npm run deploy`,
+`npx wrangler deploy`, or bare `wrangler deploy`.**
