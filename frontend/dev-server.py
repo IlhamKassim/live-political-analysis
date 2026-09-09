@@ -6,6 +6,7 @@ app.js / styles.css / i18n.js — and a normal reload (or a `?v=` query, which o
 index.html) keeps serving STALE assets. That makes edits look like they "didn't take".
 This server sends no-store on everything, so every reload gets fresh code. Dev only.
 """
+
 import functools
 import http.server
 import os
@@ -13,14 +14,26 @@ import re
 import socket
 import socketserver
 
-ROOT = os.environ.get("DEV_ROOT") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "public")
-REPO_PUBLIC = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "public"))
+ROOT = os.environ.get("DEV_ROOT") or os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "public"
+)
+REPO_PUBLIC = os.path.abspath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "public")
+)
 PORT = int(os.environ.get("PORT", "4178"))
 
 
 class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
     def translate_path(self, path):
         clean_path = path.split("?", 1)[0].split("#", 1)[0]
+        # Under ADR 0017: root / serves the orientation gate from public/index.html,
+        # while /app/ serves the interactive map SPA from frontend/public/index.html.
+        is_app = getattr(self, "_is_app_route", False)
+        if not is_app and clean_path in ("", "/", "/index.html"):
+            landing_path = os.path.join(REPO_PUBLIC, "index.html")
+            if os.path.isfile(landing_path):
+                return landing_path
+
         orig = super().translate_path(clean_path)
         if os.path.exists(orig):
             return orig
@@ -40,9 +53,12 @@ class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
     def rewrite_api_path(self):
         req_path = self.path.split("?", 1)[0]
         query = ("?" + self.path.split("?", 1)[1]) if "?" in self.path else ""
-        if req_path.startswith("/app/"):
-            req_path = req_path[4:]
+        if req_path == "/app" or req_path.startswith("/app/"):
+            self._is_app_route = True
+            req_path = req_path[4:] or "/"
             self.path = req_path + query
+        else:
+            self._is_app_route = False
 
         m = re.match(r"^/api/live/([a-zA-Z0-9_-]+)$", req_path)
         if m:
@@ -70,11 +86,34 @@ class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
 
         # SPA fallback for dev: if a route like /dewan/ or /bills/ has no disk file, serve index.html
         disk_path = os.path.join(ROOT, req_path.lstrip("/"))
-        if disk_path.endswith("/") and os.path.isdir(disk_path) and os.path.isfile(os.path.join(disk_path, "index.html")):
+        if (
+            disk_path.endswith("/")
+            and os.path.isdir(disk_path)
+            and os.path.isfile(os.path.join(disk_path, "index.html"))
+        ):
             return
-        if not os.path.exists(disk_path) and not req_path.startswith("/data/"):
-            if any(req_path.strip("/").startswith(prefix) for prefix in ("dewan", "ms/dewan", "bills", "ms/bills", "politicians", "ms/politicians", "sentiment", "ms/sentiment", "projection", "ms/projection", "mp", "ms/mp")):
-                self.path = "/index.html" + query
+        if (
+            not os.path.exists(disk_path)
+            and not req_path.startswith("/data/")
+            and any(
+                req_path.strip("/").startswith(prefix)
+                for prefix in (
+                    "dewan",
+                    "ms/dewan",
+                    "bills",
+                    "ms/bills",
+                    "politicians",
+                    "ms/politicians",
+                    "sentiment",
+                    "ms/sentiment",
+                    "projection",
+                    "ms/projection",
+                    "mp",
+                    "ms/mp",
+                )
+            )
+        ):
+            self.path = "/index.html" + query
 
     def do_GET(self):
         self.rewrite_api_path()
