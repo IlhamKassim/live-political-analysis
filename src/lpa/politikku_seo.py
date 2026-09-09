@@ -151,7 +151,7 @@ def get_metadata_for_section(section: str, language: Language) -> RouteMetadata:
         description = (
             "Direktori 222 Ahli Parlimen Malaysia dan wakil Dewan Undangan Negeri (DUN). Tapis mengikut parti, gabungan, negeri, atau cari mengikut nama dan kawasan."
             if is_ms
-            else "Directory of Malaysia's 222 Members of Parliament and state assembly (DUN) representatives. Filter by party, coalition, state, or search by name and constituency."
+            else "Directory of Malaysia's 222 Members of Parliament and state assembly (DUN) representatives. Filter by party, coalition, state, or search by name and Seat."
         )
         return RouteMetadata(
             route_path="ms/politicians/" if is_ms else "politicians/",

@@ -43,3 +43,9 @@ def test_mp_profile_person_json_ld() -> None:
     html = en.head_html()
     assert "Bangi" in html
     assert "Member of Parliament" in html
+
+
+def test_politicians_seo_metadata_uses_seat() -> None:
+    en = get_metadata_for_section("politicians", Language.EN)
+    assert "Seat" in en.description
+    assert "constituency" not in en.description.lower()
