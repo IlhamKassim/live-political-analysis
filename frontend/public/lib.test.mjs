@@ -12,7 +12,7 @@ import {
   partyColor, COALITION_COLORS, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues, swatchTextColor,
   competitivenessFromMajorityPct, withCurrentAffiliation, seatViewBox,
-  getRepPhotoUrl, formatSocialShareText, buildEmbedCode,
+  getRepPhotoUrl, routeSafeAssetUrl, formatSocialShareText, buildEmbedCode,
   isModelledKind, trustTagText, trustTagHTML,
   calculateHemicycleSlots, orderProjectionSeatsForHemicycle, buildHemicycleSVG,
 } from "./lib.js";
@@ -1132,9 +1132,15 @@ test("getRepPhotoUrl: resolves MP photo from politicians roster", () => {
       "P.003": { name: "Shahidan Kassim", photo: "assets/politicians/P.003.webp" },
     },
   };
-  assert.equal(getRepPhotoUrl({ code: "P.003" }, null, politicians, null), "assets/politicians/P.003.webp");
+  assert.equal(getRepPhotoUrl({ code: "P.003" }, null, politicians, null), "/app/assets/politicians/P.003.webp");
   assert.equal(getRepPhotoUrl({ code: "P.999" }, null, politicians, null), null);
   assert.equal(getRepPhotoUrl(null, null, politicians, null), null);
+});
+
+test("routeSafeAssetUrl: roots local assets without changing other URLs", () => {
+  assert.equal(routeSafeAssetUrl("assets/politicians/P.003.webp"), "/app/assets/politicians/P.003.webp");
+  assert.equal(routeSafeAssetUrl("/app/assets/politicians/P.003.webp"), "/app/assets/politicians/P.003.webp");
+  assert.equal(routeSafeAssetUrl("https://example.com/photo.webp"), "https://example.com/photo.webp");
 });
 
 test("formatSocialShareText: generates bilingual share text with deep-link", () => {

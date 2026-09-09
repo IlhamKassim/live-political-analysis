@@ -6,9 +6,9 @@ import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSe
   formatResultCard, fitBox, partyColor, scoreColor, searchSeats,
   resultKey, displayCode, tallyCoalitions, stateHues, swatchTextColor,
   competitivenessFromMajorityPct, withCurrentAffiliation, seatViewBox,
-  getRepPhotoUrl, formatSocialShareText, buildEmbedCode,
+  getRepPhotoUrl, routeSafeAssetUrl, formatSocialShareText, buildEmbedCode,
   isModelledKind, trustTagText, trustTagHTML,
-  calculateHemicycleSlots, orderProjectionSeatsForHemicycle, buildHemicycleSVG } from "./lib.js?v=145";
+  calculateHemicycleSlots, orderProjectionSeatsForHemicycle, buildHemicycleSVG } from "./lib.js?v=146";
 import { I18N } from "./i18n.js?v=153";
 
 // Route relative data/ and learn/ fetches to /app/
@@ -590,7 +590,7 @@ const FALLBACK_BUST_SVG = `<svg class="pol-fallback-icon" viewBox="0 0 24 24" fi
 
 function personPhotoHTML(name, photo, cls = "") {
   if (photo) {
-    return `<img class="pol-photo ${cls}" src="${esc(photo)}" alt="${esc(name)}" loading="lazy" decoding="async" width="72" height="72">`;
+    return `<img class="pol-photo ${cls}" src="${esc(routeSafeAssetUrl(photo))}" alt="${esc(name)}" loading="lazy" decoding="async" width="72" height="72">`;
   }
   return `<span class="pol-photo pol-fallback pol-monogram ${cls}" aria-hidden="true">${FALLBACK_BUST_SVG}<span class="pol-fallback-initials">${esc(personInitials(name))}</span></span>`;
 }
@@ -8520,26 +8520,26 @@ function stateInitials(name) {
   return personInitials(String(name || "").replace(/^W\.P\.\s*/i, ""));
 }
 const STATE_FLAG_ASSETS = Object.freeze({
-  "Johor": "assets/state-flags/johor.svg",
-  "Kedah": "assets/state-flags/kedah.svg",
-  "Kelantan": "assets/state-flags/kelantan.svg",
-  "Melaka": "assets/state-flags/melaka.svg",
-  "Negeri Sembilan": "assets/state-flags/negeri-sembilan.svg",
-  "Pahang": "assets/state-flags/pahang.svg",
-  "Perak": "assets/state-flags/perak.svg",
-  "Perlis": "assets/state-flags/perlis.svg",
-  "Pulau Pinang": "assets/state-flags/penang.svg",
-  "Penang": "assets/state-flags/penang.svg",
-  "Sabah": "assets/state-flags/sabah.svg",
-  "Sarawak": "assets/state-flags/sarawak.svg",
-  "Selangor": "assets/state-flags/selangor.svg",
-  "Terengganu": "assets/state-flags/terengganu.svg",
-  "W.P. Kuala Lumpur": "assets/state-flags/kuala-lumpur.svg",
-  "Kuala Lumpur": "assets/state-flags/kuala-lumpur.svg",
-  "W.P. Putrajaya": "assets/state-flags/putrajaya.svg",
-  "Putrajaya": "assets/state-flags/putrajaya.svg",
-  "W.P. Labuan": "assets/state-flags/labuan.svg",
-  "Labuan": "assets/state-flags/labuan.svg"
+  "Johor": "/app/assets/state-flags/johor.svg",
+  "Kedah": "/app/assets/state-flags/kedah.svg",
+  "Kelantan": "/app/assets/state-flags/kelantan.svg",
+  "Melaka": "/app/assets/state-flags/melaka.svg",
+  "Negeri Sembilan": "/app/assets/state-flags/negeri-sembilan.svg",
+  "Pahang": "/app/assets/state-flags/pahang.svg",
+  "Perak": "/app/assets/state-flags/perak.svg",
+  "Perlis": "/app/assets/state-flags/perlis.svg",
+  "Pulau Pinang": "/app/assets/state-flags/penang.svg",
+  "Penang": "/app/assets/state-flags/penang.svg",
+  "Sabah": "/app/assets/state-flags/sabah.svg",
+  "Sarawak": "/app/assets/state-flags/sarawak.svg",
+  "Selangor": "/app/assets/state-flags/selangor.svg",
+  "Terengganu": "/app/assets/state-flags/terengganu.svg",
+  "W.P. Kuala Lumpur": "/app/assets/state-flags/kuala-lumpur.svg",
+  "Kuala Lumpur": "/app/assets/state-flags/kuala-lumpur.svg",
+  "W.P. Putrajaya": "/app/assets/state-flags/putrajaya.svg",
+  "Putrajaya": "/app/assets/state-flags/putrajaya.svg",
+  "W.P. Labuan": "/app/assets/state-flags/labuan.svg",
+  "Labuan": "/app/assets/state-flags/labuan.svg"
 });
 function stateFlagAssetFor(name) {
   return STATE_FLAG_ASSETS[String(name || "").trim()];

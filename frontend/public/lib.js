@@ -454,6 +454,11 @@ export function seatViewBox(bbox, full = [0, 0, 799.85, 352.74]) {
   return [cx - vw / 2, cy - vh / 2, vw, vh];
 }
 
+export function routeSafeAssetUrl(url) {
+  const value = typeof url === "string" ? url.trim() : "";
+  return value.startsWith("assets/") ? `/app/${value}` : value;
+}
+
 // Resolve representative photo URL from politician metadata.
 // Pure: returns string path or null.
 export function getRepPhotoUrl(seat, result, politicians, govPhotos) {
@@ -464,7 +469,7 @@ export function getRepPhotoUrl(seat, result, politicians, govPhotos) {
   if (politicians && typeof politicians === "object" && politicians.mps) {
     const mp = politicians.mps[code] || (seat.parlimen && politicians.mps[seat.parlimen]);
     if (mp && typeof mp.photo === "string" && mp.photo.trim()) {
-      return mp.photo.trim();
+      return routeSafeAssetUrl(mp.photo);
     }
   }
 
@@ -472,7 +477,7 @@ export function getRepPhotoUrl(seat, result, politicians, govPhotos) {
     const gov = govPhotos[seat.state];
     if (gov && typeof gov.photo === "string" && gov.photo.trim()) {
       if (!result || !result.name || (gov.file && gov.file.toLowerCase().includes(result.name.toLowerCase().split(" ")[0]))) {
-        return gov.photo.trim();
+        return routeSafeAssetUrl(gov.photo);
       }
     }
   }
