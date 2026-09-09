@@ -23,7 +23,7 @@ from urllib.parse import unquote, urljoin, urlsplit
 
 from lpa.config import load_mp_profiles
 from lpa.pipeline import MALAYSIA_TIME
-from lpa.politikku_methodology import render_methodology
+from lpa.politikku_methodology import build_all_methodology_languages
 from lpa.politikku_seo import RouteMetadata, get_metadata_for_mp, get_metadata_for_section
 from lpa.politikku_shell import Language
 
@@ -282,18 +282,17 @@ async def prerender_all_routes(
     finally:
         server.shutdown()
 
-    # 3. Render methodology pages (EN and MS)
+    # 3. Render methodology pages (EN and MS) via canonical builder
     try:
         from lpa.public_page import load_projection_page_model
         from lpa.storage import connect
 
         engine = connect()
         model = load_projection_page_model(engine)
-        for lang in Language:
+        for lang, meth_content in build_all_methodology_languages(model).items():
             is_ms = lang is Language.MS
             meth_dest = output_dir / ("ms" if is_ms else "") / "methodology.html"
             meth_dest.parent.mkdir(parents=True, exist_ok=True)
-            meth_content = render_methodology(model, language=lang)
             meth_dest.write_text(meth_content, encoding="utf-8")
             rendered_count += 1
     except Exception as e:  # noqa: BLE001
