@@ -323,8 +323,8 @@ jobs:
           # for a key rather than testing existence, so a truncated or
           # empty write fails too (the same lesson the lang="ms" check
           # above records).
-          if ! grep -q '"postcodes"' public/data/lookup-index.json 2>/dev/null; then
-            echo "::error::public/data/lookup-index.json is missing or malformed — the Seat lookup cannot resolve a postcode."
+          if ! grep -q '"postcodes"' public/data/lookup-index.json 2>/dev/null || ! grep -q '"postcodeCatalogue"' public/data/lookup-index.json 2>/dev/null; then
+            echo "::error::public/data/lookup-index.json is missing or malformed — the Seat lookup cannot validate and resolve a postcode."
             missing=1
           fi
           for page in public/bills/index.html public/dewan/index.html public/politicians/index.html public/sentiment/index.html public/projection/index.html public/methodology.html public/mp/P.107/index.html; do

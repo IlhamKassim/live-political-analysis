@@ -13,7 +13,11 @@ const INDEX = {
       mpName: "Syahredzan Johan",
     },
   },
-  postcodes: { "43000": ["P.102"], "43100": ["P.101"], "43200": ["P.101", "P.102"], "99999": [] },
+  postcodes: { "43000": ["P.102"], "43100": ["P.101"], "43200": ["P.101", "P.102"] },
+  postcodeCatalogue: {
+    "43000": [{ city: "Kajang", state: "Selangor" }],
+    "50000": [{ city: "Kuala Lumpur", state: "W.P. Kuala Lumpur" }],
+  },
 };
 
 function buildContainer(): HTMLElement {
@@ -79,6 +83,16 @@ async function locateDenied(container: HTMLElement): Promise<void> {
 }
 
 describe("mountLookup", () => {
+  it("shows a valid postcode whose Seat mapping is not verified yet", async () => {
+    const container = buildContainer();
+    mountLookup(container);
+    await submit(container, "50000");
+    expect(container.querySelector(".pk-lookup-unresolved-tag")?.textContent).toBe("VALID POSTCODE");
+    expect(container.querySelector(".pk-lookup-unresolved-reason")?.textContent).toContain(
+      "Kuala Lumpur, W.P. Kuala Lumpur",
+    );
+  });
+
   it("links a resolved Seat with a profile straight to its MP profile page", async () => {
     const container = buildContainer();
     mountLookup(container);
@@ -97,7 +111,7 @@ describe("mountLookup", () => {
     );
   });
 
-  it("flags the input with the error class only for a not-in-index no-match", async () => {
+  it("flags the input when a typed postcode is invalid", async () => {
     const container = buildContainer();
     mountLookup(container);
     const input = container.querySelector<HTMLInputElement>("[data-pk-lookup-input]")!;
@@ -112,7 +126,7 @@ describe("mountLookup", () => {
   it("the no-match state links to all four routes named in the design, including corrections", async () => {
     const container = buildContainer();
     mountLookup(container);
-    await submit(container, "99999");
+    await submit(container, "not a Seat name");
     const links = [...container.querySelectorAll<HTMLAnchorElement>(".pk-lookup-routes a")];
     const labels = links.map((a) => a.textContent);
     expect(labels).toEqual([
@@ -129,7 +143,7 @@ describe("mountLookup", () => {
     document.documentElement.lang = "ms";
     const container = buildContainer();
     mountLookup(container);
-    await submit(container, "99999");
+    await submit(container, "not a Seat name");
     const links = [...container.querySelectorAll<HTMLAnchorElement>(".pk-lookup-routes a")];
     const browseLink = links.find((a) => a.textContent === "Lihat semua 222 Kerusi");
     expect(browseLink?.getAttribute("href")).toBe("/ms/projection/");
@@ -138,7 +152,7 @@ describe("mountLookup", () => {
   it("clicking \"Search by name\" clears the input, focuses it, and returns to idle", async () => {
     const container = buildContainer();
     mountLookup(container);
-    await submit(container, "99999");
+    await submit(container, "not a Seat name");
     const input = container.querySelector<HTMLInputElement>("[data-pk-lookup-input]")!;
     const searchByName = [...container.querySelectorAll<HTMLAnchorElement>(".pk-lookup-routes a")].find(
       (a) => a.textContent === "Search by name",
@@ -194,8 +208,11 @@ describe("mountLookup", () => {
     await submit(container, "99999");
     expect(container.querySelector(".pk-lookup-no-match-tag")?.textContent).toBe("TIADA PADANAN");
     expect(container.querySelector(".pk-lookup-no-match-reason")?.textContent).toBe(
-      "Tiada dalam indeks poskod Suruhanjaya Pilihan Raya.",
+      "Poskod ini tiada dalam katalog rasmi poskod Malaysia data.gov.my.",
     );
+
+    await submit(container, "50000");
+    expect(container.querySelector(".pk-lookup-unresolved-tag")?.textContent).toBe("POSKOD SAH");
 
     await submit(container, "43100");
     expect(container.querySelector(".pk-lookup-resolved-no-profile")?.textContent).toBe(

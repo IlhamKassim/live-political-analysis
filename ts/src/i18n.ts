@@ -22,7 +22,7 @@
 // "still undrawn" in BM) are new copy and want a native-BM check, the same
 // caveat #81 shipped under.
 
-import type { NoMatchReason } from "./types";
+import type { NoMatchReason, PostcodeLocality } from "./types";
 
 export type Language = "en" | "ms";
 
@@ -50,12 +50,14 @@ export interface LookupCopy {
   readonly boundariesFootnote: string;
   readonly noProfileYet: string;
   readonly noMatchTag: string;
+  readonly unresolvedTag: string;
   readonly noMatch: NoMatchCopy;
   readonly routes: RouteCopy;
   /** `${seat.name} — see your MP →` */
   readonly seeYourMp: (seatName: string) => string;
   /** `${seat.name}, ${seat.state} — MP profile ... isn't built yet.` */
   readonly resolvedNoProfile: (seatName: string, state: string) => string;
+  readonly unresolvedPostcode: (postcode: string, localities: readonly PostcodeLocality[]) => string;
 }
 
 const EN: LookupCopy = {
@@ -65,8 +67,10 @@ const EN: LookupCopy = {
   boundariesFootnote: "Boundaries per the Election Commission's 2018 delimitation.",
   noProfileYet: "MP profile not yet available",
   noMatchTag: "NO MATCH",
+  unresolvedTag: "VALID POSTCODE",
   noMatch: {
     "not-in-index": "Not found in the Election Commission postcode index.",
+    "invalid-postcode": "This is not in data.gov.my's official Malaysian postcode catalogue.",
     "geolocation-unsupported": "This browser doesn't support location lookup.",
     "geolocation-denied": "Location permission was declined.",
     "geolocation-unresolvable":
@@ -83,6 +87,8 @@ const EN: LookupCopy = {
   seeYourMp: (seatName) => `${seatName} — see your MP →`,
   resolvedNoProfile: (seatName, state) =>
     `${seatName}, ${state} — MP profile for this Seat isn't built yet.`,
+  unresolvedPostcode: (postcode, localities) =>
+    `${postcode} is a valid postcode for ${localities.map(({ city, state }) => `${city}, ${state}`).join(" / ")}, but it does not have a verified Seat mapping yet.`,
 };
 
 const MS: LookupCopy = {
@@ -92,8 +98,10 @@ const MS: LookupCopy = {
   boundariesFootnote: "Sempadan mengikut persempadanan semula 2018 oleh Suruhanjaya Pilihan Raya.",
   noProfileYet: "Profil Ahli Parlimen belum tersedia",
   noMatchTag: "TIADA PADANAN",
+  unresolvedTag: "POSKOD SAH",
   noMatch: {
     "not-in-index": "Tiada dalam indeks poskod Suruhanjaya Pilihan Raya.",
+    "invalid-postcode": "Poskod ini tiada dalam katalog rasmi poskod Malaysia data.gov.my.",
     "geolocation-unsupported": "Pelayar ini tidak menyokong carian lokasi.",
     "geolocation-denied": "Kebenaran lokasi tidak diberikan.",
     "geolocation-unresolvable":
@@ -110,6 +118,8 @@ const MS: LookupCopy = {
   seeYourMp: (seatName) => `${seatName} — lihat Ahli Parlimen anda →`,
   resolvedNoProfile: (seatName, state) =>
     `${seatName}, ${state} — profil Ahli Parlimen bagi Kerusi ini belum dibina.`,
+  unresolvedPostcode: (postcode, localities) =>
+    `${postcode} ialah poskod sah untuk ${localities.map(({ city, state }) => `${city}, ${state}`).join(" / ")}, tetapi belum mempunyai padanan Kerusi yang disahkan.`,
 };
 
 const COPY: Record<Language, LookupCopy> = { en: EN, ms: MS };

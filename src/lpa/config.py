@@ -247,6 +247,7 @@ def load_postcode_seat_index(path: Path | None = None) -> Mapping[str, tuple[Sea
     `lpa.postcode_index` and ADR 0008. Every entry names at least one Seat;
     an empty tuple for a postcode not in the returned mapping is the caller's
     job (`lpa.postcode_index.lookup_postcode` does this), not this loader's.
+    Postcode validity comes from the separate data.gov.my catalogue.
     """
     config = json.loads((path or DEFAULT_POSTCODE_SEAT_INDEX_PATH).read_text(encoding="utf-8"))
     index = {}

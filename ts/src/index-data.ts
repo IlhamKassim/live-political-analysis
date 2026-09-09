@@ -31,9 +31,29 @@ function assertClientLookupIndex(data: unknown, url: string): ClientLookupIndex 
     typeof data !== "object" ||
     data === null ||
     typeof (data as { seats?: unknown }).seats !== "object" ||
-    typeof (data as { postcodes?: unknown }).postcodes !== "object"
+    typeof (data as { postcodes?: unknown }).postcodes !== "object" ||
+    typeof (data as { postcodeCatalogue?: unknown }).postcodeCatalogue !== "object"
   ) {
-    throw new Error(`${url} is not a valid client lookup index (missing seats/postcodes)`);
+    throw new Error(
+      `${url} is not a valid client lookup index (missing seats/postcodes/postcodeCatalogue)`,
+    );
+  }
+  const catalogue = (data as { postcodeCatalogue: Record<string, unknown> }).postcodeCatalogue;
+  for (const [postcode, localities] of Object.entries(catalogue)) {
+    if (
+      !/^\d{5}$/.test(postcode) ||
+      !Array.isArray(localities) ||
+      localities.length === 0 ||
+      localities.some(
+        (item) =>
+          typeof item !== "object" ||
+          item === null ||
+          typeof (item as { city?: unknown }).city !== "string" ||
+          typeof (item as { state?: unknown }).state !== "string",
+      )
+    ) {
+      throw new Error(`${url} is not a valid client lookup index (invalid postcodeCatalogue)`);
+    }
   }
   return data as ClientLookupIndex;
 }

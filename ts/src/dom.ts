@@ -24,7 +24,7 @@ import { loadClientIndex } from "./index-data";
 import { resolveQuery } from "./resolve";
 import { readRecentSeats, recordRecentSeat } from "./storage";
 import { initialModel, transition, type LookupModel } from "./state-machine";
-import type { ClientLookupIndex, LookupSeat, NoMatchReason } from "./types";
+import type { ClientLookupIndex, LookupSeat, NoMatchReason, PostcodeLocality } from "./types";
 
 interface Refs {
   readonly form: HTMLFormElement;
@@ -153,7 +153,9 @@ function render(refs: Refs, model: LookupModel, onSearchByName: () => void): voi
   // into this input, so it has nothing to flag.
   refs.input.classList.toggle(
     "pk-lookup-input-error",
-    model.state === "notFound" && model.result?.kind === "notFound" && model.result.reason === "not-in-index",
+    model.state === "notFound" &&
+      model.result?.kind === "notFound" &&
+      (model.result.reason === "not-in-index" || model.result.reason === "invalid-postcode"),
   );
 
   if (!refs.results) return;
@@ -175,6 +177,13 @@ function render(refs: Refs, model: LookupModel, onSearchByName: () => void): voi
     case "ambiguous":
       if (model.result?.kind === "ambiguous") {
         refs.results.append(ambiguousView(model.result.candidates, copy));
+      }
+      return;
+    case "unresolved":
+      if (model.result?.kind === "unresolved") {
+        refs.results.append(
+          unresolvedView(model.result.postcode, model.result.localities, copy),
+        );
       }
       return;
     case "notFound":
@@ -284,11 +293,29 @@ const CORRECTIONS_URL =
 // tone rule #77 set.
 const ROUTES_BY_REASON: Record<NoMatchReason, readonly RouteId[]> = {
   "not-in-index": ["searchByName", "browseAllSeats", "checkRegistration", "reportMistake"],
+  "invalid-postcode": ["searchByName", "browseAllSeats"],
   "geolocation-denied": ["searchByName", "browseAllSeats"],
   "geolocation-unsupported": [],
   "geolocation-unresolvable": [],
   "index-unavailable": ["browseAllSeats"],
 };
+
+function unresolvedView(
+  postcode: string,
+  localities: readonly PostcodeLocality[],
+  copy: LookupCopy,
+): HTMLElement {
+  const el = document.createElement("div");
+  el.className = "pk-lookup-resolved pk-lookup-unresolved";
+  const tag = document.createElement("span");
+  tag.className = "pk-lookup-candidate-code pk-lookup-unresolved-tag";
+  tag.textContent = copy.unresolvedTag;
+  const message = document.createElement("p");
+  message.className = "pk-lookup-resolved-no-profile pk-lookup-unresolved-reason";
+  message.textContent = copy.unresolvedPostcode(postcode, localities);
+  el.append(tag, message);
+  return el;
+}
 
 type RouteId = "searchByName" | "browseAllSeats" | "checkRegistration" | "reportMistake";
 

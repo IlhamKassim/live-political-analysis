@@ -35,10 +35,12 @@ describe("copyFor", () => {
       copy.boundariesFootnote,
       copy.noProfileYet,
       copy.noMatchTag,
+      copy.unresolvedTag,
       ...Object.values(copy.noMatch),
       ...Object.values(copy.routes),
       copy.seeYourMp("Bangi"),
       copy.resolvedNoProfile("Bangi", "Selangor"),
+      copy.unresolvedPostcode("50000", [{ city: "Kuala Lumpur", state: "W.P. Kuala Lumpur" }]),
     ];
     const enStrings = flatten(en);
     const msStrings = flatten(ms);

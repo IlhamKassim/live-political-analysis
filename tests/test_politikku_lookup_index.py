@@ -9,6 +9,7 @@ import pytest
 
 from lpa.domain import SeatBaseline
 from lpa.politikku_lookup_index import build_client_index, build_client_index_json
+from lpa.postcode_catalogue import PostcodeLocality
 
 P101 = SeatBaseline(code="P.101", name="Hulu Langat", state="Selangor", vote_share={"PH": 0.5})
 P102 = SeatBaseline(code="P.102", name="Bangi", state="Selangor", vote_share={"PH": 0.58})
@@ -60,6 +61,17 @@ def test_postcodes_are_carried_through_verbatim():
         "43100": ["P.101"],
         "43200": ["P.101", "P.102"],
     }
+    assert index["postcodeCatalogue"] == {}
+
+
+def test_official_postcode_catalogue_is_carried_separately_from_seat_mappings():
+    catalogue = {"50000": (PostcodeLocality(city="Kuala Lumpur", state="W.P. Kuala Lumpur"),)}
+    index = build_client_index([P101, P102], POSTCODE_INDEX, {}, catalogue)
+
+    assert index["postcodeCatalogue"] == {
+        "50000": [{"city": "Kuala Lumpur", "state": "W.P. Kuala Lumpur"}]
+    }
+    assert "50000" not in index["postcodes"]
 
 
 def test_a_postcode_naming_a_seat_with_no_baseline_is_rejected():
@@ -103,6 +115,7 @@ def test_build_and_write_client_index_writes_payload_and_unresolved_report(
 
     output_path = tmp_path / "lookup-index.json"
     unresolved_path = tmp_path / "unresolved.json"
+    coverage_path = tmp_path / "coverage.json"
 
     monkeypatch.setattr("lpa.storage.load_seat_baselines", lambda engine: [P101, P102])
     monkeypatch.setattr(
@@ -119,7 +132,7 @@ def test_build_and_write_client_index_writes_payload_and_unresolved_report(
         lambda: {"P.101": DummyProfile("Member 1"), "P.102": DummyProfile("Member 2")},
     )
 
-    result = build_and_write_client_index(MagicMock(), output_path, unresolved_path)
+    result = build_and_write_client_index(MagicMock(), output_path, unresolved_path, coverage_path)
     assert result.total_mp_profiles == 2
     assert result.reachable_mp_profiles == 1
     assert result.excluded_mp_profiles == 1
@@ -133,3 +146,4 @@ def test_build_and_write_client_index_writes_payload_and_unresolved_report(
     assert unresolved_data["reachable_mp_profiles"] == 1
     assert unresolved_data["excluded_count"] == 1
     assert unresolved_data["unresolved_mp_profiles"] == {"P.101": "Member 1"}
+    assert json.loads(coverage_path.read_text())["official_postcode_count"] == 2930

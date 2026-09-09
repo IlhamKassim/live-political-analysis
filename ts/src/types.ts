@@ -12,6 +12,7 @@ export type LookupState =
   | "locating"
   | "searching"
   | "ambiguous"
+  | "unresolved"
   | "notFound"
   | "resolved";
 
@@ -29,10 +30,17 @@ export interface LookupSeat {
 export interface ClientLookupIndex {
   readonly seats: Readonly<Record<string, LookupSeat>>;
   readonly postcodes: Readonly<Record<string, readonly string[]>>;
+  readonly postcodeCatalogue: Readonly<Record<string, readonly PostcodeLocality[]>>;
+}
+
+export interface PostcodeLocality {
+  readonly city: string;
+  readonly state: string;
 }
 
 export type NoMatchReason =
   | "not-in-index"
+  | "invalid-postcode"
   | "geolocation-unsupported"
   | "geolocation-denied"
   | "geolocation-unresolvable"
@@ -47,4 +55,9 @@ export type NoMatchReason =
 export type ResolutionResult =
   | { readonly kind: "resolved"; readonly seat: LookupSeat }
   | { readonly kind: "ambiguous"; readonly candidates: readonly LookupSeat[] }
+  | {
+      readonly kind: "unresolved";
+      readonly postcode: string;
+      readonly localities: readonly PostcodeLocality[];
+    }
   | { readonly kind: "notFound"; readonly reason: NoMatchReason };

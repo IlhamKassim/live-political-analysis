@@ -24,7 +24,11 @@ export function resolveQuery(
 ): ResolutionResult {
   const query = rawQuery.trim();
   if (POSTCODE.test(query)) {
-    return resolveCodes(index.postcodes[query] ?? [], index);
+    const codes = index.postcodes[query];
+    if (codes) return resolveCodes(codes, index);
+    const localities = index.postcodeCatalogue[query];
+    if (localities) return { kind: "unresolved", postcode: query, localities };
+    return { kind: "notFound", reason: "invalid-postcode" };
   }
   if (query.length === 0) {
     return { kind: "notFound", reason: "not-in-index" };

@@ -8,6 +8,11 @@ const RESOLVED: ResolutionResult = {
 };
 const AMBIGUOUS: ResolutionResult = { kind: "ambiguous", candidates: [] };
 const NOT_FOUND: ResolutionResult = { kind: "notFound", reason: "not-in-index" };
+const UNRESOLVED: ResolutionResult = {
+  kind: "unresolved",
+  postcode: "50000",
+  localities: [{ city: "Kuala Lumpur", state: "W.P. Kuala Lumpur" }],
+};
 
 describe("transition", () => {
   it("starts idle", () => {
@@ -40,6 +45,11 @@ describe("transition", () => {
   it("resolved with a notFound result lands on the notFound state", () => {
     const model = transition(initialModel, { type: "resolved", result: NOT_FOUND });
     expect(model.state).toBe("notFound");
+  });
+
+  it("resolved with an unresolved result lands on the unresolved state", () => {
+    const model = transition(initialModel, { type: "resolved", result: UNRESOLVED });
+    expect(model.state).toBe("unresolved");
   });
 
   it("reset always returns to the initial model, from any state", () => {

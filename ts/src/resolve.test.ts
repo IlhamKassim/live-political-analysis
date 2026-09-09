@@ -21,6 +21,10 @@ const INDEX: ClientLookupIndex = {
     "43100": ["P.101"],
     "43200": ["P.101", "P.102"],
   },
+  postcodeCatalogue: {
+    "43000": [{ city: "Kajang", state: "Selangor" }],
+    "50000": [{ city: "Kuala Lumpur", state: "W.P. Kuala Lumpur" }],
+  },
 };
 
 describe("resolveQuery", () => {
@@ -37,8 +41,21 @@ describe("resolveQuery", () => {
     }
   });
 
-  it("is not-in-index for a postcode the pilot doesn't cover, never a guess", () => {
-    expect(resolveQuery("50000", INDEX)).toEqual({ kind: "notFound", reason: "not-in-index" });
+  it("is unresolved for a valid official postcode with no verified Seat mapping", () => {
+    expect(resolveQuery("50000", INDEX)).toEqual({
+      kind: "unresolved",
+      postcode: "50000",
+      localities: [{ city: "Kuala Lumpur", state: "W.P. Kuala Lumpur" }],
+    });
+  });
+
+  it("is invalid for a five-digit code absent from the official catalogue and mappings", () => {
+    expect(resolveQuery("99999", INDEX)).toEqual({ kind: "notFound", reason: "invalid-postcode" });
+  });
+
+  it("preserves a verified legacy mapping even when the official catalogue omits it", () => {
+    const legacy = { ...INDEX, postcodes: { ...INDEX.postcodes, "43701": ["P.101"] } };
+    expect(resolveQuery("43701", legacy)).toEqual({ kind: "resolved", seat: INDEX.seats["P.101"] });
   });
 
   it("matches a Seat name case-insensitively", () => {

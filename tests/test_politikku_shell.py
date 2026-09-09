@@ -303,6 +303,7 @@ def test_the_trust_strip_never_states_a_clock_time_it_cannot_verify():
 def test_the_footer_carries_both_source_columns_and_the_not_calibrated_span():
     footer = render_methodology_footer()
     assert "Election Commission (SPR)" in footer
+    assert "data.gov.my Malaysian postcode catalogue" in footer
     assert "Dewan Rakyat Hansard" in footer
     assert "Merdeka Center polling" in footer
     assert '<span class="pk-not-calibrated">not calibrated</span>' in footer

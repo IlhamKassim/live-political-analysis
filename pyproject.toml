@@ -31,6 +31,7 @@ packages = ["src/lpa"]
 "data/poll_calibration.json" = "lpa/data/poll_calibration.json"
 "data/election_status.json" = "lpa/data/election_status.json"
 "data/postcode_seat_index.json" = "lpa/data/postcode_seat_index.json"
+"data/postcodes_data_gov_my.csv" = "lpa/data/postcodes_data_gov_my.csv"
 "data/mp_profiles.json" = "lpa/data/mp_profiles.json"
 "data/bills.json" = "lpa/data/bills.json"
 

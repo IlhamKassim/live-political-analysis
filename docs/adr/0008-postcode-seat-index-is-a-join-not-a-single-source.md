@@ -116,3 +116,16 @@ singletons, not merged in.
 The per-postcode payload size held at ~20 bytes/postcode as predicted (7,157
 bytes for 352 postcodes' worth of `postcodes` alone), so the "well under 100
 KB uncompressed" estimate for a full ~2,900-postcode index still holds.
+
+**Update (2026-09): official postcode validity is a separate source.** The
+browser now also receives a committed snapshot of data.gov.my's Malaysian
+postcode catalogue (`data/postcodes_data_gov_my.csv`). This catalogue is the
+authority used to decide whether a five-digit postcode is valid and to show
+its city/state labels. It does not contain electoral boundaries and therefore
+does not assign a Seat. The verified mappings above remain unchanged and take
+priority, including legacy mapped codes absent from the current official
+catalogue. A postcode present only in the official catalogue is shown as valid
+but without a verified Seat mapping; a code present in neither source is
+invalid. `data/postcode_coverage.json` records the reconciliation, including
+mapped codes absent from the official catalogue. Both sources are bundled in
+the generated static lookup file, so no visitor query is sent to data.gov.my.

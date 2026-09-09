@@ -617,7 +617,12 @@ class SourceGroup:
 FACTUAL_SOURCES = SourceGroup(
     "Factual data",
     "Data faktual",
-    ("Election Commission (SPR)", "Dewan Rakyat Hansard", "parlimen.gov.my"),
+    (
+        "Election Commission (SPR)",
+        "data.gov.my Malaysian postcode catalogue",
+        "Dewan Rakyat Hansard",
+        "parlimen.gov.my",
+    ),
 )
 MODELLED_SOURCES = SourceGroup(
     "Modelled inputs",

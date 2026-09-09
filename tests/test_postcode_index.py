@@ -40,8 +40,8 @@ def test_lookup_returns_every_candidate_for_an_ambiguous_postcode():
 
 
 def test_lookup_returns_nothing_for_a_postcode_not_in_the_index():
-    # The no-match state (#77), not an error: a postcode can be well-formed
-    # and simply not yet in the index.
+    # Not an error: a postcode can be well-formed and simply lack a verified
+    # Seat mapping. The browser checks official validity separately.
     assert lookup_postcode("99999", {}) == ()
 
 

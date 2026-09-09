@@ -4,8 +4,9 @@ A Malaysian postcode is a Pos Malaysia delivery area, not an Election
 Commission unit, so it does not nest cleanly inside a single Seat — some
 postcodes serve localities split across two Seats. This module represents
 that honestly: a lookup returns every candidate Seat, never a single guessed
-answer, and an empty result means the postcode is not in the index (the
-lookup UI's no-match state, #77), not that it has no Seat.
+answer, and an empty result means the postcode has no verified mapping in this
+index, not that the postcode is invalid or that it has no Seat. The separate
+data.gov.my catalogue lets the browser distinguish those cases.
 
 The index itself (`data/postcode_seat_index.json`) is built by joining the
 Election Commission's own delimitation data against a Pos Malaysia postcode
@@ -48,9 +49,9 @@ class SeatMatch:
 def lookup_postcode(postcode: str, index: Mapping[str, Sequence[SeatMatch]]) -> Sequence[SeatMatch]:
     """Candidate Seat(s) for `postcode`.
 
-    Zero matches means "not in the index" (#77's no-match state); more than
-    one means the postcode is genuinely ambiguous (#77's disambiguation
-    state) — never collapsed to a single guess.
+    Zero matches means "no verified mapping in this index"; more than one
+    means the postcode is genuinely ambiguous (#77's disambiguation state) —
+    never collapsed to a single guess.
     """
     if not _POSTCODE.match(postcode):
         raise ValueError(f"not a 5-digit Malaysian postcode: {postcode!r}")

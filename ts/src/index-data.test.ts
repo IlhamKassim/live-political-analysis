@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { _resetClientIndexCache, loadClientIndex } from "./index-data";
 
-const REAL = { seats: { "P.102": { code: "P.102" } }, postcodes: { "43000": ["P.102"] } };
+const REAL = {
+  seats: { "P.102": { code: "P.102" } },
+  postcodes: { "43000": ["P.102"] },
+  postcodeCatalogue: { "43000": [{ city: "Kajang", state: "Selangor" }] },
+};
 
 beforeEach(() => {
   _resetClientIndexCache();
@@ -39,5 +43,16 @@ describe("loadClientIndex", () => {
       vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ nope: true }) }),
     );
     await expect(loadClientIndex()).rejects.toThrow(/not a valid client lookup index/);
+  });
+
+  it("rejects a malformed official postcode catalogue", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ ...REAL, postcodeCatalogue: { nope: [] } }),
+      }),
+    );
+    await expect(loadClientIndex()).rejects.toThrow(/invalid postcodeCatalogue/);
   });
 });

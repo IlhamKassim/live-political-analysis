@@ -38,6 +38,8 @@ from pathlib import Path
 from sqlalchemy.engine import Engine
 
 from lpa.domain import SeatBaseline
+from lpa.postcode_catalogue import DEFAULT_REPORT_PATH as DEFAULT_POSTCODE_COVERAGE_PATH
+from lpa.postcode_catalogue import PostcodeLocality, catalogue_for_client
 
 
 @dataclass(frozen=True)
@@ -84,6 +86,7 @@ def build_client_index(
     baseline: Sequence[SeatBaseline],
     postcode_index: Mapping[str, Sequence[str]],
     mp_names: Mapping[str, str],
+    postcode_catalogue: Mapping[str, Sequence[PostcodeLocality]] | None = None,
 ) -> dict[str, object]:
     """Everything `ts/src/index-data.ts` needs, as one small JSON-able dict.
 
@@ -124,6 +127,7 @@ def build_client_index(
             for code, seat in seats.items()
         },
         "postcodes": {postcode: list(codes) for postcode, codes in postcode_index.items()},
+        "postcodeCatalogue": catalogue_for_client(postcode_catalogue or {}),
     }
 
 
@@ -131,10 +135,14 @@ def build_client_index_json(
     baseline: Sequence[SeatBaseline],
     postcode_index: Mapping[str, Sequence[str]],
     mp_names: Mapping[str, str],
+    postcode_catalogue: Mapping[str, Sequence[PostcodeLocality]] | None = None,
 ) -> str:
     """`build_client_index`'s result, serialised compactly (this ships to
     every visitor's browser on every page load, per ADR 0008's size math)."""
-    return json.dumps(build_client_index(baseline, postcode_index, mp_names), separators=(",", ":"))
+    return json.dumps(
+        build_client_index(baseline, postcode_index, mp_names, postcode_catalogue),
+        separators=(",", ":"),
+    )
 
 
 # ── I/O ───────────────────────────────────────────────────────────────────
@@ -144,6 +152,7 @@ def build_and_write_client_index(
     engine: Engine,
     output_path: str | Path = DEFAULT_OUTPUT_PATH,
     unresolved_path: str | Path | None = DEFAULT_UNRESOLVED_PATH,
+    coverage_path: str | Path | None = DEFAULT_POSTCODE_COVERAGE_PATH,
 ) -> LookupIndexBuildResult:
     """Read Storage/config and write the client index and unresolved report.
 
@@ -152,6 +161,7 @@ def build_and_write_client_index(
     maintainers without diffing raw data files.
     """
     from lpa.config import load_mp_profiles, load_postcode_seat_index
+    from lpa.postcode_catalogue import load_postcode_catalogue, write_coverage_report
     from lpa.storage import load_seat_baselines
 
     baseline = load_seat_baselines(engine)
@@ -161,14 +171,17 @@ def build_and_write_client_index(
         for postcode, matches in raw_postcode_index.items()
     }
     mp_names = {code: profile.name for code, profile in load_mp_profiles().items()}
+    postcode_catalogue = load_postcode_catalogue()
 
-    index_data = build_client_index(baseline, postcode_index, mp_names)
+    index_data = build_client_index(baseline, postcode_index, mp_names, postcode_catalogue)
     payload = json.dumps(index_data, separators=(",", ":"))
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(payload, encoding="utf-8")
 
     referenced_codes = {code for codes in postcode_index.values() for code in codes}
+    if coverage_path is not None:
+        write_coverage_report(postcode_catalogue, postcode_index, Path(coverage_path))
     excluded_profiles = compute_unresolved_mp_profiles(mp_names, referenced_codes)
     total_profiles = len(mp_names)
     reachable_profiles = total_profiles - len(excluded_profiles)

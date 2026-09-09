@@ -147,6 +147,18 @@ under `/ms/` (`/ms/`, `/ms/projection/`, …).
 (cd ts && npm ci && npm run build)              # public/lookup.js
 ```
 
+The browser lookup uses a committed snapshot of data.gov.my's official
+Malaysian postcode catalogue to distinguish an invalid code from a valid code
+that does not yet have a verified Seat mapping. Refresh that snapshot by hand:
+
+```sh
+.venv/bin/python scripts/refresh_postcode_catalogue.py
+```
+
+This writes `data/postcodes_data_gov_my.csv` and the reconciliation report at
+`data/postcode_coverage.json`. It does not infer Seats from city or state names.
+Verified postcode-to-Seat mappings remain in `data/postcode_seat_index.json`.
+
 `lpa.public_page` no longer renders a page of its own — the old chamber
 dashboard's URL was what the cutover retired — but it is still where
 `page_model()` computes every figure the pages above state, and every one of
