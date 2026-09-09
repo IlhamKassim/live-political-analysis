@@ -255,9 +255,7 @@ async def prerender_all_routes(
                             f"/{'ms/' if is_ms else ''}projection/{computed_at.year}/"
                             f"{computed_at.month:02d}/{computed_at.day:02d}.html"
                         )
-                        validate_local_asset_references(
-                            processed_html, permalink_route, output_dir
-                        )
+                        validate_local_asset_references(processed_html, permalink_route, output_dir)
                         permalink_dest.parent.mkdir(parents=True, exist_ok=True)
                         permalink_dest.write_text(processed_html, encoding="utf-8")
                         rendered_count += 1
