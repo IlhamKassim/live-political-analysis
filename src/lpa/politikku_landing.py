@@ -1214,16 +1214,16 @@ def _observatory_header(language: Language) -> str:
     home_label = t(language, "PolitikKu home", "Laman utama PolitikKu")
     return f"""<header class="nav wrap">
 <a class="brand" href="{html.escape(home)}" aria-label="{html.escape(home_label)}"><svg viewBox="0 0 32 32" width="28" aria-hidden="true"><path d="M3 28V4h8v24M15 28V4h7l7 8-7 8h-7" fill="none" stroke="currentColor" stroke-width="3"/></svg>PolitikKu<span class="brand-small">THE CIVIC OBSERVATORY</span></a>
-<nav class="nav-links" id="navigation" aria-label="{html.escape(t(language, 'Main navigation', 'Navigasi utama'))}"><a href="#perspective">{html.escape(t(language, 'The perspective', 'Perspektif'))}</a><a href="#chamber">{html.escape(t(language, 'The 222 Seats', '222 kerusi'))}</a><a href="#find" class="nav-cta">{html.escape(t(language, 'Find your Seat', 'Cari kerusi anda'))} <span aria-hidden="true">↗</span></a></nav>
-<div class="obs-lang" role="group" aria-label="Language"><a class="{en_class}" href="/"{' aria-current="page"' if language is Language.EN else ''} data-pk-set-lang="en">EN</a><a class="{ms_class}" href="/ms/"{' aria-current="page"' if language is Language.MS else ''} data-pk-set-lang="ms">BM</a></div>
-<button class="menu-toggle" type="button" aria-controls="navigation" aria-expanded="false">{html.escape(t(language, 'Menu', 'Menu'))}</button>
+<nav class="nav-links" id="navigation" aria-label="{html.escape(t(language, "Main navigation", "Navigasi utama"))}"><a href="#perspective">{html.escape(t(language, "The perspective", "Perspektif"))}</a><a href="#chamber">{html.escape(t(language, "The 222 Seats", "222 kerusi"))}</a><a href="#find" class="nav-cta">{html.escape(t(language, "Find your Seat", "Cari kerusi anda"))} <span aria-hidden="true">↗</span></a></nav>
+<div class="obs-lang" role="group" aria-label="Language"><a class="{en_class}" href="/"{' aria-current="page"' if language is Language.EN else ""} data-pk-set-lang="en">EN</a><a class="{ms_class}" href="/ms/"{' aria-current="page"' if language is Language.MS else ""} data-pk-set-lang="ms">BM</a></div>
+<button class="menu-toggle" type="button" aria-controls="navigation" aria-expanded="false">{html.escape(t(language, "Menu", "Menu"))}</button>
 </header>"""
 
 
 _OBSERVATORY_COPY_MS = {
     "A CLEARER VIEW OF MALAYSIAN POLITICS": "PANDANGAN YANG LEBIH JELAS TENTANG POLITIK MALAYSIA",
     "A nation.<br>In perspective.": "Sebuah negara.<br>Dalam perspektif.",
-    "Understand the Seats, the people, and the decisions<br class=\"desktop-break\"> that shape the place we call home.": "Fahami kerusi, rakyat, dan keputusan<br class=\"desktop-break\"> yang membentuk tempat yang kita panggil rumah.",
+    'Understand the Seats, the people, and the decisions<br class="desktop-break"> that shape the place we call home.': 'Fahami kerusi, rakyat, dan keputusan<br class="desktop-break"> yang membentuk tempat yang kita panggil rumah.',
     "MALAYSIA, SEEN TOGETHER": "MALAYSIA, DILIHAT BERSAMA",
     "Independent. Open source. For everyone.": "Bebas. Sumber terbuka. Untuk semua.",
     "Look a little closer": "Lihat dengan lebih dekat",
@@ -1278,7 +1278,9 @@ def _observatory_body(model: LandingModel, language: Language) -> str:
     body = body.replace('src="assets/skyline.png"', 'src="/assets/observatory/skyline.png"')
     body = body.replace("https://politikku.my/app/", APP_URL)
     body = body.replace("https://politikku.my/bills/", route(language, "bills/"))
-    body = body.replace("https://politikku.my/methodology.html", route(language, "methodology.html"))
+    body = body.replace(
+        "https://politikku.my/methodology.html", route(language, "methodology.html")
+    )
     body = body.replace('href="../suara/"', f'href="{APP_URL}"')
     body = body.replace(
         "Explore Suara",
@@ -1290,7 +1292,7 @@ def _observatory_body(model: LandingModel, language: Language) -> str:
     )
     body = _translate_observatory_body(body, language)
     body = body.replace(
-        "href=\"/methodology.html\"",
+        'href="/methodology.html"',
         f'href="{html.escape(route(language, "methodology.html"))}"',
     )
     return body.strip()
@@ -1337,7 +1339,7 @@ def render_landing_page(model: LandingModel, language: Language = Language.EN) -
     escaped_description = html.escape(description)
     page_url = f"{SITE_URL.rstrip('/')}{_ms_route(PAGE_PATH) if language is Language.MS else _en_route(PAGE_PATH)}"
     return f"""<!doctype html>
-<html lang="{'ms' if language is Language.MS else 'en'}">
+<html lang="{"ms" if language is Language.MS else "en"}">
 <head>
 <meta charset="utf-8">
 {deep_link_script()}
@@ -1350,7 +1352,7 @@ def render_landing_page(model: LandingModel, language: Language = Language.EN) -
 <meta property="og:type" content="website">
 <link rel="canonical" href="{html.escape(page_url)}">
 <link rel="alternate" hreflang="en" href="{html.escape(SITE_URL)}">
-<link rel="alternate" hreflang="ms" href="{html.escape(SITE_URL.rstrip('/') + '/ms/')}">
+<link rel="alternate" hreflang="ms" href="{html.escape(SITE_URL.rstrip("/") + "/ms/")}">
 <link rel="icon" href="/favicon.ico">
 <link rel="preload" href="/assets/observatory/grotesk.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/observatory/base.css">

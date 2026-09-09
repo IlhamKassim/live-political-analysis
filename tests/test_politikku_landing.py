@@ -63,11 +63,11 @@ def test_observatory_body_uses_the_reference_scenes():
 def test_observatory_body_keeps_the_platform_lookup_contract():
     body = render_landing_body(model())
     for attr in (
-        'data-pk-lookup-scope',
-        'data-pk-lookup-form',
-        'data-pk-lookup-input',
-        'data-pk-locate',
-        'data-pk-lookup-results',
+        "data-pk-lookup-scope",
+        "data-pk-lookup-form",
+        "data-pk-lookup-input",
+        "data-pk-locate",
+        "data-pk-lookup-results",
     ):
         assert attr in body
     assert 'data-pk-lookup-results role="status" aria-live="polite" hidden' in body
