@@ -300,6 +300,18 @@ jobs:
             echo "::error::public/app/data/bills.json is missing — frontend fold-in failed."
             missing=1
           fi
+          if [ ! -f "public/app/assets/state-emblems/johor.svg" ] || [ ! -f "public/app/assets/state-flags/johor.svg" ]; then
+            echo "::error::State emblem or flag assets are missing — directory pages will show broken images."
+            missing=1
+          fi
+          if ! grep -q '"asset": "/app/assets/state-emblems/' public/app/data/state-emblems.json 2>/dev/null; then
+            echo "::error::State emblem URLs are not root-relative under /app/."
+            missing=1
+          fi
+          if ! grep -q '"Johor": "/app/assets/state-flags/johor.svg"' public/app/app.js 2>/dev/null; then
+            echo "::error::State flag URLs are not root-relative under /app/."
+            missing=1
+          fi
           if [ ! -f "public/fonts/space-grotesk-latin.woff2" ]; then
             echo "::error::public/fonts/ is missing the shell's webfonts — every page loses its typography."
             missing=1
@@ -318,6 +330,12 @@ jobs:
           for page in public/bills/index.html public/dewan/index.html public/politicians/index.html public/sentiment/index.html public/projection/index.html public/methodology.html public/mp/P.107/index.html; do
             if [ ! -f "$page" ]; then
               echo "::error::$page is missing."
+              missing=1
+            fi
+          done
+          for page in public/dewan/index.html public/ms/dewan/index.html public/mp/P.107/index.html; do
+            if grep -Eq '(src|href)="assets/' "$page" 2>/dev/null; then
+              echo "::error::$page contains a route-relative asset URL."
               missing=1
             fi
           done

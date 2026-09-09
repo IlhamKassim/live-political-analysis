@@ -265,6 +265,21 @@ def test_the_spa_sidebar_and_nav_links_agree_on_which_destinations_exist():
     )
 
 
+def test_spa_sidebar_content_fetches_use_published_root_paths():
+    """Sidebar clicks fetch pages from the site root, not below ``/app/``.
+
+    The app intercepts these links and hydrates their content in place. Relative
+    URLs resolve below ``/app/`` on the map, where these pages do not exist.
+    """
+    app_js = (REPO_ROOT / "frontend" / "public" / "app.js").read_text(encoding="utf-8")
+
+    assert 'input.startsWith("learn/")' not in app_js
+    assert 'lang === "ms" ? "/ms/methodology.html" : "/methodology.html"' in app_js
+    assert 'fetch("/learn/glossary.html")' in app_js
+    assert 'fetch("/learn/coalitions.html")' in app_js
+    assert 'fetch("/learn/ge16-process.html")' in app_js
+
+
 def test_every_page_is_written_under_the_site_root_not_a_sub_prefix(rendered_site):
     # The cutover itself, stated as file paths: PolitikKu's own pages sit at
     # the root of the published directory. A `politikku/` directory here

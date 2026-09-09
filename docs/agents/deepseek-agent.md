@@ -14,6 +14,15 @@ around not trusting that judgment blindly.
 
 ## What it is and isn't
 
+## Responses API support
+
+The `gpt-6-astra` model uses the Responses API automatically. This is required
+when Astra combines reasoning with function tools. The adapter keeps the
+existing Chat Completions path for other models, and sends Astra's reasoning
+items and `function_call_output` items across turns so its reasoning state is
+not lost. Set the effort with `--reasoning-effort low|medium|high` (or
+`none` when the proxy does not support reasoning).
+
 - **Bounded autonomous run, then full review.** DeepSeek works through the
   whole task alone, capped at a turn limit and a wall-clock limit, inside its
   own worktree. It stops — self-reported done, capped, or errored — and a

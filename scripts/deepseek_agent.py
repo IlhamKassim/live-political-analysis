@@ -41,6 +41,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
+from typing import Any
 
 import httpx
 
@@ -414,6 +415,51 @@ TOOL_SCHEMAS: list[dict] = [
     },
 ]
 
+RESPONSES_TOOL_SCHEMAS: list[dict] = [
+    {
+        "type": "function",
+        "name": tool["function"]["name"],
+        "description": tool["function"]["description"],
+        "parameters": tool["function"]["parameters"],
+    }
+    for tool in TOOL_SCHEMAS
+]
+"""The Responses API uses function fields at the top level."""
+
+ASTRA_MODEL = "gpt-6-astra"
+DEFAULT_REASONING_EFFORT = "medium"
+
+
+def uses_responses_api(model: str) -> bool:
+    """Astra requires Responses for reasoning plus function tools."""
+    return model.lower() == ASTRA_MODEL
+
+
+def _normalize_responses_payload(payload: dict) -> dict:
+    """Adapt Responses function calls to the loop's existing call shape."""
+    output = payload.get("output")
+    if not isinstance(output, list) or not output:
+        raise KeyError("output")
+    tool_calls = []
+    for item in output:
+        if item.get("type") != "function_call":
+            continue
+        tool_calls.append(
+            {
+                "id": item.get("call_id", ""),
+                "type": "function",
+                "function": {
+                    "name": item.get("name", ""),
+                    "arguments": item.get("arguments", "{}"),
+                },
+            }
+        )
+    return {
+        "choices": [{"message": {"role": "assistant", "content": None, "tool_calls": tool_calls}}],
+        "_responses_output": output,
+    }
+
+
 SYSTEM_PROMPT = (
     "You are an autonomous coding agent working inside an isolated git worktree of the "
     '"live-political-analysis" repository. You have tools to read/write files, search, run '
@@ -696,8 +742,9 @@ def call_deepseek(
     timeout: float,
     post: Post,
     base_url: str = DEFAULT_BASE_URL,
+    reasoning_effort: str = DEFAULT_REASONING_EFFORT,
 ) -> tuple[dict | None, str | None]:
-    """One chat-completions round trip, with a one-shot retry on failure —
+    """One model round trip, with a one-shot retry on failure —
     same philosophy as `deepseek_judge`'s vocabulary retry, applied here at
     the transport/envelope layer: a transient network error or a malformed
     response envelope gets one immediate second attempt before the run
@@ -707,16 +754,29 @@ def call_deepseek(
 
     def attempt() -> tuple[dict | None, str | None]:
         try:
-            response = post(
-                f"{base_url.rstrip('/')}/chat/completions",
-                headers={"Authorization": f"Bearer {api_key}"},
-                json={
+            request_json: dict[str, Any]
+            if uses_responses_api(model):
+                endpoint = f"{base_url.rstrip('/')}/responses"
+                request_json = {
+                    "model": model,
+                    "input": messages,
+                    "tools": RESPONSES_TOOL_SCHEMAS,
+                    "tool_choice": "required",
+                    "reasoning": {"effort": reasoning_effort},
+                }
+            else:
+                endpoint = f"{base_url.rstrip('/')}/chat/completions"
+                request_json = {
                     "model": model,
                     "messages": messages,
                     "tools": TOOL_SCHEMAS,
                     "tool_choice": "required",
                     "stream": False,
-                },
+                }
+            response = post(
+                endpoint,
+                headers={"Authorization": f"Bearer {api_key}"},
+                json=request_json,
                 timeout=timeout,
             )
             response.raise_for_status()
@@ -724,7 +784,9 @@ def call_deepseek(
             return None, f"deepseek API unavailable: {type(error).__name__}: {error}"
         try:
             payload = response.json()
-            if not payload.get("choices"):
+            if uses_responses_api(model):
+                payload = _normalize_responses_payload(payload)
+            elif not payload.get("choices"):
                 raise KeyError("choices")
         except (json.JSONDecodeError, KeyError, TypeError) as error:
             preview = response.text.strip()[:200]
@@ -761,6 +823,7 @@ def run_agent_loop(
     task: str,
     model: str,
     api_key: str,
+    reasoning_effort: str = DEFAULT_REASONING_EFFORT,
     base_url: str = DEFAULT_BASE_URL,
     max_turns: int = DEFAULT_MAX_TURNS,
     max_wall_clock_seconds: float = DEFAULT_MAX_WALL_CLOCK_SECONDS,
@@ -807,6 +870,7 @@ def run_agent_loop(
             timeout=turn_timeout,
             post=post,
             base_url=base_url,
+            reasoning_effort=reasoning_effort,
         )
         if error is not None:
             progress(f"turn {turn}: API error: {error}")
@@ -815,7 +879,11 @@ def run_agent_loop(
 
         assert payload is not None
         assistant_message = payload["choices"][0]["message"]
-        messages.append(assistant_message)
+        responses_output = payload.get("_responses_output")
+        if responses_output is not None:
+            messages.extend(responses_output)
+        else:
+            messages.append(assistant_message)
         tool_calls = assistant_message.get("tool_calls") or []
         transcript.append({"turn": turn, "assistant": assistant_message})
 
@@ -840,9 +908,18 @@ def run_agent_loop(
                 command_timeout=command_timeout,
             )
             progress(f"turn {turn}: {fn_name} -> {result_text.splitlines()[0][:120]}")
-            messages.append(
-                {"role": "tool", "tool_call_id": call.get("id", ""), "content": result_text}
-            )
+            if responses_output is not None:
+                messages.append(
+                    {
+                        "type": "function_call_output",
+                        "call_id": call.get("id", ""),
+                        "output": result_text,
+                    }
+                )
+            else:
+                messages.append(
+                    {"role": "tool", "tool_call_id": call.get("id", ""), "content": result_text}
+                )
             transcript.append({"turn": turn, "tool_call": call, "result": result_text})
             if finish is not None:
                 status = {
@@ -1004,6 +1081,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument(
+        "--reasoning-effort",
+        choices=("none", "low", "medium", "high"),
+        default=DEFAULT_REASONING_EFFORT,
+        help="reasoning effort for gpt-6-astra when using its Responses API",
+    )
+    parser.add_argument(
         "--base-url",
         default=None,
         help=(
@@ -1064,6 +1147,7 @@ def main(argv: list[str] | None = None, *, post: Post = httpx.post) -> int:
         worktree=worktree.path,
         task=task,
         model=args.model,
+        reasoning_effort=args.reasoning_effort,
         api_key=api_key,
         base_url=base_url,
         max_turns=args.max_turns,

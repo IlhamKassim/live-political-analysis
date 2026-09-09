@@ -164,7 +164,7 @@ NAV_LINKS: tuple[NavLink, ...] = (
         icon_svg=(
             '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
             'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-            '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.2"/><circle cx="12" cy="7.6" r="0.7" fill="currentColor" stroke="none"/></svg>'
+            '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.2"/><circle cx="12" cy="7.5" r="1.1" fill="currentColor" stroke="none"/></svg>'
         ),
     ),
     NavLink(
@@ -434,6 +434,7 @@ def render_sidebar(
     return f"""<aside id="sidebar" aria-label="{nav_aria}">
   <div class="sb-top">
     <a id="sb-brand" class="sb-brand" href="{html.escape(home_href)}" aria-label="{whole_map_label}">
+      <svg class="brand-mark" viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><path d="M3 28V4h8v24M15 28V4h7l7 8-7 8h-7" fill="none" stroke="currentColor" stroke-width="3"/></svg>
       <span class="brand-word">Politik<b>Ku</b></span>
     </a>
     <button id="sb-collapse" class="sb-collapse" type="button" aria-label="{toggle_sb_label}" title="{toggle_sb_label}">
@@ -521,7 +522,7 @@ def render_topbar(
 
     return f"""<header id="topbar" class="pk-header">
   <a id="brand-home" class="brand brand-home wordmark" href="{html.escape(home_href)}" aria-label="{whole_map_label}" title="{whole_map_label}">
-    <span class="mark"><span class="brand-word">Politik<b>Ku</b></span></span>
+    <span class="mark"><svg class="brand-mark" viewBox="0 0 32 32" width="20" height="20" aria-hidden="true"><path d="M3 28V4h8v24M15 28V4h7l7 8-7 8h-7" fill="none" stroke="currentColor" stroke-width="3"/></svg> <span class="brand-word">Politik<b>Ku</b></span></span>
   </a>
   <div id="topbar-context" class="topbar-context">
     <a id="topbar-title" class="topbar-title" href="{html.escape(home_href)}" aria-label="{whole_map_label}" title="PolitikKu">
@@ -787,7 +788,11 @@ def render_shell(
 <link rel="canonical" href="{og_url}">
 <link rel="alternate" hreflang="en" href="{en_url}">
 <link rel="alternate" hreflang="ms" href="{ms_url}">
-<link rel="icon" href="{POLITIKKU_PREFIX}favicon.ico">
+<link rel="icon" href="{POLITIKKU_PREFIX}favicon.ico?v=3" sizes="any">
+<link rel="icon" href="/app/assets/icon.svg?v=3" type="image/svg+xml">
+<link rel="icon" type="image/png" sizes="32x32" href="/app/assets/icon-32x32.png?v=3">
+<link rel="icon" type="image/png" sizes="16x16" href="/app/assets/icon-16x16.png?v=3">
+<link rel="apple-touch-icon" sizes="180x180" href="/app/assets/apple-touch-icon.png?v=3">
 <style>{_CSS}</style>
 <script type="application/ld+json">
 {website_ld}
@@ -1000,8 +1005,9 @@ _CSS_TEMPLATE = """
     display: flex; align-items: center;
     text-decoration: none; color: var(--ink);
   }
-  .brand-home .mark { font-family: var(--sans); font-size: 18px; font-weight: 700; }
+  .brand-home .mark { font-family: var(--sans); font-size: 18px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
   .brand-home .mark b { color: var(--accent); }
+  .brand-mark { flex-shrink: 0; display: inline-block; vertical-align: middle; }
   .topbar-context { display: flex; align-items: center; }
   .topbar-title {
     background: none; border: 0; color: var(--ink); font-family: var(--sans);

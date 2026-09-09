@@ -623,6 +623,119 @@ def test_call_deepseek_sends_the_tools_schema_and_auth_header():
     assert kwargs["json"]["tools"]
 
 
+def test_call_deepseek_uses_responses_api_for_astra_with_reasoning():
+    calls = []
+
+    def fake_post(url, **kwargs):
+        calls.append((url, kwargs))
+        return FakeHttpxResponse(
+            json_body={
+                "output": [
+                    {
+                        "type": "function_call",
+                        "call_id": "call-1",
+                        "name": "finish_task",
+                        "arguments": "{}",
+                    }
+                ]
+            }
+        )
+
+    payload, error = call_deepseek(
+        messages=[{"role": "user", "content": "x"}],
+        model="gpt-6-astra",
+        api_key="secret",
+        timeout=5,
+        post=fake_post,
+        reasoning_effort="high",
+    )
+
+    [(url, kwargs)] = calls
+    assert error is None
+    assert url == "https://api.deepseek.com/responses"
+    assert kwargs["json"]["input"] == [{"role": "user", "content": "x"}]
+    assert kwargs["json"]["reasoning"] == {"effort": "high"}
+    assert kwargs["json"]["tools"][0]["type"] == "function"
+    assert "function" not in kwargs["json"]["tools"][0]
+    assert payload["choices"][0]["message"]["tool_calls"][0]["id"] == "call-1"
+
+
+def test_call_deepseek_normalizes_an_astra_function_call_for_the_existing_dispatcher():
+    def fake_post(url, **kwargs):
+        return FakeHttpxResponse(
+            json_body={
+                "output": [
+                    {
+                        "type": "function_call",
+                        "call_id": "call-7",
+                        "name": "read_file",
+                        "arguments": '{"path":"README.md"}',
+                    }
+                ]
+            }
+        )
+
+    payload, error = call_deepseek(
+        messages=[], model="gpt-6-astra", api_key="k", timeout=5, post=fake_post
+    )
+
+    assert error is None
+    assert payload["choices"][0]["message"]["tool_calls"] == [
+        {
+            "id": "call-7",
+            "type": "function",
+            "function": {"name": "read_file", "arguments": '{"path":"README.md"}'},
+        }
+    ]
+
+
+def test_run_agent_loop_sends_astra_function_output_back_to_responses(tmp_path):
+    requests = []
+
+    def fake_post(url, **kwargs):
+        requests.append(kwargs["json"])
+        if len(requests) == 1:
+            return FakeHttpxResponse(
+                json_body={
+                    "output": [
+                        {
+                            "type": "function_call",
+                            "call_id": "call-1",
+                            "name": "read_file",
+                            "arguments": '{"path":"README.md"}',
+                        }
+                    ]
+                }
+            )
+        return FakeHttpxResponse(
+            json_body={
+                "output": [
+                    {
+                        "type": "function_call",
+                        "call_id": "call-2",
+                        "name": "finish_task",
+                        "arguments": '{"summary":"done","status":"success"}',
+                    }
+                ]
+            }
+        )
+
+    result = run_agent_loop(
+        worktree=tmp_path,
+        task="read the README",
+        model="gpt-6-astra",
+        api_key="k",
+        post=fake_post,
+        run_subprocess=lambda *a, **k: FakeCompletedProcess(),
+        clock=_fake_clock(),
+    )
+
+    assert result.status == RunStatus.FINISHED
+    outputs = [item for item in requests[1]["input"] if item.get("type") == "function_call_output"]
+    assert [item["call_id"] for item in outputs] == ["call-1", "call-2"]
+    assert "README.md" in outputs[0]["output"] or "not a file" in outputs[0]["output"]
+
+
 def test_call_deepseek_retries_once_on_a_transport_error_and_can_recover():
     calls = []
 

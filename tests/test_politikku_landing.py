@@ -124,5 +124,6 @@ def test_build_copies_the_observatory_runtime_and_image(tmp_path):
         "scrollcraft.js",
         "integrated.js",
         "skyline.png",
+        "icon.svg",
     ):
         assert (tmp_path / "assets" / "observatory" / name).is_file(), name

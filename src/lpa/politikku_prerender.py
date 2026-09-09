@@ -233,6 +233,8 @@ async def prerender_all_routes(
                     raw_html = await page.content()
                     verify_content_assertions(raw_html, section)
                     processed_html = inject_metadata(raw_html, metadata)
+                    route_path = f"/{'ms/' if is_ms else ''}{section}/"
+                    validate_local_asset_references(processed_html, route_path, output_dir)
 
                     dest_file = output_dir / ("ms" if is_ms else "") / section / "index.html"
                     dest_file.parent.mkdir(parents=True, exist_ok=True)
@@ -248,6 +250,13 @@ async def prerender_all_routes(
                             / f"{computed_at.year}"
                             / f"{computed_at.month:02d}"
                             / f"{computed_at.day:02d}.html"
+                        )
+                        permalink_route = (
+                            f"/{'ms/' if is_ms else ''}projection/{computed_at.year}/"
+                            f"{computed_at.month:02d}/{computed_at.day:02d}.html"
+                        )
+                        validate_local_asset_references(
+                            processed_html, permalink_route, output_dir
                         )
                         permalink_dest.parent.mkdir(parents=True, exist_ok=True)
                         permalink_dest.write_text(processed_html, encoding="utf-8")
@@ -272,6 +281,8 @@ async def prerender_all_routes(
                     raw_html = await page.content()
                     verify_content_assertions(raw_html, f"mp/{code}")
                     processed_html = inject_metadata(raw_html, metadata)
+                    route_path = f"/{'ms/' if is_ms else ''}mp/{code}/"
+                    validate_local_asset_references(processed_html, route_path, output_dir)
 
                     dest_file = output_dir / ("ms" if is_ms else "") / "mp" / code / "index.html"
                     dest_file.parent.mkdir(parents=True, exist_ok=True)
@@ -293,8 +304,12 @@ async def prerender_all_routes(
             is_ms = lang is Language.MS
             meth_dest = output_dir / ("ms" if is_ms else "") / "methodology.html"
             meth_dest.parent.mkdir(parents=True, exist_ok=True)
+            route_path = f"/{'ms/' if is_ms else ''}methodology.html"
+            validate_local_asset_references(meth_content, route_path, output_dir)
             meth_dest.write_text(meth_content, encoding="utf-8")
             rendered_count += 1
+    except ValueError:
+        raise
     except Exception as e:  # noqa: BLE001
         print(f"Warning: Could not render methodology page from storage: {e}")
 

@@ -1307,6 +1307,7 @@ def _copy_observatory_assets(output_dir: Path) -> None:
         (_OBSERVATORY_PAGE / "scrollcraft.js", target / "scrollcraft.js"),
         (_OBSERVATORY_PAGE / "scrollcraft.css", target / "scrollcraft.css"),
         (_OBSERVATORY_PAGE / "assets" / "skyline.png", target / "skyline.png"),
+        (_OBSERVATORY_PAGE / "icon.svg", target / "icon.svg"),
         (_OBSERVATORY_SHARED / "base.css", target / "base.css"),
         (_OBSERVATORY_SHARED / "sans.woff2", target / "sans.woff2"),
         (_OBSERVATORY_SHARED / "serif.woff2", target / "serif.woff2"),
@@ -1353,7 +1354,11 @@ def render_landing_page(model: LandingModel, language: Language = Language.EN) -
 <link rel="canonical" href="{html.escape(page_url)}">
 <link rel="alternate" hreflang="en" href="{html.escape(SITE_URL)}">
 <link rel="alternate" hreflang="ms" href="{html.escape(SITE_URL.rstrip("/") + "/ms/")}">
-<link rel="icon" href="/favicon.ico">
+<link rel="icon" href="/favicon.ico?v=3" sizes="any">
+<link rel="icon" href="/app/assets/icon.svg?v=3" type="image/svg+xml">
+<link rel="icon" type="image/png" sizes="32x32" href="/app/assets/icon-32x32.png?v=3">
+<link rel="icon" type="image/png" sizes="16x16" href="/app/assets/icon-16x16.png?v=3">
+<link rel="apple-touch-icon" sizes="180x180" href="/app/assets/apple-touch-icon.png?v=3">
 <link rel="preload" href="/assets/observatory/grotesk.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/observatory/base.css">
 <link rel="stylesheet" href="/assets/observatory/scrollcraft.css">
