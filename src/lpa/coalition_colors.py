@@ -59,26 +59,3 @@ def party_color(p: str | None) -> str:
     """Map coalition or party name to swatch color, mirroring lib.js partyColor()."""
     colors = load_coalition_colors()
     return colors.get((p or "").strip().upper(), "#5d6b7d")
-
-
-def hex_to_rgb(hex_code: str) -> tuple[int, int, int] | None:
-    if not isinstance(hex_code, str):
-        return None
-    s = hex_code.strip().removeprefix("#")
-    if len(s) == 3:
-        s = "".join(c + c for c in s)
-    if len(s) != 6:
-        return None
-    try:
-        n = int(s, 16)
-        return ((n >> 16) & 255, (n >> 8) & 255, n & 255)
-    except ValueError:
-        return None
-
-
-def rel_lum(rgb: tuple[int, int, int]) -> float:
-    channels = []
-    for v in rgb:
-        c = v / 255.0
-        channels.append(c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4)
-    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
