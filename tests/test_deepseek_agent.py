@@ -1025,8 +1025,13 @@ def test_resolve_repo_root_rejects_a_pyproject_toml_naming_a_different_project(t
 def test_resolve_repo_root_with_no_explicit_root_finds_the_real_repo():
     root = resolve_repo_root(None)
 
-    assert (root / "pyproject.toml").is_file()
-    assert root.name in ("live-political-analysis", "politikku")
+    # Not root.name: resolve_repo_root is deliberately derived from
+    # __file__, not cwd, so it works from a git worktree too — those get an
+    # arbitrary directory name. Check the same invariant the function itself
+    # checks instead.
+    assert 'name = "live-political-analysis"' in (root / "pyproject.toml").read_text(
+        encoding="utf-8"
+    )
 
 
 # --- worktree lifecycle: a real scratch git repo ---------------------------
