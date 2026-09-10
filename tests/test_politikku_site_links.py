@@ -38,6 +38,7 @@ import pytest
 from test_politikku_methodology import _projection_model
 
 from lpa.bill_tracker import Bill
+from lpa.politikku_analyst import build_and_write_analyst_page
 from lpa.politikku_landing import (
     CoalitionRow,
     LandingModel,
@@ -123,6 +124,7 @@ def rendered_site(tmp_path_factory) -> Path:
     `main()` writes it to."""
     root = tmp_path_factory.mktemp("public")
     _copy_observatory_assets(root)
+    build_and_write_analyst_page(root)
     # The committed, non-generated part of `public/`: the self-hosted fonts
     # the shell preloads (mirrored by name — symlinking is not portable
     # here), and `learn/`'s hand-authored civic-education pages, copied in
@@ -328,6 +330,9 @@ def test_the_language_toggle_on_every_page_reaches_the_other_language(rendered_s
             continue
         page = page_path.read_text(encoding="utf-8")
         toggles = re.findall(r'href="([^"]+)" (?:aria-current="page" )?data-pk-set-lang=', page)
+        if page_path == rendered_site / "analyst" / "index.html":
+            assert toggles == [], "Analyst deliberately has no BM page"
+            continue
         bare = 'class="pk-bare"' in page
         assert len(toggles) == (2 if bare else 4), page_path
         assert set(toggles) == {_en_route(""), _ms_route("")} if bare else True
