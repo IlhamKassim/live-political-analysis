@@ -159,6 +159,21 @@ This writes `data/postcodes_data_gov_my.csv` and the reconciliation report at
 `data/postcode_coverage.json`. It does not infer Seats from city or state names.
 Verified postcode-to-Seat mappings remain in `data/postcode_seat_index.json`.
 
+An offline experiment also matches GeoNames postcode points against the
+unsimplified DOSM parliamentary Seat polygons:
+
+```sh
+PYTHONPATH=src .venv/bin/python scripts/refresh_postcode_seat_estimates.py
+```
+
+It writes separate files at `data/postcode_seat_estimates.json` and
+`data/postcode_seat_estimate_quality.json`. GeoNames is credited under CC BY
+4.0 in the estimate file. GeoNames describes these coordinates as estimated;
+they are points, not postcode boundaries. The September 2026 audit retained
+only 56.8% of verified Seats and reached exact agreement for 56.6% of verified
+postcodes. The browser therefore does **not** use these estimates. A valid
+postcode without a verified mapping remains unresolved.
+
 `lpa.public_page` no longer renders a page of its own — the old chamber
 dashboard's URL was what the cutover retired — but it is still where
 `page_model()` computes every figure the pages above state, and every one of

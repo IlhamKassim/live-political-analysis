@@ -129,3 +129,22 @@ but without a verified Seat mapping; a code present in neither source is
 invalid. `data/postcode_coverage.json` records the reconciliation, including
 mapped codes absent from the official catalogue. Both sources are bundled in
 the generated static lookup file, so no visitor query is sent to data.gov.my.
+
+**Update (2026-09): GeoNames point estimates remain offline after failing the
+quality audit.** GeoNames' Malaysian postal-code download is reusable under CC
+BY 4.0 and contains 2,757 postcodes with 2,812 distinct coordinate records.
+`scripts/refresh_postcode_seat_estimates.py` matches every point against the
+unsimplified DOSM CRS84 parliamentary polygons and unions all touching Seats.
+Its output stays separate in `data/postcode_seat_estimates.json`; it is never
+merged into the verified index above.
+
+The comparison against 339 verified postcodes found only 56.8% verified-Seat
+recall and 56.6% exact-set agreement. Forty verified postcodes had no point
+inside any Seat, and 143 lost at least one verified Seat. Errors were broad
+across states rather than isolated exceptions. The public fallback was
+therefore not enabled. `data/postcode_seat_estimate_quality.json` carries the
+full report, including every recall failure and the `89607` result (`P.176`).
+GeoNames itself says coordinates may be inferred or averaged, and a point
+cannot describe every Seat crossed by a postcode. The DOSM boundary file's
+delimitation vintage also remains unconfirmed. Valid postcodes without a
+verified mapping must continue to be shown as unresolved.

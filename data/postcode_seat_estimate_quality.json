@@ -1,0 +1,1671 @@
+{
+  "validation_postcode_count": 339,
+  "verified_seat_count": 352,
+  "verified_seat_recall": 0.5681818181818182,
+  "exact_set_agreement": 0.5663716814159292,
+  "exact_set_agreement_count": 192,
+  "unresolved_count": 40,
+  "unresolved_rate": 0.11799410029498525,
+  "candidate_set_size": {
+    "mean": 1.0267558528428093,
+    "median": 1.0,
+    "p95": 1.0,
+    "maximum": 2,
+    "histogram": {
+      "1": 291,
+      "2": 8
+    }
+  },
+  "recall_failures": [
+    {
+      "postcode": "06200",
+      "state": "Kedah",
+      "verified": [
+        "P.006"
+      ],
+      "estimated": [
+        "P.011"
+      ]
+    },
+    {
+      "postcode": "06207",
+      "state": "Kedah",
+      "verified": [
+        "P.006"
+      ],
+      "estimated": [
+        "P.008"
+      ]
+    },
+    {
+      "postcode": "06209",
+      "state": "Kedah",
+      "verified": [
+        "P.006"
+      ],
+      "estimated": [
+        "P.008"
+      ]
+    },
+    {
+      "postcode": "06650",
+      "state": "Kedah",
+      "verified": [
+        "P.010",
+        "P.016"
+      ],
+      "estimated": [
+        "P.011"
+      ]
+    },
+    {
+      "postcode": "06680",
+      "state": "Unknown",
+      "verified": [
+        "P.010",
+        "P.016"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "06800",
+      "state": "Kedah",
+      "verified": [
+        "P.010"
+      ],
+      "estimated": [
+        "P.012"
+      ]
+    },
+    {
+      "postcode": "08500",
+      "state": "Kedah",
+      "verified": [
+        "P.015"
+      ],
+      "estimated": [
+        "P.014"
+      ]
+    },
+    {
+      "postcode": "09110",
+      "state": "Kedah",
+      "verified": [
+        "P.016"
+      ],
+      "estimated": [
+        "P.013"
+      ]
+    },
+    {
+      "postcode": "09700",
+      "state": "Kedah",
+      "verified": [
+        "P.018"
+      ],
+      "estimated": [
+        "P.015"
+      ]
+    },
+    {
+      "postcode": "11000",
+      "state": "Pulau Pinang",
+      "verified": [
+        "P.053"
+      ],
+      "estimated": [
+        "P.051"
+      ]
+    },
+    {
+      "postcode": "11010",
+      "state": "Pulau Pinang",
+      "verified": [
+        "P.053"
+      ],
+      "estimated": [
+        "P.051"
+      ]
+    },
+    {
+      "postcode": "11500",
+      "state": "Pulau Pinang",
+      "verified": [
+        "P.051"
+      ],
+      "estimated": [
+        "P.052"
+      ]
+    },
+    {
+      "postcode": "11900",
+      "state": "Pulau Pinang",
+      "verified": [
+        "P.053"
+      ],
+      "estimated": [
+        "P.051",
+        "P.052"
+      ]
+    },
+    {
+      "postcode": "11910",
+      "state": "Pulau Pinang",
+      "verified": [
+        "P.053"
+      ],
+      "estimated": [
+        "P.052"
+      ]
+    },
+    {
+      "postcode": "11920",
+      "state": "Pulau Pinang",
+      "verified": [
+        "P.053"
+      ],
+      "estimated": [
+        "P.052"
+      ]
+    },
+    {
+      "postcode": "11950",
+      "state": "Pulau Pinang",
+      "verified": [
+        "P.053"
+      ],
+      "estimated": [
+        "P.052"
+      ]
+    },
+    {
+      "postcode": "11960",
+      "state": "Pulau Pinang",
+      "verified": [
+        "P.052"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "13100",
+      "state": "Pulau Pinang",
+      "verified": [
+        "P.041"
+      ],
+      "estimated": [
+        "P.042"
+      ]
+    },
+    {
+      "postcode": "13110",
+      "state": "Pulau Pinang",
+      "verified": [
+        "P.041"
+      ],
+      "estimated": [
+        "P.042"
+      ]
+    },
+    {
+      "postcode": "13200",
+      "state": "Pulau Pinang",
+      "verified": [
+        "P.041"
+      ],
+      "estimated": [
+        "P.042"
+      ]
+    },
+    {
+      "postcode": "13220",
+      "state": "Pulau Pinang",
+      "verified": [
+        "P.041"
+      ],
+      "estimated": [
+        "P.042"
+      ]
+    },
+    {
+      "postcode": "14100",
+      "state": "Pulau Pinang",
+      "verified": [
+        "P.042",
+        "P.044"
+      ],
+      "estimated": [
+        "P.046"
+      ]
+    },
+    {
+      "postcode": "14101",
+      "state": "Unknown",
+      "verified": [
+        "P.042",
+        "P.044"
+      ],
+      "estimated": [
+        "P.052"
+      ]
+    },
+    {
+      "postcode": "14110",
+      "state": "Pulau Pinang",
+      "verified": [
+        "P.042",
+        "P.044"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "14120",
+      "state": "Pulau Pinang",
+      "verified": [
+        "P.042",
+        "P.044"
+      ],
+      "estimated": [
+        "P.046"
+      ]
+    },
+    {
+      "postcode": "16400",
+      "state": "Kelantan",
+      "verified": [
+        "P.026"
+      ],
+      "estimated": [
+        "P.028"
+      ]
+    },
+    {
+      "postcode": "21500",
+      "state": "Terengganu",
+      "verified": [
+        "P.034"
+      ],
+      "estimated": [
+        "P.038"
+      ]
+    },
+    {
+      "postcode": "23200",
+      "state": "Terengganu",
+      "verified": [
+        "P.039"
+      ],
+      "estimated": [
+        "P.038"
+      ]
+    },
+    {
+      "postcode": "26080",
+      "state": "Pahang",
+      "verified": [
+        "P.082"
+      ],
+      "estimated": [
+        "P.040",
+        "P.084"
+      ]
+    },
+    {
+      "postcode": "26150",
+      "state": "Pahang",
+      "verified": [
+        "P.082"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "26250",
+      "state": "Pahang",
+      "verified": [
+        "P.085"
+      ],
+      "estimated": [
+        "P.084"
+      ]
+    },
+    {
+      "postcode": "26340",
+      "state": "Unknown",
+      "verified": [
+        "P.084"
+      ],
+      "estimated": [
+        "P.154"
+      ]
+    },
+    {
+      "postcode": "27500",
+      "state": "Pahang",
+      "verified": [
+        "P.080"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "31250",
+      "state": "Perak",
+      "verified": [
+        "P.063"
+      ],
+      "estimated": [
+        "P.071"
+      ]
+    },
+    {
+      "postcode": "31610",
+      "state": "Perak",
+      "verified": [
+        "P.071"
+      ],
+      "estimated": [
+        "P.065"
+      ]
+    },
+    {
+      "postcode": "31750",
+      "state": "Perak",
+      "verified": [
+        "P.066"
+      ],
+      "estimated": [
+        "P.070"
+      ]
+    },
+    {
+      "postcode": "32010",
+      "state": "Unknown",
+      "verified": [
+        "P.068"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "32020",
+      "state": "Perak",
+      "verified": [
+        "P.068"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "32040",
+      "state": "Perak",
+      "verified": [
+        "P.074"
+      ],
+      "estimated": [
+        "P.067",
+        "P.068"
+      ]
+    },
+    {
+      "postcode": "32050",
+      "state": "Unknown",
+      "verified": [
+        "P.074"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "32200",
+      "state": "Perak",
+      "verified": [
+        "P.074"
+      ],
+      "estimated": [
+        "P.068"
+      ]
+    },
+    {
+      "postcode": "32500",
+      "state": "Perak",
+      "verified": [
+        "P.068"
+      ],
+      "estimated": [
+        "P.069"
+      ]
+    },
+    {
+      "postcode": "32700",
+      "state": "Perak",
+      "verified": [
+        "P.068"
+      ],
+      "estimated": [
+        "P.061"
+      ]
+    },
+    {
+      "postcode": "32999",
+      "state": "Unknown",
+      "verified": [
+        "P.069"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "34200",
+      "state": "Perak",
+      "verified": [
+        "P.057"
+      ],
+      "estimated": [
+        "P.058"
+      ]
+    },
+    {
+      "postcode": "34250",
+      "state": "Perak",
+      "verified": [
+        "P.057"
+      ],
+      "estimated": [
+        "P.058"
+      ]
+    },
+    {
+      "postcode": "34300",
+      "state": "Perak",
+      "verified": [
+        "P.058"
+      ],
+      "estimated": [
+        "P.059"
+      ]
+    },
+    {
+      "postcode": "34310",
+      "state": "Perak",
+      "verified": [
+        "P.058"
+      ],
+      "estimated": [
+        "P.060"
+      ]
+    },
+    {
+      "postcode": "34350",
+      "state": "Perak",
+      "verified": [
+        "P.057"
+      ],
+      "estimated": [
+        "P.058"
+      ]
+    },
+    {
+      "postcode": "34400",
+      "state": "Perak",
+      "verified": [
+        "P.058"
+      ],
+      "estimated": [
+        "P.059"
+      ]
+    },
+    {
+      "postcode": "34850",
+      "state": "Perak",
+      "verified": [
+        "P.059"
+      ],
+      "estimated": [
+        "P.061"
+      ]
+    },
+    {
+      "postcode": "34900",
+      "state": "Perak",
+      "verified": [
+        "P.068"
+      ],
+      "estimated": [
+        "P.059"
+      ]
+    },
+    {
+      "postcode": "34910",
+      "state": "Unknown",
+      "verified": [
+        "P.068"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "34950",
+      "state": "Kedah",
+      "verified": [
+        "P.018"
+      ],
+      "estimated": [
+        "P.047"
+      ]
+    },
+    {
+      "postcode": "35350",
+      "state": "Perak",
+      "verified": [
+        "P.072"
+      ],
+      "estimated": [
+        "P.070"
+      ]
+    },
+    {
+      "postcode": "35600",
+      "state": "Perak",
+      "verified": [
+        "P.077"
+      ],
+      "estimated": [
+        "P.072"
+      ]
+    },
+    {
+      "postcode": "36200",
+      "state": "Perak",
+      "verified": [
+        "P.075"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "36300",
+      "state": "Perak",
+      "verified": [
+        "P.075"
+      ],
+      "estimated": [
+        "P.073"
+      ]
+    },
+    {
+      "postcode": "36400",
+      "state": "Perak",
+      "verified": [
+        "P.075"
+      ],
+      "estimated": [
+        "P.073"
+      ]
+    },
+    {
+      "postcode": "36600",
+      "state": "Perak",
+      "verified": [
+        "P.073"
+      ],
+      "estimated": [
+        "P.070"
+      ]
+    },
+    {
+      "postcode": "36750",
+      "state": "Perak",
+      "verified": [
+        "P.073"
+      ],
+      "estimated": [
+        "P.070"
+      ]
+    },
+    {
+      "postcode": "42209",
+      "state": "Unknown",
+      "verified": [
+        "P.109"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "42300",
+      "state": "Selangor",
+      "verified": [
+        "P.096"
+      ],
+      "estimated": [
+        "P.108"
+      ]
+    },
+    {
+      "postcode": "43100",
+      "state": "Selangor",
+      "verified": [
+        "P.101"
+      ],
+      "estimated": [
+        "P.102"
+      ]
+    },
+    {
+      "postcode": "43200",
+      "state": "Selangor",
+      "verified": [
+        "P.101",
+        "P.102"
+      ],
+      "estimated": [
+        "P.102"
+      ]
+    },
+    {
+      "postcode": "43207",
+      "state": "Selangor",
+      "verified": [
+        "P.101",
+        "P.102"
+      ],
+      "estimated": [
+        "P.102"
+      ]
+    },
+    {
+      "postcode": "43500",
+      "state": "Selangor",
+      "verified": [
+        "P.101"
+      ],
+      "estimated": [
+        "P.102"
+      ]
+    },
+    {
+      "postcode": "43700",
+      "state": "Selangor",
+      "verified": [
+        "P.101"
+      ],
+      "estimated": [
+        "P.102"
+      ]
+    },
+    {
+      "postcode": "43701",
+      "state": "Unknown",
+      "verified": [
+        "P.101"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "44309",
+      "state": "Unknown",
+      "verified": [
+        "P.094"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "44330",
+      "state": "Unknown",
+      "verified": [
+        "P.094"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "45010",
+      "state": "Unknown",
+      "verified": [
+        "P.096"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "45400",
+      "state": "Selangor",
+      "verified": [
+        "P.093"
+      ],
+      "estimated": [
+        "P.095"
+      ]
+    },
+    {
+      "postcode": "48009",
+      "state": "Unknown",
+      "verified": [
+        "P.097"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "48020",
+      "state": "Selangor",
+      "verified": [
+        "P.097"
+      ],
+      "estimated": [
+        "P.107"
+      ]
+    },
+    {
+      "postcode": "48200",
+      "state": "Selangor",
+      "verified": [
+        "P.094"
+      ],
+      "estimated": [
+        "P.106"
+      ]
+    },
+    {
+      "postcode": "48250",
+      "state": "Unknown",
+      "verified": [
+        "P.094"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "48302",
+      "state": "Unknown",
+      "verified": [
+        "P.097"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "63300",
+      "state": "Unknown",
+      "verified": [
+        "P.113"
+      ],
+      "estimated": [
+        "P.103"
+      ]
+    },
+    {
+      "postcode": "68100",
+      "state": "Selangor",
+      "verified": [
+        "P.098"
+      ],
+      "estimated": [
+        "P.115"
+      ]
+    },
+    {
+      "postcode": "69000",
+      "state": "Pahang",
+      "verified": [
+        "P.089"
+      ],
+      "estimated": [
+        "P.094"
+      ]
+    },
+    {
+      "postcode": "71100",
+      "state": "Negeri Sembilan",
+      "verified": [
+        "P.131"
+      ],
+      "estimated": [
+        "P.132"
+      ]
+    },
+    {
+      "postcode": "71159",
+      "state": "Negeri Sembilan",
+      "verified": [
+        "P.132"
+      ],
+      "estimated": [
+        "P.131"
+      ]
+    },
+    {
+      "postcode": "71850",
+      "state": "Unknown",
+      "verified": [
+        "P.128"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "72120",
+      "state": "Negeri Sembilan",
+      "verified": [
+        "P.127"
+      ],
+      "estimated": [
+        "P.129"
+      ]
+    },
+    {
+      "postcode": "72127",
+      "state": "Negeri Sembilan",
+      "verified": [
+        "P.127"
+      ],
+      "estimated": [
+        "P.129"
+      ]
+    },
+    {
+      "postcode": "72129",
+      "state": "Negeri Sembilan",
+      "verified": [
+        "P.127"
+      ],
+      "estimated": [
+        "P.129"
+      ]
+    },
+    {
+      "postcode": "81010",
+      "state": "Unknown",
+      "verified": [
+        "P.163"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "81020",
+      "state": "Unknown",
+      "verified": [
+        "P.163"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "81030",
+      "state": "Unknown",
+      "verified": [
+        "P.163"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "81040",
+      "state": "Unknown",
+      "verified": [
+        "P.163"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "81050",
+      "state": "Unknown",
+      "verified": [
+        "P.163"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "81600",
+      "state": "Johor",
+      "verified": [
+        "P.157"
+      ],
+      "estimated": [
+        "P.158"
+      ]
+    },
+    {
+      "postcode": "81620",
+      "state": "Unknown",
+      "verified": [
+        "P.157"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "81650",
+      "state": "Unknown",
+      "verified": [
+        "P.157"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "81750",
+      "state": "Johor",
+      "verified": [
+        "P.159"
+      ],
+      "estimated": [
+        "P.158"
+      ]
+    },
+    {
+      "postcode": "81760",
+      "state": "Unknown",
+      "verified": [
+        "P.159"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "83100",
+      "state": "Johor",
+      "verified": [
+        "P.150"
+      ],
+      "estimated": [
+        "P.164"
+      ]
+    },
+    {
+      "postcode": "83200",
+      "state": "Johor",
+      "verified": [
+        "P.150"
+      ],
+      "estimated": [
+        "P.149"
+      ]
+    },
+    {
+      "postcode": "83610",
+      "state": "Unknown",
+      "verified": [
+        "P.147"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "84150",
+      "state": "Johor",
+      "verified": [
+        "P.146"
+      ],
+      "estimated": [
+        "P.147"
+      ]
+    },
+    {
+      "postcode": "84160",
+      "state": "Unknown",
+      "verified": [
+        "P.146"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "84300",
+      "state": "Johor",
+      "verified": [
+        "P.143",
+        "P.150"
+      ],
+      "estimated": [
+        "P.143"
+      ]
+    },
+    {
+      "postcode": "84400",
+      "state": "Johor",
+      "verified": [
+        "P.144"
+      ],
+      "estimated": [
+        "P.143"
+      ]
+    },
+    {
+      "postcode": "84409",
+      "state": "Unknown",
+      "verified": [
+        "P.144"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "84500",
+      "state": "Johor",
+      "verified": [
+        "P.143",
+        "P.156"
+      ],
+      "estimated": [
+        "P.147"
+      ]
+    },
+    {
+      "postcode": "84800",
+      "state": "Johor",
+      "verified": [
+        "P.144"
+      ],
+      "estimated": [
+        "P.143"
+      ]
+    },
+    {
+      "postcode": "85100",
+      "state": "Johor",
+      "verified": [
+        "P.140"
+      ],
+      "estimated": [
+        "P.141"
+      ]
+    },
+    {
+      "postcode": "85200",
+      "state": "Johor",
+      "verified": [
+        "P.140"
+      ],
+      "estimated": [
+        "P.148"
+      ]
+    },
+    {
+      "postcode": "85210",
+      "state": "Unknown",
+      "verified": [
+        "P.140"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "85300",
+      "state": "Johor",
+      "verified": [
+        "P.142"
+      ],
+      "estimated": [
+        "P.153"
+      ]
+    },
+    {
+      "postcode": "86400",
+      "state": "Johor",
+      "verified": [
+        "P.143",
+        "P.146",
+        "P.149"
+      ],
+      "estimated": [
+        "P.149"
+      ]
+    },
+    {
+      "postcode": "88856",
+      "state": "Sabah",
+      "verified": [
+        "P.172"
+      ],
+      "estimated": [
+        "P.171"
+      ]
+    },
+    {
+      "postcode": "88858",
+      "state": "Sabah",
+      "verified": [
+        "P.177",
+        "P.187"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "89260",
+      "state": "Sabah",
+      "verified": [
+        "P.170"
+      ],
+      "estimated": [
+        "P.179",
+        "P.187"
+      ]
+    },
+    {
+      "postcode": "94507",
+      "state": "Sarawak",
+      "verified": [
+        "P.193"
+      ],
+      "estimated": [
+        "P.192"
+      ]
+    },
+    {
+      "postcode": "94509",
+      "state": "Sarawak",
+      "verified": [
+        "P.193"
+      ],
+      "estimated": [
+        "P.192"
+      ]
+    },
+    {
+      "postcode": "94807",
+      "state": "Sarawak",
+      "verified": [
+        "P.200"
+      ],
+      "estimated": [
+        "P.202"
+      ]
+    },
+    {
+      "postcode": "94809",
+      "state": "Sarawak",
+      "verified": [
+        "P.200"
+      ],
+      "estimated": [
+        "P.202"
+      ]
+    },
+    {
+      "postcode": "94850",
+      "state": "Sarawak",
+      "verified": [
+        "P.201"
+      ],
+      "estimated": [
+        "P.202"
+      ]
+    },
+    {
+      "postcode": "94900",
+      "state": "Sarawak",
+      "verified": [
+        "P.201"
+      ],
+      "estimated": [
+        "P.202"
+      ]
+    },
+    {
+      "postcode": "94950",
+      "state": "Sarawak",
+      "verified": [
+        "P.201"
+      ],
+      "estimated": [
+        "P.204"
+      ]
+    },
+    {
+      "postcode": "95400",
+      "state": "Sarawak",
+      "verified": [
+        "P.205"
+      ],
+      "estimated": [
+        "P.201"
+      ]
+    },
+    {
+      "postcode": "95500",
+      "state": "Sarawak",
+      "verified": [
+        "P.204"
+      ],
+      "estimated": [
+        "P.201"
+      ]
+    },
+    {
+      "postcode": "95800",
+      "state": "Sarawak",
+      "verified": [
+        "P.203"
+      ],
+      "estimated": [
+        "P.200"
+      ]
+    },
+    {
+      "postcode": "96010",
+      "state": "Sarawak",
+      "verified": [
+        "P.211"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "96150",
+      "state": "Sarawak",
+      "verified": [
+        "P.206"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "96300",
+      "state": "Sarawak",
+      "verified": [
+        "P.213"
+      ],
+      "estimated": [
+        "P.212"
+      ]
+    },
+    {
+      "postcode": "96307",
+      "state": "Sarawak",
+      "verified": [
+        "P.213"
+      ],
+      "estimated": [
+        "P.214"
+      ]
+    },
+    {
+      "postcode": "96309",
+      "state": "Sarawak",
+      "verified": [
+        "P.213"
+      ],
+      "estimated": [
+        "P.214"
+      ]
+    },
+    {
+      "postcode": "96350",
+      "state": "Sarawak",
+      "verified": [
+        "P.213"
+      ],
+      "estimated": [
+        "P.206"
+      ]
+    },
+    {
+      "postcode": "96400",
+      "state": "Sarawak",
+      "verified": [
+        "P.213"
+      ],
+      "estimated": [
+        "P.214"
+      ]
+    },
+    {
+      "postcode": "96510",
+      "state": "Sarawak",
+      "verified": [
+        "P.206"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "96800",
+      "state": "Sarawak",
+      "verified": [
+        "P.215"
+      ],
+      "estimated": [
+        "P.216"
+      ]
+    },
+    {
+      "postcode": "96807",
+      "state": "Sarawak",
+      "verified": [
+        "P.215"
+      ],
+      "estimated": [
+        "P.216"
+      ]
+    },
+    {
+      "postcode": "96809",
+      "state": "Sarawak",
+      "verified": [
+        "P.215"
+      ],
+      "estimated": [
+        "P.216"
+      ]
+    },
+    {
+      "postcode": "96950",
+      "state": "Sarawak",
+      "verified": [
+        "P.216"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "96999",
+      "state": "Unknown",
+      "verified": [
+        "P.216"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "97100",
+      "state": "Sarawak",
+      "verified": [
+        "P.217"
+      ],
+      "estimated": [
+        "P.214"
+      ]
+    },
+    {
+      "postcode": "98200",
+      "state": "Sarawak",
+      "verified": [
+        "P.218"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "98700",
+      "state": "Sarawak",
+      "verified": [
+        "P.221"
+      ],
+      "estimated": []
+    },
+    {
+      "postcode": "98800",
+      "state": "Sarawak",
+      "verified": [
+        "P.222"
+      ],
+      "estimated": [
+        "P.220"
+      ]
+    },
+    {
+      "postcode": "98850",
+      "state": "Sarawak",
+      "verified": [
+        "P.222"
+      ],
+      "estimated": [
+        "P.220"
+      ]
+    }
+  ],
+  "candidate_sets_above_proposed_maximum": [
+    {
+      "postcode": "81920",
+      "estimated": [
+        "P.139",
+        "P.155",
+        "P.156",
+        "P.158"
+      ],
+      "size": 4
+    }
+  ],
+  "proposed_maximum_candidate_set": 2,
+  "by_state": {
+    "Johor": {
+      "validation_postcode_count": 23,
+      "verified_seat_count": 27,
+      "verified_seat_recall": 0.4444444444444444,
+      "exact_set_agreement": 0.391304347826087,
+      "exact_set_agreement_count": 9,
+      "unresolved_count": 0,
+      "unresolved_rate": 0.0,
+      "candidate_set_size": {
+        "mean": 1.0434782608695652,
+        "median": 1.0,
+        "p95": 1.0,
+        "maximum": 2,
+        "histogram": {
+          "1": 22,
+          "2": 1
+        }
+      }
+    },
+    "Kedah": {
+      "validation_postcode_count": 14,
+      "verified_seat_count": 15,
+      "verified_seat_recall": 0.3333333333333333,
+      "exact_set_agreement": 0.35714285714285715,
+      "exact_set_agreement_count": 5,
+      "unresolved_count": 0,
+      "unresolved_rate": 0.0,
+      "candidate_set_size": {
+        "mean": 1.0,
+        "median": 1.0,
+        "p95": 1.0,
+        "maximum": 1,
+        "histogram": {
+          "1": 14
+        }
+      }
+    },
+    "Kelantan": {
+      "validation_postcode_count": 4,
+      "verified_seat_count": 4,
+      "verified_seat_recall": 0.75,
+      "exact_set_agreement": 0.75,
+      "exact_set_agreement_count": 3,
+      "unresolved_count": 0,
+      "unresolved_rate": 0.0,
+      "candidate_set_size": {
+        "mean": 1.0,
+        "median": 1.0,
+        "p95": 1.0,
+        "maximum": 1,
+        "histogram": {
+          "1": 4
+        }
+      }
+    },
+    "Melaka": {
+      "validation_postcode_count": 1,
+      "verified_seat_count": 1,
+      "verified_seat_recall": 1.0,
+      "exact_set_agreement": 1.0,
+      "exact_set_agreement_count": 1,
+      "unresolved_count": 0,
+      "unresolved_rate": 0.0,
+      "candidate_set_size": {
+        "mean": 1.0,
+        "median": 1.0,
+        "p95": 1.0,
+        "maximum": 1,
+        "histogram": {
+          "1": 1
+        }
+      }
+    },
+    "Negeri Sembilan": {
+      "validation_postcode_count": 32,
+      "verified_seat_count": 32,
+      "verified_seat_recall": 0.84375,
+      "exact_set_agreement": 0.84375,
+      "exact_set_agreement_count": 27,
+      "unresolved_count": 0,
+      "unresolved_rate": 0.0,
+      "candidate_set_size": {
+        "mean": 1.0,
+        "median": 1.0,
+        "p95": 1.0,
+        "maximum": 1,
+        "histogram": {
+          "1": 32
+        }
+      }
+    },
+    "Pahang": {
+      "validation_postcode_count": 21,
+      "verified_seat_count": 21,
+      "verified_seat_recall": 0.7619047619047619,
+      "exact_set_agreement": 0.7619047619047619,
+      "exact_set_agreement_count": 16,
+      "unresolved_count": 2,
+      "unresolved_rate": 0.09523809523809523,
+      "candidate_set_size": {
+        "mean": 1.0526315789473684,
+        "median": 1.0,
+        "p95": 1.0999999999999979,
+        "maximum": 2,
+        "histogram": {
+          "1": 18,
+          "2": 1
+        }
+      }
+    },
+    "Perak": {
+      "validation_postcode_count": 42,
+      "verified_seat_count": 42,
+      "verified_seat_recall": 0.4523809523809524,
+      "exact_set_agreement": 0.4523809523809524,
+      "exact_set_agreement_count": 19,
+      "unresolved_count": 2,
+      "unresolved_rate": 0.047619047619047616,
+      "candidate_set_size": {
+        "mean": 1.025,
+        "median": 1.0,
+        "p95": 1.0,
+        "maximum": 2,
+        "histogram": {
+          "1": 39,
+          "2": 1
+        }
+      }
+    },
+    "Perlis": {
+      "validation_postcode_count": 1,
+      "verified_seat_count": 1,
+      "verified_seat_recall": 1.0,
+      "exact_set_agreement": 1.0,
+      "exact_set_agreement_count": 1,
+      "unresolved_count": 0,
+      "unresolved_rate": 0.0,
+      "candidate_set_size": {
+        "mean": 1.0,
+        "median": 1.0,
+        "p95": 1.0,
+        "maximum": 1,
+        "histogram": {
+          "1": 1
+        }
+      }
+    },
+    "Pulau Pinang": {
+      "validation_postcode_count": 26,
+      "verified_seat_count": 29,
+      "verified_seat_recall": 0.3793103448275862,
+      "exact_set_agreement": 0.38461538461538464,
+      "exact_set_agreement_count": 10,
+      "unresolved_count": 2,
+      "unresolved_rate": 0.07692307692307693,
+      "candidate_set_size": {
+        "mean": 1.0833333333333333,
+        "median": 1.0,
+        "p95": 1.8499999999999979,
+        "maximum": 2,
+        "histogram": {
+          "1": 22,
+          "2": 2
+        }
+      }
+    },
+    "Sabah": {
+      "validation_postcode_count": 29,
+      "verified_seat_count": 30,
+      "verified_seat_recall": 0.8666666666666667,
+      "exact_set_agreement": 0.896551724137931,
+      "exact_set_agreement_count": 26,
+      "unresolved_count": 1,
+      "unresolved_rate": 0.034482758620689655,
+      "candidate_set_size": {
+        "mean": 1.0357142857142858,
+        "median": 1.0,
+        "p95": 1.0,
+        "maximum": 2,
+        "histogram": {
+          "1": 27,
+          "2": 1
+        }
+      }
+    },
+    "Sarawak": {
+      "validation_postcode_count": 70,
+      "verified_seat_count": 70,
+      "verified_seat_recall": 0.6142857142857143,
+      "exact_set_agreement": 0.6142857142857143,
+      "exact_set_agreement_count": 43,
+      "unresolved_count": 6,
+      "unresolved_rate": 0.08571428571428572,
+      "candidate_set_size": {
+        "mean": 1.0,
+        "median": 1.0,
+        "p95": 1.0,
+        "maximum": 1,
+        "histogram": {
+          "1": 64
+        }
+      }
+    },
+    "Selangor": {
+      "validation_postcode_count": 29,
+      "verified_seat_count": 31,
+      "verified_seat_recall": 0.6774193548387096,
+      "exact_set_agreement": 0.5862068965517241,
+      "exact_set_agreement_count": 17,
+      "unresolved_count": 0,
+      "unresolved_rate": 0.0,
+      "candidate_set_size": {
+        "mean": 1.0689655172413792,
+        "median": 1.0,
+        "p95": 1.5999999999999979,
+        "maximum": 2,
+        "histogram": {
+          "1": 27,
+          "2": 2
+        }
+      }
+    },
+    "Terengganu": {
+      "validation_postcode_count": 7,
+      "verified_seat_count": 7,
+      "verified_seat_recall": 0.7142857142857143,
+      "exact_set_agreement": 0.7142857142857143,
+      "exact_set_agreement_count": 5,
+      "unresolved_count": 0,
+      "unresolved_rate": 0.0,
+      "candidate_set_size": {
+        "mean": 1.0,
+        "median": 1.0,
+        "p95": 1.0,
+        "maximum": 1,
+        "histogram": {
+          "1": 7
+        }
+      }
+    },
+    "Unknown": {
+      "validation_postcode_count": 40,
+      "verified_seat_count": 42,
+      "verified_seat_recall": 0.23809523809523808,
+      "exact_set_agreement": 0.25,
+      "exact_set_agreement_count": 10,
+      "unresolved_count": 27,
+      "unresolved_rate": 0.675,
+      "candidate_set_size": {
+        "mean": 1.0,
+        "median": 1.0,
+        "p95": 1.0,
+        "maximum": 1,
+        "histogram": {
+          "1": 13
+        }
+      }
+    }
+  },
+  "postcode_89607": [
+    "P.176"
+  ],
+  "_comment": [
+    "Quality audit against all existing verified postcode-to-Seat mappings.",
+    "Review this report before exposing estimates in the public lookup."
+  ],
+  "estimated_postcode_count": 2740,
+  "geonames_postcode_count": 2757,
+  "geonames_point_count": 2812
+}
