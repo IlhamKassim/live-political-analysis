@@ -1214,7 +1214,8 @@ def _observatory_header(language: Language) -> str:
     home_label = t(language, "PolitikKu home", "Laman utama PolitikKu")
     analyst_link = (
         '<a href="/analyst/">Analyst <span aria-hidden="true">↗</span></a>'
-        if language is Language.EN else ""
+        if language is Language.EN
+        else ""
     )
     return f"""<header class="nav wrap">
 <a class="brand" href="{html.escape(home)}" aria-label="{html.escape(home_label)}"><svg viewBox="0 0 32 32" width="28" aria-hidden="true"><path d="M3 28V4h8v24M15 28V4h7l7 8-7 8h-7" fill="none" stroke="currentColor" stroke-width="3"/></svg>PolitikKu<span class="brand-small">THE CIVIC OBSERVATORY</span></a>
