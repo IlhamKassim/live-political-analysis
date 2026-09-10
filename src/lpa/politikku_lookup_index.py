@@ -184,10 +184,7 @@ def build_and_write_client_index(
     mp_names = {code: profile.name for code, profile in load_mp_profiles().items()}
     postcode_catalogue = load_postcode_catalogue()
 
-    seat_names = {
-        seat.code: (seat.name.lower(), seat.state.lower())
-        for seat in baseline
-    }
+    seat_names = {seat.code: (seat.name.lower(), seat.state.lower()) for seat in baseline}
     raw_estimates = load_estimates()
     enhanced_estimates: dict[str, list[str]] = {}
     for postcode, locs in postcode_catalogue.items():
