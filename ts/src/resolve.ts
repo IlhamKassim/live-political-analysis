@@ -27,7 +27,13 @@ export function resolveQuery(
     const codes = index.postcodes[query];
     if (codes) return resolveCodes(codes, index);
     const localities = index.postcodeCatalogue[query];
-    if (localities) return { kind: "unresolved", postcode: query, localities };
+    if (localities) {
+      const candidateCodes = index.postcodeEstimates?.[query] ?? [];
+      const candidates = candidateCodes
+        .map((code) => index.seats[code])
+        .filter((seat): seat is LookupSeat => Boolean(seat));
+      return { kind: "unresolved", postcode: query, localities, candidates };
+    }
     return { kind: "notFound", reason: "invalid-postcode" };
   }
   if (query.length === 0) {

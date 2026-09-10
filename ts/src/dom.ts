@@ -43,6 +43,10 @@ function mpProfileUrl(code: string): string {
   return `/mp/${encodeURIComponent(code)}.html`;
 }
 
+function seatUrl(code: string): string {
+  return `/app/#parlimen/parti/${encodeURIComponent(code)}`;
+}
+
 function findRefs(container: HTMLElement): Refs | null {
   const form = container.querySelector<HTMLFormElement>("[data-pk-lookup-form]");
   const input = container.querySelector<HTMLInputElement>("[data-pk-lookup-input]");
@@ -182,7 +186,12 @@ function render(refs: Refs, model: LookupModel, onSearchByName: () => void): voi
     case "unresolved":
       if (model.result?.kind === "unresolved") {
         refs.results.append(
-          unresolvedView(model.result.postcode, model.result.localities, copy),
+          unresolvedView(
+            model.result.postcode,
+            model.result.localities,
+            model.result.candidates,
+            copy,
+          ),
         );
       }
       return;
@@ -240,11 +249,7 @@ function ambiguousView(candidates: readonly LookupSeat[], copy: LookupCopy): HTM
 function candidateRow(seat: LookupSeat, copy: LookupCopy): HTMLElement {
   const row = document.createElement("a");
   row.className = "pk-lookup-candidate";
-  row.href = seat.hasProfile ? mpProfileUrl(seat.code) : "#";
-  if (!seat.hasProfile) {
-    row.setAttribute("aria-disabled", "true");
-    row.addEventListener("click", (event) => event.preventDefault());
-  }
+  row.href = seatUrl(seat.code);
   const code = document.createElement("span");
   code.className = "pk-lookup-candidate-code";
   code.textContent = seat.code;
@@ -253,7 +258,7 @@ function candidateRow(seat: LookupSeat, copy: LookupCopy): HTMLElement {
   name.textContent = `${seat.name}, ${seat.state}`;
   const mp = document.createElement("span");
   mp.className = "pk-lookup-candidate-mp";
-  mp.textContent = seat.hasProfile && seat.mpName ? seat.mpName : copy.noProfileYet;
+  mp.textContent = seat.mpName ? seat.mpName : copy.noProfileYet;
   row.append(code, name, mp);
   return row;
 }
@@ -303,6 +308,7 @@ const ROUTES_BY_REASON: Record<NoMatchReason, readonly RouteId[]> = {
 function unresolvedView(
   postcode: string,
   localities: readonly PostcodeLocality[],
+  candidates: readonly LookupSeat[],
   copy: LookupCopy,
 ): HTMLElement {
   const el = document.createElement("div");
@@ -310,10 +316,31 @@ function unresolvedView(
   const tag = document.createElement("span");
   tag.className = "pk-lookup-candidate-code pk-lookup-unresolved-tag";
   tag.textContent = copy.unresolvedTag;
-  const message = document.createElement("p");
-  message.className = "pk-lookup-resolved-no-profile pk-lookup-unresolved-reason";
-  message.textContent = copy.unresolvedPostcode(postcode, localities);
-  el.append(tag, message);
+  el.append(tag);
+
+  if (candidates.length > 0) {
+    const heading = document.createElement("p");
+    heading.className = "pk-lookup-ambiguous-heading pk-lookup-unresolved-heading";
+    heading.textContent = copy.unresolvedCandidatesHeading(postcode, localities);
+    el.append(heading);
+
+    const list = document.createElement("div");
+    list.className = "pk-lookup-candidate-list";
+    for (const seat of candidates) {
+      list.append(candidateRow(seat, copy));
+    }
+    el.append(list);
+
+    const footnote = document.createElement("p");
+    footnote.className = "pk-lookup-footnote";
+    footnote.textContent = copy.boundariesFootnote;
+    el.append(footnote);
+  } else {
+    const message = document.createElement("p");
+    message.className = "pk-lookup-resolved-no-profile pk-lookup-unresolved-reason";
+    message.textContent = copy.unresolvedPostcode(postcode, localities);
+    el.append(message);
+  }
   return el;
 }
 
@@ -378,17 +405,8 @@ function notFoundView(
 function resolvedView(seat: LookupSeat, copy: LookupCopy): HTMLElement {
   const el = document.createElement("div");
   el.className = "pk-lookup-resolved";
-  if (seat.hasProfile) {
-    const link = document.createElement("a");
-    link.className = "pk-lookup-resolved-link";
-    link.href = mpProfileUrl(seat.code);
-    link.textContent = copy.seeYourMp(seat.name);
-    el.append(link);
-  } else {
-    const p = document.createElement("p");
-    p.className = "pk-lookup-resolved-no-profile";
-    p.textContent = copy.resolvedNoProfile(seat.name, seat.state);
-    el.append(p);
-  }
+  const row = candidateRow(seat, copy);
+  row.classList.add("pk-lookup-resolved-link");
+  el.append(row);
   return el;
 }

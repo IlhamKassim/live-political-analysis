@@ -58,6 +58,10 @@ export interface LookupCopy {
   /** `${seat.name}, ${seat.state} — MP profile ... isn't built yet.` */
   readonly resolvedNoProfile: (seatName: string, state: string) => string;
   readonly unresolvedPostcode: (postcode: string, localities: readonly PostcodeLocality[]) => string;
+  readonly unresolvedCandidatesHeading: (
+    postcode: string,
+    localities: readonly PostcodeLocality[],
+  ) => string;
 }
 
 const EN: LookupCopy = {
@@ -89,6 +93,8 @@ const EN: LookupCopy = {
     `${seatName}, ${state} — MP profile for this Seat isn't built yet.`,
   unresolvedPostcode: (postcode, localities) =>
     `${postcode} is a valid postcode for ${localities.map(({ city, state }) => `${city}, ${state}`).join(" / ")}, but it does not have a verified Seat mapping yet.`,
+  unresolvedCandidatesHeading: (postcode, localities) =>
+    `${postcode} is in ${localities.map(({ city, state }) => `${city}, ${state}`).join(" / ")}. Possible parliamentary Seats in this area:`,
 };
 
 const MS: LookupCopy = {
@@ -120,6 +126,8 @@ const MS: LookupCopy = {
     `${seatName}, ${state} — profil Ahli Parlimen bagi Kerusi ini belum dibina.`,
   unresolvedPostcode: (postcode, localities) =>
     `${postcode} ialah poskod sah untuk ${localities.map(({ city, state }) => `${city}, ${state}`).join(" / ")}, tetapi belum mempunyai padanan Kerusi yang disahkan.`,
+  unresolvedCandidatesHeading: (postcode, localities) =>
+    `${postcode} terletak di ${localities.map(({ city, state }) => `${city}, ${state}`).join(" / ")}. Kerusi Parlimen yang berkemungkinan di kawasan ini:`,
 };
 
 const COPY: Record<Language, LookupCopy> = { en: EN, ms: MS };

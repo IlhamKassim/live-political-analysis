@@ -93,21 +93,22 @@ describe("mountLookup", () => {
     );
   });
 
-  it("links a resolved Seat with a profile straight to its MP profile page", async () => {
+  it("links a resolved Seat straight to its Seat map view", async () => {
     const container = buildContainer();
     mountLookup(container);
     await submit(container, "43000");
     const link = container.querySelector<HTMLAnchorElement>(".pk-lookup-resolved-link");
-    expect(link?.getAttribute("href")).toBe("/mp/P.102.html");
+    expect(link?.getAttribute("href")).toBe("/app/#parlimen/parti/P.102");
   });
 
-  it("degrades a resolved Seat with no profile to an honest message, not a link", async () => {
+  it("links a resolved Seat with no profile to its Seat map view with fallback text", async () => {
     const container = buildContainer();
     mountLookup(container);
     await submit(container, "43100");
-    expect(container.querySelector(".pk-lookup-resolved-link")).toBeNull();
-    expect(container.querySelector(".pk-lookup-resolved-no-profile")?.textContent).toBe(
-      "Hulu Langat, Selangor — MP profile for this Seat isn't built yet.",
+    const link = container.querySelector<HTMLAnchorElement>(".pk-lookup-resolved-link");
+    expect(link?.getAttribute("href")).toBe("/app/#parlimen/parti/P.101");
+    expect(container.querySelector(".pk-lookup-candidate-mp")?.textContent).toBe(
+      "MP profile not yet available",
     );
   });
 
@@ -215,9 +216,28 @@ describe("mountLookup", () => {
     expect(container.querySelector(".pk-lookup-unresolved-tag")?.textContent).toBe("POSKOD SAH");
 
     await submit(container, "43100");
-    expect(container.querySelector(".pk-lookup-resolved-no-profile")?.textContent).toBe(
-      "Hulu Langat, Selangor — profil Ahli Parlimen bagi Kerusi ini belum dibina.",
+    expect(container.querySelector(".pk-lookup-candidate-mp")?.textContent).toBe(
+      "Profil Ahli Parlimen belum tersedia",
     );
+  });
+
+  it("renders candidate Seats and MPs for an unmapped postcode when estimates exist", async () => {
+    const withEstimates = { ...INDEX, postcodeEstimates: { "50000": ["P.102"] } };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(withEstimates) }),
+    );
+    const container = buildContainer();
+    mountLookup(container);
+    await submit(container, "50000");
+    expect(container.querySelector(".pk-lookup-unresolved-tag")?.textContent).toBe("VALID POSTCODE");
+    expect(container.querySelector(".pk-lookup-unresolved-heading")?.textContent).toContain(
+      "50000 is in Kuala Lumpur, W.P. Kuala Lumpur. Possible parliamentary Seats in this area:",
+    );
+    const candidates = container.querySelectorAll(".pk-lookup-candidate");
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0].getAttribute("href")).toBe("/app/#parlimen/parti/P.102");
+    expect(candidates[0].querySelector(".pk-lookup-candidate-mp")?.textContent).toBe("Syahredzan Johan");
   });
 
   it("draws different copy per language for the same state", async () => {

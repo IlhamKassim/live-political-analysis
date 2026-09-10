@@ -64,6 +64,22 @@ def test_postcodes_are_carried_through_verbatim():
     assert index["postcodeCatalogue"] == {}
 
 
+def test_postcode_catalogue_serialisation_compacts_localities():
+    catalogue = {"43000": [PostcodeLocality(state="Selangor", city="Kajang")]}
+    index = build_client_index([P101, P102], POSTCODE_INDEX, {}, postcode_catalogue=catalogue)
+    assert index["postcodeCatalogue"] == {"43000": [{"city": "Kajang", "state": "Selangor"}]}
+
+
+def test_postcode_estimates_are_included_when_provided():
+    index = build_client_index(
+        [P101, P102],
+        POSTCODE_INDEX,
+        {},
+        postcode_estimates={"50000": ["P.102"]},
+    )
+    assert index["postcodeEstimates"] == {"50000": ["P.102"]}
+
+
 def test_official_postcode_catalogue_is_carried_separately_from_seat_mappings():
     catalogue = {"50000": (PostcodeLocality(city="Kuala Lumpur", state="W.P. Kuala Lumpur"),)}
     index = build_client_index([P101, P102], POSTCODE_INDEX, {}, catalogue)

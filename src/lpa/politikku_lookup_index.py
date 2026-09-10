@@ -87,6 +87,7 @@ def build_client_index(
     postcode_index: Mapping[str, Sequence[str]],
     mp_names: Mapping[str, str],
     postcode_catalogue: Mapping[str, Sequence[PostcodeLocality]] | None = None,
+    postcode_estimates: Mapping[str, Sequence[str]] | None = None,
 ) -> dict[str, object]:
     """Everything `ts/src/index-data.ts` needs, as one small JSON-able dict.
 
@@ -115,7 +116,7 @@ def build_client_index(
         )
         for code, seat in sorted(by_code.items())
     }
-    return {
+    res: dict[str, object] = {
         "seats": {
             code: {
                 "code": seat.code,
@@ -129,6 +130,11 @@ def build_client_index(
         "postcodes": {postcode: list(codes) for postcode, codes in postcode_index.items()},
         "postcodeCatalogue": catalogue_for_client(postcode_catalogue or {}),
     }
+    if postcode_estimates is not None:
+        res["postcodeEstimates"] = {
+            postcode: list(codes) for postcode, codes in postcode_estimates.items()
+        }
+    return res
 
 
 def build_client_index_json(
@@ -136,11 +142,14 @@ def build_client_index_json(
     postcode_index: Mapping[str, Sequence[str]],
     mp_names: Mapping[str, str],
     postcode_catalogue: Mapping[str, Sequence[PostcodeLocality]] | None = None,
+    postcode_estimates: Mapping[str, Sequence[str]] | None = None,
 ) -> str:
     """`build_client_index`'s result, serialised compactly (this ships to
     every visitor's browser on every page load, per ADR 0008's size math)."""
     return json.dumps(
-        build_client_index(baseline, postcode_index, mp_names, postcode_catalogue),
+        build_client_index(
+            baseline, postcode_index, mp_names, postcode_catalogue, postcode_estimates
+        ),
         separators=(",", ":"),
     )
 
@@ -162,9 +171,11 @@ def build_and_write_client_index(
     """
     from lpa.config import load_mp_profiles, load_postcode_seat_index
     from lpa.postcode_catalogue import load_postcode_catalogue, write_coverage_report
+    from lpa.postcode_seat_estimates import load_estimates
     from lpa.storage import load_seat_baselines
 
     baseline = load_seat_baselines(engine)
+    by_code = {seat.code: seat for seat in baseline}
     raw_postcode_index = load_postcode_seat_index()
     postcode_index = {
         postcode: tuple(m.seat_code for m in matches)
@@ -173,7 +184,26 @@ def build_and_write_client_index(
     mp_names = {code: profile.name for code, profile in load_mp_profiles().items()}
     postcode_catalogue = load_postcode_catalogue()
 
-    index_data = build_client_index(baseline, postcode_index, mp_names, postcode_catalogue)
+    seat_by_name = {seat.name.lower(): seat.code for seat in baseline}
+    raw_estimates = load_estimates()
+    enhanced_estimates: dict[str, list[str]] = {}
+    for postcode, locs in postcode_catalogue.items():
+        cands = set(raw_estimates.get(postcode, ()))
+        for loc in locs:
+            city_norm = loc.city.lower()
+            if city_norm in seat_by_name:
+                cands.add(seat_by_name[city_norm])
+        valid_cands = sorted(c for c in cands if c in by_code)
+        if valid_cands:
+            enhanced_estimates[postcode] = valid_cands
+
+    index_data = build_client_index(
+        baseline,
+        postcode_index,
+        mp_names,
+        postcode_catalogue,
+        postcode_estimates=enhanced_estimates,
+    )
     payload = json.dumps(index_data, separators=(",", ":"))
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)

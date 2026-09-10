@@ -46,6 +46,17 @@ describe("resolveQuery", () => {
       kind: "unresolved",
       postcode: "50000",
       localities: [{ city: "Kuala Lumpur", state: "W.P. Kuala Lumpur" }],
+      candidates: [],
+    });
+  });
+
+  it("resolves candidate Seats for an unmapped postcode when estimates are available", () => {
+    const withEstimates = { ...INDEX, postcodeEstimates: { "50000": ["P.102"] } };
+    expect(resolveQuery("50000", withEstimates)).toEqual({
+      kind: "unresolved",
+      postcode: "50000",
+      localities: [{ city: "Kuala Lumpur", state: "W.P. Kuala Lumpur" }],
+      candidates: [INDEX.seats["P.102"]],
     });
   });
 

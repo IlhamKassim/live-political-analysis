@@ -31,6 +31,7 @@ export interface ClientLookupIndex {
   readonly seats: Readonly<Record<string, LookupSeat>>;
   readonly postcodes: Readonly<Record<string, readonly string[]>>;
   readonly postcodeCatalogue: Readonly<Record<string, readonly PostcodeLocality[]>>;
+  readonly postcodeEstimates?: Readonly<Record<string, readonly string[]>>;
 }
 
 export interface PostcodeLocality {
@@ -59,5 +60,6 @@ export type ResolutionResult =
       readonly kind: "unresolved";
       readonly postcode: string;
       readonly localities: readonly PostcodeLocality[];
+      readonly candidates: readonly LookupSeat[];
     }
   | { readonly kind: "notFound"; readonly reason: NoMatchReason };
