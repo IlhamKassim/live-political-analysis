@@ -184,15 +184,22 @@ def build_and_write_client_index(
     mp_names = {code: profile.name for code, profile in load_mp_profiles().items()}
     postcode_catalogue = load_postcode_catalogue()
 
-    seat_by_name = {seat.name.lower(): seat.code for seat in baseline}
+    seat_names = {
+        seat.code: (seat.name.lower(), seat.state.lower())
+        for seat in baseline
+    }
     raw_estimates = load_estimates()
     enhanced_estimates: dict[str, list[str]] = {}
     for postcode, locs in postcode_catalogue.items():
         cands = set(raw_estimates.get(postcode, ()))
         for loc in locs:
             city_norm = loc.city.lower()
-            if city_norm in seat_by_name:
-                cands.add(seat_by_name[city_norm])
+            state_norm = loc.state.lower()
+            for code, (s_name, s_state) in seat_names.items():
+                if (state_norm in s_state or s_state in state_norm) and (
+                    city_norm in s_name or s_name in city_norm
+                ):
+                    cands.add(code)
         valid_cands = sorted(c for c in cands if c in by_code)
         if valid_cands:
             enhanced_estimates[postcode] = valid_cands
