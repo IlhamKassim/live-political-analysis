@@ -177,6 +177,14 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m lpa.politikku_learn
 
+      # No "Render the PolitikKu Analyst page" step here on purpose: unlike
+      # Learn (which gained a live dependency — today's date and election
+      # status via politikku_shell.py — in 3615e59e and so must rebuild
+      # daily), Analyst has no live data dependency. It's built once via
+      # `python -m lpa.politikku_analyst` and its static output is committed
+      # directly under public/analyst/, so there's nothing for this pipeline
+      # to regenerate.
+
       - name: Render the PolitikKu lookup index
         # Writes public/data/lookup-index.json, the client-side data the
         # ts/ bundle built above fetches at runtime in the browser — not
