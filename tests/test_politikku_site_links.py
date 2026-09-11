@@ -330,8 +330,12 @@ def test_the_language_toggle_on_every_page_reaches_the_other_language(rendered_s
             continue
         page = page_path.read_text(encoding="utf-8")
         toggles = re.findall(r'href="([^"]+)" (?:aria-current="page" )?data-pk-set-lang=', page)
-        if page_path == rendered_site / "analyst" / "index.html":
-            assert toggles == [], "Analyst deliberately has no BM page"
+        if page_path.parent.name == "analyst":
+            # Its own header, like the landing page: one EN/BM pair, to the
+            # two Analyst pages.
+            assert set(toggles) == {"/analyst/", "/ms/analyst/"}, page_path
+            for link in toggles:
+                assert _resolve(rendered_site, link).is_file(), (page_path, link)
             continue
         bare = 'class="pk-bare"' in page
         assert len(toggles) == (2 if bare else 4), page_path

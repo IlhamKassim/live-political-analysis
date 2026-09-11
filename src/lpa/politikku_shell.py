@@ -156,7 +156,7 @@ NAV_LINKS: tuple[NavLink, ...] = (
             '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>'
         ),
     ),
-    NavLink("Analyst", "Analyst", "analyst/", "analyst", en_only=True),
+    NavLink("Analyst", "Penganalisis", "analyst/", "analyst"),
     NavLink(
         "Methodology",
         "Metodologi",

@@ -9,7 +9,7 @@ import { encodeHash, decodeHash, pickInitialLang, findSeatForLocation, nearestSe
   getRepPhotoUrl, routeSafeAssetUrl, formatSocialShareText, buildEmbedCode,
   isModelledKind, trustTagText, trustTagHTML,
   calculateHemicycleSlots, orderProjectionSeatsForHemicycle, buildHemicycleSVG } from "./lib.js?v=146";
-import { I18N } from "./i18n.js?v=153";
+import { I18N } from "./i18n.js?v=154";
 
 // Route relative data/ fetches to /app/. Content pages are published at the site root.
 (() => {
@@ -185,6 +185,7 @@ function applyStatic() {
   document.querySelectorAll("[data-i18n-title]").forEach((el) => { el.setAttribute("title", t(el.dataset.i18nTitle)); });
   document.querySelectorAll("[data-i18n-aria]").forEach((el) => { el.setAttribute("aria-label", t(el.dataset.i18nAria)); });
   document.querySelectorAll("[data-i18n-content]").forEach((el) => { el.setAttribute("content", t(el.dataset.i18nContent)); });
+  document.querySelectorAll("[data-i18n-href]").forEach((el) => { el.setAttribute("href", t(el.dataset.i18nHref)); });
   // data-i18n-after → CSS ::after pill (e.g. the "Soon/Segera" badge on the gated Skor tab).
   // textContent assignment above can't clobber it: the badge is a pseudo-element, not a child.
   document.querySelectorAll("[data-i18n-after]").forEach((el) => { el.setAttribute("data-after", t(el.dataset.i18nAfter)); });
