@@ -6,6 +6,12 @@
 @media(max-width:760px){.city-plane{width:155%;right:-15%}}
 
 /* Production landing adapter: the platform's typed lookup mounts here. */
+/* ↗ as plain text falls back to the emoji font on iOS/Android when Plex has
+   no glyph for it, drawing a colour icon instead of a line. This SVG is
+   drawn with currentColor instead, so it always matches the surrounding
+   text and never depends on font fallback. Sized off font-size (not a
+   fixed px value) so it scales with each caller's own text. */
+.ico-arrow{width:.85em;height:.85em;flex:none;vertical-align:-.08em}
 .obs-lang{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;margin-left:auto}
 .obs-lang a{display:inline-flex;align-items:center;justify-content:center;min-width:40px;min-height:40px;padding:6px 10px;font-family:Plex,sans-serif;font-size:10px;letter-spacing:.08em;color:#acbcb7}
 .obs-lang a:hover,.obs-lang a.on{background:var(--accent);color:#172324}
@@ -13,7 +19,7 @@
 .obs-input-row{display:flex;align-items:end;border-bottom:1px solid currentColor;padding:4px 0 12px;gap:14px}
 .obs-input-row input{width:100%;min-width:0;border:0;background:transparent;color:inherit;outline:0;padding:10px 0;font-size:clamp(23px,3vw,38px)}
 .obs-input-row input::placeholder{color:inherit;opacity:.65}
-.obs-submit{border:0;border-radius:50%;background:var(--accent);color:var(--paper);width:56px;height:56px;flex:0 0 56px;font-size:25px;transition:transform .2s}
+.obs-submit{display:flex;align-items:center;justify-content:center;border:0;border-radius:50%;background:var(--accent);color:var(--paper);width:56px;height:56px;flex:0 0 56px;font-size:25px;transition:transform .2s}
 .obs-submit:hover{transform:rotate(-30deg)}
 .obs-submit:focus-visible{outline:3px solid var(--paper);outline-offset:4px}
 .obs-lookup-label{display:block;font-size:12px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px}
