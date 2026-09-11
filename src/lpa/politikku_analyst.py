@@ -7,6 +7,7 @@ public/analyst tree is committed for deployment; it needs no daily render.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import re
 import shutil
 from pathlib import Path
@@ -139,6 +140,28 @@ def _adapt(source: str, language: Language, asset_root: str) -> str:
     )
 
 
+def _fingerprint(page: str, asset_root: str, target: Path) -> str:
+    """Tag each stylesheet, script and icon link with a hash of the file it
+    names (`style.css?v=3f9a2c1d`), so a deploy that changes one can't be
+    paired with a copy a browser cached from before it. GitHub Pages lets
+    browsers reuse files for ten minutes without asking.
+
+    Fonts are left bare on purpose: the page preloads a font by the same URL
+    its stylesheet's `url()` asks for, and a tagged preload would no longer
+    match it, fetching the font twice."""
+
+    def tag(match: re.Match[str]) -> str:
+        path = target / match.group(3)
+        if not path.is_file():
+            return match.group(0)
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()[:10]
+        return f'{match.group(1)}{match.group(2)}{match.group(3)}?v={digest}"'
+
+    return re.sub(
+        rf'((?:src|href)=")({re.escape(asset_root)})([\w./-]+\.(?:css|js|svg))"', tag, page
+    )
+
+
 def build_and_write_analyst_page(output_dir: Path | str = "public") -> Path:
     """Prepare both static pages without reading Storage or rewriting the design.
     Returns the EN page; the BM page is written to `ms/analyst/index.html`."""
@@ -147,16 +170,23 @@ def build_and_write_analyst_page(output_dir: Path | str = "public") -> Path:
     if not ms_source.is_file():
         raise ValueError(f"Missing Analyst page: {ms_source}")
     target = _copy_analyst_assets(output_dir)
-    index = target / "index.html"
-    index.write_text(_adapt(index.read_text(encoding="utf-8"), Language.EN, ""), encoding="utf-8")
-    ms_index = output_dir / "ms" / PAGE_PATH / "index.html"
-    ms_index.parent.mkdir(parents=True, exist_ok=True)
-    ms_index.write_text(
-        _adapt(ms_source.read_text(encoding="utf-8"), Language.MS, "../../analyst/"),
-        encoding="utf-8",
-    )
+    # Written before the pages, so their links can be fingerprinted.
     (target / "site-nav.css").write_text(_HEADER_CSS + "\n", encoding="utf-8")
     (target / "site-nav.js").write_text(_HEADER_JS + "\n", encoding="utf-8")
+    index = target / "index.html"
+    index.write_text(
+        _fingerprint(_adapt(index.read_text(encoding="utf-8"), Language.EN, ""), "", target),
+        encoding="utf-8",
+    )
+    ms_index = output_dir / "ms" / PAGE_PATH / "index.html"
+    ms_index.parent.mkdir(parents=True, exist_ok=True)
+    ms_root = "../../analyst/"
+    ms_index.write_text(
+        _fingerprint(
+            _adapt(ms_source.read_text(encoding="utf-8"), Language.MS, ms_root), ms_root, target
+        ),
+        encoding="utf-8",
+    )
     return index
 
 

@@ -1,5 +1,6 @@
 """Preserve the approved static design while adapting navigation."""
 
+import hashlib
 import re
 from pathlib import Path
 
@@ -85,7 +86,10 @@ def test_resources_are_self_hosted_and_exist(tmp_path):
         (tmp_path / "ms" / "analyst" / "index.html", "../../analyst/"),
     ):
         html = index.read_text()
-        resources = re.findall(r'<(?:script|link)\b[^>]*(?:src|href)="([^"]+)"', html)
+        resources = [
+            r.split("?", 1)[0]
+            for r in re.findall(r'<(?:script|link)\b[^>]*(?:src|href)="([^"]+)"', html)
+        ]
         assert f"{prefix}assets/gsap.min.js" in resources
         assert f"{prefix}assets/ScrollTrigger.min.js" in resources
         for resource in resources:
@@ -94,6 +98,27 @@ def test_resources_are_self_hosted_and_exist(tmp_path):
     for css in page.parent.rglob("*.css"):
         for resource in re.findall(r"url\(([^)]+)\)", css.read_text()):
             assert (css.parent / resource.strip("\"'")).is_file()
+
+
+def test_every_stylesheet_and_script_link_carries_its_files_fingerprint(tmp_path):
+    """A browser may reuse a cached file for ten minutes after a deploy. Each
+    link names its file's content hash, so new HTML can't pick up old CSS."""
+    page = analyst.build_and_write_analyst_page(tmp_path)
+    for index in (page, tmp_path / "ms" / "analyst" / "index.html"):
+        html = index.read_text()
+        links = re.findall(r'<(?:script|link)\b[^>]*(?:src|href)="([^"]+)"', html)
+        checked = 0
+        for link in links:
+            path, _, query = link.partition("?")
+            if path.endswith(".woff2"):
+                # left bare so the preload matches the stylesheet's url()
+                assert not query, link
+                continue
+            digest = hashlib.sha256((index.parent / path).read_bytes()).hexdigest()[:10]
+            assert query == f"v={digest}", (index, link)
+            checked += 1
+        # style.css, site-nav.css, mark.svg, app.js, gsap, ScrollTrigger, site-nav.js
+        assert checked == 7, (index, links)
 
 
 def test_missing_source_fails_clearly(tmp_path, monkeypatch):
