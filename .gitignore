@@ -139,3 +139,6 @@ public/sitemap.xml
 # Sentiment page
 public/sentiment.html
 public/ms/sentiment.html
+
+# Manifest generated alongside the release exports.
+public/release.json

@@ -364,3 +364,23 @@ def test_build_feed_escapes_markup_in_the_title_and_caption():
 
     assert "A &amp; B &lt; C" in xml
     assert "A & B < C" not in xml
+
+
+def test_feed_only_neither_sends_nor_marks_triggers(tmp_path, monkeypatch):
+    import sys
+
+    engine = connect("sqlite+pysqlite:///:memory:")
+    monkeypatch.setattr("lpa.storage.connect", lambda: engine)
+    monkeypatch.setattr(
+        sys, "argv", ["telegram_post", "--feed-only", "--output-dir", str(tmp_path)]
+    )
+
+    def unexpected(*args, **kwargs):
+        raise AssertionError("Feed-only must not send or evaluate triggers")
+
+    monkeypatch.setattr(telegram_post, "_send_and_log", unexpected)
+    monkeypatch.setattr("lpa.return_trigger.detect_triggers", unexpected)
+    telegram_post.main()
+    assert "<feed" in (tmp_path / "feed.xml").read_text()
+    assert load_trigger_posts(engine) == []
+    assert not trigger_watch_exists(engine, date(2026, 9, 1))

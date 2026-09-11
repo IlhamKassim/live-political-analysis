@@ -11,18 +11,18 @@ from __future__ import annotations
 import argparse
 import asyncio
 import http.server
+import json
 import os
 import re
 import threading
 import time
-from datetime import date, datetime
+from datetime import date
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urljoin, urlsplit
 
 from lpa.config import load_mp_profiles
-from lpa.pipeline import MALAYSIA_TIME
 from lpa.politikku_methodology import build_all_methodology_languages
 from lpa.politikku_seo import RouteMetadata, get_metadata_for_mp, get_metadata_for_section
 from lpa.politikku_shell import Language
@@ -111,6 +111,8 @@ def start_prerender_server(root_dir: Path) -> tuple[http.server.ThreadingHTTPSer
 
 def inject_metadata(html_doc: str, metadata: RouteMetadata) -> str:
     """Inject canonical SEO, Open Graph, hreflang and JSON-LD tags into snapshot HTML."""
+    # A saved completion flag would let checks pass before the app boots again.
+    html_doc = re.sub(r' data-render-complete="[^"]*"', "", html_doc, count=1)
     # Set html lang attribute
     html_doc = re.sub(
         r'<html\s+lang="[^"]*"',
@@ -191,7 +193,9 @@ async def prerender_all_routes(
     from playwright.async_api import async_playwright
 
     if computed_at is None:
-        computed_at = datetime.now(MALAYSIA_TIME).date()
+        computed_at = date.fromisoformat(
+            json.loads((frontend_dir / "data/projection.json").read_text())["computed_at"]
+        )
 
     server, port = start_prerender_server(frontend_dir)
     app_url = f"http://127.0.0.1:{port}/index.html"

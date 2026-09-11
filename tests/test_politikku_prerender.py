@@ -132,3 +132,12 @@ def test_start_prerender_server_serves_files(tmp_path):
             assert "color: red" in resp.read().decode()
     finally:
         server.shutdown()
+
+
+def test_saved_html_does_not_claim_the_browser_has_finished_booting():
+    from lpa.politikku_seo import get_metadata_for_section
+    from lpa.politikku_shell import Language
+
+    raw = '<html lang="en" data-render-complete="projection"><head></head><body></body></html>'
+    result = inject_metadata(raw, get_metadata_for_section("projection", Language.EN))
+    assert "data-render-complete" not in result

@@ -40,8 +40,10 @@ packages = ["src/lpa"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src", "scripts"]
-addopts = "-m 'not model and not network'"
+addopts = "-m 'not model and not network and not browser and not postgres'"
 markers = [
+    "browser: runs local Chromium against the built site",
+    "postgres: requires an isolated TEST_POSTGRES_URL database",
     "model: needs the self-hosted sentiment model; downloads weights and runs CPU inference",
     "network: makes a real HTTP request; run with `pytest -m network`",
 ]
