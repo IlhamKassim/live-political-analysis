@@ -7244,7 +7244,10 @@ function closePrnMode(options = {}) {
 // open through campaign → live flips automatically. Interval tightens to ~15s once
 // phase is live/final (election-night tempo); ~60s during campaign.
 let prnLiveTimer = null;
-let prnLiveSeatSnap = {};   // code → last-seen status (for map flash + toasts)
+// code → last-seen status (for map flash + toasts). null until the first fetch:
+// that fetch is the baseline, not news — without it every declared seat
+// "flipped" on page load and a finished election toasted its last seat.
+let prnLiveSeatSnap = null;
 let bentoLiveFilter = "all"; // live seat table filter
 
 /** Apply All / Undeclared / BN / PH / … filter and re-render wherever the board lives. */
@@ -7375,7 +7378,7 @@ async function refreshPrnLive() {
   const prevPhase = state.prnLive && state.prnLive.phase;
   const prevUpdated = state.prnLive && state.prnLive.updated;
   if (live && live.phase) {
-    const flashes = detectPrnLiveFlashes(prnLiveSeatSnap, live);
+    const flashes = prnLiveSeatSnap ? detectPrnLiveFlashes(prnLiveSeatSnap, live) : [];
     prnLiveSeatSnap = snapshotPrnLiveStatuses(live);
     state.prnLive = live;
     const isLive = prnLiveIsHot(live);
