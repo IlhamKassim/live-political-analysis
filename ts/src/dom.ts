@@ -219,6 +219,15 @@ function skeleton(statusText: string): HTMLElement {
   return el;
 }
 
+function candidateList(candidates: readonly LookupSeat[], copy: LookupCopy): HTMLElement {
+  const list = document.createElement("div");
+  list.className = "pk-lookup-candidate-list";
+  for (const seat of candidates) {
+    list.append(candidateRow(seat, copy));
+  }
+  return list;
+}
+
 function ambiguousView(candidates: readonly LookupSeat[], copy: LookupCopy): HTMLElement {
   const el = document.createElement("div");
   el.className = "pk-lookup-ambiguous";
@@ -226,15 +235,10 @@ function ambiguousView(candidates: readonly LookupSeat[], copy: LookupCopy): HTM
   heading.className = "pk-lookup-ambiguous-heading";
   heading.textContent = copy.ambiguousHeading;
   el.append(heading);
-  const list = document.createElement("div");
-  list.className = "pk-lookup-candidate-list";
-  for (const seat of candidates) {
-    list.append(candidateRow(seat, copy));
-  }
   const footnote = document.createElement("p");
   footnote.className = "pk-lookup-footnote";
   footnote.textContent = copy.boundariesFootnote;
-  el.append(list, footnote);
+  el.append(candidateList(candidates, copy), footnote);
   return el;
 }
 
@@ -315,18 +319,7 @@ function unresolvedView(
     heading.className = "pk-lookup-ambiguous-heading pk-lookup-unresolved-heading";
     heading.textContent = copy.unresolvedCandidatesHeading(postcode, localities);
     el.append(heading);
-
-    const list = document.createElement("div");
-    list.className = "pk-lookup-candidate-list";
-    for (const seat of candidates) {
-      list.append(candidateRow(seat, copy));
-    }
-    el.append(list);
-
-    const footnote = document.createElement("p");
-    footnote.className = "pk-lookup-footnote";
-    footnote.textContent = copy.boundariesFootnote;
-    el.append(footnote);
+    el.append(candidateList(candidates, copy));
   } else {
     const message = document.createElement("p");
     message.className = "pk-lookup-resolved-no-profile pk-lookup-unresolved-reason";

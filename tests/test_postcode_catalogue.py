@@ -60,3 +60,15 @@ def test_shipped_snapshot_and_report_cover_the_official_catalogue(tmp_path):
     output = tmp_path / "coverage.json"
     write_coverage_report(catalogue, ["40160"], output)
     assert json.loads(output.read_text())["official_unresolved_count"] == 2929
+
+
+def test_write_coverage_report_preserves_existing_retrieval_date(tmp_path):
+    output = tmp_path / "coverage.json"
+    output.write_text(
+        json.dumps({"_source": {"retrieved": "2025-01-01"}}),
+        encoding="utf-8",
+    )
+    catalogue = {"40160": (PostcodeLocality(city="Shah Alam", state="Selangor"),)}
+    write_coverage_report(catalogue, ["40160"], output)
+    data = json.loads(output.read_text())
+    assert data["_source"]["retrieved"] == "2025-01-01"

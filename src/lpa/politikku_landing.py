@@ -439,7 +439,7 @@ def _translate_observatory_body(body: str, language: Language) -> str:
     return body
 
 
-def _observatory_body(model: LandingModel, language: Language) -> str:
+def _observatory_body(model: LandingModel | None, language: Language) -> str:
     body = _observatory_body_template()
     header_start = body.index('<header class="nav wrap">')
     header_end = body.index("</header>", header_start) + len("</header>")
@@ -468,6 +468,10 @@ def _observatory_body(model: LandingModel, language: Language) -> str:
         'href="/methodology.html"',
         f'href="{html.escape(route(language, "methodology.html"))}"',
     )
+    body = body.replace(
+        'href="/ms/methodology.html"',
+        f'href="{html.escape(route(language, "methodology.html"))}"',
+    )
     return body.strip()
 
 
@@ -492,12 +496,12 @@ def _copy_observatory_assets(output_dir: Path) -> None:
         shutil.copy2(source, destination)
 
 
-def render_landing_body(model: LandingModel, language: Language = Language.EN) -> str:
+def render_landing_body(model: LandingModel | None = None, language: Language = Language.EN) -> str:
     """Render the Observatory scenes with the platform's live Seat lookup."""
     return _observatory_body(model, language)
 
 
-def render_landing_page(model: LandingModel, language: Language = Language.EN) -> str:
+def render_landing_page(model: LandingModel | None = None, language: Language = Language.EN) -> str:
     """Render the Observatory as the complete public root document."""
     title = t(
         language,
@@ -549,14 +553,13 @@ def render_landing_page(model: LandingModel, language: Language = Language.EN) -
 
 def build_and_write_landing_pages(output_dir: Path | str = "public") -> tuple[int, int]:
     """Write the Observatory at `/` and `/ms/`, including its static assets."""
-    model = landing_model()
     out = Path(output_dir)
     _copy_observatory_assets(out)
-    en_html = render_landing_page(model, Language.EN)
+    en_html = render_landing_page(None, Language.EN)
     en_path = out / "index.html"
     en_path.parent.mkdir(parents=True, exist_ok=True)
     en_path.write_text(en_html, encoding="utf-8")
-    ms_html = render_landing_page(model, Language.MS)
+    ms_html = render_landing_page(None, Language.MS)
     ms_path = out / "ms" / "index.html"
     ms_path.parent.mkdir(parents=True, exist_ok=True)
     ms_path.write_text(ms_html, encoding="utf-8")

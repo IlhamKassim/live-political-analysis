@@ -403,7 +403,7 @@ def test_the_seat_url_the_browser_builds_matches_the_apps_own_hash_route():
     # comparison keeps that destination in step with the map's hash router.
     # The router (`frontend/public/lib.js` decodeHash) reads
     # `#<tier>/<mode>/<code>`; the lookup links to the Parliament layer
-    # coloured by party. (The old `/mp/<code>.html` target is gone from
+    # coloured by Coalition. (The old `/mp/<code>.html` target is gone from
     # dom.ts; `politikku_redirects.py` still stubs it for old links.)
     dom = (REPO_ROOT / "ts" / "src" / "dom.ts").read_text(encoding="utf-8")
     assert "`/app/#parlimen/parti/${encodeURIComponent(code)}`" in dom
