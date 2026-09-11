@@ -689,6 +689,19 @@ def test_call_deepseek_normalizes_an_astra_function_call_for_the_existing_dispat
     ]
 
 
+def test_call_deepseek_allows_empty_output_list_from_astra_responses_api():
+    def fake_post(url, **kwargs):
+        return FakeHttpxResponse(json_body={"output": []})
+
+    payload, error = call_deepseek(
+        messages=[], model="gpt-6-astra", api_key="k", timeout=5, post=fake_post
+    )
+
+    assert error is None
+    assert payload["choices"][0]["message"]["tool_calls"] == []
+    assert payload["_responses_output"] == []
+
+
 def test_run_agent_loop_sends_astra_function_output_back_to_responses(tmp_path):
     requests = []
 

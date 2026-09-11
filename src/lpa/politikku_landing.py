@@ -16,6 +16,7 @@ tree during the same build that writes the English and Bahasa pages.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html
 import json
 import re
@@ -381,9 +382,9 @@ def _observatory_header(language: Language) -> str:
     ms_class = "on" if language is Language.MS else ""
     home_label = t(language, "PolitikKu home", "Laman utama PolitikKu")
     analyst_link = (
-        '<a href="/analyst/">Analyst <span aria-hidden="true"><svg class="ico-arrow" viewBox="0 0 16 16" focusable="false"><path d="M4.5 11.5l7-7M6 4.5h5.5V10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a>'
-        if language is Language.EN
-        else ""
+        f'<a href="{html.escape(route(language, "analyst/"))}">'
+        f"{html.escape(t(language, 'Analyst', 'Penganalisis'))} "
+        '<span aria-hidden="true"><svg class="ico-arrow" viewBox="0 0 16 16" focusable="false"><path d="M4.5 11.5l7-7M6 4.5h5.5V10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a>'
     )
     return f"""<header class="nav wrap">
 <a class="brand" href="{html.escape(home)}" aria-label="{html.escape(home_label)}"><svg viewBox="0 0 32 32" width="28" aria-hidden="true"><path d="M3 28V4h8v24M15 28V4h7l7 8-7 8h-7" fill="none" stroke="currentColor" stroke-width="3"/></svg>PolitikKu<span class="brand-small">THE CIVIC OBSERVATORY</span></a>
@@ -439,7 +440,7 @@ def _translate_observatory_body(body: str, language: Language) -> str:
     return body
 
 
-def _observatory_body(model: LandingModel, language: Language) -> str:
+def _observatory_body(model: LandingModel | None, language: Language) -> str:
     body = _observatory_body_template()
     header_start = body.index('<header class="nav wrap">')
     header_end = body.index("</header>", header_start) + len("</header>")
@@ -468,36 +469,55 @@ def _observatory_body(model: LandingModel, language: Language) -> str:
         'href="/methodology.html"',
         f'href="{html.escape(route(language, "methodology.html"))}"',
     )
+    body = body.replace(
+        'href="/ms/methodology.html"',
+        f'href="{html.escape(route(language, "methodology.html"))}"',
+    )
     return body.strip()
+
+
+_OBSERVATORY_ASSET_PREFIX = "/assets/observatory/"
+_OBSERVATORY_ASSETS = {
+    "style.css": _OBSERVATORY_PAGE / "style.css",
+    "integrated.js": _OBSERVATORY_PAGE / "integrated.js",
+    "scrollcraft.js": _OBSERVATORY_PAGE / "scrollcraft.js",
+    "scrollcraft.css": _OBSERVATORY_PAGE / "scrollcraft.css",
+    "skyline.png": _OBSERVATORY_PAGE / "assets" / "skyline.png",
+    "icon.svg": _OBSERVATORY_PAGE / "icon.svg",
+    "base.css": _OBSERVATORY_SHARED / "base.css",
+    "sans.woff2": _OBSERVATORY_SHARED / "sans.woff2",
+    "serif.woff2": _OBSERVATORY_SHARED / "serif.woff2",
+    "grotesk.woff2": _OBSERVATORY_SHARED / "grotesk.woff2",
+}
+"""Published name under `/assets/observatory/` → the source file copied there."""
+
+
+def _observatory_asset_url(name: str) -> str:
+    """The asset's URL, tagged with a hash of its contents (`style.css?v=…`)
+    so a deploy that changes it can't be paired with a copy a browser cached
+    from before — GitHub Pages lets browsers reuse files for ten minutes.
+    Hashed from the source, which `_copy_observatory_assets` publishes
+    byte-for-byte. Fonts are not passed through here: the preload must use
+    the same URL as the stylesheet's `url()`, or the font is fetched twice."""
+    digest = hashlib.sha256(_OBSERVATORY_ASSETS[name].read_bytes()).hexdigest()[:10]
+    return f"{_OBSERVATORY_ASSET_PREFIX}{name}?v={digest}"
 
 
 def _copy_observatory_assets(output_dir: Path) -> None:
     target = output_dir / "assets" / "observatory"
     target.mkdir(parents=True, exist_ok=True)
-    assets = (
-        (_OBSERVATORY_PAGE / "style.css", target / "style.css"),
-        (_OBSERVATORY_PAGE / "integrated.js", target / "integrated.js"),
-        (_OBSERVATORY_PAGE / "scrollcraft.js", target / "scrollcraft.js"),
-        (_OBSERVATORY_PAGE / "scrollcraft.css", target / "scrollcraft.css"),
-        (_OBSERVATORY_PAGE / "assets" / "skyline.png", target / "skyline.png"),
-        (_OBSERVATORY_PAGE / "icon.svg", target / "icon.svg"),
-        (_OBSERVATORY_SHARED / "base.css", target / "base.css"),
-        (_OBSERVATORY_SHARED / "sans.woff2", target / "sans.woff2"),
-        (_OBSERVATORY_SHARED / "serif.woff2", target / "serif.woff2"),
-        (_OBSERVATORY_SHARED / "grotesk.woff2", target / "grotesk.woff2"),
-    )
-    for source, destination in assets:
+    for name, source in _OBSERVATORY_ASSETS.items():
         if not source.is_file():
             raise ValueError(f"Missing Observatory asset: {source}")
-        shutil.copy2(source, destination)
+        shutil.copy2(source, target / name)
 
 
-def render_landing_body(model: LandingModel, language: Language = Language.EN) -> str:
+def render_landing_body(model: LandingModel | None = None, language: Language = Language.EN) -> str:
     """Render the Observatory scenes with the platform's live Seat lookup."""
     return _observatory_body(model, language)
 
 
-def render_landing_page(model: LandingModel, language: Language = Language.EN) -> str:
+def render_landing_page(model: LandingModel | None = None, language: Language = Language.EN) -> str:
     """Render the Observatory as the complete public root document."""
     title = t(
         language,
@@ -533,15 +553,15 @@ def render_landing_page(model: LandingModel, language: Language = Language.EN) -
 <link rel="icon" type="image/png" sizes="16x16" href="/app/assets/icon-16x16.png?v=3">
 <link rel="apple-touch-icon" sizes="180x180" href="/app/assets/apple-touch-icon.png?v=3">
 <link rel="preload" href="/assets/observatory/grotesk.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/observatory/base.css">
-<link rel="stylesheet" href="/assets/observatory/scrollcraft.css">
-<link rel="stylesheet" href="/assets/observatory/style.css">
+<link rel="stylesheet" href="{_observatory_asset_url("base.css")}">
+<link rel="stylesheet" href="{_observatory_asset_url("scrollcraft.css")}">
+<link rel="stylesheet" href="{_observatory_asset_url("style.css")}">
 <title>{escaped_title}</title>
 </head>
 <body class="pk-bare">
 {render_landing_body(model, language)}
-<script defer src="/assets/observatory/scrollcraft.js"></script>
-<script defer src="/assets/observatory/integrated.js"></script>
+<script defer src="{_observatory_asset_url("scrollcraft.js")}"></script>
+<script defer src="{_observatory_asset_url("integrated.js")}"></script>
 <script type="module" src="/lookup.js"></script>
 </body>
 </html>"""
@@ -549,14 +569,13 @@ def render_landing_page(model: LandingModel, language: Language = Language.EN) -
 
 def build_and_write_landing_pages(output_dir: Path | str = "public") -> tuple[int, int]:
     """Write the Observatory at `/` and `/ms/`, including its static assets."""
-    model = landing_model()
     out = Path(output_dir)
     _copy_observatory_assets(out)
-    en_html = render_landing_page(model, Language.EN)
+    en_html = render_landing_page(None, Language.EN)
     en_path = out / "index.html"
     en_path.parent.mkdir(parents=True, exist_ok=True)
     en_path.write_text(en_html, encoding="utf-8")
-    ms_html = render_landing_page(model, Language.MS)
+    ms_html = render_landing_page(None, Language.MS)
     ms_path = out / "ms" / "index.html"
     ms_path.parent.mkdir(parents=True, exist_ok=True)
     ms_path.write_text(ms_html, encoding="utf-8")

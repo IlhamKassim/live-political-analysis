@@ -171,11 +171,9 @@ def build_and_write_client_index(
     """
     from lpa.config import load_mp_profiles, load_postcode_seat_index
     from lpa.postcode_catalogue import load_postcode_catalogue, write_coverage_report
-    from lpa.postcode_seat_estimates import load_estimates
     from lpa.storage import load_seat_baselines
 
     baseline = load_seat_baselines(engine)
-    by_code = {seat.code: seat for seat in baseline}
     raw_postcode_index = load_postcode_seat_index()
     postcode_index = {
         postcode: tuple(m.seat_code for m in matches)
@@ -184,29 +182,11 @@ def build_and_write_client_index(
     mp_names = {code: profile.name for code, profile in load_mp_profiles().items()}
     postcode_catalogue = load_postcode_catalogue()
 
-    seat_names = {seat.code: (seat.name.lower(), seat.state.lower()) for seat in baseline}
-    raw_estimates = load_estimates()
-    enhanced_estimates: dict[str, list[str]] = {}
-    for postcode, locs in postcode_catalogue.items():
-        cands = set(raw_estimates.get(postcode, ()))
-        for loc in locs:
-            city_norm = loc.city.lower()
-            state_norm = loc.state.lower()
-            for code, (s_name, s_state) in seat_names.items():
-                if (state_norm in s_state or s_state in state_norm) and (
-                    city_norm in s_name or s_name in city_norm
-                ):
-                    cands.add(code)
-        valid_cands = sorted(c for c in cands if c in by_code)
-        if valid_cands:
-            enhanced_estimates[postcode] = valid_cands
-
     index_data = build_client_index(
         baseline,
         postcode_index,
         mp_names,
         postcode_catalogue,
-        postcode_estimates=enhanced_estimates,
     )
     payload = json.dumps(index_data, separators=(",", ":"))
     path = Path(output_path)

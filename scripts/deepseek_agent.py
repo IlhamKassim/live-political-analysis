@@ -438,7 +438,7 @@ def uses_responses_api(model: str) -> bool:
 def _normalize_responses_payload(payload: dict) -> dict:
     """Adapt Responses function calls to the loop's existing call shape."""
     output = payload.get("output")
-    if not isinstance(output, list) or not output:
+    if not isinstance(output, list):
         raise KeyError("output")
     tool_calls = []
     for item in output:

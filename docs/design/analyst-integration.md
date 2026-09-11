@@ -4,7 +4,9 @@ The approved source stays at `scrollcraft/builds/analyst-b`. This is already bes
 
 `lpa.politikku_analyst` copies every file with `shutil.copy2` into `public/analyst/`, preserving relative paths. It then replaces only the copied HTML header with the homepage's `_observatory_header(Language.EN)`. Homepage fragment links become `/#perspective`, `/#chamber`, and `/#find`. Header-only CSS and mobile-menu JS are added separately so the approved stylesheet and animation script remain byte-identical.
 
-The language toggle is omitted, because this page deliberately has no BM translation. A toggle leading to the BM homepage would incorrectly imply a translated Analyst page. The proposed navigation entry follows the shell's existing `en_only` convention. The SPA sidebar uses an ordinary `/analyst/` link labelled English only.
+**Update, 2026-09-11: Analyst now has a BM page.** `scrollcraft/builds/analyst-b/index.ms.html` is a hand-translated copy of `index.html` (label: *Penganalisis*). The adapter builds it to `public/ms/analyst/index.html` with the BM header, pointing its assets at the EN copies in `../../analyst/`, and never copies the source into `public/analyst/`. Both pages carry the header's EN/BM toggle, rewritten to switch between `/analyst/` and `/ms/analyst/`. The homepage, `NAV_LINKS` (no longer `en_only`) and the SPA sidebar (`nav_analyst` / `nav_analyst_href` in `i18n.js`) link it in BM. Any copy change to one page must be made in the other. The internal "Direction B / Concept B" labels were removed from both. `app.js` now reads its motion-button labels and Swing unit from `data-` attributes, so it is no longer byte-identical to the original concept.
+
+Before that update, the language toggle was omitted because the page had no BM translation, and the navigation entry was `en_only`.
 
 GSAP 3.13.0 and ScrollTrigger are local files in `assets/`; the fonts are local too. There is no CDN dependency.
 

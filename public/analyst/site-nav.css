@@ -1,12 +1,23 @@
 .site-header .brand-small{font:9px/1.5 Plex,sans-serif;max-width:100px;
  letter-spacing:.14em;border-left:1px solid var(--line);padding-left:20px;margin-left:13px}
 .site-header .nav-links{display:flex;align-items:center;gap:28px;font-size:12px}
+.site-header .nav-links a{white-space:nowrap}
+.site-header .ico-arrow{display:inline-block;width:.85em;height:.85em;flex:none;vertical-align:-.08em}
 .site-header .nav-cta{border:1px solid var(--line);border-radius:40px;
  padding:12px 18px;display:flex;gap:20px}
 .site-header .menu-toggle{display:none;color:var(--paper);background:transparent;
  border:1px solid var(--line);border-radius:30px;padding:10px 16px;min-height:44px}
+.site-header .obs-lang{display:flex;border:1px solid var(--line);border-radius:999px;
+ overflow:hidden;margin-left:24px}
+.site-header .obs-lang a{display:inline-flex;align-items:center;justify-content:center;
+ min-width:40px;min-height:40px;padding:6px 10px;font:10px Plex,sans-serif;
+ letter-spacing:.08em;color:#acbcb7}
+.site-header .obs-lang a:hover,.site-header .obs-lang a.on{background:var(--lime);color:#172324}
+.site-header .obs-lang a:focus-visible{outline:3px solid var(--lime);outline-offset:3px}
 @media(max-width:1100px){.site-header .brand-small{display:none}}
 @media(max-width:900px){
+ .site-header .obs-lang{margin-left:auto;margin-right:10px}
+ .site-header .obs-lang a{min-width:34px}
  .site-header .menu-toggle{display:block}
  .site-header .nav-links{display:none}
  .site-header .nav-links.is-open{display:flex;position:absolute;top:81px;left:0;

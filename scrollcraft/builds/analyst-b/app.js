@@ -15,7 +15,7 @@
   const chapterLinks = [...document.querySelectorAll('[data-step]')];
   function updateDial(value) {
     range.value = value;
-    output.value = `${Number(value) >= 0 ? '+' : '−'}${Math.abs(value).toFixed(1)} pp`;
+    output.value = `${Number(value) >= 0 ? '+' : '−'}${Math.abs(value).toFixed(1)} ${output.dataset.unit || 'pp'}`;
     document.querySelector('.small-rotor').style.transform = `rotate(${Number(value) * 24}deg)`;
   }
   range.addEventListener('input', () => { interacted = true; updateDial(range.value); });
@@ -31,7 +31,9 @@
     root.classList.remove('animated', 'motion-static');
     chapters.concat(views).forEach(el => { el.inert = false; });
     motionButton.setAttribute('aria-pressed', String(paused));
-    motionButton.textContent = paused ? 'Resume motion' : 'Pause motion';
+    motionButton.textContent = paused
+      ? (motionButton.dataset.resume || 'Resume motion')
+      : (motionButton.dataset.pause || 'Pause motion');
     if (paused || !window.gsap || !window.ScrollTrigger || !desktop.matches) {
       root.classList.add('motion-static');
       views.forEach((view, index) => chapters[index].append(view));

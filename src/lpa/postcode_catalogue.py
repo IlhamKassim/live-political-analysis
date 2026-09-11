@@ -102,8 +102,20 @@ def write_coverage_report(
     catalogue: Mapping[str, Sequence[PostcodeLocality]],
     mapped_postcodes: Iterable[str],
     path: Path = DEFAULT_REPORT_PATH,
+    *,
+    retrieved_date: str | None = None,
 ) -> None:
     """Write a durable, human-readable reconciliation report."""
+    if retrieved_date is None and path.exists():
+        try:
+            existing = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(existing, dict) and isinstance(existing.get("_source"), dict):
+                val = existing["_source"].get("retrieved")
+                if isinstance(val, str) and val:
+                    retrieved_date = val
+        except (json.JSONDecodeError, OSError):
+            pass
+
     report = {
         "_comment": [
             "Coverage between data.gov.my's official postcode catalogue and the separately",
@@ -114,7 +126,7 @@ def write_coverage_report(
             "name": "data.gov.my Malaysian postcode catalogue",
             "dataset_url": DATA_GOV_POSTCODES_URL,
             "snapshot": "data/postcodes_data_gov_my.csv",
-            "retrieved": datetime.now(UTC).date().isoformat(),
+            "retrieved": retrieved_date or datetime.now(UTC).date().isoformat(),
         },
         **coverage_report(catalogue, mapped_postcodes),
     }
