@@ -20,6 +20,10 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
 
 jobs:
   check:
@@ -98,6 +102,9 @@ jobs:
         run: npm run build
 
   secret-scan:
+    permissions:
+      contents: read
+      pull-requests: read
     name: Secret scan
     runs-on: ubuntu-latest
     # Fails the run if Gitleaks finds a committed secret in the diff, so a
@@ -113,3 +120,54 @@ jobs:
         uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: "false"
+
+  frontend-check:
+    name: Frontend and browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.11"
+      - run: node --check frontend/public/app.js
+      - run: node --test frontend/public/lib.test.mjs frontend/public/worker.test.mjs
+      - run: bash scripts/validate.sh
+        working-directory: frontend
+      - run: pip install -e ".[dev,prerender]"
+      - run: playwright install --with-deps chromium
+      - run: npm ci && npm run build
+        working-directory: ts
+      - run: pytest -m browser tests/test_release_browser.py
+
+  postgres-check:
+    name: Postgres integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: lpa_test
+          POSTGRES_PASSWORD: test-only
+          POSTGRES_DB: lpa_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lpa_test -d lpa_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.11"
+      - run: pip install -e ".[dev,postgres]"
+      - run: pytest -m postgres tests/test_postgres_integration.py
+        env:
+          TEST_POSTGRES_URL: postgresql://lpa_test:test-only@localhost:5432/lpa_test

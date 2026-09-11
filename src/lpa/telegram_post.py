@@ -429,9 +429,20 @@ def main() -> None:
         default=Path("public"),
         help="directory to write feed.xml into (default: public)",
     )
+    parser.add_argument(
+        "--feed-only",
+        action="store_true",
+        help="Render logged posts without sending or marking triggers handled.",
+    )
     args = parser.parse_args()
 
     engine = connect()
+    if args.feed_only:
+        args.output_dir.mkdir(parents=True, exist_ok=True)
+        (args.output_dir / "feed.xml").write_text(
+            build_feed(load_trigger_posts(engine)), encoding="utf-8"
+        )
+        return
     projections = load_projections(engine)
     if not projections:
         raise SystemExit("No Projection stored. Run `python -m lpa.pipeline` first.")
