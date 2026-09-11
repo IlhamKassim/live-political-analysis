@@ -54,12 +54,7 @@ window.__renderRoute = async function(routePath, targetLang) {
   if (!p.startsWith("mp/")) {
     closeCandidateModal();
   }
-  closePoliticians({ silent: true });
-  closeDewanPage({ silent: true });
-  closeBillsPage({ silent: true });
-  closeSentimentPage({ silent: true });
-  closeProjectionPage({ silent: true });
-  closeMethodologyPage({ silent: true });
+  closeOtherPages();
 
   if (p === "dewan") {
     await openDewanPage();
@@ -1050,15 +1045,7 @@ async function openPoliticians() {
     } catch (_) {}
   }
   if (!state.politicians) return;
-  closeNewsPage({ silent: true });     // the directory and the news page are mutually exclusive
-  closeDewanPage({ silent: true });    // …and so is the Dewan activity page
-  closeBillsPage({ silent: true });    // …and so is the Bill tracker page
-  closeSentimentPage({ silent: true }); // …and so is the Sentiment digest page
-  closeProjectionPage({ silent: true }); // …and so is the Projection page
-  closeMethodologyPage({ silent: true });
-  closeGlossaryPage({ silent: true });
-  closeCoalitionsPage({ silent: true });
-  closeProcessPage({ silent: true });
+  closeOtherPages("politicians");
   if (state.prnMode) closePrnMode();   // leave the election dashboard before the directory takes over
   if (!state.data.parlimen) { try { await loadTier("parlimen"); } catch (_) {} }
   if (polTier !== "parlimen" && polTier !== "pledges" && !state.data.dun) {
@@ -4490,6 +4477,26 @@ function clearSidebarStatePreview() {
   if (label) label.hidden = true;
   clearStateHover();
 }
+// Every full-page in-app view. Only one may be open at a time, so each entry
+// point closes the rest through this one list — a view missing from a
+// hand-copied close chain once left two pages drawn on top of each other.
+const PAGE_CLOSERS = {
+  politicians: (o) => closePoliticians(o),
+  news: (o) => closeNewsPage(o),
+  dewan: (o) => closeDewanPage(o),
+  bills: (o) => closeBillsPage(o),
+  sentiment: (o) => closeSentimentPage(o),
+  projection: (o) => closeProjectionPage(o),
+  methodology: (o) => closeMethodologyPage(o),
+  glossary: (o) => closeGlossaryPage(o),
+  coalitions: (o) => closeCoalitionsPage(o),
+  process: (o) => closeProcessPage(o),
+};
+function closeOtherPages(keep = null) {
+  for (const [name, close] of Object.entries(PAGE_CLOSERS)) {
+    if (name !== keep) close({ silent: true });
+  }
+}
 function syncSidebar() {
   const sb = document.getElementById("sidebar");
   if (!sb) return;
@@ -4527,11 +4534,7 @@ function syncSidebar() {
 // a state picked from the sidebar — W.P. territories only exist on the parliament
 // layer, so switch tiers when the current layer has no seats for it
 async function sidebarOpenState(name) {
-  closePoliticians({ silent: true });
-  closeDewanPage({ silent: true });
-  closeBillsPage({ silent: true });
-  closeSentimentPage({ silent: true });
-  closeProjectionPage({ silent: true });
+  closeOtherPages();
   hideInfo();
   // live election state (Johor) → open the PRN dashboard; other states open normally
   const e = liveElection();
@@ -4635,7 +4638,7 @@ document.getElementById("sidebar")?.addEventListener("click", (ev) => {
     return;
   }
   if (ev.target.closest("#sb-brand") || ev.target.closest("#sb-map")) {
-    closePoliticians({ silent: true }); closeNewsPage({ silent: true }); closeDewanPage({ silent: true }); closeBillsPage({ silent: true }); closeSentimentPage({ silent: true }); closeProjectionPage({ silent: true }); closeMethodologyPage({ silent: true }); closeGlossaryPage({ silent: true }); closeCoalitionsPage({ silent: true }); closeProcessPage({ silent: true }); hideInfo(); backToControls(); syncSidebar(); return;
+    closeOtherPages(); hideInfo(); backToControls(); syncSidebar(); return;
   }
   const sbPol = ev.target.closest("#sb-politicians");
   if (sbPol) {
@@ -4820,12 +4823,7 @@ async function shareApp() {
 }
 function showWholeMap() {
   hideInfo();
-  closePoliticians({ silent: true });
-  closeNewsPage({ silent: true });
-  closeDewanPage({ silent: true });
-  closeBillsPage({ silent: true });
-  closeSentimentPage({ silent: true });
-  closeProjectionPage({ silent: true });
+  closeOtherPages();
   backToControls();
 }
 document.getElementById("brand-home")?.addEventListener("click", showWholeMap);
@@ -5054,15 +5052,7 @@ async function openDewanPage() {
     } catch (_) {}
   }
   if (!state.hansard) return;
-  closePoliticians({ silent: true });
-  closeNewsPage({ silent: true });
-  closeBillsPage({ silent: true });
-  closeSentimentPage({ silent: true });
-  closeProjectionPage({ silent: true });
-  closeMethodologyPage({ silent: true });
-  closeGlossaryPage({ silent: true });
-  closeCoalitionsPage({ silent: true });
-  closeProcessPage({ silent: true });
+  closeOtherPages("dewan");
   if (state.prnMode) closePrnMode();
   if (!state.data.parlimen) { try { await loadTier("parlimen"); } catch (_) {} }
   document.body.classList.add("dewan-open");
@@ -5260,15 +5250,7 @@ async function openBillsPage() {
     } catch (_) {}
   }
   if (!state.bills) return;
-  closePoliticians({ silent: true });
-  closeNewsPage({ silent: true });
-  closeDewanPage({ silent: true });
-  closeSentimentPage({ silent: true });
-  closeProjectionPage({ silent: true });
-  closeMethodologyPage({ silent: true });
-  closeGlossaryPage({ silent: true });
-  closeCoalitionsPage({ silent: true });
-  closeProcessPage({ silent: true });
+  closeOtherPages("bills");
   if (state.prnMode) closePrnMode();
   document.body.classList.add("bills-open");
   renderBillsPage();
@@ -5409,15 +5391,7 @@ async function openSentimentPage() {
     } catch (_) {}
   }
   if (!state.sentiment) return;
-  closePoliticians({ silent: true });
-  closeNewsPage({ silent: true });
-  closeDewanPage({ silent: true });
-  closeBillsPage({ silent: true });
-  closeProjectionPage({ silent: true });
-  closeMethodologyPage({ silent: true });
-  closeGlossaryPage({ silent: true });
-  closeCoalitionsPage({ silent: true });
-  closeProcessPage({ silent: true });
+  closeOtherPages("sentiment");
   if (state.prnMode) closePrnMode();
   document.body.classList.add("sentiment-open");
   renderSentimentPage();
@@ -5736,15 +5710,7 @@ function renderProjectionPage() {
 }
 
 async function openProjectionPage() {
-  closePoliticians({ silent: true });
-  closeNewsPage({ silent: true });
-  closeDewanPage({ silent: true });
-  closeBillsPage({ silent: true });
-  closeSentimentPage({ silent: true });
-  closeMethodologyPage({ silent: true });
-  closeGlossaryPage({ silent: true });
-  closeCoalitionsPage({ silent: true });
-  closeProcessPage({ silent: true });
+  closeOtherPages("projection");
   if (state.prnMode) closePrnMode();
   if (!state.data.parlimen) { try { await loadTier("parlimen"); } catch (_) {} }
   if (!state.projection) {
@@ -5814,14 +5780,7 @@ async function openMethodologyPage() {
     } catch (_) {}
   }
   if (!state.methodologyHtml) return;
-  closePoliticians({ silent: true });
-  closeNewsPage({ silent: true });
-  closeDewanPage({ silent: true });
-  closeBillsPage({ silent: true });
-  closeSentimentPage({ silent: true });
-  closeProjectionPage({ silent: true });
-  closeCoalitionsPage({ silent: true });
-  closeProcessPage({ silent: true });
+  closeOtherPages("methodology");
   if (state.prnMode) closePrnMode();
   document.body.classList.add("methodology-open");
   renderMethodologyPage();
@@ -5882,15 +5841,7 @@ async function openGlossaryPage() {
     } catch (_) {}
   }
   if (!state.glossaryHtml) return;
-  closePoliticians({ silent: true });
-  closeNewsPage({ silent: true });
-  closeDewanPage({ silent: true });
-  closeBillsPage({ silent: true });
-  closeSentimentPage({ silent: true });
-  closeProjectionPage({ silent: true });
-  closeMethodologyPage({ silent: true });
-  closeCoalitionsPage({ silent: true });
-  closeProcessPage({ silent: true });
+  closeOtherPages("glossary");
   if (state.prnMode) closePrnMode();
   document.body.classList.add("glossary-open");
   renderGlossaryPage();
@@ -5951,14 +5902,7 @@ async function openCoalitionsPage() {
     } catch (_) {}
   }
   if (!state.coalitionsHtml) return;
-  closePoliticians({ silent: true });
-  closeNewsPage({ silent: true });
-  closeDewanPage({ silent: true });
-  closeBillsPage({ silent: true });
-  closeSentimentPage({ silent: true });
-  closeProjectionPage({ silent: true });
-  closeMethodologyPage({ silent: true });
-  closeGlossaryPage({ silent: true });
+  closeOtherPages("coalitions");
   if (state.prnMode) closePrnMode();
   document.body.classList.add("coalitions-open");
   renderCoalitionsPage();
@@ -6019,15 +5963,7 @@ async function openProcessPage() {
     } catch (_) {}
   }
   if (!state.processHtml) return;
-  closePoliticians({ silent: true });
-  closeNewsPage({ silent: true });
-  closeDewanPage({ silent: true });
-  closeBillsPage({ silent: true });
-  closeSentimentPage({ silent: true });
-  closeProjectionPage({ silent: true });
-  closeCoalitionsPage({ silent: true });
-  closeMethodologyPage({ silent: true });
-  closeGlossaryPage({ silent: true });
+  closeOtherPages("process");
   if (state.prnMode) closePrnMode();
   document.body.classList.add("process-open");
   renderProcessPage();
@@ -8642,16 +8578,7 @@ function newsStripHTML() {
 }
 // Legacy #news deep-link → open the PRN dashboard and scroll to the news section.
 async function openNewsPage() {
-  closePoliticians({ silent: true });
-  closeNewsPage({ silent: true });
-  closeDewanPage({ silent: true });
-  closeBillsPage({ silent: true });
-  closeSentimentPage({ silent: true });
-  closeProjectionPage({ silent: true });
-  closeMethodologyPage({ silent: true });
-  closeGlossaryPage({ silent: true });
-  closeCoalitionsPage({ silent: true });
-  closeProcessPage({ silent: true });
+  closeOtherPages("news");
   if (liveElection()) {
     await openPrnMode();
     requestAnimationFrame(() => {
@@ -9237,10 +9164,7 @@ function openStateCard(name) {
     openPrnMode();
     return;
   }
-  closeNewsPage({ silent: true });   // opening a state leaves the news full page (no overlap)
-  closeBillsPage({ silent: true });
-  closeSentimentPage({ silent: true });
-  closeProjectionPage({ silent: true });
+  closeOtherPages();
   // cancel a pending home→Parliament rebuild so it doesn't yank the layer mid-open
   if (homeTierResetTimer) { clearTimeout(homeTierResetTimer); homeTierResetTimer = null; }
   clearTimeout(stateExitTimer);
