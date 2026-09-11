@@ -91,7 +91,6 @@ const TOPBAR = document.getElementById("topbar");
 const TOP_CONTROLS = document.getElementById("top-controls");
 const MOBILE_MENU = document.getElementById("mobile-menu");
 const MOBILE_MENU_BTN = document.getElementById("mobile-menu-btn");
-const THEME_META = document.querySelector('meta[name="theme-color"]');
 const PANEL = document.getElementById("panel");
 const PANEL_EMPTY = document.getElementById("panel-empty");
 const PANEL_SEAT = document.getElementById("panel-seat");
@@ -156,9 +155,6 @@ const isSeatTab = (tab) => SEAT_TABS.includes(tab);
 // Hansard covers the federal chamber only — the Dewan tab exists just for the Parliament tier
 const seatTabsFor = () => SEAT_TABS.filter((tab) => tab !== "dewan" || state.tier === "parlimen");
 const LOAD_GATED_SCORES = false;
-const THEME_KEY = "mypolitik-theme";
-const THEMES = ["dark"]; // light mode disabled — PRN + map chrome were unreadable
-let theme = "dark";
 
 // ---- i18n (English default, Bahasa Melayu toggle) ----
 // The I18N string table now lives in ./i18n.js (one tested source of truth;
@@ -188,30 +184,6 @@ function trustTag(kindOrBool, value = null) {
   return trustTagHTML(kindOrBool, value, lang);
 }
 
-function syncThemeControls() {
-  // Theme toggle hidden while dark-only; keep attrs consistent if markup stays.
-  document.querySelectorAll("[data-theme-toggle]").forEach((btn) => {
-    btn.hidden = true;
-    btn.setAttribute("aria-hidden", "true");
-    btn.setAttribute("tabindex", "-1");
-  });
-  if (THEME_META) THEME_META.setAttribute("content", "#0e0f12");
-}
-
-function setTheme(next, persist = true) {
-  // Always dark — ignore light requests until light theme is reworked.
-  theme = "dark";
-  document.documentElement.dataset.theme = "dark";
-  if (persist) {
-    try { localStorage.setItem(THEME_KEY, "dark"); } catch (_) {}
-  }
-  syncThemeControls();
-}
-
-function toggleTheme() {
-  setTheme("dark");
-}
-
 function applyStatic() {
   document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll("[data-i18n-ph]").forEach((el) => { el.setAttribute("placeholder", t(el.dataset.i18nPh)); });
@@ -223,7 +195,6 @@ function applyStatic() {
   document.querySelectorAll("[data-i18n-after]").forEach((el) => { el.setAttribute("data-after", t(el.dataset.i18nAfter)); });
   document.documentElement.lang = lang;
   document.title = t("title");
-  syncThemeControls();
 }
 function setLang(l) {
   if (l !== "en" && l !== "ms") return;
@@ -1552,6 +1523,8 @@ const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => res
 
 function setPanelView(view) {
   PANEL.classList.toggle("empty", view === "overview");
+  // desktop national overview: map beside a full-height explorer panel (styles.css)
+  document.body.classList.toggle("map-overview", view === "overview");
   PANEL.classList.toggle("state-summary", view === "state");
   PANEL.classList.toggle("seat-detail", view === "seat");
   PANEL_EMPTY.hidden = view !== "overview";
@@ -3000,7 +2973,8 @@ function setSeatTab(tab, focusTab = false) {
   });
 }
 function renderPanel(seat) {
-  PANEL.classList.remove("empty"); PANEL_EMPTY.hidden = true; PANEL_SEAT.hidden = false;
+  PANEL.classList.remove("empty"); document.body.classList.remove("map-overview");
+  PANEL_EMPTY.hidden = true; PANEL_SEAT.hidden = false;
   PANEL_SEAT.innerHTML = seatCardHTML(seat);
   animateIn(PANEL_SEAT);
 }
@@ -4321,16 +4295,14 @@ function placeMapControls() {
   if (!tier || !mode || !target) return;
   target.appendChild(tier);            // append keeps [location] then [tier][mode] on desktop
   target.appendChild(mode);
-  // phone topbar keeps only brand · live badge · burger — the language seg and
-  // theme toggle ride into the menu's icon row (flex `order` restores the topbar
-  // arrangement when they move back; handlers bind by id/attr so they keep working)
+  // phone topbar keeps only brand · live badge · burger — the language seg rides
+  // into the menu's icon row (its handler binds by id, so it keeps working)
   const lang = document.getElementById("lang");
-  const theme = document.getElementById("top-theme");
   const icons = document.querySelector("#mobile-menu .topicons");
   const end = document.querySelector("#topbar .topbar-end");
-  if (lang && theme && icons && end) {
-    if (MAPCTRL_MQ.matches) { end.appendChild(lang); end.appendChild(theme); }
-    else { icons.appendChild(lang); icons.appendChild(theme); }
+  if (lang && icons && end) {
+    if (MAPCTRL_MQ.matches) end.appendChild(lang);
+    else icons.appendChild(lang);
   }
 }
 MAPCTRL_MQ.addEventListener ? MAPCTRL_MQ.addEventListener("change", placeMapControls) : MAPCTRL_MQ.addListener(placeMapControls);
@@ -4338,8 +4310,41 @@ placeMapControls();
 document.getElementById("lang").addEventListener("click", (e) => {
   const b = e.target.closest("button"); if (b) setLang(b.dataset.lang);
 });
-document.querySelectorAll("[data-theme-toggle]").forEach((btn) => btn.addEventListener("click", toggleTheme));
-document.querySelectorAll("#stage > fluid-bg").forEach(randomizeFluidPhase);
+
+// Phone menu: the sidebar's destinations as a text list. Each entry is a clone of
+// its sidebar item (keeping data-i18n, so applyStatic translates it) and clicks
+// through to that item, so routing stays in one place.
+function buildMobileNav() {
+  if (!MOBILE_MENU || !MOBILE_MENU_BTN) return;
+  const nav = document.createElement("nav");
+  nav.className = "mobile-nav";
+  nav.dataset.i18nAria = "mobile_nav_aria";
+  for (const source of document.querySelectorAll(".sb-nav .sb-item")) {
+    const label = source.querySelector(".sb-label");
+    if (!label) continue;
+    const link = document.createElement("a");
+    link.href = source.getAttribute("href") || "/app/";
+    link.appendChild(label.cloneNode(true));
+    const aria = source.getAttribute("aria-label");
+    if (aria) link.setAttribute("aria-label", aria);
+    if (source.dataset.i18nAria) link.dataset.i18nAria = source.dataset.i18nAria;
+    link.addEventListener("click", (event) => {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+      MOBILE_MENU_BTN.click();
+      source.click();
+    });
+    nav.appendChild(link);
+  }
+  MOBILE_MENU.appendChild(nav);
+}
+buildMobileNav();
+document.getElementById("map-controls-btn")?.addEventListener("click", (event) => {
+  event.stopPropagation();
+  MOBILE_MENU_BTN?.click();
+  document.querySelector("#menu-map-controls button")?.focus();
+});
+document.getElementById("sources-btn")?.addEventListener("click", () => document.getElementById("sb-about")?.click());
 
 // ---- shareable URL state  (#tier/mode[/code]) ----
 function writeHash() {
@@ -4719,7 +4724,6 @@ document.getElementById("sidebar")?.addEventListener("click", (ev) => {
 
 // ---- boot ----
 (async function init() {
-  setTheme(theme, false);
   document.querySelectorAll("#lang button").forEach((x) => setOn(x, x.dataset.lang === lang));
   applyStatic();
   // Measure the empty card early so --map-h is close before paths paint
@@ -8868,8 +8872,7 @@ function renderStateBento() {
       html = html.replace(/(<p class="bento-foot)/, `${news}$1`);
     }
   }
-  // render into a display:contents wrapper so re-renders never wipe the
-  // fluid-bg layer (a sibling) — wiping it would restart the iframe sim
+  // render into a display:contents wrapper so re-renders keep BENTO's other children
   let host = document.getElementById("bento-content");
   if (!host) {
     BENTO.insertAdjacentHTML("beforeend", '<div id="bento-content"></div>');
@@ -8934,45 +8937,12 @@ function showStateBento(name) {
   }
   document.body.classList.add("bento-on");
   BENTO.hidden = false;
-  ensureBentoFluid();
-  // fresh landing colour per open (the warm element persists across opens)
-  randomizeFluidPhase(BENTO.querySelector("fluid-bg"));
   renderStateBento();
 }
 function hideStateBento() {
   document.body.classList.remove("bento-on");
   BENTO.hidden = true;
   hideBentoChrome();
-  // the fluid stays mounted: display:none throttles the iframe but keeps it
-  // loaded, so the next open shows the background instantly (no sim reboot)
-}
-// fluid dashboard background — the fluid-bg web component (jsDelivr, embeds
-// fluid.krackeddevs.com as an iframe). Mounted ONCE and kept warm: created at
-// boot (desktop only), its shadow iframe flipped from lazy to eager so it loads
-// while the bento is still hidden — opening a state then shows the background
-// immediately instead of waiting out an iframe + sim boot. Skipped under
-// prefers-reduced-motion. z="0" paints it above the page background; the bento
-// children lift to z:1 in CSS.
-const BENTO_FLUID_HASH = "#p=0.82,1.65,1.9,0.025,1,15,0,1,20.77,0,0,1.5,0,0,14,0,0,0,0,0,0,0,0,0,0.37,0,0,0,3";
-// random landing colour: jump the hue journey to a random point in its cycle.
-// 72 = the fluid-hue keyframes duration (styles.css); literal on purpose — this
-// is called from top-level code above these declarations, so a const here
-// would be a TDZ ReferenceError at module evaluation.
-function randomizeFluidPhase(el) {
-  if (el) el.style.animationDelay = `-${(Math.random() * 72).toFixed(1)}s`;
-}
-function ensureBentoFluid() {
-  if (!BENTO || BENTO.querySelector("fluid-bg")) return;
-  if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const el = document.createElement("fluid-bg");
-  el.setAttribute("fixed", "");
-  el.setAttribute("z", "0");
-  el.setAttribute("hash", BENTO_FLUID_HASH);
-  randomizeFluidPhase(el);
-  BENTO.prepend(el);
-  // no eager warm-up: the lazy iframe loads when the bento first becomes visible
-  // (showStateBento calls this right as it opens). Keeping the second WebGL sim
-  // unloaded until then halves idle GPU/memory for everyone on the plain map.
 }
 function updateBentoSpotlight() {
   const body = document.getElementById("bento-spot-body");

@@ -1,19 +1,4 @@
 :root {
-  --bg: #0b0e13;
-  --bg-2: #11151d;
-  --panel: #0e1219;
-  --sea: #0b0e13;
-  --line: #1d2733;
-  --line-2: #2a3645;
-  --ink: #e7edf4;
-  --ink-dim: #93a1b3;
-  --ink-faint: #5d6b7d;
-  --accent: #4dd6c1;
-  --accent-2: #ffd166;
-  --land: #1b2530;
-  --land-hi: #2b3a49;
-  --stroke: #05070c;   /* near-black seat borders — high contrast against the coloured seats */
-  --select: #ffd166;
   --radius: 10px;
   --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --sans: "Space Grotesk", system-ui, -apple-system, sans-serif;
@@ -22,9 +7,7 @@
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
 /* Safari paints the pinch-zoom / overscroll canvas from the ROOT element's
-   background — without this, zooming out exposes WHITE beyond the fixed fluid
-   layers. The fluid embeds are decorative enhancement: the page must stay
-   coherent wherever they don't reach (Safari zoom, slow CDN, reduced motion). */
+   background — without this, zooming out exposes WHITE around the page. */
 html { background: var(--bg); }
 body {
   background: var(--bg);
@@ -127,30 +110,12 @@ a:hover { text-decoration: underline; }
 }
 
 /* ---- stage / map ---- */
-#stage { grid-area: stage; position: relative; background:
-  radial-gradient(120% 90% at 50% 0%, var(--stage-top, #0d141d) 0%, var(--sea) 70%); overflow: hidden;
-  /* isolate: the fluid-bg child at z:-1 then paints above this background but
-     below every other child (svg, overlays) — no per-child z-index needed */
-  isolation: isolate; }
-/* the lazy iframe never loads under reduced motion (display:none = never intersects) */
-@media (prefers-reduced-motion: reduce) { #stage > fluid-bg { display: none; } }
-/* colour journey: slowly re-hue the fluid through the state-emblem palette —
-   holds on a colour (~9s), morphs to the next (~3s); a full wheel per loop
-   (blue → purple → red → gold/yellow → green → teal). Pure filter on the host:
-   the sim never reloads, and the map/party colours above are untouched. */
-@keyframes fluid-hue {
-  0%, 12%  { filter: hue-rotate(0deg); }
-  17%, 29% { filter: hue-rotate(60deg); }
-  33%, 45% { filter: hue-rotate(120deg); }
-  50%, 62% { filter: hue-rotate(180deg); }
-  67%, 79% { filter: hue-rotate(240deg); }
-  83%, 95% { filter: hue-rotate(300deg); }
-  100%     { filter: hue-rotate(360deg); }
-}
-#stage > fluid-bg, #state-bento fluid-bg { animation: fluid-hue 72s linear infinite; }
-@media (prefers-reduced-motion: reduce) {
-  #stage > fluid-bg, #state-bento fluid-bg { animation: none; }
-}
+#stage { grid-area: stage; position: relative; overflow: hidden; isolation: isolate;
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: var(--grid-size) var(--grid-size); }
 #map { width: 100%; height: 100%; display: block; cursor: grab; }
 #map:active { cursor: grabbing; }
 
@@ -444,8 +409,9 @@ body.map-inspect.prn-mode .toast {
 @media (prefers-reduced-motion: reduce) { .toast { transition: opacity .2s; } }
 
 /* ============================================================
-   KD Labs font pairing — Space Grotesk (body) + Redaction (serif display)
-   self-hosted woff2 (same files as kd-labs), zero external requests
+   Type — Space Grotesk (UI + headings) + JetBrains Mono (labels).
+   Self-hosted woff2, zero external requests. Redaction is loaded only
+   because the shareable Seat card PNG (app.js canvas) is drawn in it.
    ============================================================ */
 @font-face { font-family: "Space Grotesk"; font-style: normal; font-weight: 300 700; font-display: swap;
   src: url(fonts/space-grotesk-latin.woff2) format("woff2"); }
@@ -466,12 +432,11 @@ body.map-inspect.prn-mode .toast {
 
 :root {
   --sans: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-display: "Redaction 20", Georgia, "Times New Roman", serif;
-  --font-display-fine: "Redaction", Georgia, "Times New Roman", serif;
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-display-fine: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
 }
 
-/* the pairing move: headlines in the Redaction serif, body stays Space Grotesk */
-h1, h2, .seat-head h2 { font-family: var(--font-display); font-weight: 700; letter-spacing: 0; }
+h1, h2, .seat-head h2 { font-family: var(--font-display); font-weight: 500; letter-spacing: -.02em; }
 
 /* =================================================================
    XIO-STYLE DARK FLOATING LAYOUT  (consolidated — replaces all prior
@@ -480,92 +445,48 @@ h1, h2, .seat-head h2 { font-family: var(--font-display); font-weight: 700; lett
    seat detail. Body font Space Grotesk, headlines Redaction.
    ================================================================= */
 
-/* ---- near-black palette (XIO) + light monochrome chrome ---- */
+/* ---- observatory palette: ink ground, paper text, lime accent (ADR 0019) ---- */
 :root {
-  --bg: #0e0f12; --bg-2: #181a1f; --panel: #16181c; --sea: #0e0f12;
-  --line: #2a2d33; --line-2: #383c45;
-  --ink: #e9eaed; --ink-dim: #9a9da4; --ink-faint: #6b6f77;
-  --accent: #eceef1; --accent-2: #eceef1;
-  --land: #1c2026; --land-hi: #2a2f37; --stroke: var(--bg); --select: #ffffff;
+  --bg: #101e23; --bg-2: #192b30; --panel: #16272c; --sea: #101e23;
+  --line: #33464a; --line-2: #526560;
+  --ink: #edf1df; --ink-dim: #b2c3bd; --ink-faint: #94aaa2;
+  --accent: #d6ed9a; --accent-2: #d6ed9a;
+  --land: #1c3035; --land-hi: #2b4447; --stroke: var(--bg); --select: #ffffff;
   color-scheme: dark;
-  --accent-fg: #0e0f12;
-  --badge-fg: #0e0f12;
+  --accent-fg: #101e23;
+  --badge-fg: #101e23;
   --link: var(--accent);
   --focus: var(--accent);
-  --surface-hover: #20242b;
-  --surface-hover-2: #171c24;
-  --surface-soft: rgba(255,255,255,.025);
-  --surface-soft-2: rgba(255,255,255,.04);
-  --glass: rgba(20,22,26,.72);
-  --glass-strong: rgba(20,22,26,.92);
-  --topbar-strip: rgba(9, 11, 15, .94);
-  --tooltip-bg: rgba(8,11,16,.94);
+  --surface-hover: #263c3d;
+  --surface-hover-2: #203539;
+  --surface-soft: #ffffff04;
+  --surface-soft-2: #ffffff08;
+  --glass: #16272cf2;
+  --glass-strong: #16272c;
+  --topbar-strip: #101e23;
+  --tooltip-bg: #192b30;
   --dialog-backdrop: rgba(4,7,11,.72);
   --shadow-pop: 0 14px 40px rgba(0,0,0,.5);
   --shadow-soft: 0 6px 22px rgba(0,0,0,.45);
-  --stage-top: #15171c;
-  --bento-page-top: #1a1c21;
-  --label-shadow: 0 2px 30px rgba(0,0,0,.72), 0 1px 3px rgba(0,0,0,.55);
+  --stage-top: #101e23;
+  --bento-page-top: #101e23;
+  --label-shadow: none;
   --state-emblem-bg: rgba(255,255,255,.055);
   --land-muted: #31353e;
   --danger: #b8323a;
   --danger-hi: #cc3a43;
   --danger-fg: #ffffff;
   --control-radius: 12px;
-  --grid-line: transparent;
-  --grid-size: 24px;
+  --grid-line: #edf1df06;
+  --grid-size: 72px;
   /* ---- motion vocabulary (one source of truth; compositor-only props only) ---- */
   --dur-1: 90ms; --dur-2: 140ms; --dur-3: 200ms; --dur-4: 260ms;
   --ease-out: cubic-bezier(0, 0, 0.2, 1);      /* entrances / user-triggered */
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1); /* reflow */
 }
 
-html[data-theme="light"] {
-  color-scheme: light;
-  --bg: #f5f7fa;
-  --bg-2: #ffffff;
-  --panel: #ffffff;
-  --sea: #f1f4f8;
-  --line: #d8dee8;
-  --line-2: #b7c1cd;
-  --ink: #151a21;
-  --ink-dim: #55606d;
-  --ink-faint: #64707d;
-  --accent: #151a21;
-  --accent-fg: #ffffff;
-  --accent-2: #925f00;
-  --badge-fg: #ffffff;
-  --link: #1d4ed8;
-  --focus: #2563eb;
-  --land: #dbe3ec;
-  --land-hi: #cbd5df;
-  --stroke: #ffffff;
-  --select: #111827;
-  --surface-hover: #eef2f7;
-  --surface-hover-2: #e7edf4;
-  --surface-soft: #f8fafc;
-  --surface-soft-2: #eef2f7;
-  --glass: rgba(255,255,255,.78);
-  --glass-strong: rgba(255,255,255,.94);
-  --topbar-strip: rgba(255,255,255,.94);
-  --tooltip-bg: rgba(255,255,255,.96);
-  --dialog-backdrop: rgba(15,23,42,.32);
-  --shadow-pop: none;
-  --shadow-soft: none;
-  --stage-top: #ffffff;
-  --bento-page-top: #ffffff;
-  --label-shadow: none;
-  --state-emblem-bg: rgba(15,23,42,.055);
-  --land-muted: #c6ced8;
-  --danger: #b8323a;
-  --danger-hi: #9f2932;
-  --danger-fg: #ffffff;
-  --grid-line: transparent;
-}
 
-/* fluid dashboard background: the fixed embed (z:0) paints above the page
-   background; the bento content lifts to z:1 so tiles/text stay on top.
-   #bento-content is display:contents — its children join #state-bento's flex. */
+/* #bento-content is display:contents — its children join #state-bento's flex. */
 #bento-content { display: contents; }
 body.bento-on #bento-content > * { position: relative; z-index: 1; }
 
@@ -618,11 +539,6 @@ body.state-open #map { overflow: visible; }
   min-height: calc(max(12px, env(safe-area-inset-top)) + 44px + 10px);
 }
 #topbar > * { pointer-events: auto; }
-/* Theme toggle hidden while product is dark-only (light mode unreadable on PRN). */
-.theme-toggle,
-[data-theme-toggle] {
-  display: none !important;
-}
 /* right cluster: bento close/toggle · theme (always) · hamburger — theme is last-but-menu so it stays top-right */
 .topbar-end {
   margin-left: auto;
@@ -1627,8 +1543,6 @@ button.dewan-tr:hover { background: var(--surface-hover, var(--bg-2)); }
 .sent-delta-up { color: #4dd6c1; }
 .sent-delta-down { color: #f87171; }
 .sent-delta-flat { color: var(--ink-dim); }
-html[data-theme="light"] .sent-delta-up { color: #0f766e; }
-html[data-theme="light"] .sent-delta-down { color: #b91c1c; }
 .sent-delta-label {
   font-size: 11px;
 }
@@ -3271,13 +3185,6 @@ button.map-inspect-overview:focus-visible { outline: 2px solid var(--focus); out
   animation: live-pulse 1.6s ease-in-out infinite;
 }
 @keyframes live-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .45; transform: scale(.72); } }
-@keyframes live-badge-sweep {
-  0%   { transform: translateX(-120%); opacity: 0; }
-  12%  { opacity: 1; }
-  55%  { opacity: 1; }
-  88%  { opacity: 0.35; }
-  100% { transform: translateX(220%); opacity: 0; }
-}
 @media (prefers-reduced-motion: reduce) {
   .live-dot { animation: none; }
 }
@@ -5305,132 +5212,16 @@ body.process-open #topbar .topbar-context { pointer-events: auto; }
   color: var(--ink);
   letter-spacing: 0;
 }
-/* silver shimmer sweeping through the state-title letters, left → right:
-   the text becomes a silver gradient fill (background-clip:text) whose bright
-   band travels across on a loop with a rest between passes. text-fill-color
-   beats the color rules, and the whole thing is @supports-gated so an old
-   engine keeps plain var(--ink) letters instead of transparent ones. */
-@supports ((-webkit-background-clip: text) or (background-clip: text)) {
-  .bento-gov-state-name {
-    background-image: linear-gradient(105deg,
-      #b9c0ca 0%, #b9c0ca 40%, #ffffff 50%, #b9c0ca 60%, #b9c0ca 100%);
-    background-size: 300% 100%;
-    background-position: 100% 0;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: state-name-shimmer 4.5s ease-in-out infinite;
-  }
-  /* light theme: dark letters, a silver glint passes through */
-  html[data-theme="light"] .bento-gov-state-name {
-    background-image: linear-gradient(105deg,
-      var(--ink) 0%, var(--ink) 40%, #aab5c2 50%, var(--ink) 60%, var(--ink) 100%);
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .bento-gov-state-name { animation: none; background-position: 50% 0; }
-  }
-}
-@keyframes state-name-shimmer {
-  0%   { background-position: 100% 0; }   /* band waits off the LEFT edge */
-  55%  { background-position: 0% 0; }     /* sweeps through to exit RIGHT */
-  100% { background-position: 0% 0; }     /* rest until the next pass */
-}
-/* the isolated-state map heading floats over the fluid backdrop, which is dark in
-   BOTH themes — theme ink goes near-black in light mode and vanishes against it.
-   So the heading is always light: silver shimmer (same treatment as the bento
-   state title) where background-clip:text is supported, plain light ink where not. */
-#state-label { color: #e7edf4; }
-#state-label .label-sub { color: #cfd6df; }
-#state-label .label-tier { color: #b9c0ca; border-color: rgba(231, 237, 244, .35); }
-@supports ((-webkit-background-clip: text) or (background-clip: text)) {
-  #state-label .label-main {
-    background-image: linear-gradient(105deg,
-      #b9c0ca 0%, #b9c0ca 40%, #ffffff 50%, #b9c0ca 60%, #b9c0ca 100%);
-    background-size: 300% 100%;
-    background-position: 100% 0;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: state-name-shimmer 4.5s ease-in-out infinite;
-    text-shadow: none;
-  }
-  /* the tier chip inside the heading keeps a solid fill — it's a badge, not glint */
-  #state-label .label-tier { -webkit-text-fill-color: #b9c0ca; }
-  #state-label .label-tier:hover:not(:disabled) { -webkit-text-fill-color: #e7edf4; }
-  @media (prefers-reduced-motion: reduce) {
-    #state-label .label-main { animation: none; background-position: 50% 0; }
-  }
-}
-/* seat-card district name — bigger, with the same shimmer as the state titles.
-   The card is a solid panel (white in light mode), so unlike the map heading this
-   needs BOTH theme variants: silver on dark, ink with a silver glint on light. */
+/* state titles, the map heading and seat names are plain ink — no animated
+   text fill (it overlapped inline flags and fought the flat observatory look) */
+#state-label { color: var(--ink); }
+#state-label .label-sub { color: var(--ink-dim); }
+#state-label .label-tier { color: var(--ink-dim); border-color: var(--line-2); }
 #panel .seat-head h2,
 #panel.seat-detail #state-info .seat-head h2,
 .seat-head h2 {
   font-size: clamp(26px, 2.4vw, 34px);
   line-height: 1.05;
-}
-@supports ((-webkit-background-clip: text) or (background-clip: text)) {
-  .seat-head h2 {
-    background-image: linear-gradient(105deg,
-      #b9c0ca 0%, #b9c0ca 40%, #ffffff 50%, #b9c0ca 60%, #b9c0ca 100%);
-    background-size: 300% 100%;
-    background-position: 100% 0;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: state-name-shimmer 4.5s ease-in-out infinite;
-  }
-  html[data-theme="light"] .seat-head h2 {
-    background-image: linear-gradient(105deg,
-      var(--ink) 0%, var(--ink) 40%, #aab5c2 50%, var(--ink) 60%, var(--ink) 100%);
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .seat-head h2 { animation: none; background-position: 50% 0; }
-  }
-}
-/* the same silver glint sweeps through every search-bar placeholder (home card,
-   bento seat search, politician directory, map-inspect district filter). The base
-   stays ink-faint so it still reads as a placeholder; only the passing band lights
-   up. Same @supports gate: without background-clip:text the plain ::placeholder
-   color rules above keep working and nothing turns transparent. */
-@supports ((-webkit-background-clip: text) or (background-clip: text)) {
-  .search input::placeholder,
-  .bento-q::placeholder,
-  .pol-dir-search::placeholder,
-  .map-inspect-search::placeholder {
-    background-image: linear-gradient(105deg,
-      var(--ink-faint) 0%, var(--ink-faint) 40%, #dbe3ec 50%, var(--ink-faint) 60%, var(--ink-faint) 100%);
-    background-size: 300% 100%;
-    background-position: 100% 0;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: state-name-shimmer 4.5s ease-in-out infinite;
-  }
-  /* light theme: faint letters, a darker-silver glint passes through */
-  html[data-theme="light"] .search input::placeholder,
-  html[data-theme="light"] .bento-q::placeholder,
-  html[data-theme="light"] .pol-dir-search::placeholder,
-  html[data-theme="light"] .map-inspect-search::placeholder {
-    background-image: linear-gradient(105deg,
-      var(--ink-faint) 0%, var(--ink-faint) 40%, #aab5c2 50%, var(--ink-faint) 60%, var(--ink-faint) 100%);
-  }
-  /* hover-preview keeps its brighter text: same shimmer, ink base instead of faint */
-  .bento-q.is-hover-preview::placeholder {
-    background-image: linear-gradient(105deg,
-      var(--ink) 0%, var(--ink) 40%, #ffffff 50%, var(--ink) 60%, var(--ink) 100%);
-  }
-  html[data-theme="light"] .bento-q.is-hover-preview::placeholder {
-    background-image: linear-gradient(105deg,
-      var(--ink) 0%, var(--ink) 40%, #aab5c2 50%, var(--ink) 60%, var(--ink) 100%);
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .search input::placeholder,
-    .bento-q::placeholder,
-    .pol-dir-search::placeholder,
-    .map-inspect-search::placeholder { animation: none; background-position: 50% 0; }
-  }
 }
 /* Stable generous frame; object-fit:contain keeps portrait and landscape crests whole. */
 .bento-gov-emblem-pane .state-emblem,
@@ -5489,9 +5280,6 @@ body.process-open #topbar .topbar-context { pointer-events: auto; }
 .bento-gov-id strong { font-size: 18px; line-height: 1.2; }
 .bento-gov-id p { margin: 4px 0 0; font-size: 13px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .bento-gov .yb-credit { margin: 4px 0 0; font-size: 10px; }
-html[data-theme="light"] .bento-gov-emblem-pane {
-  border-right-color: rgba(15, 23, 42, 0.08);
-}
 @media (max-width: 1100px) {
   .bento-gov-split { grid-template-columns: minmax(125px, .85fr) minmax(0, 1.25fr); gap: 16px; }
   .bento-donut { gap: 12px; }
@@ -5722,35 +5510,6 @@ body.politicians-open #top-controls { display: none; }
   margin-top: 14px; padding: 14px 16px;
   background: var(--bg-1, rgba(20, 22, 26, .55)); border: 1px solid var(--line); border-radius: 16px;
 }
-/* Light mode: translucent dark strip was unreadable on the grid — solid soft-red card */
-html[data-theme="light"] .bento-news {
-  background: #fde8e6;
-  border: 1px solid #f0b4ae;
-  color: #1a1c20;
-  box-shadow: none;
-}
-html[data-theme="light"] .bento-news-title {
-  color: #b42318;
-}
-html[data-theme="light"] .bento-news-all {
-  color: #b42318;
-}
-html[data-theme="light"] .bento-news .news-t {
-  color: #14161a;
-  font-weight: 600;
-}
-html[data-theme="light"] .bento-news .news-meta {
-  color: #6b4a47;
-}
-html[data-theme="light"] .bento-news-note {
-  color: #7a5c58;
-}
-html[data-theme="light"] .bento-news .news-link:hover {
-  background: color-mix(in oklab, #f8877f 22%, #fff);
-}
-html[data-theme="light"] .bento-news .muted {
-  color: #7a5c58;
-}
 .bento-news-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
 .bento-news-title { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .01em; }
 /* full campaign-news list (no separate News nav page) */
@@ -5847,31 +5606,11 @@ html[data-theme="light"] .bento-news .muted {
 }
 .sb-state-emblem.state-emblem-fallback { padding: 0; font-size: 9.5px; }
 /* hovering a state on the map (or its sidebar row) glints its sidebar emblem:
-   the tile pops up slightly and a diagonal glare band sweeps across it on the
-   shared shimmer keyframes — the emblem's overflow:hidden clips the band to
-   the rounded tile. */
+   the tile pops up slightly. */
 .sb-state.is-map-hover .sb-state-emblem {
   transform: translateY(-2px) scale(1.14);
   /* keep the base inset edge, add lift shadow */
   box-shadow: inset 0 0 0 1px rgba(0,0,0,.16), 0 4px 10px rgba(0,0,0,.4);
-}
-.sb-state.is-map-hover .sb-state-emblem::after {
-  content: "";
-  position: absolute; inset: 0;
-  background-image: linear-gradient(105deg,
-    transparent 0%, transparent 40%, rgba(255,255,255,.7) 50%, transparent 60%, transparent 100%);
-  background-size: 300% 100%;
-  background-position: 100% 0;
-  animation: state-name-shimmer 2.4s ease-in-out infinite;
-  pointer-events: none;
-}
-/* light theme: a white glare vanishes on the pale tile — sweep silver instead */
-html[data-theme="light"] .sb-state.is-map-hover .sb-state-emblem::after {
-  background-image: linear-gradient(105deg,
-    transparent 0%, transparent 40%, rgba(170,181,194,.6) 50%, transparent 60%, transparent 100%);
-}
-@media (prefers-reduced-motion: reduce) {
-  .sb-state.is-map-hover .sb-state-emblem::after { animation: none; background-position: 50% 0; }
 }
 .sb-state-name {
   min-width: 0;
@@ -5933,26 +5672,6 @@ html[data-theme="light"] .sb-state.is-map-hover .sb-state-emblem::after {
   background: color-mix(in oklab, var(--danger) 24%, transparent);
   text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
 }
-.sb-state.is-election::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 55%;
-  z-index: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    color-mix(in oklab, var(--danger) 42%, transparent) 45%,
-    color-mix(in oklab, var(--danger) 14%, transparent) 70%,
-    transparent 100%
-  );
-  transform: translateX(-120%);
-  animation: live-badge-sweep 2.4s ease-in-out infinite;
-  pointer-events: none;
-  will-change: transform;
-}
 .sb-state.is-election > * { position: relative; z-index: 1; }
 .sb-state.is-election .sb-state-name { color: #fff; }
 .sb-state.is-election:hover {
@@ -5965,9 +5684,6 @@ html[data-theme="light"] .sb-state.is-map-hover .sb-state-emblem::after {
   background: color-mix(in oklab, var(--danger) 42%, transparent);
   border-color: color-mix(in oklab, var(--danger) 80%, transparent);
   font-weight: 650;
-}
-@media (prefers-reduced-motion: reduce) {
-  .sb-state.is-election::before { display: none; animation: none; }
 }
 .sb-foot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 2px; }
 .sb-small { width: auto; font-size: 12.5px; padding: 7px 9px; }
@@ -6059,10 +5775,10 @@ html[data-theme="light"] .sb-state.is-map-hover .sb-state-emblem::after {
    the sidebar/topbar/bento which only exist on wide screens).
    ============================================================================ */
 :root {
-  --snow-page: #16181c;
-  --snow-card: #212429;
-  --snow-inner: #2a2d33;
-  --snow-inner-hi: #33373e;
+  --snow-page: #101e23;
+  --snow-card: #192b30;
+  --snow-inner: #22363a;
+  --snow-inner-hi: #2b4447;
   --snow-blue: #8AB4F8;
   --snow-peri: #C6C7F8;
   --snow-green: #A1E3CB;
@@ -6076,27 +5792,10 @@ html[data-theme="light"] .sb-state.is-map-hover .sb-state-emblem::after {
   --snow-green-fill: var(--snow-green);
   --snow-red-fill: var(--snow-red);
   --snow-dark-ink: #14161A;
-  --snow-card-glass: color-mix(in oklab, var(--snow-card) 95%, transparent);
-  --snow-inner-glass: color-mix(in oklab, var(--snow-inner) 84%, transparent);
+  --snow-card-glass: var(--snow-card);
+  --snow-inner-glass: var(--snow-inner);
 }
 
-html[data-theme="light"] {
-  --snow-page: #f3f5f8;
-  --snow-card: #ffffff;
-  --snow-inner: #edf1f5;
-  --snow-inner-hi: #e2e7ee;
-  --snow-blue-fg: #2f64a3;
-  --snow-peri-fg: #5d5aa8;
-  --snow-green-fg: #247a61;
-  --snow-red-fg: #b5473f;
-  --snow-blue-fill: #dbeaff;
-  --snow-peri-fill: #e6e3ff;
-  --snow-green-fill: #d8f2e7;
-  --snow-red-fill: #ffe0dd;
-  --snow-dark-ink: #161a22;
-  --snow-card-glass: color-mix(in oklab, var(--snow-card) 96%, transparent);
-  --snow-inner-glass: color-mix(in oklab, var(--snow-inner) 88%, transparent);
-}
 /* tiles: near-solid glass, slightly 3D — a lit top edge (inset highlight) +
    tight contact shadow + soft ambient lift, and a whisper of top-light gradient
    on the surface. Dark mode leans on the highlight (shadows read poorly on
@@ -6110,14 +5809,6 @@ html[data-theme="light"] {
     0 1px 2px rgba(0,0,0,.35),
     0 14px 34px -14px rgba(0,0,0,.55);
 }
-html[data-theme="light"] .bento-tile {
-  border-color: rgba(15,23,42,.08);
-  background-image: none;
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.9),
-    0 1px 2px rgba(15,23,42,.06),
-    0 12px 28px -12px rgba(15,23,42,.16);
-}
 .bento-grid { gap: 16px; }
 /* card titles: sentence case, coloured per card (SnowUI-style), set in the
    display face to echo the state title */
@@ -6128,9 +5819,6 @@ html[data-theme="light"] .bento-tile {
 .bento-gov > .bento-kicker,
 .bento-gov-yb-pane > .bento-kicker { color: var(--snow-blue-fg); }
 .bento-gov-state-name { color: var(--ink); }
-html[data-theme="light"] .bento-gov-emblem-pane {
-  border-right-color: rgba(15, 23, 42, 0.08);
-}
 .bento-stand > .bento-kicker { color: var(--snow-peri-fg); }
 .bento-records > .bento-kicker { color: var(--snow-green-fg); }
 .bento-econ > .bento-kicker { color: var(--snow-red-fg); }
@@ -6209,13 +5897,6 @@ html[data-theme="light"] .bento-gov-emblem-pane {
 .bento-explore-spot { border-left-color: var(--snow-inner-hi); }
 .bento-stats-inner .bento-econ { border-left-color: var(--snow-inner-hi); }
 .bento-ctx dt, .bento-ctx dd { border-bottom-color: var(--snow-inner); }
-.theme-toggle { position: relative; }
-.theme-toggle .theme-sun,
-.theme-toggle .theme-moon { grid-area: 1 / 1; transition: opacity .12s ease, transform .12s ease; }
-html[data-theme="dark"] .theme-toggle .theme-sun,
-html[data-theme="light"] .theme-toggle .theme-moon { opacity: 1; transform: scale(1); }
-html[data-theme="dark"] .theme-toggle .theme-moon,
-html[data-theme="light"] .theme-toggle .theme-sun { opacity: 0; transform: scale(.82); pointer-events: none; }
 
 /* ===== politician bento: vacancy chips (directory card + profile hero) ===== */
 .cand-vacant-chip {
@@ -6228,10 +5909,6 @@ html[data-theme="light"] .theme-toggle .theme-sun { opacity: 0; transform: scale
   border: 1px solid rgba(210, 162, 76, .55); color: #d2a24c; background: rgba(210, 162, 76, .1);
   font-family: var(--mono); font-size: 8.5px; font-weight: 700;
   letter-spacing: .05em; text-transform: uppercase; vertical-align: 2px;
-}
-html[data-theme="light"] .cand-vacant-chip,
-html[data-theme="light"] .pol-card-vacant {
-  color: #8a6116; border-color: rgba(138, 97, 22, .5); background: rgba(210, 162, 76, .16);
 }
 
 /* ===== MP legislative record & voting styles ===== */
@@ -6414,35 +6091,6 @@ html[data-theme="light"] .pol-card-vacant {
   line-height: 1.3;
 }
 
-html[data-theme="light"] .vote-pill.vote-aye {
-  background: color-mix(in oklab, #0f766e 15%, transparent);
-  color: #0f766e;
-  border-color: rgba(15, 118, 110, .4);
-}
-html[data-theme="light"] .vote-pill.vote-no {
-  background: color-mix(in oklab, #b91c1c 15%, transparent);
-  color: #b91c1c;
-  border-color: rgba(185, 28, 28, .4);
-}
-html[data-theme="light"] .vote-pill.vote-abstain {
-  background: color-mix(in oklab, #b45309 15%, transparent);
-  color: #b45309;
-  border-color: rgba(180, 83, 9, .4);
-}
-html[data-theme="light"] .vote-pill.vote-absent {
-  background: rgba(0, 0, 0, .06);
-  color: #555;
-  border-color: rgba(0, 0, 0, .15);
-}
-html[data-theme="light"] .pill-model {
-  background: color-mix(in oklab, #b45309 12%, transparent);
-  color: #b45309;
-  border-color: color-mix(in oklab, #b45309 35%, transparent);
-}
-html[data-theme="light"] .yb-coalition-note,
-html[data-theme="light"] .pol-card-coal-diff {
-  color: #8a6116;
-}
 
 /* Flat card policy: no decorative accent rail on an individual row or card. */
 .cand-news-list a {
@@ -6451,11 +6099,108 @@ html[data-theme="light"] .pol-card-coal-diff {
 }
 .results button.active { box-shadow: none; }
 
-/* White mode is deliberately flat: suppress elevation from legacy and future components. */
-html[data-theme="light"],
-html[data-theme="light"] *,
-html[data-theme="light"] *::before,
-html[data-theme="light"] *::after {
-  box-shadow: none !important;
-  text-shadow: none !important;
+
+/* =================================================================
+   OBSERVATORY LAYOUT (ADR 0019) — flat panels on a quiet grid.
+   Desktop national overview puts the map beside a full-height explorer
+   panel; state and Seat framing keep the runtime's measured map band.
+   ================================================================= */
+#topbar {
+  background: var(--bg); border-bottom: 1px solid var(--line);
+  padding: 12px 24px; min-height: 74px;
+}
+.site-home { display: inline-flex; align-items: center; gap: 13px; color: var(--ink); font-size: 23px; letter-spacing: -1px; }
+.site-home span { color: var(--accent); }
+.site-home:hover { text-decoration: none; }
+.tool-name { border-left: 1px solid var(--line); margin-left: 14px; padding-left: 22px; color: var(--ink-dim); font-size: 12px; }
+#topbar .brand-home, #topbar-context { display: none; }
+#topbar-actions:not([hidden]) { display: inline-flex; }
+#sidebar { border-right: 1px solid var(--line); overflow-y: auto; }
+.sb-brand { letter-spacing: -.8px; }
+.sb-item, .sb-collapse, .seg, .search input, .map-inspect-select-button { border-radius: 5px; }
+.sb-nav { flex-shrink: 0; }
+.sb-nav .sb-item.on { color: var(--accent); background: #d6ed9a12; }
+.sb-section { color: var(--ink-dim); }
+.sb-states { min-height: 96px; }
+#panel-empty, #panel-seat, #panel-state { border-radius: 8px; border-color: var(--line); }
+#panel-empty { padding: 22px; }
+
+.explorer-eyebrow, .explorer-filter-label { font: 10px/1.6 var(--mono); letter-spacing: .09em; color: var(--accent); margin: 0 0 16px; }
+.explorer-intro h1 { font: 500 38px/1.08 var(--sans); letter-spacing: -1.8px; margin: 0 0 16px; white-space: pre-line; }
+.explorer-desc { color: var(--ink-dim); font-size: 13px; line-height: 1.65; margin: 0 0 28px; }
+.explorer-search-label { display: block; font-size: 12px; margin-bottom: 10px; color: var(--ink); }
+.explorer-filter-label { color: var(--ink-dim); margin: 16px 0 8px; }
+#panel-empty .search-row { display: block; }
+#panel-empty .search-main { width: 100%; }
+#panel-empty .search input { font-family: var(--sans); font-size: 13px; background: var(--bg); }
+#panel-empty .find-actions { width: 100%; gap: 8px; }
+#panel-empty .seg { flex: 1; }
+#panel-empty .seg button { flex: 1; padding: 10px 8px; min-height: 44px; font-size: 11px; }
+#panel-empty .loc-fab { border-radius: 5px; background: var(--accent); color: var(--bg); }
+#nat-glance { border-top: 1px solid var(--line); padding-top: 20px; margin-top: 22px; }
+#nat-glance .nat-glance-h, #nat-glance .nat-glance-maj { display: block; font-size: 10px; line-height: 1.6; color: var(--ink-dim); margin: 0 0 10px; }
+#nat-glance .nat-glance-maj { margin: 10px 0 0; }
+#nat-glance .sharebar-key { display: flex; opacity: 1; max-height: none; height: auto; overflow: visible; margin-top: 12px; transform: none; }
+#nat-glance .sharebar { height: 6px; border-radius: 0; }
+.explorer-honesty { font-size: 11px; line-height: 1.7; color: var(--ink-dim); border-top: 1px solid var(--line); padding-top: 18px; margin: 20px 0 12px; }
+.sources-btn { background: none; border: none; padding: 8px 0; min-height: 44px; color: var(--accent); font: 500 12px var(--sans); cursor: pointer; }
+.sources-btn:hover { text-decoration: underline; }
+
+.seat-head h2 { letter-spacing: -1px; }
+#panel .seat-head h2 { font-size: 28px; font-weight: 500; }
+.card-preview, #info-card { border-radius: 8px; }
+.card-preview-head { border-bottom: 1px solid var(--line); }
+.card-preview-actions button { border-radius: 5px; }
+.preview-download, #embed-copy-btn { background: var(--accent); color: var(--bg); }
+.embed-preview-box { background: var(--bg); border-radius: 5px; }
+#embed-iframe-preview { height: 360px; }
+.bento-tile { border: 1px solid var(--line); border-radius: 8px; box-shadow: none; background-image: none; }
+#state-label { font-weight: 500; letter-spacing: -1px; }
+#state-label .label-main { font-weight: 500; }
+
+/* compact screens: the phone menu lists every destination in words */
+.map-controls-btn, .mobile-nav { display: none; }
+
+@media (min-width: 1000px) {
+  body.map-overview #stage { right: 380px; }
+  body.map-overview #map { margin-top: 112px; height: calc(100dvh - 160px); }
+  body.map-overview #panel { left: auto; right: 24px; top: 98px; bottom: 24px; width: 332px; padding: 0; align-items: stretch; }
+  body.map-overview #panel-empty { max-height: none; height: 100%; padding: 26px 22px; }
+}
+@media (max-width: 999px) {
+  .explorer-intro { display: grid; grid-template-columns: 1fr 1fr; column-gap: 20px; align-items: start; }
+  .explorer-eyebrow { grid-column: 1 / -1; margin-bottom: 8px; }
+  .explorer-intro h1 { font-size: 26px; letter-spacing: -1px; margin-bottom: 16px; }
+  .explorer-desc { font-size: 11px; line-height: 1.5; margin-bottom: 12px; }
+  #nat-glance { margin-top: 14px; padding-top: 12px; }
+  #nat-glance .nat-glance-h, #nat-glance .nat-glance-maj { display: none; }
+  .explorer-honesty { margin: 12px 0 0; padding-top: 12px; }
+  #panel-empty { padding: 16px; }
+  .explorer-search-label { margin-bottom: 6px; }
+}
+@media (max-width: 760px) {
+  .seat-detail-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .seat-detail-actions [data-share-link] { display: none; }
+  .seat-detail-action { font-size: 12px; padding: 10px; }
+}
+@media (max-width: 639px) {
+  #topbar { min-height: 66px; padding: max(10px, env(safe-area-inset-top)) 14px 10px; gap: 8px; }
+  .site-home { font-size: 20px; gap: 8px; }
+  .tool-name { display: none; }
+  .explorer-intro h1 { font-size: 23px; }
+  .explorer-eyebrow { font-size: 9px; }
+  #panel-empty .seg button { font-size: 10px; }
+  .explorer-filter-label { display: none; }
+  #nat-glance .sharebar-key { font-size: 10px; gap: 5px 10px; }
+  .explorer-honesty { font-size: 10px; }
+  #panel .seat-head h2 { font-size: 25px; }
+  .map-controls-btn { display: block; margin-top: 8px; padding: 8px 0; min-height: 44px; background: none; color: var(--accent); border: none; font: 12px var(--sans); cursor: pointer; }
+  .mobile-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; border-top: 1px solid var(--line); padding-top: 8px; }
+  .mobile-nav a { display: flex; align-items: center; min-height: 44px; font-size: 12px; color: var(--ink); border-bottom: 1px solid var(--line); }
+  .mobile-nav a::after { content: " ↗"; white-space: pre; color: var(--ink-dim); }
+  #mobile-menu { max-height: calc(100dvh - 84px); overflow-y: auto; background: var(--panel); }
+  #mobile-menu .topicons > a, #mobile-menu #top-map { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }

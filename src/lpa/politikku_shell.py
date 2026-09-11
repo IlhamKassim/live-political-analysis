@@ -837,20 +837,6 @@ _CSS_TEMPLATE = """
     unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
   }
   @font-face {
-    font-family: "Redaction 20";
-    font-style: normal;
-    font-weight: 400;
-    font-display: swap;
-    src: url(/fonts/redaction-20-latin.woff2) format("woff2");
-  }
-  @font-face {
-    font-family: "Redaction 20";
-    font-style: normal;
-    font-weight: 700;
-    font-display: swap;
-    src: url(/fonts/redaction-20-bold-latin.woff2) format("woff2");
-  }
-  @font-face {
     font-family: "JetBrains Mono";
     font-style: normal;
     font-weight: 400 600;
@@ -867,33 +853,33 @@ _CSS_TEMPLATE = """
   }
 
   :root {
-    --paper: #0b0e13;
-    --paper-alt: #11151d;
-    --white: #0e1219;
-    --ink: #e7edf4;
-    --ink-secondary: #93a1b3;
-    --muted: #708096;
-    --line: #1d2733;
-    --line-soft: #161e28;
-    --line-strong: #2a3645;
-    --accent: #4dd6c1;
-    --accent-on-dark: #4dd6c1;
+    --paper: #101e23;
+    --paper-alt: #192b30;
+    --white: #16272c;
+    --ink: #edf1df;
+    --ink-secondary: #b2c3bd;
+    --muted: #94aaa2;
+    --line: #33464a;
+    --line-soft: #22363a;
+    --line-strong: #526560;
+    --accent: #d6ed9a;
+    --accent-on-dark: #d6ed9a;
     --caution: #ffd166;
     --caution-deep: #ffd166;
     --caution-bg: rgba(255, 209, 102, .12);
     --caution-border: rgba(255, 209, 102, .35);
-    --positive-bg: rgba(77, 214, 193, .12);
-    --positive-border: rgba(77, 214, 193, .35);
-    --data-government: #e7edf4;
+    --positive-bg: rgba(214, 237, 154, .12);
+    --positive-border: rgba(214, 237, 154, .35);
+    --data-government: #edf1df;
     --data-noise: #3a4757;
     --data-nongovernment: #7d8fa3;
-    --on-dark-body: #93a1b3;
-    --on-dark-muted: #708096;
-    --nav-active-rule: #4dd6c1;
+    --on-dark-body: #b2c3bd;
+    --on-dark-muted: #94aaa2;
+    --nav-active-rule: #d6ed9a;
 
     --serif: var(--font-display);
     --sans: "Space Grotesk", system-ui, -apple-system, sans-serif;
-    --font-display: "Redaction 20", Georgia, "Times New Roman", serif;
+    --font-display: "Space Grotesk", system-ui, -apple-system, sans-serif;
     --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
     --radius-sm: 3px;
@@ -1150,7 +1136,7 @@ _CSS_TEMPLATE = """
 }
 .pill {
   display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600;
-  font-family: var(--mono); color: #0b0e13;
+  font-family: var(--mono); color: #101e23;
 }
 .pill-model {
   font-size: 10px;

@@ -1,5 +1,10 @@
 # `mypolitik`'s design system replaces PolitikKu's navy/paper shell
 
+> **Amended by [ADR 0019](0019-observatory-palette-replaces-the-xio-near-black-skin.md):**
+> the one design system keeps its structure but now uses the observatory
+> palette (ink `#101e23`, lime `#d6ed9a`), Space Grotesk headings, and no
+> light theme or animated background.
+
 > **Completes [ADR 0012](0012-mypolitik-frontend-supersedes-the-print-register.md).**
 > ADR 0012 named `mypolitik`'s visual language the surviving frontend design
 > system, but retired only one of the two design systems it beat. The print

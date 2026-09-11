@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
 <title>PolitikKu — Map Malaysia's Representatives</title>
 <!-- asset-v:100 -->
 <meta name="description" data-i18n-content="meta_desc" content="Interactive map of every Malaysian Parliament and State (DUN) seat. Click your area to see the representative, party, and performance — public data, computed transparently." />
-<meta name="theme-color" content="#0e0f12" />
+<meta name="theme-color" content="#101e23" />
 <link rel="icon" href="/favicon.ico?v=3" sizes="any" />
 <link rel="icon" href="/app/assets/icon.svg?v=3" type="image/svg+xml" />
 <link rel="icon" type="image/png" sizes="32x32" href="/app/assets/icon-32x32.png?v=3" />
@@ -23,16 +23,8 @@
 <meta name="twitter:title" data-i18n-content="title" content="PolitikKu — Map Malaysia's Representatives" />
 <meta name="twitter:description" data-i18n-content="meta_desc" content="Interactive map of every Malaysian Parliament and State (DUN) seat. Click your area to see the representative, party, and performance — public data, computed transparently." />
 <meta name="twitter:image" content="https://politikku.my/assets/og-card.svg" />
-<script src="https://cdn.jsdelivr.net/npm/fluid-bg" defer></script>
 <script>
 (() => {
-  // Product is dark-only for now — light mode had unreadable PRN / map chrome.
-  try {
-    document.documentElement.dataset.theme = "dark";
-    localStorage.setItem("mypolitik-theme", "dark");
-  } catch (_) {
-    document.documentElement.dataset.theme = "dark";
-  }
   // Approximate map band before app.js measures the card — kills the "map under
   // the final map" flash when --map-h/--map-top jump on first syncMapToCard.
   try {
@@ -52,9 +44,9 @@
   } catch (_) {}
 })();
 </script>
-<link rel="stylesheet" href="/app/styles.css?v=163" />
+<link rel="stylesheet" href="/app/styles.css?v=164" />
 </head>
-<body>
+<body class="map-overview">
 <aside id="sidebar" aria-label="Navigation">
   <div class="sb-top">
     <button id="sb-brand" class="sb-brand" type="button" data-i18n-aria="home_aria" aria-label="Show the whole map">
@@ -91,6 +83,8 @@
 </aside>
 <div id="app">
   <header id="topbar">
+    <a class="site-home" href="/" data-i18n-aria="site_home_aria" aria-label="PolitikKu home">PolitikKu<span aria-hidden="true">↗</span></a>
+    <span class="tool-name" data-i18n="tool_name">The Seat map</span>
     <button id="brand-home" class="brand brand-home" type="button" data-i18n-aria="home_aria" aria-label="Show the whole map" data-i18n-title="home_aria" title="Show the whole map">
       <span class="mark"><svg class="brand-mark" viewBox="0 0 32 32" width="20" height="20" aria-hidden="true"><path d="M3 28V4h8v24M15 28V4h7l7 8-7 8h-7" fill="none" stroke="currentColor" stroke-width="3"/></svg> <span class="brand-word">Politik<b>Ku</b></span></span>
     </button>
@@ -107,10 +101,6 @@
         <button data-lang="en" class="on" role="tab" aria-selected="true" aria-label="English">EN</button>
         <button data-lang="ms" role="tab" aria-selected="false" aria-label="Bahasa Melayu">BM</button>
       </div>
-      <button id="top-theme" class="iconbtn theme-toggle topbar-theme" type="button" data-theme-toggle aria-label="Switch theme" title="Switch theme">
-        <svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.4"/><path d="M12 2.8v2.1"/><path d="M12 19.1v2.1"/><path d="M4.9 4.9l1.5 1.5"/><path d="m17.6 17.6 1.5 1.5"/><path d="M2.8 12h2.1"/><path d="M19.1 12h2.1"/><path d="m4.9 19.1 1.5-1.5"/><path d="m17.6 6.4 1.5-1.5"/></svg>
-        <svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.1 14.3A7.7 7.7 0 0 1 9.7 3.9 8.4 8.4 0 1 0 20.1 14.3z"/></svg>
-      </button>
       <button id="mobile-menu-btn" class="iconbtn mobile-menu-btn" type="button" data-i18n-aria="mobile_menu_aria" aria-label="Open menu" aria-controls="mobile-menu" aria-expanded="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M5 7h14"/><path d="M5 12h14"/><path d="M5 17h14"/></svg>
       </button>
@@ -171,7 +161,6 @@
   </div>
 
   <main id="stage">
-    <fluid-bg fixed z="-1" hash="#p=0.82,1.65,1.9,0.025,1,15,0,6,20.77,0,0,1.5,0,0,14,0,0,0,0,0,0,0,0,0,0.37,0,0,0,3"></fluid-bg>
     <svg id="map" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" data-i18n-aria="map_aria" aria-label="Map of Malaysia's electoral seats">
       <defs>
         <pattern id="selected-district-lines" patternUnits="userSpaceOnUse" width="4.5" height="4.5" patternTransform="rotate(45)">
@@ -194,6 +183,13 @@
 
   <aside id="panel" class="empty">
     <div id="panel-empty">
+      <div class="explorer-intro">
+        <p class="explorer-eyebrow" data-i18n="explorer_eyebrow">MALAYSIA / SEAT EXPLORER</p>
+        <h1 data-i18n="explorer_heading">Explore the
+Seat map.</h1>
+        <p class="explorer-desc" data-i18n="explorer_desc">Choose a state on the map, or search for a Seat and explore its record.</p>
+      </div>
+      <label class="explorer-search-label" for="q" data-i18n="explorer_search">Find a Seat</label>
       <div class="search-row">
         <div class="search-main">
           <div class="search">
@@ -204,6 +200,8 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="2" x2="5" y1="12" y2="12"/><line x1="19" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="5"/><line x1="12" x2="12" y1="19" y2="22"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>
           </button>
         </div>
+        <p class="explorer-filter-label" data-i18n="explorer_filters">SEAT LAYER / COLOUR BY</p>
+        <button type="button" class="map-controls-btn" id="map-controls-btn" data-i18n="explorer_map_controls" aria-controls="mobile-menu">Layers &amp; colours ↗</button>
         <div class="find-actions">
           <div class="seg chip" id="tier" role="tablist" data-i18n-aria="aria_tier" aria-label="Seat layer">
             <button data-tier="parlimen" class="on" role="tab" aria-selected="true" data-i18n="tier_parlimen">Parliament</button>
@@ -222,6 +220,8 @@
         <div id="nat-key" class="sharebar-key"></div>
         <div class="nat-glance-maj" data-i18n="simple_majority" hidden>Simple majority = 112 seats</div>
       </div>
+      <p class="explorer-honesty" data-i18n="explorer_honesty">Election results are records. A Projection is an estimate. Follow the sources to see the difference.</p>
+      <button type="button" class="sources-btn" id="sources-btn" data-i18n="explorer_sources">Data &amp; sources ↗</button>
       <p id="find-status" class="find-status" role="status" aria-live="polite" hidden></p>
       <details id="empty-more" class="empty-more" hidden>
         <summary data-i18n="empty_more">Explore</summary>
@@ -335,7 +335,7 @@
   </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 </div>
-<script type="module" src="/app/app.js?v=164"></script>
+<script type="module" src="/app/app.js?v=165"></script>
 </body>
 </html>
  
