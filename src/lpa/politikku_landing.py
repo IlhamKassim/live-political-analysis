@@ -16,6 +16,7 @@ tree during the same build that writes the English and Bahasa pages.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html
 import json
 import re
@@ -475,25 +476,40 @@ def _observatory_body(model: LandingModel | None, language: Language) -> str:
     return body.strip()
 
 
+_OBSERVATORY_ASSET_PREFIX = "/assets/observatory/"
+_OBSERVATORY_ASSETS = {
+    "style.css": _OBSERVATORY_PAGE / "style.css",
+    "integrated.js": _OBSERVATORY_PAGE / "integrated.js",
+    "scrollcraft.js": _OBSERVATORY_PAGE / "scrollcraft.js",
+    "scrollcraft.css": _OBSERVATORY_PAGE / "scrollcraft.css",
+    "skyline.png": _OBSERVATORY_PAGE / "assets" / "skyline.png",
+    "icon.svg": _OBSERVATORY_PAGE / "icon.svg",
+    "base.css": _OBSERVATORY_SHARED / "base.css",
+    "sans.woff2": _OBSERVATORY_SHARED / "sans.woff2",
+    "serif.woff2": _OBSERVATORY_SHARED / "serif.woff2",
+    "grotesk.woff2": _OBSERVATORY_SHARED / "grotesk.woff2",
+}
+"""Published name under `/assets/observatory/` → the source file copied there."""
+
+
+def _observatory_asset_url(name: str) -> str:
+    """The asset's URL, tagged with a hash of its contents (`style.css?v=…`)
+    so a deploy that changes it can't be paired with a copy a browser cached
+    from before — GitHub Pages lets browsers reuse files for ten minutes.
+    Hashed from the source, which `_copy_observatory_assets` publishes
+    byte-for-byte. Fonts are not passed through here: the preload must use
+    the same URL as the stylesheet's `url()`, or the font is fetched twice."""
+    digest = hashlib.sha256(_OBSERVATORY_ASSETS[name].read_bytes()).hexdigest()[:10]
+    return f"{_OBSERVATORY_ASSET_PREFIX}{name}?v={digest}"
+
+
 def _copy_observatory_assets(output_dir: Path) -> None:
     target = output_dir / "assets" / "observatory"
     target.mkdir(parents=True, exist_ok=True)
-    assets = (
-        (_OBSERVATORY_PAGE / "style.css", target / "style.css"),
-        (_OBSERVATORY_PAGE / "integrated.js", target / "integrated.js"),
-        (_OBSERVATORY_PAGE / "scrollcraft.js", target / "scrollcraft.js"),
-        (_OBSERVATORY_PAGE / "scrollcraft.css", target / "scrollcraft.css"),
-        (_OBSERVATORY_PAGE / "assets" / "skyline.png", target / "skyline.png"),
-        (_OBSERVATORY_PAGE / "icon.svg", target / "icon.svg"),
-        (_OBSERVATORY_SHARED / "base.css", target / "base.css"),
-        (_OBSERVATORY_SHARED / "sans.woff2", target / "sans.woff2"),
-        (_OBSERVATORY_SHARED / "serif.woff2", target / "serif.woff2"),
-        (_OBSERVATORY_SHARED / "grotesk.woff2", target / "grotesk.woff2"),
-    )
-    for source, destination in assets:
+    for name, source in _OBSERVATORY_ASSETS.items():
         if not source.is_file():
             raise ValueError(f"Missing Observatory asset: {source}")
-        shutil.copy2(source, destination)
+        shutil.copy2(source, target / name)
 
 
 def render_landing_body(model: LandingModel | None = None, language: Language = Language.EN) -> str:
@@ -537,15 +553,15 @@ def render_landing_page(model: LandingModel | None = None, language: Language = 
 <link rel="icon" type="image/png" sizes="16x16" href="/app/assets/icon-16x16.png?v=3">
 <link rel="apple-touch-icon" sizes="180x180" href="/app/assets/apple-touch-icon.png?v=3">
 <link rel="preload" href="/assets/observatory/grotesk.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/observatory/base.css">
-<link rel="stylesheet" href="/assets/observatory/scrollcraft.css">
-<link rel="stylesheet" href="/assets/observatory/style.css">
+<link rel="stylesheet" href="{_observatory_asset_url("base.css")}">
+<link rel="stylesheet" href="{_observatory_asset_url("scrollcraft.css")}">
+<link rel="stylesheet" href="{_observatory_asset_url("style.css")}">
 <title>{escaped_title}</title>
 </head>
 <body class="pk-bare">
 {render_landing_body(model, language)}
-<script defer src="/assets/observatory/scrollcraft.js"></script>
-<script defer src="/assets/observatory/integrated.js"></script>
+<script defer src="{_observatory_asset_url("scrollcraft.js")}"></script>
+<script defer src="{_observatory_asset_url("integrated.js")}"></script>
 <script type="module" src="/lookup.js"></script>
 </body>
 </html>"""

@@ -1,5 +1,7 @@
 """Tests for the Observatory landing page integration."""
 
+import hashlib
+import re
 from datetime import date
 
 from lpa.bill_tracker import Bill
@@ -82,8 +84,24 @@ def test_observatory_page_is_a_standalone_landing_document():
     assert page.count("<footer") == 1
     assert 'id="sidebar"' not in page
     assert 'id="topbar"' not in page
-    assert 'href="/assets/observatory/style.css"' in page
+    assert 'href="/assets/observatory/style.css?v=' in page
     assert 'src="/lookup.js"' in page
+
+
+def test_observatory_css_and_js_links_carry_their_files_fingerprint(tmp_path):
+    """A browser may reuse a cached file for ten minutes after a deploy; each
+    link names the published file's content hash, so new HTML can't pick up
+    old CSS. Checked against the files the build actually writes."""
+    build_and_write_landing_pages(tmp_path)
+    for index in (tmp_path / "index.html", tmp_path / "ms" / "index.html"):
+        links = re.findall(r'(?:href|src)="(/assets/observatory/[^"]+)"', index.read_text())
+        tagged = [link for link in links if not link.endswith((".woff2", ".png"))]
+        assert len(tagged) == 5, tagged
+        for link in tagged:
+            path, _, query = link.partition("?")
+            published = tmp_path / path.lstrip("/")
+            digest = hashlib.sha256(published.read_bytes()).hexdigest()[:10]
+            assert query == f"v={digest}", link
 
 
 def test_observatory_links_into_the_current_platform():
