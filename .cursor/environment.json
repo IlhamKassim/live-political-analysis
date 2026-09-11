@@ -1,0 +1,10 @@
+{
+  "name": "live-political-analysis",
+  "install": "bash .cursor/install.sh",
+  "terminals": [
+    {
+      "name": "dashboard",
+      "command": "export DATABASE_URL=\"sqlite+pysqlite:///$PWD/lpa.db\"; .venv/bin/streamlit run src/lpa/dashboard.py --server.port 8501 --server.address 0.0.0.0 --server.headless true"
+    }
+  ]
+}
