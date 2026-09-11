@@ -21,9 +21,10 @@ def test_copy_preserves_every_asset_and_the_approved_main(tmp_path):
             assert (page.parent / relative).read_bytes() == contents
     source = originals[Path("index.html")].decode()
     rendered = page.read_text()
-    assert re.search(r'<main.*?</main>', source, re.DOTALL).group() == re.search(
-        r'<main.*?</main>', rendered, re.DOTALL
-    ).group()
+    assert (
+        re.search(r"<main.*?</main>", source, re.DOTALL).group()
+        == re.search(r"<main.*?</main>", rendered, re.DOTALL).group()
+    )
     assert "In pilot" in rendered
     for notice in (
         "NO LIVE DATA",
@@ -33,7 +34,7 @@ def test_copy_preserves_every_asset_and_the_approved_main(tmp_path):
         "Proposed fields. Export format and scope are still being developed.",
     ):
         assert notice in rendered
-    assert 'data-pk-set-lang' not in rendered
+    assert "data-pk-set-lang" not in rendered
     assert 'href="/#perspective"' in rendered
     assert 'href="/#chamber"' in rendered
     assert 'href="/#find"' in rendered
@@ -53,8 +54,8 @@ def test_resources_are_self_hosted_and_exist(tmp_path):
         assert not resource.startswith(("http:", "https:", "//"))
         assert (page.parent / resource).is_file()
     for css in page.parent.rglob("*.css"):
-        for resource in re.findall(r'url\(([^)]+)\)', css.read_text()):
-            assert (css.parent / resource.strip('"\'')).is_file()
+        for resource in re.findall(r"url\(([^)]+)\)", css.read_text()):
+            assert (css.parent / resource.strip("\"'")).is_file()
 
 
 def test_missing_source_fails_clearly(tmp_path, monkeypatch):

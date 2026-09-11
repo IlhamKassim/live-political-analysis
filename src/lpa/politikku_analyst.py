@@ -64,9 +64,7 @@ _HEADER_JS = """
 def _analyst_header() -> str:
     """Reuse the homepage header, with home anchors and no unavailable BM link."""
     header = _observatory_header(Language.EN)
-    header, count = re.subn(
-        r'<div class="obs-lang"[^>]*>.*?</div>', "", header, flags=re.DOTALL
-    )
+    header, count = re.subn(r'<div class="obs-lang"[^>]*>.*?</div>', "", header, flags=re.DOTALL)
     if count != 1:
         raise ValueError("Expected one language toggle in the Observatory header")
     return header.replace('class="nav wrap"', 'class="site-header wrap"').replace(
