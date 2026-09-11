@@ -393,22 +393,17 @@ def test_the_assets_no_page_renderer_writes_are_named_by_the_step_that_does(rend
     assert "/fonts/space-grotesk-latin.woff2" in sentiment
 
 
-def test_the_mp_profile_url_the_browser_builds_matches_the_apps_own_hash_route(rendered_site):
-    # `ts/src/dom.ts` builds the postcode-lookup widget's MP-profile href
-    # client-side, from a constant it cannot import — so nothing but this
-    # comparison keeps that destination in step with where a Seat actually
-    # resolves. ADR 0014 retired the `/mp/<code>.html` pages themselves (now
-    # a `politikku_redirects.py` stub); `ts/src/dom.ts` still builds that
-    # same old URL, which is fine (the stub exists precisely so old
-    # links keep working) but means this check only guards against that URL
-    # drifting from the one `politikku_redirects.py` actually writes, not
-    # against a page this suite renders.
-    from lpa.politikku_shell import MP_PROFILE_DIR
-
+def test_the_seat_url_the_browser_builds_matches_the_apps_own_hash_route():
+    # `ts/src/dom.ts` builds the postcode-lookup widget's Seat href
+    # client-side, from a route it cannot import — so nothing but this
+    # comparison keeps that destination in step with the map's hash router.
+    # The router (`frontend/public/lib.js` decodeHash) reads
+    # `#<tier>/<mode>/<code>`; the lookup links to the Parliament layer
+    # coloured by party. (The old `/mp/<code>.html` target is gone from
+    # dom.ts; `politikku_redirects.py` still stubs it for old links.)
     dom = (REPO_ROOT / "ts" / "src" / "dom.ts").read_text(encoding="utf-8")
-    assert f"`/{MP_PROFILE_DIR}/${{encodeURIComponent(code)}}.html`" in dom
+    assert "`/app/#parlimen/parti/${encodeURIComponent(code)}`" in dom
 
-    redirects_module = (REPO_ROOT / "src" / "lpa" / "politikku_redirects.py").read_text(
-        encoding="utf-8"
-    )
-    assert "{MP_PROFILE_DIR}/{code}.html" in redirects_module
+    lib = (REPO_ROOT / "frontend" / "public" / "lib.js").read_text(encoding="utf-8")
+    assert "const [tier, mode, third] = toks;" in lib
+    assert "const parts = [state.tier, state.mode];" in lib
