@@ -53,10 +53,10 @@ Methodology pages match the app.
 
 - Seat boundary geometry, Coalition colours, results, citations or
   translations of existing strings.
-- **The shareable Seat card PNG.** It is drawn on a canvas in Redaction, so
-  `styles.css` keeps the Redaction `@font-face` for that one use. Changing the
-  card artwork is a separate decision.
-- The embed widget (`embed.html`), which is styled on its own.
+- The layout of the shareable Seat card PNG, the embed widget and the
+  link-preview image (`og-card.svg`). A follow-up moved all three to Space
+  Grotesk and the observatory colours, and deleted the Redaction font files,
+  so nothing in the repo uses Redaction any more.
 - The homepage (`politikku_landing.py`), which already uses this palette.
 
 ## Consequence

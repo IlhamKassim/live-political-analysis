@@ -3061,15 +3061,15 @@ function setFittedFont(ctx, text, maxWidth, { weight, size, min, family }) {
 }
 function drawBlueprintBackground(ctx, accent) {
   const bg = ctx.createLinearGradient(0, 0, CARD_W, CARD_H);
-  bg.addColorStop(0, "#07111d");
-  bg.addColorStop(0.58, "#0a1420");
-  bg.addColorStop(1, "#060b12");
+  bg.addColorStop(0, "#132328");
+  bg.addColorStop(0.58, "#101e23");
+  bg.addColorStop(1, "#0c181c");
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, CARD_W, CARD_H);
 
   const drawGrid = (step, alpha, width) => {
     ctx.save();
-    ctx.strokeStyle = `rgba(118, 191, 222, ${alpha})`;
+    ctx.strokeStyle = `rgba(237, 241, 223, ${alpha * 0.7})`;
     ctx.lineWidth = width;
     ctx.beginPath();
     for (let x = 0; x <= CARD_W; x += step) { ctx.moveTo(x, 0); ctx.lineTo(x, CARD_H); }
@@ -3120,15 +3120,15 @@ async function drawSeatCard(seat) {
 
   // brand
   ctx.textBaseline = "alphabetic";
-  ctx.fillStyle = "#eef5fb";
-  ctx.fillRect(72, 86, 16, 26);
-  ctx.strokeStyle = "rgba(238,245,251,.65)";
-  ctx.lineWidth = 3;
-  ctx.strokeRect(82, 94, 16, 26);
-  ctx.fillStyle = "#e8edf3";
-  ctx.font = "700 44px 'Redaction 20', Georgia, 'Times New Roman', serif";
-  ctx.fillText("PolitikKu", 116, 116);
-  ctx.fillStyle = "#6f8498";
+  ctx.fillStyle = "#edf1df";
+  ctx.font = "500 44px 'Space Grotesk', system-ui, sans-serif";
+  if ("letterSpacing" in ctx) ctx.letterSpacing = "-1.5px";
+  ctx.fillText("PolitikKu", 72, 116);
+  const brandW = ctx.measureText("PolitikKu").width;
+  if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
+  ctx.fillStyle = "#d6ed9a";
+  ctx.fillText("↗", 72 + brandW + 14, 116);
+  ctx.fillStyle = "#94aaa2";
   ctx.font = "500 22px 'JetBrains Mono', monospace";
   ctx.textAlign = "right";
   ctx.fillText(`${(seat.state || "").toUpperCase()} / ${(seat.code || seat.dun_code || "").toUpperCase()}`, CARD_W - 72, 112);
@@ -3142,7 +3142,7 @@ async function drawSeatCard(seat) {
       const path = new Path2D(seat.d);
       ctx.save();
       ctx.translate(REG.x, REG.y);
-      ctx.strokeStyle = "rgba(140, 210, 238, .14)";
+      ctx.strokeStyle = "rgba(237, 241, 223, .10)";
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(0, REG.h / 2);
@@ -3159,7 +3159,7 @@ async function drawSeatCard(seat) {
       ctx.fill(path, "evenodd");
       ctx.shadowBlur = 0;
       ctx.globalAlpha = 0.52;
-      ctx.strokeStyle = "#eef6ff";
+      ctx.strokeStyle = "#edf1df";
       ctx.lineWidth = Math.max(1.4 / fit.scale, 0.02);
       ctx.stroke(path);
       ctx.restore();
@@ -3174,18 +3174,20 @@ async function drawSeatCard(seat) {
   ctx.fillText(kicker.toUpperCase(), 72, 715);
 
   // seat name (clamped to width)
-  ctx.fillStyle = "#f5f8fb";
+  ctx.fillStyle = "#edf1df";
   let name = String(seat.name || "");
+  if ("letterSpacing" in ctx) ctx.letterSpacing = "-3px";
   setFittedFont(ctx, name, CARD_W - 144, {
-    weight: 700,
+    weight: 500,
     size: 88,
     min: 52,
-    family: "'Redaction 20', Georgia, 'Times New Roman', serif",
+    family: "'Space Grotesk', system-ui, sans-serif",
   });
   ctx.fillText(name, 72, 796);
+  if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
 
   // state
-  ctx.fillStyle = "#9fb0c0";
+  ctx.fillStyle = "#b2c3bd";
   ctx.font = "500 30px 'Space Grotesk', system-ui, sans-serif";
   ctx.fillText(`${t("state_label")}: ${seat.state || ""}`, 72, 846);
 
@@ -3222,7 +3224,7 @@ async function drawSeatCard(seat) {
       ctx.lineWidth = 3;
       ctx.stroke();
 
-      ctx.fillStyle = "#e2e8f0";
+      ctx.fillStyle = "#edf1df";
       ctx.font = "700 38px 'Space Grotesk', system-ui, sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -3234,11 +3236,11 @@ async function drawSeatCard(seat) {
     const textX = avatarX + avatarR + 24;
     const repName = String(r.name || "");
 
-    ctx.fillStyle = "#7f95a9";
+    ctx.fillStyle = "#94aaa2";
     ctx.font = "600 20px 'JetBrains Mono', monospace";
     ctx.fillText(t("card_current_yb").toUpperCase(), textX, infoY + 40);
 
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = "#edf1df";
     ctx.font = "700 38px 'Space Grotesk', system-ui, sans-serif";
     ctx.fillText(fitCanvasText(ctx, repName, CARD_W - textX - 72, 12), textX, infoY + 86);
 
@@ -3264,11 +3266,11 @@ async function drawSeatCard(seat) {
     ctx.stroke();
 
     if (r.majority != null) {
-      ctx.fillStyle = "#94a3b8";
+      ctx.fillStyle = "#94aaa2";
       ctx.font = "600 19px 'JetBrains Mono', monospace";
       ctx.fillText(t(ownDun ? "majority_prn" : "majority").toUpperCase(), 96, statsY + 42);
 
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = "#edf1df";
       ctx.font = "700 32px 'JetBrains Mono', monospace";
       const majStr = Number(r.majority).toLocaleString() + (r.majority_pct != null ? ` (${r.majority_pct}%)` : "");
       ctx.fillText(majStr, 96, statsY + 84);
@@ -3276,27 +3278,27 @@ async function drawSeatCard(seat) {
 
     if (r.runner_up && r.runner_up.name) {
       ctx.textAlign = "right";
-      ctx.fillStyle = "#94a3b8";
+      ctx.fillStyle = "#94aaa2";
       ctx.font = "600 19px 'JetBrains Mono', monospace";
       ctx.fillText(t("runner").toUpperCase(), CARD_W - 96, statsY + 42);
 
-      ctx.fillStyle = "#cbd5e1";
+      ctx.fillStyle = "#edf1df";
       ctx.font = "600 26px 'Space Grotesk', system-ui, sans-serif";
       const runnerStr = fitCanvasText(ctx, `${r.runner_up.name} (${r.runner_up.party || ""})`, 440, 8);
       ctx.fillText(runnerStr, CARD_W - 96, statsY + 84);
       ctx.textAlign = "left";
     }
   } else {
-    ctx.fillStyle = "#9fb0c0";
+    ctx.fillStyle = "#b2c3bd";
     ctx.font = "400 40px 'Space Grotesk', system-ui, sans-serif";
     ctx.fillText(t("rep_ph"), 72, infoY + 96);
   }
 
   // footer: provenance
-  ctx.fillStyle = "#7d8da0";
+  ctx.fillStyle = "#b2c3bd";
   ctx.font = "500 24px 'Space Grotesk', system-ui, sans-serif";
   ctx.fillText("PolitikKu / public electoral data", 72, CARD_H - 80);
-  ctx.fillStyle = "#5d6b7d";
+  ctx.fillStyle = "#94aaa2";
   ctx.font = "400 22px 'Space Grotesk', system-ui, sans-serif";
   if (r) ctx.fillText(resultSourceText(r, ownDun), 72, CARD_H - 46);
 

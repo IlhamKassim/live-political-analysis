@@ -18,22 +18,22 @@ for seat in seats:
     fill = colors.get(coalition, "#5d6b7d")
     paths.append(
         f'<path d="{escape(seat["d"], quote=True)}" fill="{fill}" '
-        'stroke="#0b0e13" stroke-width="0.7" vector-effect="non-scaling-stroke"/>'
+        'stroke="#101e23" stroke-width="0.7" vector-effect="non-scaling-stroke"/>'
     )
 
 legend = "".join(
     f'<g transform="translate({x} 590)"><rect width="14" height="14" rx="3" fill="{c}"/>'
-    f'<text x="22" y="12" fill="#b9c3d0" font-family="Arial, sans-serif" font-size="16">{label}</text></g>'
+    f'<text x="22" y="12" fill="#b2c3bd" font-family="Arial, sans-serif" font-size="16">{label}</text></g>'
     for x, (label, c) in zip(range(130, 1080, 155), colors.items())
 )
 
-svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="MyPolitik Parliament map coloured by GE15 coalition">
-  <defs><style>@font-face {{ font-family: "Redaction 20"; font-weight: 700; src: url("../fonts/redaction-20-bold-latin.woff2") format("woff2"); }}</style></defs>
-  <rect width="1200" height="630" fill="#0b0e13"/>
-  <rect width="1200" height="8" fill="#4dd6c1"/>
+svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="PolitikKu Parliament map coloured by GE15 coalition">
+  <defs><style>@font-face {{ font-family: "Space Grotesk"; font-weight: 300 700; src: url("../fonts/space-grotesk-latin.woff2") format("woff2"); }}</style></defs>
+  <rect width="1200" height="630" fill="#101e23"/>
+  <rect width="1200" height="8" fill="#d6ed9a"/>
   <g transform="translate(34 56) scale(1.42)">{''.join(paths)}</g>
-  <text x="52" y="44" fill="#e7edf4" font-family="'Redaction 20', Georgia, serif" font-size="30" font-weight="700">MyPolitik</text>
-  <text x="1148" y="42" text-anchor="end" fill="#7f8da0" font-family="Arial, sans-serif" font-size="16">Parliament · GE15</text>
+  <text x="52" y="44" fill="#edf1df" font-family="'Space Grotesk', Arial, sans-serif" font-size="30" font-weight="500" letter-spacing="-1">PolitikKu</text>
+  <text x="1148" y="42" text-anchor="end" fill="#94aaa2" font-family="Arial, sans-serif" font-size="16">Parliament · GE15</text>
   <g>{legend}</g>
 </svg>'''
 (ROOT / "public/assets/og-card.svg").write_text(svg, encoding="utf-8")

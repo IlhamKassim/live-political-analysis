@@ -7,19 +7,18 @@
   <meta name="robots" content="noindex, follow" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Redaction+20&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg: #0b0f17;
-      --card-bg: #121824;
-      --border: rgba(255, 255, 255, 0.08);
-      --text: #f1f5f9;
-      --text-muted: #94a3b8;
-      --text-dim: #64748b;
+      --bg: #101e23;
+      --card-bg: #16272c;
+      --border: #33464a;
+      --text: #edf1df;
+      --text-muted: #b2c3bd;
+      --text-dim: #94aaa2;
       --accent: #d7263d;
       --font-sans: 'Space Grotesk', system-ui, -apple-system, sans-serif;
-      --font-serif: 'Redaction 20', Georgia, serif;
       --font-mono: 'JetBrains Mono', monospace;
     }
     body {
@@ -38,7 +37,7 @@
       max-width: 520px;
       background: var(--card-bg);
       border: 1px solid var(--border);
-      border-radius: 16px;
+      border-radius: 8px;
       padding: 20px 22px;
       position: relative;
       overflow: hidden;
@@ -52,8 +51,8 @@
       position: absolute;
       inset: 0;
       background-image: 
-        linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
+        linear-gradient(to right, rgba(237,241,223,0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(237,241,223,0.03) 1px, transparent 1px);
       background-size: 20px 20px;
       pointer-events: none;
     }
@@ -81,11 +80,12 @@
       letter-spacing: 0.5px;
     }
     .seat-title {
-      font-family: var(--font-serif);
+      font-family: var(--font-sans);
       font-size: 26px;
-      font-weight: 700;
+      font-weight: 500;
+      letter-spacing: -0.5px;
       line-height: 1.15;
-      color: #fff;
+      color: var(--text);
     }
     .seat-state {
       font-size: 13px;
@@ -121,7 +121,7 @@
       border-radius: 50%;
       object-fit: cover;
       border: 2px solid var(--accent);
-      background: #1e293b;
+      background: #22363a;
       flex-shrink: 0;
       display: flex;
       align-items: center;
@@ -154,7 +154,7 @@
     .rep-name {
       font-size: 16px;
       font-weight: 700;
-      color: #fff;
+      color: var(--text);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -226,17 +226,17 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      background: rgba(255, 255, 255, 0.08);
-      color: #fff;
+      background: #d6ed9a;
+      color: #101e23;
       font-size: 12px;
       font-weight: 600;
       padding: 6px 12px;
-      border-radius: 8px;
+      border-radius: 5px;
       text-decoration: none;
       transition: background 0.15s ease, transform 0.15s ease;
     }
     .cta-btn:hover {
-      background: rgba(255, 255, 255, 0.14);
+      background: #e4f4b8;
       transform: translateY(-1px);
     }
     .loading-state, .error-state {
