@@ -6151,6 +6151,11 @@ body.politicians-open #top-controls { display: none; }
 #state-label { font-weight: 500; letter-spacing: -1px; }
 #state-label .label-main { font-weight: 500; }
 
+/* in-app pages sit under the see-through topbar, whose PolitikKu link stays
+   visible — start their content below it (the base 5vw padding only clears
+   it on wide screens) */
+.pol-dir { padding-top: max(clamp(22px, 5vw, 72px), 64px); }
+
 /* compact screens: the phone menu lists every destination in words */
 .map-controls-btn, .mobile-nav { display: none; }
 
