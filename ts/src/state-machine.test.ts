@@ -12,6 +12,7 @@ const UNRESOLVED: ResolutionResult = {
   kind: "unresolved",
   postcode: "50000",
   localities: [{ city: "Kuala Lumpur", state: "W.P. Kuala Lumpur" }],
+  candidates: [],
 };
 
 describe("transition", () => {

@@ -35,14 +35,6 @@ interface Refs {
   readonly recentList: HTMLElement | null;
 }
 
-// Must stay in step with politikku_shell.MP_PROFILE_DIR under
-// POLITIKKU_PREFIX (issue #104 moved both to the site root) — this is the
-// same href politikku_mp_profile writes its pages at, built in the browser,
-// where that constant cannot be imported.
-function mpProfileUrl(code: string): string {
-  return `/mp/${encodeURIComponent(code)}.html`;
-}
-
 function seatUrl(code: string): string {
   return `/app/#parlimen/parti/${encodeURIComponent(code)}`;
 }

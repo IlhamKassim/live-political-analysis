@@ -236,8 +236,8 @@ describe("mountLookup", () => {
     );
     const candidates = container.querySelectorAll(".pk-lookup-candidate");
     expect(candidates).toHaveLength(1);
-    expect(candidates[0].getAttribute("href")).toBe("/app/#parlimen/parti/P.102");
-    expect(candidates[0].querySelector(".pk-lookup-candidate-mp")?.textContent).toBe("Syahredzan Johan");
+    expect(candidates[0]?.getAttribute("href")).toBe("/app/#parlimen/parti/P.102");
+    expect(candidates[0]?.querySelector(".pk-lookup-candidate-mp")?.textContent).toBe("Syahredzan Johan");
   });
 
   it("draws different copy per language for the same state", async () => {
