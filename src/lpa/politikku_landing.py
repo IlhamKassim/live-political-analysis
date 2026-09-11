@@ -61,6 +61,7 @@ TEASER_BILL_COUNT = 2
 pointer at `/bills/`, and a longer list starts competing with the Seat
 lookup for the same attention."""
 
+
 @dataclass(frozen=True)
 class CoalitionRow:
     """One Coalition's projected Seat total, with the colour the map draws
