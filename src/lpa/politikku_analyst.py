@@ -42,13 +42,21 @@ _HEADER_CSS = """
 @media(max-width:1100px){.site-header .brand-small{display:none}}
 @media(max-width:900px){
  .site-header .obs-lang{margin-left:auto;margin-right:10px}
- .site-header .obs-lang a{min-width:34px}
+ .site-header .obs-lang a{min-width:40px;min-height:44px}
+ .site-header .brand{min-height:44px}
  .site-header .menu-toggle{display:block}
  .site-header .nav-links{display:none}
  .site-header .nav-links.is-open{display:flex;position:absolute;top:81px;left:0;
  right:0;flex-direction:column;align-items:stretch;gap:8px;background:var(--ink);
  padding:20px;border:1px solid var(--line);box-shadow:0 20px 40px #0005}
  .site-header .nav-links a{min-height:44px;padding:12px}
+ .site-header .nav-cta{gap:.4em;align-items:center}
+}
+@media(max-width:360px){
+ .site-header .brand{font-size:19px;gap:8px}
+ .site-header .brand svg{width:24px}
+ .site-header .obs-lang{margin-right:6px}
+ .site-header .menu-toggle{padding:10px 12px}
 }
 """.strip()
 
@@ -128,7 +136,7 @@ def _adapt(source: str, language: Language, asset_root: str) -> str:
         raise ValueError("Expected one site header in the approved Analyst page")
     if asset_root:
         page = re.sub(
-            r'((?:src|href)=")((?:assets/|style\.css|app\.js)[^"]*")',
+            r'((?:src|href|data-[\w-]+)=")((?:assets/|style\.css|app\.js)[^"]*")',
             rf"\1{asset_root}\2",
             page,
         )
@@ -142,7 +150,8 @@ def _adapt(source: str, language: Language, asset_root: str) -> str:
 
 def _fingerprint(page: str, asset_root: str, target: Path) -> str:
     """Tag each stylesheet, script and icon link with a hash of the file it
-    names (`style.css?v=3f9a2c1d`), so a deploy that changes one can't be
+    names (`style.css?v=3f9a2c1d`), including the motion scripts `app.js`
+    loads later from its `data-` attributes, so a deploy that changes one can't be
     paired with a copy a browser cached from before it. GitHub Pages lets
     browsers reuse files for ten minutes without asking.
 
@@ -158,7 +167,9 @@ def _fingerprint(page: str, asset_root: str, target: Path) -> str:
         return f'{match.group(1)}{match.group(2)}{match.group(3)}?v={digest}"'
 
     return re.sub(
-        rf'((?:src|href)=")({re.escape(asset_root)})([\w./-]+\.(?:css|js|svg))"', tag, page
+        rf'((?:src|href|data-[\w-]+)=")({re.escape(asset_root)})([\w./-]+\.(?:css|js|svg))"',
+        tag,
+        page,
     )
 
 

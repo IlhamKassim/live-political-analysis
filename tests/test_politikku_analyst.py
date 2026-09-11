@@ -79,6 +79,16 @@ def test_bm_page_mirrors_the_en_page_in_malay(tmp_path):
         assert label not in ms
 
 
+def _resource_links(html: str) -> list[str]:
+    """Every file a `<script>` or `<link>` loads, including the motion scripts
+    `app.js` loads itself from its `data-gsap`/`data-scroll-trigger` attributes."""
+    return [
+        url
+        for tag in re.findall(r"<(?:script|link)\b[^>]*>", html)
+        for url in re.findall(r'\b(?:src|href|data-gsap|data-scroll-trigger)="([^"]+)"', tag)
+    ]
+
+
 def test_resources_are_self_hosted_and_exist(tmp_path):
     page = analyst.build_and_write_analyst_page(tmp_path)
     for index, prefix in (
@@ -86,10 +96,7 @@ def test_resources_are_self_hosted_and_exist(tmp_path):
         (tmp_path / "ms" / "analyst" / "index.html", "../../analyst/"),
     ):
         html = index.read_text()
-        resources = [
-            r.split("?", 1)[0]
-            for r in re.findall(r'<(?:script|link)\b[^>]*(?:src|href)="([^"]+)"', html)
-        ]
+        resources = [r.split("?", 1)[0] for r in _resource_links(html)]
         assert f"{prefix}assets/gsap.min.js" in resources
         assert f"{prefix}assets/ScrollTrigger.min.js" in resources
         for resource in resources:
@@ -106,7 +113,7 @@ def test_every_stylesheet_and_script_link_carries_its_files_fingerprint(tmp_path
     page = analyst.build_and_write_analyst_page(tmp_path)
     for index in (page, tmp_path / "ms" / "analyst" / "index.html"):
         html = index.read_text()
-        links = re.findall(r'<(?:script|link)\b[^>]*(?:src|href)="([^"]+)"', html)
+        links = _resource_links(html)
         checked = 0
         for link in links:
             path, _, query = link.partition("?")
@@ -119,6 +126,16 @@ def test_every_stylesheet_and_script_link_carries_its_files_fingerprint(tmp_path
             checked += 1
         # style.css, site-nav.css, mark.svg, app.js, gsap, ScrollTrigger, site-nav.js
         assert checked == 7, (index, links)
+
+
+def test_arrows_are_drawn_icons_not_text(tmp_path):
+    """Phones swap the ↗ character for a coloured emoji, so every arrow is
+    the same drawn icon the site header uses."""
+    page = analyst.build_and_write_analyst_page(tmp_path)
+    for index in (page, tmp_path / "ms" / "analyst" / "index.html"):
+        html = index.read_text()
+        assert "↗" not in html, index
+        assert html.count('class="ico-arrow"') >= 8, index
 
 
 def test_missing_source_fails_clearly(tmp_path, monkeypatch):

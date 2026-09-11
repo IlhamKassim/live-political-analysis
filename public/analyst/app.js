@@ -24,6 +24,22 @@
     views.forEach((el, i) => { el.inert = i !== index; });
     chapterLinks.forEach((el, i) => el.setAttribute('aria-current', String(i === index)));
   }
+  const script = document.currentScript;
+  let motionLoad;
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const tag = document.createElement('script');
+      tag.src = src;
+      tag.onload = resolve;
+      tag.onerror = reject;
+      document.head.append(tag);
+    });
+  }
+  function loadMotion() {
+    // ScrollTrigger registers itself against gsap, so gsap must load first.
+    motionLoad ??= loadScript(script.dataset.gsap).then(() => loadScript(script.dataset.scrollTrigger));
+    return motionLoad;
+  }
   function setup() {
     context?.revert();
     featureTrigger = null;
@@ -34,9 +50,11 @@
     motionButton.textContent = paused
       ? (motionButton.dataset.resume || 'Resume motion')
       : (motionButton.dataset.pause || 'Pause motion');
-    if (paused || !window.gsap || !window.ScrollTrigger || !desktop.matches) {
+    if (paused || !desktop.matches || !window.gsap || !window.ScrollTrigger) {
       root.classList.add('motion-static');
       views.forEach((view, index) => chapters[index].append(view));
+      // Phones never animate, so they never download the motion library.
+      if (!paused && desktop.matches) loadMotion().then(setup, () => {});
       return;
     }
     root.classList.add('animated');
