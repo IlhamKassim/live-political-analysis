@@ -102,29 +102,6 @@ _HEDGES: tuple[str, ...] = (
     "if parliament",
     "if the dewan",
     "should parliament",
-    # Conditional and temporal framing. The first live run matched "formal
-    # negotiations ... would only be held after Parliament was dissolved" —
-    # a sentence about a future dissolution, in a story about coalition talks.
-    # Naming the chamber is not enough on its own; "after X was dissolved" is
-    # a clause about when something else will happen, not a report that it
-    # has. "would" is safe to hedge on because these are checked per
-    # sentence: the sentence announcing a real dissolution is not the same
-    # sentence as the one predicting what follows it.
-    "would ",
-    "yet to",
-    "after parliament",
-    "after the dewan",
-    "once parliament",
-    "once the dewan",
-    "when parliament",
-    "when the dewan",
-    "before parliament",
-    "before the dewan",
-    "ahead of the dissolution",
-    "selepas parlimen",
-    "setelah parlimen",
-    "apabila parlimen",
-    "sebelum parlimen",
     # Every inflection spelled out. Stemming these to "call" or "urg" would
     # be worse, not better: "called an election" is the real event, and
     # "urgent" would suppress a genuine report that happened to use the word.
@@ -149,6 +126,30 @@ _HEDGES: tuple[str, ...] = (
     "desak",
     "ramalan",
     "dijangkakan",
+)
+
+# Coverage refers to a *future* dissolution constantly, and not as a guess —
+# as the point in time some other thing happens around. "Seat talks begin
+# once Parliament is dissolved" contains the chamber and the verb and hedges
+# at nothing, and three separate live runs matched sentences of exactly this
+# shape before this rule existed.
+#
+# Chasing them one preposition at a time was losing. What they share is
+# structure, not vocabulary: a subordinating conjunction introducing the
+# chamber. Matching that shape catches the ones nobody has thought of yet,
+# and leaves "The Dewan Rakyat was dissolved this morning" — which has no
+# such conjunction — alone.
+_WHEN_EN = r"after|once|when|until|till|before|unless|pending|should|if|ahead\s+of"
+_WHEN_MS = r"selepas|setelah|sebelum|sehingga|apabila|jika|sekiranya|menjelang"
+
+_FUTURE_REFERENCE: tuple[re.Pattern[str], ...] = tuple(
+    re.compile(p)
+    for p in (
+        rf"\b(?:{_WHEN_EN})\s+(?:the\s+)?(?:parliament|parlimen|dewan\s+rakyat)\b",
+        rf"\b(?:{_WHEN_EN})\s+(?:the\s+)?dissolution\b",
+        rf"\b(?:{_WHEN_MS})\s+(?:pembubaran|parlimen|dewan\s+rakyat)\b",
+        rf"\b(?:{_WHEN_MS})\s+(?:\w+\s+){{0,2}}?dibubarkan\b",
+    )
 )
 
 _SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+|\n+")
@@ -176,6 +177,8 @@ def _sentences(text: str) -> list[str]:
 def _match(sentence: str, patterns: Sequence[re.Pattern[str]]) -> bool:
     lowered = sentence.lower()
     if any(hedge in lowered for hedge in _HEDGES):
+        return False
+    if any(pattern.search(lowered) for pattern in _FUTURE_REFERENCE):
         return False
     return any(pattern.search(lowered) for pattern in patterns)
 

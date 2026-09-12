@@ -71,16 +71,24 @@ def test_a_dissolution_that_happened_is_reported(text: str) -> None:
         "The opposition leader called for the dissolution of Parliament.",
         "Civil society groups are calling for the dissolution of Parliament.",
         "The opposition urges the immediate dissolution of Parliament.",
-        # Verbatim from the first live run, in a story about coalition talks.
-        # A clause about when something else will happen, not a report that
-        # the dissolution has.
+        # All three verbatim from live runs, every one in a story about
+        # coalition talks rather than about a dissolution. They name the
+        # chamber and the verb and hedge at nothing — what gives them away is
+        # the conjunction in front, marking a point in time that has not
+        # arrived.
         (
             "He said formal negotiations had yet to begin and would only be held "
             "after Parliament was dissolved."
         ),
+        "As the president said, wait until Parliament is dissolved.",
+        (
+            "Katanya, perjanjian itu terpakai sehingga pembubaran Parlimen, dan "
+            "selepas itu setiap parti bebas menentukan hala tuju masing-masing."
+        ),
         "Seat talks will start once Parliament is dissolved.",
         "Nominations close a week after the Dewan Rakyat is dissolved.",
         "Rundingan kerusi bermula selepas Parlimen dibubarkan.",
+        "Menjelang pembubaran Parlimen, parti-parti mula berunding.",
     ],
 )
 def test_speculation_is_not_reported(text: str) -> None:
