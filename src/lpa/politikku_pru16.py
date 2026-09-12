@@ -42,10 +42,8 @@ PAGE_PATH = "pru16/"
 both languages, because the sitemap and the language switch pair pages by
 identical paths."""
 
-TELEGRAM_URL = "https://t.me/REPLACE_ME"
-"""The public Telegram channel. REPLACE_ME: the channel's public link is not
-recorded anywhere in this repository yet; set it here before this page is
-linked from the site. Do not guess a handle."""
+TELEGRAM_URL = "https://t.me/PolitikKuMY"
+"""PolitikKu's public Telegram channel, where the Return Trigger posts land."""
 
 PROCESS_PAGE = "learn/ge16-process.html"
 """The explainer for how dissolution, nomination and polling work."""
@@ -67,7 +65,7 @@ class Pru16Model:
     majority_threshold: int
     total_seats: int
     sources_count: int
-    art: str = "skyline"
+    art: str = "both"
     """Which hero artwork to draw: "skyline", "arc", "both" or "none".
     An experiment switch, not a setting we mean to keep forever."""
 
@@ -79,7 +77,7 @@ def pru16_model(
     coalitions: Sequence[CoalitionRow] | None = None,
     computed_at: date | None = None,
     projection_path: Path = PROJECTION_JSON,
-    art: str = "skyline",
+    art: str = "both",
 ) -> Pru16Model:
     """Build the model. Every argument defaults to a real read, so a test can
     pass them all and touch no file."""
@@ -1297,7 +1295,7 @@ def main() -> None:
     parser.add_argument(
         "--art",
         choices=("skyline", "arc", "both", "none"),
-        default="skyline",
+        default="both",
         help="Which hero artwork to draw (an experiment switch).",
     )
     parser.add_argument(

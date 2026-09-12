@@ -31,7 +31,7 @@ figures.
 from __future__ import annotations
 
 import re
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -155,6 +155,15 @@ def rendered_site(tmp_path_factory) -> Path:
             f"{lang_prefix}learn/ge16-process.html",
             build_process_page(lang, date(2026, 1, 1), status),
         )
+
+    from lpa.politikku_pru16 import pru16_model, render_pru16_page
+
+    pru16 = pru16_model(
+        status=status, now=datetime(2026, 1, 1, 9, tzinfo=timezone(timedelta(hours=8)))
+    )
+    for lang in [Language.EN, Language.MS]:
+        lang_prefix = "ms/" if lang == Language.MS else ""
+        _write(root, f"{lang_prefix}pru16/index.html", render_pru16_page(pru16, lang))
 
     # Still need to copy the static JS for the learn pages that we haven't touched
     _write(

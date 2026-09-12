@@ -178,6 +178,11 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m lpa.politikku_learn
 
+      - name: Render the PolitikKu GE16 page
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m lpa.politikku_pru16
+
       # No "Render the PolitikKu Analyst page" step here on purpose: unlike
       # Learn (which gained a live dependency — today's date and election
       # status via politikku_shell.py — in 3615e59e and so must rebuild

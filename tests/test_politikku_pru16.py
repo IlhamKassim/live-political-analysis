@@ -179,6 +179,6 @@ def test_pages_have_their_own_urls_and_no_text_arrows() -> None:
         assert "→" not in render_pru16_body(_model(NOT_CALLED), language)
 
 
-def test_telegram_link_is_a_placeholder_not_a_guess() -> None:
+def test_telegram_link_points_at_the_real_channel() -> None:
     body = render_pru16_body(_model(NOT_CALLED))
-    assert 'href="https://t.me/REPLACE_ME"' in body
+    assert 'href="https://t.me/PolitikKuMY"' in body

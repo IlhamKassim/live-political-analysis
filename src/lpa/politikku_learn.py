@@ -29,6 +29,16 @@ _LEARN_BASE_CSS = """
     letter-spacing: -.02em;
     margin: 8px 0 0;
   }
+  .pk-learn-callout {
+    margin: 0 0 1.6rem;
+    padding: 0.9rem 1.1rem;
+    border-left: 3px solid var(--accent, #d6ed9a);
+    background: var(--surface-soft, #192b30);
+    border-radius: 0 6px 6px 0;
+    font-size: 1rem;
+    line-height: 1.55;
+  }
+  .pk-learn-callout a { color: var(--accent, #d6ed9a); font-weight: 600; }
   .lede {
     font-family: var(--serif);
     font-size: 17px;
@@ -750,6 +760,11 @@ _PROCESS_BODY = """
       explains the sequence behind those states, from dissolution to
       nomination to polling, and why the middle state, called but undated,
       is a real stage of the process rather than a gap in the record.
+    </p>
+    <p class="pk-learn-callout">
+      For where GE16 stands right now — whether it has been called, the dates
+      that are set, and how long is left — see
+      <a href="/pru16/">the GE16 page</a>.
     </p>
     <ul class="toc">
       <li><a href="#step-dissolution">Dissolution</a></li>
