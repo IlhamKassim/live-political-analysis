@@ -973,17 +973,27 @@ _CSS = """
      (data-state), and every animation stops under prefers-reduced-motion. */
   .pk-ge-hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 40px; align-items: end; }
   .pk-ge-hero-copy { min-width: 0; }
-  .pk-ge-art {
-    position: relative; align-self: end; border-radius: 18px; overflow: hidden;
+  /* The sky is a glow behind the tower, not a panel: it fades to nothing at
+     the edges, so there is no card outline against the page. */
+  .pk-ge-art { position: relative; align-self: end; }
+  .pk-ge-art::before {
+    content: ""; position: absolute; inset: -6% -12% -4%; pointer-events: none;
     transition: background 1.2s ease;
-    background: radial-gradient(ellipse 90% 70% at 50% 100%, #16303a 0%, #0d1b21 55%, #0b171c 100%);
+    background:
+      radial-gradient(ellipse 62% 48% at 50% 78%, rgba(28, 62, 74, .85) 0%, rgba(20, 44, 54, .45) 42%, rgba(16, 30, 35, 0) 72%),
+      radial-gradient(ellipse 40% 60% at 50% 40%, rgba(24, 54, 62, .55) 0%, rgba(16, 30, 35, 0) 70%);
   }
-  .pk-ge-art[data-tod="day"] {
-    background: radial-gradient(ellipse 90% 70% at 50% 100%, #24424a 0%, #162c33 55%, #101e23 100%);
+  .pk-ge-art[data-tod="day"]::before {
+    background:
+      radial-gradient(ellipse 62% 48% at 50% 78%, rgba(52, 92, 98, .75) 0%, rgba(30, 58, 64, .4) 42%, rgba(16, 30, 35, 0) 72%),
+      radial-gradient(ellipse 40% 60% at 50% 40%, rgba(44, 80, 86, .45) 0%, rgba(16, 30, 35, 0) 70%);
   }
-  .pk-ge-art[data-tod="dusk"] {
-    background: radial-gradient(ellipse 90% 70% at 50% 100%, #3a3529 0%, #1c2a2c 55%, #101e23 100%);
+  .pk-ge-art[data-tod="dusk"]::before {
+    background:
+      radial-gradient(ellipse 62% 48% at 50% 78%, rgba(86, 68, 44, .6) 0%, rgba(44, 46, 44, .35) 42%, rgba(16, 30, 35, 0) 72%),
+      radial-gradient(ellipse 40% 60% at 50% 40%, rgba(60, 54, 42, .4) 0%, rgba(16, 30, 35, 0) 70%);
   }
+  .pk-ge-art svg, .pk-art-cap { position: relative; }
   .pk-ge-art svg { display: block; width: 100%; height: auto; max-height: 460px; overflow: visible; }
   .pk-art-cap {
     margin: 10px 0 0; text-align: center;
