@@ -12,12 +12,15 @@ landing and Analyst pages, and a `render_shell` page, which shares its header
 and footer with every other page on the site — so a shell regression is caught
 once here rather than separately on each page.
 
-Two further phone checks are deliberately not asserted yet: no visible text
-below 11px, and no standalone control smaller than 44px. Both currently fail
-across the site (8px hero eyebrows, 16px-tall footer links), so turning them on
-would mean landing a red test. The helpers that measure them are kept below,
-unused by any assertion, so the checks can be switched on page by page as the
-sizes are fixed.
+Text size is checked on the pages that pass it today: the landing page and the
+shell. Analyst is not in that list — it is the pilot page, and it still has
+roughly thirty rules between 8px and 10px, so adding it here would land a red
+test. Add it to FONT_CHECKED_PAGES once those are raised.
+
+The third phone check, no standalone control smaller than 44px, is not asserted
+anywhere yet: footer links are 16px tall and the landing's "Explore the map" is
+19px. The helper that measures it is kept below, unused, so the check can be
+switched on the same way once the controls are resized.
 """
 
 from __future__ import annotations
@@ -43,6 +46,8 @@ playwright = pytest.importorskip("playwright.sync_api")
 # large phone.
 VIEWPORTS = ((320, 700), (375, 667), (390, 844), (430, 932))
 PAGES = ("/", "/analyst/", "/learn/ge16-process.html")
+# The pages whose text sizes are clean today — see the module docstring.
+FONT_CHECKED_PAGES = ("/", "/learn/ge16-process.html")
 
 # Apple and Google both put the minimum comfortable tap target at 44px, and
 # text below 11px is where phone browsers start offering to zoom.
@@ -94,10 +99,7 @@ def mobile_site(tmp_path_factory: pytest.TempPathFactory) -> Iterator[str]:
 
 
 def visible_text_below(page: object, minimum: int) -> list[dict[str, str | float]]:
-    """Every element with its own visible text rendered below `minimum` px.
-
-    Not asserted yet — see the module docstring.
-    """
+    """Every element with its own visible text rendered below `minimum` px."""
     return page.evaluate(  # type: ignore[attr-defined]
         """minimum => [...document.querySelectorAll('body *')]
           .filter(el => {
@@ -171,4 +173,42 @@ def test_mobile_pages_do_not_scroll_sideways(
         # overflow on a layout that is actually flush.
         overflow = page.evaluate("document.documentElement.scrollWidth - innerWidth")
         assert overflow <= 1, f"{path} scrolls sideways by {overflow}px at {width}px"
+        browser.close()
+
+
+@pytest.mark.browser
+@pytest.mark.parametrize(("width", "height"), VIEWPORTS)
+@pytest.mark.parametrize("path", FONT_CHECKED_PAGES)
+def test_mobile_pages_keep_their_text_readable(
+    mobile_site: str, path: str, width: int, height: int
+) -> None:
+    with playwright.sync_playwright() as manager:
+        browser = manager.chromium.launch()
+        page = browser.new_page(viewport={"width": width, "height": height})
+        page.goto(mobile_site + path, wait_until="networkidle")
+
+        assert visible_text_below(page, MIN_FONT_SIZE) == []
+        browser.close()
+
+
+@pytest.mark.browser
+@pytest.mark.parametrize(("width", "height"), VIEWPORTS)
+def test_the_landing_wordmark_is_not_covered_by_the_language_switch(
+    mobile_site: str, width: int, height: int
+) -> None:
+    """Two boxes can overlap without the page overflowing, so the sweep above
+    cannot see this: at 320px the language pill sat on top of "PolitikKu" and
+    cut it in half."""
+    with playwright.sync_playwright() as manager:
+        browser = manager.chromium.launch()
+        page = browser.new_page(viewport={"width": width, "height": height})
+        page.goto(mobile_site + "/", wait_until="networkidle")
+
+        brand = page.locator("header.nav .brand").bounding_box()
+        lang = page.locator("header.nav .obs-lang").bounding_box()
+        assert brand is not None and lang is not None
+        assert brand["x"] + brand["width"] <= lang["x"], (
+            f"the wordmark runs to {brand['x'] + brand['width']}px at {width}px, "
+            f"under a language switch starting at {lang['x']}px"
+        )
         browser.close()

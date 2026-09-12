@@ -1964,7 +1964,7 @@ button.dewan-tr:hover {
   .pk-footer-link:hover { border-bottom-color: var(--accent); }
   .pk-footer-label {
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: 11px;
     letter-spacing: .1em;
     text-transform: uppercase;
     color: var(--muted);

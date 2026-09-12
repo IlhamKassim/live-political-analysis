@@ -706,7 +706,7 @@ _PROCESS_CSS = f"""{_LEARN_BASE_CSS}
   .state-tag {{
     display: inline-block;
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: 11px;
     letter-spacing: .08em;
     text-transform: uppercase;
     color: var(--ink-secondary);
