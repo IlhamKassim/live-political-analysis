@@ -313,7 +313,9 @@ def save_scored_articles(
 
     cutoff = computed_at - timedelta(days=SCORED_ARTICLE_RETENTION_DAYS)
     with engine.begin() as connection:
-        connection.execute(delete(scored_article).where(scored_article.c.computed_at == computed_at))
+        connection.execute(
+            delete(scored_article).where(scored_article.c.computed_at == computed_at)
+        )
         rows = [
             {
                 "computed_at": computed_at,

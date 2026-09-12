@@ -35,9 +35,7 @@ def export_articles(
         "kind": "MODEL",
         "computed_at": computed_at.isoformat(),
         "description": "Article-level News Sentiment scores for the latest pipeline run.",
-        "coalition_deltas": {
-            coalition: delta for coalition, delta in sentiment_deltas.items()
-        },
+        "coalition_deltas": {coalition: delta for coalition, delta in sentiment_deltas.items()},
         "coalition_names": dict(coalition_names_map),
         "articles": articles,
     }
@@ -45,17 +43,25 @@ def export_articles(
 
 def _article_rows(engine: Engine, computed_at: date) -> list[dict[str, Any]]:
     rows = load_scored_articles(engine, computed_at=computed_at)
-    return [
-        {
-            "url": row["url"],
-            "title": row["title"],
-            "source": row["source"],
-            "scores": dict(row["coalition_scores"]),
-            "dominant_coalition": dominant_coalition(row["coalition_scores"]),
-            "topics": classify_article_topics(row["title"], row.get("text") or ""),
-        }
-        for row in rows
-    ]
+    exported: list[dict[str, Any]] = []
+    for row in rows:
+        scores_raw = row["coalition_scores"]
+        scores: dict[str, float] = (
+            {str(key): float(value) for key, value in scores_raw.items()}
+            if isinstance(scores_raw, Mapping)
+            else {}
+        )
+        exported.append(
+            {
+                "url": str(row["url"]),
+                "title": str(row["title"]),
+                "source": str(row["source"]),
+                "scores": scores,
+                "dominant_coalition": dominant_coalition(scores),
+                "topics": classify_article_topics(str(row["title"]), str(row.get("text") or "")),
+            }
+        )
+    return exported
 
 
 def sentiment_deltas(engine: Engine, computed_at: date) -> dict[Coalition, float | None]:
