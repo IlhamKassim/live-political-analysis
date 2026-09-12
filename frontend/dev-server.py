@@ -35,19 +35,34 @@ class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
                 return landing_path
 
         orig = super().translate_path(clean_path)
+        repo_cand = REPO_PUBLIC
+        for word in [w for w in clean_path.split("/") if w]:
+            if word not in (os.curdir, os.pardir):
+                repo_cand = os.path.join(repo_cand, word)
+
+        # frontend/public may shadow repo public/ with a partial tree (e.g.
+        # analyst/data + analyst/tools but no analyst/index.html). Prefer the
+        # repo copy when the SPA-side path is a directory without an index.
+        if os.path.isdir(orig):
+            idx = os.path.join(orig, "index.html")
+            if not os.path.isfile(idx):
+                repo_idx = os.path.join(repo_cand, "index.html")
+                if os.path.isfile(repo_idx):
+                    return repo_idx
+                if os.path.isfile(repo_cand):
+                    return repo_cand
+            elif clean_path.endswith("/"):
+                return idx
+
         if os.path.exists(orig):
             return orig
-        words = [w for w in clean_path.split("/") if w]
-        cand = REPO_PUBLIC
-        for word in words:
-            if word not in (os.curdir, os.pardir):
-                cand = os.path.join(cand, word)
-        if clean_path.endswith("/") and os.path.isdir(cand):
-            idx = os.path.join(cand, "index.html")
+
+        if clean_path.endswith("/") and os.path.isdir(repo_cand):
+            idx = os.path.join(repo_cand, "index.html")
             if os.path.isfile(idx):
                 return idx
-        if os.path.exists(cand):
-            return cand
+        if os.path.exists(repo_cand):
+            return repo_cand
         return orig
 
     def rewrite_api_path(self):
