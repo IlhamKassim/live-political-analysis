@@ -474,3 +474,28 @@ def test_the_language_toggle_names_itself_in_the_page_language():
     ms = render_header(active_nav="home", language=Language.MS, page_path="")
     assert 'aria-label="Language"' in en
     assert 'aria-label="Bahasa"' in ms
+
+
+def test_the_phone_topbar_shows_one_brand_and_no_trust_strip():
+    """At 320px the topbar carried two copies of the wordmark plus the trust
+    strip, which pushed the menu button off the right edge and made it
+    unreachable. Below 640px only the branded wordmark, the language switch
+    and the menu button are laid out."""
+    from lpa.politikku_shell import _CSS_TEMPLATE
+
+    blocks = [
+        block.split("\n  }")[0] for block in _CSS_TEMPLATE.split("@media (max-width: 639px) {")[1:]
+    ]
+    (phone_block,) = [b for b in blocks if ".mobile-menu-btn { display: inline-flex; }" in b]
+    assert ".topbar-context { display: none; }" in phone_block
+    assert ".topbar-trust { display: none; }" in phone_block
+
+
+def test_the_open_mobile_menu_is_sized_off_the_viewport():
+    """#topbar's backdrop-filter makes it the containing block for its
+    fixed-position children, so `bottom: 0` collapsed the open menu to a
+    32px sliver. It has to take its height from the viewport instead."""
+    from lpa.politikku_shell import _CSS_TEMPLATE
+
+    assert "height: calc(100vh - 56px);" in _CSS_TEMPLATE
+    assert "bottom: 0;\n      background: var(--paper); z-index: 99;" not in _CSS_TEMPLATE

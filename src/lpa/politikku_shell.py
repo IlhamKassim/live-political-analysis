@@ -1039,11 +1039,23 @@ _CSS_TEMPLATE = """
   .mobile-menu { display: none; }
   @media (max-width: 639px) {
     .mobile-menu-btn { display: inline-flex; }
-    .topbar-trust .trust-full { display: none; }
-    .topbar-trust .trust-condensed { display: inline; }
-    .topbar-trust { font-size: 10px; gap: 6px; }
+    /* .brand-home and .topbar-context are the same wordmark twice; on a
+       phone only one fits beside the language switch and the menu button,
+       so keep the one that carries the logo mark. */
+    .topbar-context { display: none; }
+    #topbar .brand-home { flex: 0 0 auto; }
+    /* No width is left for the trust strip once the brand, the language
+       switch and the 44px menu button have taken theirs, and a half-cut
+       "Updated ... MYT" is worse than none. Both parts stay reachable:
+       Methodology is in the mobile menu, and the updated date is repeated
+       in the page itself. */
+    .topbar-trust { display: none; }
+    /* #topbar's backdrop-filter makes it the containing block for its
+       fixed-position children, so `bottom: 0` resolved against the 56px
+       header and collapsed the panel. Size it off the viewport instead. */
     .mobile-menu.is-open {
-      display: block; position: fixed; top: 56px; left: 0; right: 0; bottom: 0;
+      display: block; position: fixed; top: 56px; left: 0; right: 0;
+      height: calc(100vh - 56px);
       background: var(--paper); z-index: 99; padding: 16px; overflow-y: auto;
     }
     .mobile-menu .topicons {
@@ -1054,11 +1066,20 @@ _CSS_TEMPLATE = """
       border-radius: var(--radius-md); background: var(--paper-alt); color: var(--ink);
       text-decoration: none; font-size: 14px; font-weight: 500;
     }
+    /* The nav icons are unsized SVGs; without this each row grew to ~240px. */
+    .mobile-menu .iconbtn svg { width: 20px; height: 20px; flex: 0 0 auto; }
     .mobile-menu .iconbtn.on { background: rgba(255, 255, 255, .15); font-weight: 700; }
   }
   @media (max-width: 900px) {
     .topbar-trust .trust-full { display: none; }
     .topbar-trust .trust-condensed { display: inline; }
+  }
+  /* Very narrow phones (~320px): tighten the padding and the wordmark so
+     the language switch and the 44px menu button still clear the edge. */
+  @media (max-width: 360px) {
+    #topbar { padding-left: 12px; padding-right: 12px; gap: 8px; }
+    .brand-home .mark { font-size: 16px; }
+    .topbar-lang a, .topbar-lang button { padding: 5px 8px; }
   }
 
   #app {
