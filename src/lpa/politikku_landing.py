@@ -28,6 +28,7 @@ from pathlib import Path
 
 from lpa.bill_tracker import Bill
 from lpa.domain import ElectionStatus
+from lpa.politikku_seo import OG_IMAGE, WEBSITE_LD
 from lpa.politikku_shell import (
     APP_URL,
     LANDING_PAGE,
@@ -376,6 +377,97 @@ def _observatory_lookup(language: Language) -> str:
 </div>"""
 
 
+_ROW_ARROW = (
+    '<span aria-hidden="true"><svg class="ico-arrow" viewBox="0 0 16 16" focusable="false">'
+    '<path d="M4.5 11.5l7-7M6 4.5h5.5V10" fill="none" stroke="currentColor" '
+    'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>'
+)
+
+
+def _source_row(
+    href: str,
+    icon: str,
+    title: str,
+    description: str,
+    meta: str,
+) -> str:
+    return (
+        f'<a class="source-row flow-reveal" href="{html.escape(href)}">'
+        f'<span class="source-icon" aria-hidden="true">{icon}</span>'
+        f"<div><h3>{html.escape(title)}</h3><p>{html.escape(description)}</p></div>"
+        f'<span class="row-meta">{html.escape(meta)} {_ROW_ARROW}</span></a>'
+    )
+
+
+def _extra_source_rows(language: Language) -> str:
+    """Crawlable links to indexable platform sections (SEO internal linking)."""
+    is_ms = language is Language.MS
+    rows = [
+        (
+            "dewan/",
+            "▣",
+            (
+                "Dewan Rakyat activity",
+                "Aktiviti Dewan Rakyat",
+            ),
+            (
+                "Who speaks in Parliament — every recorded Hansard speech turn.",
+                "Siapa bersuara di Parlimen — setiap giliran ucapan Hansard rasmi.",
+            ),
+            ("EXPLORE", "TEROKAI"),
+        ),
+        (
+            "politicians/",
+            "◎",
+            (
+                "Politicians directory",
+                "Direktori ahli politik",
+            ),
+            (
+                "Malaysia's 222 MPs and state assembly representatives.",
+                "222 Ahli Parlimen Malaysia dan wakil Dewan Undangan Negeri.",
+            ),
+            ("BROWSE", "LAYARI"),
+        ),
+        (
+            "projection/",
+            "◈",
+            (
+                "Seat-by-Seat projection",
+                "Unjuran kerusi demi kerusi",
+            ),
+            (
+                "Full GE16 projection across all 222 Parliamentary Seats.",
+                "Unjuran PRU16 penuh merentasi 222 kerusi Parlimen.",
+            ),
+            ("VIEW", "LIHAT"),
+        ),
+        (
+            "learn/glossary.html",
+            "◇",
+            (
+                "Core terms glossary",
+                "Glosari istilah asas",
+            ),
+            (
+                "Seat, Majority, Projection and more — explained in plain prose.",
+                "Kerusi, Majoriti, Unjuran dan lagi — dijelaskan dalam bahasa mudah.",
+            ),
+            ("READ", "BACA"),
+        ),
+    ]
+    return "".join(
+        _source_row(
+            route(language, route_suffix),
+            icon,
+            title_ms[0] if not is_ms else title_ms[1],
+            desc_ms[0] if not is_ms else desc_ms[1],
+            meta_ms[0] if not is_ms else meta_ms[1],
+        )
+        for route_suffix, icon, title_ms, desc_ms, meta_ms in rows
+    )
+
+
 def _observatory_header(language: Language) -> str:
     home = _ms_route(PAGE_PATH) if language is Language.MS else _en_route(PAGE_PATH)
     en_class = "on" if language is Language.EN else ""
@@ -480,6 +572,11 @@ def _observatory_body(model: LandingModel | None, language: Language) -> str:
         'href="/ms/methodology.html"',
         f'href="{html.escape(route(language, "methodology.html"))}"',
     )
+    body = body.replace(
+        '</div><p class="model-note">',
+        f'{_extra_source_rows(language)}</div><p class="model-note">',
+        1,
+    )
     return body.strip()
 
 
@@ -538,7 +635,9 @@ def render_landing_page(model: LandingModel | None = None, language: Language = 
     )
     escaped_title = html.escape(title)
     escaped_description = html.escape(description)
+    escaped_og_image = html.escape(OG_IMAGE)
     page_url = f"{SITE_URL.rstrip('/')}{_ms_route(PAGE_PATH) if language is Language.MS else _en_route(PAGE_PATH)}"
+    website_ld = json.dumps(WEBSITE_LD, indent=2)
     return f"""<!doctype html>
 <html lang="{"ms" if language is Language.MS else "en"}">
 <head>
@@ -551,6 +650,11 @@ def render_landing_page(model: LandingModel | None = None, language: Language = 
 <meta property="og:description" content="{escaped_description}">
 <meta property="og:url" content="{html.escape(page_url)}">
 <meta property="og:type" content="website">
+<meta property="og:image" content="{escaped_og_image}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{escaped_title}">
+<meta name="twitter:description" content="{escaped_description}">
+<meta name="twitter:image" content="{escaped_og_image}">
 <link rel="canonical" href="{html.escape(page_url)}">
 <link rel="alternate" hreflang="en" href="{html.escape(SITE_URL)}">
 <link rel="alternate" hreflang="ms" href="{html.escape(SITE_URL.rstrip("/") + "/ms/")}">
@@ -563,6 +667,9 @@ def render_landing_page(model: LandingModel | None = None, language: Language = 
 <link rel="stylesheet" href="{_observatory_asset_url("base.css")}">
 <link rel="stylesheet" href="{_observatory_asset_url("scrollcraft.css")}">
 <link rel="stylesheet" href="{_observatory_asset_url("style.css")}">
+<script type="application/ld+json">
+{website_ld}
+</script>
 <title>{escaped_title}</title>
 </head>
 <body class="pk-bare">
