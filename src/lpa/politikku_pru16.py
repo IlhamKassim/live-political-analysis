@@ -319,7 +319,175 @@ def _dates(model: Pru16Model, language: Language) -> str:
         '<section class="pk-ge-band" aria-labelledby="pk-ge-dates-h">'
         f'<div class="pk-ge-wrap"><h2 id="pk-ge-dates-h">{heading}</h2>'
         f'<p class="pk-ge-sub">{sub}</p>'
+        f"{_pipeline(model, language)}"
         f'<ol class="pk-ge-steps">{steps}</ol></div></section>'
+    )
+
+
+# ── The pipeline card ─────────────────────────────────────────────────────
+#
+# The same four dates as the list above, drawn as a signal path: four nodes,
+# dashed connectors with packets running along them, and a stats strip. It is
+# the wide-screen rendering; the list is the narrow one, and each is hidden
+# where the other shows, so neither is ever read twice.
+
+_NODE_W = 112
+_NODE_X = (64, 196, 328, 460)
+_NODE_Y = 46
+_NODE_H = 58
+
+
+def _pipeline_node(
+    x: int, eyebrow: str, value: str, foot: str, state: str, escape_value: bool = True
+) -> str:
+    mid = x + _NODE_W // 2
+    shown = html.escape(value) if escape_value else value
+    return (
+        f'<g class="pk-node is-{state}">'
+        f'<rect x="{x}" y="{_NODE_Y}" width="{_NODE_W}" height="{_NODE_H}" rx="9"/>'
+        f'<circle class="pk-node-led" cx="{x + _NODE_W - 13}" cy="{_NODE_Y + 13}" r="3"/>'
+        f'<text class="pk-node-eyebrow" x="{mid}" y="{_NODE_Y + 17}" text-anchor="middle">'
+        f"{html.escape(eyebrow)}</text>"
+        f'<text class="pk-node-value" x="{mid}" y="{_NODE_Y + 37}" text-anchor="middle">'
+        f"{shown}</text>"
+        f'<text class="pk-node-foot" x="{mid}" y="{_NODE_Y + 51}" text-anchor="middle">'
+        f"{html.escape(foot)}</text></g>"
+    )
+
+
+def _pipeline_link(index: int, live: bool) -> str:
+    """One dashed connector, with three packets running along it when the
+    stage it leads to is the one being waited on."""
+    x1 = _NODE_X[index] + _NODE_W
+    x2 = _NODE_X[index + 1]
+    y = _NODE_Y + _NODE_H // 2
+    dots = ""
+    if live:
+        dots = "".join(
+            f'<circle class="pk-packet" cx="{x1}" cy="{y}" r="{r}" '
+            f'style="--pk-run:{x2 - x1}px;animation-delay:{delay}s"/>'
+            for r, delay in ((2.5, 0), (1.8, 0.35), (1.3, 0.7))
+        )
+    return (
+        f'<g class="pk-link{" is-live" if live else ""}"><path d="M{x1},{y} L{x2},{y}"/>{dots}</g>'
+    )
+
+
+def _pipeline(model: Pru16Model, language: Language) -> str:
+    status = model.status
+    not_yet = t(language, "Not yet", "Belum")
+    awaiting = t(language, "awaiting announcement", "menunggu pengumuman")
+    announced = t(language, "announced", "diumumkan")
+    fixed = t(language, "constitutional limit", "had perlembagaan")
+
+    stages = (
+        (
+            t(language, "DISSOLUTION", "PEMBUBARAN"),
+            status.dissolved_on,
+            t(language, "Dewan Rakyat dissolved", "Dewan Rakyat dibubarkan"),
+        ),
+        (
+            t(language, "NOMINATION", "PENAMAAN"),
+            status.nomination_date,
+            t(language, "Nomination day", "Hari penamaan calon"),
+        ),
+        (
+            t(language, "POLLING", "MENGUNDI"),
+            status.polling_date,
+            t(language, "Polling day", "Hari mengundi"),
+        ),
+    )
+    # The first stage with no date is the one the country is waiting on; the
+    # packets run into it, and nothing runs past it, because nothing has.
+    waiting_on = next((i for i, (_, day, _) in enumerate(stages) if day is None), None)
+
+    nodes = ""
+    for i, (eyebrow, day, _) in enumerate(stages):
+        if day is not None:
+            state, value, foot = "done", _long_date(day, language), announced
+        elif i == waiting_on:
+            state, value, foot = "waiting", not_yet, awaiting
+        else:
+            state, value, foot = "pending", not_yet, awaiting
+        nodes += _pipeline_node(_NODE_X[i], eyebrow, value, foot, state)
+    nodes += _pipeline_node(
+        _NODE_X[3],
+        t(language, "DEADLINE", "TARIKH AKHIR"),
+        _long_date(status.constitutional_deadline, language),
+        fixed,
+        "limit",
+    )
+
+    links = "".join(
+        _pipeline_link(i, live=(waiting_on is not None and i == waiting_on - 1)) for i in range(3)
+    )
+    # Nothing has been announced yet: the packets run into the first stage.
+    if waiting_on == 0:
+        y = _NODE_Y + _NODE_H // 2
+        packets = "".join(
+            f'<circle class="pk-packet" cx="4" cy="{y}" r="{r}" '
+            f'style="--pk-run:{_NODE_X[0] - 4}px;animation-delay:{delay}s"/>'
+            for r, delay in ((2.5, 0), (1.8, 0.35), (1.3, 0.7))
+        )
+        links = (
+            packets + f'<g class="pk-link is-live"><path d="M4,{_NODE_Y + _NODE_H // 2} '
+            f'L{_NODE_X[0]},{_NODE_Y + _NODE_H // 2}"/></g>' + links
+        )
+
+    set_count = sum(1 for _, day, _ in stages if day is not None)
+    header_right = t(
+        language,
+        f"{set_count} of 3 dates announced",
+        f"{set_count} daripada 3 tarikh diumumkan",
+    )
+    if waiting_on is None:
+        line = t(
+            language,
+            "All three dates are set. Polling day is fixed.",
+            "Ketiga-tiga tarikh telah ditetapkan. Hari mengundi sudah muktamad.",
+        )
+    else:
+        waits = (
+            t(
+                language,
+                "Waiting on the Dewan Rakyat to be dissolved.",
+                "Menunggu Dewan Rakyat dibubarkan.",
+            ),
+            t(
+                language,
+                "Waiting on the Election Commission to set nomination day.",
+                "Menunggu Suruhanjaya Pilihan Raya menetapkan hari penamaan calon.",
+            ),
+            t(
+                language,
+                "Waiting on the Election Commission to set polling day.",
+                "Menunggu Suruhanjaya Pilihan Raya menetapkan hari mengundi.",
+            ),
+        )
+        line = waits[waiting_on]
+    stats = (
+        (t(language, "DATES SET", "TARIKH DITETAPKAN"), f"{set_count}/3"),
+        (
+            t(language, "LATEST POSSIBLE", "PALING LEWAT"),
+            _long_date(status.constitutional_deadline, language),
+        ),
+        (t(language, "SOURCE", "SUMBER"), "parlimen.gov.my"),
+    )
+    stats_html = "".join(
+        f'<div><span class="pk-stat-k">{html.escape(k)}</span>'
+        f'<span class="pk-stat-v">{html.escape(v)}</span></div>'
+        for k, v in stats
+    )
+    live_label = t(language, "THE ROAD TO GE16 · TRACKING", "PERJALANAN KE PRU16 · DIPANTAU")
+
+    return (
+        '<div class="pk-pipe" aria-hidden="true">'
+        '<div class="pk-pipe-head"><span class="pk-pipe-live">'
+        f'<span class="pk-pipe-led"></span>{html.escape(live_label)}</span>'
+        f'<span class="pk-pipe-count">{html.escape(header_right)}</span></div>'
+        f'<svg viewBox="0 0 580 128" class="pk-pipe-svg">{links}{nodes}</svg>'
+        f'<div class="pk-pipe-line"><span>&rsaquo;</span>{html.escape(line)}</div>'
+        f'<div class="pk-pipe-stats">{stats_html}</div></div>'
     )
 
 
@@ -608,6 +776,69 @@ _CSS = """
   .pk-ge-band-alt { background: var(--paper-alt); }
   .pk-ge-band h2 { font-size: 28px; line-height: 1.15; letter-spacing: -.015em; margin: 0 0 8px; color: var(--ink); }
   .pk-ge-sub { margin: 0 0 24px; font-size: 16px; line-height: 1.55; color: var(--ink-secondary); max-width: 60ch; }
+  /* The pipeline card: the wide-screen rendering of the same four dates. */
+  .pk-pipe {
+    border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+    background: #0c1a1e;
+  }
+  .pk-pipe-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 11px 18px; border-bottom: 1px solid var(--line-soft);
+  }
+  .pk-pipe-live, .pk-pipe-count {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .1em; color: var(--muted);
+  }
+  .pk-pipe-live { display: inline-flex; align-items: center; gap: 7px; }
+  .pk-pipe-led {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+    animation: pk-led 2s ease-in-out infinite;
+  }
+  @keyframes pk-led { 0%, 100% { opacity: 1 } 50% { opacity: .2 } }
+  .pk-pipe-svg { display: block; width: 100%; height: auto; }
+  .pk-link path { fill: none; stroke: rgba(214, 237, 154, .2); stroke-width: 1.5; stroke-dasharray: 3 5; }
+  .pk-link.is-live path { stroke: rgba(214, 237, 154, .34); }
+  .pk-packet {
+    fill: var(--accent);
+    animation: pk-run 1.15s linear infinite;
+  }
+  @keyframes pk-run {
+    from { transform: translateX(0); opacity: 0 }
+    12% { opacity: 1 }
+    to { transform: translateX(var(--pk-run)); opacity: 0 }
+  }
+  .pk-node rect { fill: #13252a; stroke: var(--line-soft); stroke-width: 1; }
+  .pk-node-eyebrow {
+    font-family: var(--mono); font-size: 8.5px; letter-spacing: .09em; fill: var(--muted);
+  }
+  .pk-node-value { font-family: var(--font-display); font-size: 13px; font-weight: 600; fill: var(--ink); }
+  .pk-node-foot { font-family: var(--mono); font-size: 8px; fill: var(--muted); opacity: .7; }
+  .pk-node-led { fill: var(--line-strong); }
+  .pk-node.is-pending .pk-node-value { fill: var(--muted); font-weight: 500; }
+  .pk-node.is-waiting rect { fill: #10222a; stroke: var(--accent); }
+  .pk-node.is-waiting .pk-node-value { fill: var(--ink); }
+  .pk-node.is-waiting .pk-node-led { fill: var(--accent); animation: pk-led 1.9s ease-in-out infinite; }
+  .pk-node.is-done .pk-node-led { fill: var(--accent); }
+  .pk-node.is-limit rect { stroke: var(--caution); stroke-dasharray: 4 4; }
+  .pk-node.is-limit .pk-node-value { fill: var(--caution); font-size: 12px; }
+  /* No status light on the limit: it is a fixed date, not a stage waiting to happen. */
+  .pk-node.is-limit .pk-node-led { display: none; }
+  .pk-pipe-line {
+    display: flex; gap: 8px; align-items: baseline;
+    padding: 10px 18px; border-top: 1px solid var(--line-soft);
+    font-family: var(--mono); font-size: 12px; color: var(--ink-secondary);
+  }
+  .pk-pipe-line span { color: var(--accent); }
+  .pk-pipe-stats {
+    display: flex; flex-wrap: wrap; gap: 8px 28px;
+    padding: 11px 18px; border-top: 1px solid var(--line-soft);
+  }
+  .pk-pipe-stats div { display: flex; flex-direction: column; gap: 3px; }
+  .pk-stat-k { font-family: var(--mono); font-size: 9px; letter-spacing: .09em; color: var(--muted); }
+  .pk-stat-v { font-family: var(--mono); font-size: 14px; color: var(--ink-secondary); }
+  @media (prefers-reduced-motion: reduce) {
+    .pk-packet, .pk-pipe-led, .pk-node.is-waiting .pk-node-led { animation: none; }
+    .pk-packet { opacity: 0; }
+  }
   .pk-ge-steps {
     list-style: none; margin: 0; padding: 0; display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr)); position: relative;
@@ -701,6 +932,10 @@ _CSS = """
   .pk-ge-foot-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; }
   .pk-ge-foot p { margin: 0; font-size: 15px; line-height: 1.6; color: var(--ink-secondary); }
   .pk-ge-foot p.pk-ge-eyebrow { margin-bottom: 8px; font-size: 12px; color: var(--muted); }
+  /* Below 1001px the card's own labels would scale under 9px, so the plain
+     list takes over there and the card takes over above it. */
+  @media (max-width: 1000px) { .pk-pipe { display: none; } }
+  @media (min-width: 1001px) { .pk-ge-steps { display: none; } }
   @media (max-width: 760px) {
     .pk-ge-wrap { padding: 0 var(--gutter-mobile, 18px); }
     .pk-ge-hero { padding: 40px 0; }

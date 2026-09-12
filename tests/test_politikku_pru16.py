@@ -124,7 +124,25 @@ def test_polling_day_past_never_shows_a_negative_number() -> None:
 
 def test_dates_are_never_guessed() -> None:
     body = render_pru16_body(_model(NOT_CALLED))
-    assert body.count(">Not yet<") == 3
+    # Three unannounced dates, shown twice: once in the pipeline card (wide
+    # screens) and once in the plain list (narrow ones).
+    assert body.count(">Not yet<") == 6
+
+
+def test_pipeline_marks_the_stage_being_waited_on() -> None:
+    body = render_pru16_body(_model(NOT_CALLED))
+    assert body.count('class="pk-node is-waiting"') == 1
+    assert "Waiting on the Dewan Rakyat to be dissolved." in body
+    assert "0 of 3 dates announced" in body
+
+    called = render_pru16_body(_model(CALLED))
+    assert called.count('class="pk-node is-done"') == 1
+    assert "Waiting on the Election Commission to set nomination day." in called
+    assert "1 of 3 dates announced" in called
+
+    settled = render_pru16_body(_model(POLLING))
+    assert settled.count('class="pk-node is-waiting"') == 0
+    assert "All three dates are set." in settled
 
 
 def test_projection_summary_against_the_majority() -> None:
