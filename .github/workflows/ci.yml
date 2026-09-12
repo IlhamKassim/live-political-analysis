@@ -142,7 +142,7 @@ jobs:
       - run: playwright install --with-deps chromium
       - run: npm ci && npm run build
         working-directory: ts
-      - run: pytest -m browser tests/test_release_browser.py
+      - run: pytest -m browser tests/test_release_browser.py tests/test_mobile_pages.py
 
   postgres-check:
     name: Postgres integration
