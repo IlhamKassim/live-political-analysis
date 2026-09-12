@@ -68,6 +68,15 @@ class Pru16Model:
     art: str = "both"
     """Which hero artwork to draw: "skyline", "arc", "both" or "none".
     An experiment switch, not a setting we mean to keep forever."""
+    results: tuple[CoalitionRow, ...] = ()
+    """The Seats each Coalition actually won, once they are known.
+
+    Empty until the Election Commission has declared enough Seats to be worth
+    showing. `government` here means the bloc that formed the government after
+    the election, which is not always the one that held it before.
+    """
+    results_source: str = ""
+    """Where the result came from, so a reader can check it."""
 
 
 def pru16_model(
@@ -78,6 +87,8 @@ def pru16_model(
     computed_at: date | None = None,
     projection_path: Path = PROJECTION_JSON,
     art: str = "both",
+    results: Sequence[CoalitionRow] | None = None,
+    results_source: str = "",
 ) -> Pru16Model:
     """Build the model. Every argument defaults to a real read, so a test can
     pass them all and touch no file."""
@@ -109,6 +120,8 @@ def pru16_model(
         total_seats=TOTAL_SEATS,
         sources_count=_outlets_count(),
         art=art,
+        results=tuple(results or ()),
+        results_source=results_source,
     )
 
 
@@ -195,7 +208,42 @@ def _hero(model: Pru16Model, language: Language) -> str:
     status = model.status
     eyebrow = t(language, "GE16 · Election Status", "PRU16 · Status pilihan raya")
 
-    if not status.called:
+    if model.results:
+        # The result outranks every countdown: once Seats are declared, the
+        # question the page answers stops being "when" and becomes "what
+        # happened", and how close we were to calling it.
+        state = "result"
+        won = [r for r in model.results if r.government]
+        seats = sum(r.seats for r in won)
+        names = ", ".join(html.escape(r.code) for r in won)
+        chip = t(language, "Result", "Keputusan")
+        heading = t(language, "GE16 is decided.", "PRU16 telah diputuskan.")
+        count = (
+            '<div class="pk-ge-result-big"><p class="pk-ge-result-n">'
+            f"<b>{seats}</b><span>{t(language, 'Seats', 'kerusi')}</span></p>"
+            f'<p class="pk-ge-result-who">{names}</p></div>'
+        )
+        gap = seats - model.majority_threshold
+        note = (
+            t(
+                language,
+                f"{names} won {seats} of {model.total_seats} Seats, "
+                f"{gap} more than the {model.majority_threshold} needed for a Majority.",
+                f"{names} memenangi {seats} daripada {model.total_seats} kerusi, "
+                f"{gap} lebih daripada {model.majority_threshold} untuk Majoriti.",
+            )
+            if gap >= 0
+            else t(
+                language,
+                f"{names} won {seats} of {model.total_seats} Seats, "
+                f"{-gap} short of the {model.majority_threshold} needed for a Majority. "
+                "No single bloc holds a Majority.",
+                f"{names} memenangi {seats} daripada {model.total_seats} kerusi, "
+                f"kurang {-gap} daripada {model.majority_threshold} untuk Majoriti. "
+                "Tiada blok tunggal memegang Majoriti.",
+            )
+        )
+    elif not status.called:
         state = "not-called"
         chip = t(language, "Not called", "Belum diisytiharkan")
         heading = t(language, "GE16 has not been called.", "PRU16 belum diisytiharkan.")
@@ -725,23 +773,13 @@ def _projection(model: Pru16Model, language: Language) -> str:
     others = [r for r in model.coalitions if not r.government]
     gov = sum(r.seats for r in government)
 
-    segments = "".join(
-        f'<span class="pk-ge-seg" style="flex:{r.seats} 0 0;background:{html.escape(r.color)}" '
-        f'title="{html.escape(r.code)}: {r.seats}"></span>'
-        for r in model.coalitions
-    )
     bar_label = t(
         language,
         f"Government Coalition {gov} of {total} Seats; a Majority is {threshold}.",
         f"Gabungan Kerajaan {gov} daripada {total} kerusi; Majoriti ialah {threshold}.",
     )
     majority_label = t(language, f"Majority · {threshold}", f"Majoriti · {threshold}")
-    bar = (
-        f'<div class="pk-ge-bar-wrap" role="img" aria-label="{html.escape(bar_label)}">'
-        f'<div class="pk-ge-bar">{segments}</div>'
-        f'<span class="pk-ge-maj" style="left:{threshold / total * 100:.3f}%">'
-        f"<span>{majority_label}</span></span></div>"
-    )
+    bar = _seat_bar(model.coalitions, threshold, total, bar_label, majority_label)
     legend = _legend_group(
         government, t(language, "Government Coalition", "Gabungan Kerajaan")
     ) + _legend_group(others, t(language, "Others", "Lain-lain"))
@@ -762,6 +800,171 @@ def _projection(model: Pru16Model, language: Language) -> str:
         f'<p class="pk-ge-lede">{_majority_lede(gov, threshold, language)}</p>{bar}'
         f'<div class="pk-ge-legend">{legend}</div>'
         f'<p class="pk-ge-caveat">{caveat}</p>{full_link}</div></section>'
+    )
+
+
+def _seat_bar(
+    rows: Sequence[CoalitionRow], threshold: int, total: int, label: str, marker: str = ""
+) -> str:
+    """One stacked Seat bar with the Majority line on it.
+
+    Each segment is sized as its share of `total`, never as its share of the
+    row it sits in. Flex-grow would normalise every bar to its own sum, so a
+    set of rows adding up to 215 of 222 Seats would still fill the bar end to
+    end and push the Majority line about 3% off where it belongs. Sizing
+    against `total` instead leaves the missing Seats as visible empty track,
+    which is the honest picture and keeps two bars comparable.
+    """
+    segments = "".join(
+        f'<span class="pk-ge-seg" style="width:{r.seats / total * 100:.3f}%;'
+        f'background:{html.escape(r.color)}" '
+        f'title="{html.escape(r.code)}: {r.seats}"></span>'
+        for r in rows
+    )
+    return (
+        f'<div class="pk-ge-bar-wrap" role="img" aria-label="{html.escape(label)}">'
+        f'<div class="pk-ge-bar">{segments}</div>'
+        f'<span class="pk-ge-maj" style="left:{threshold / total * 100:.3f}%">'
+        f"<span>{marker}</span></span></div>"
+    )
+
+
+def _delta_chip(delta: int, language: Language) -> str:
+    """The gap between what we projected and what happened, for one Coalition."""
+    if delta == 0:
+        word = t(language, "exact", "tepat")
+        return f'<span class="pk-ge-delta is-exact">{word}</span>'
+    sign = "+" if delta > 0 else "−"
+    kind = "is-over" if delta > 0 else "is-under"
+    return f'<span class="pk-ge-delta {kind}">{sign}{abs(delta)}</span>'
+
+
+def _comparison(model: Pru16Model, language: Language) -> str:
+    """Predicted against actual, once the Seats are in.
+
+    This is the page's last act. Every other section counts towards an
+    election; this one is the only place that says, afterwards, how well the
+    Projection did — including when it did badly.
+    """
+    if not model.results:
+        return ""
+
+    total = model.total_seats
+    threshold = model.majority_threshold
+    projected = {r.code: r.seats for r in model.coalitions}
+    heading = t(language, "How close the Projection was", "Sejauh mana Unjuran menepati")
+
+    open_band = (
+        '<section class="pk-ge-band pk-ge-band-alt" aria-labelledby="pk-ge-cmp-h">'
+        f'<div class="pk-ge-wrap"><h2 id="pk-ge-cmp-h">{heading}</h2>'
+    )
+
+    if not projected:
+        missing = t(
+            language,
+            "No Projection was recorded for this election, so there is nothing to "
+            "compare the result against.",
+            "Tiada Unjuran direkodkan untuk pilihan raya ini, jadi tiada apa-apa untuk "
+            "dibandingkan dengan keputusan.",
+        )
+        return f'{open_band}<p class="pk-ge-sub">{missing}</p></div></section>'
+
+    won = [r for r in model.results if r.government]
+    actual_gov = sum(r.seats for r in won)
+    projected_gov = sum(projected.get(r.code, 0) for r in won)
+    gap = actual_gov - projected_gov
+    names = ", ".join(html.escape(r.code) for r in won)
+    if gap == 0:
+        lede = t(
+            language,
+            f"The Projection put {names} on <b>{projected_gov} Seats</b>. They won exactly that.",
+            f"Unjuran meletakkan {names} pada <b>{projected_gov} kerusi</b>. "
+            f"Itulah jumlah yang dimenangi.",
+        )
+    else:
+        direction = t(language, "more", "lebih") if gap > 0 else t(language, "fewer", "kurang")
+        lede = t(
+            language,
+            f"The Projection put {names} on <b>{projected_gov} Seats</b>. "
+            f"They won <b>{actual_gov}</b> — {abs(gap)} {direction}.",
+            f"Unjuran meletakkan {names} pada <b>{projected_gov} kerusi</b>. "
+            f"Mereka memenangi <b>{actual_gov}</b> — {abs(gap)} {direction}.",
+        )
+
+    proj_rows = tuple(
+        CoalitionRow(r.code, projected.get(r.code, 0), r.color, r.government) for r in model.results
+    )
+    bars = (
+        '<div class="pk-ge-cmp-bars">'
+        f'<p class="pk-ge-cmp-label">{t(language, "Projected", "Diunjurkan")}</p>'
+        + _seat_bar(
+            proj_rows,
+            threshold,
+            total,
+            t(language, "Projected Seats by Coalition", "Kerusi diunjurkan mengikut Gabungan"),
+        )
+        + f'<p class="pk-ge-cmp-label">{t(language, "Result", "Keputusan")}'
+        f'<span class="pk-ge-cmp-maj">{t(language, "Majority", "Majoriti")} '
+        f"{threshold}</span></p>"
+        + _seat_bar(
+            model.results,
+            threshold,
+            total,
+            t(language, "Seats won by Coalition", "Kerusi dimenangi mengikut Gabungan"),
+        )
+        + "</div>"
+    )
+
+    head = (
+        "<tr><th>"
+        + t(language, "Coalition", "Gabungan")
+        + "</th><th>"
+        + t(language, "Projected", "Diunjurkan")
+        + "</th><th>"
+        + t(language, "Won", "Dimenangi")
+        + "</th><th>"
+        + t(language, "Off by", "Beza")
+        + "</th></tr>"
+    )
+    body_rows = "".join(
+        "<tr><td><span class='pk-ge-sw' style='background:"
+        f"{html.escape(r.color)}'></span>{html.escape(r.code)}</td>"
+        f"<td>{projected.get(r.code, 0)}</td><td><b>{r.seats}</b></td>"
+        f"<td>{_delta_chip(r.seats - projected.get(r.code, 0), language)}</td></tr>"
+        for r in sorted(model.results, key=lambda r: r.seats, reverse=True)
+    )
+    table = (
+        '<div class="pk-ge-cmp-scroll"><table class="pk-ge-cmp-table">'
+        f"<thead>{head}</thead><tbody>{body_rows}</tbody></table></div>"
+    )
+
+    # The average miss across Coalitions, which is the honest headline number:
+    # a Projection that is close on the big blocs and wild on the small ones
+    # is not an accurate Projection.
+    misses = [abs(r.seats - projected.get(r.code, 0)) for r in model.results]
+    mean_miss = sum(misses) / len(misses)
+    worst = max(misses)
+    accuracy = t(
+        language,
+        f"Across the {len(misses)} Coalitions the Projection was off by "
+        f"{mean_miss:.1f} Seats on average, and by {worst} at worst. "
+        "It was built from GE15 results and daily News Sentiment, and was never "
+        "calibrated against survey data — this is the record of how that did.",
+        f"Merentasi {len(misses)} Gabungan, Unjuran tersasar {mean_miss:.1f} kerusi "
+        f"secara purata, dan {worst} pada yang paling teruk. Ia dibina daripada "
+        "keputusan PRU15 dan Sentimen berita harian, dan tidak pernah ditentukur "
+        "dengan data tinjauan — inilah rekod prestasinya.",
+    )
+    source = ""
+    if model.results_source:
+        url = html.escape(model.results_source)
+        source = (
+            f'<a class="pk-ge-link" href="{url}" rel="noopener">'
+            f"{t(language, 'Official result', 'Keputusan rasmi')} {_ICON_ARROW}</a>"
+        )
+    return (
+        f'{open_band}<p class="pk-ge-lede">{lede}</p>{bars}{table}'
+        f'<p class="pk-ge-caveat">{accuracy}</p>{source}</div></section>'
     )
 
 
@@ -1149,8 +1352,12 @@ _CSS = """
   .pk-ge-lede { font-size: 19px; line-height: 1.5; color: var(--ink-secondary); margin: 0 0 28px; max-width: 56ch; }
   .pk-ge-lede b { color: var(--ink); }
   .pk-ge-bar-wrap { position: relative; padding-top: 30px; }
-  .pk-ge-bar { display: flex; height: 26px; border-radius: 4px; overflow: hidden; gap: 2px; background: var(--line-soft); }
-  .pk-ge-seg { min-width: 2px; }
+  /* No gap between segments: their widths are percentages of all 222 Seats,
+     so any gap would be added on top of 100% and push the bar past its own
+     box. The empty track at the end is meaningful — it is the Seats this row
+     does not account for. */
+  .pk-ge-bar { display: flex; height: 26px; border-radius: 4px; overflow: hidden; background: var(--line-soft); }
+  .pk-ge-seg { min-width: 2px; box-shadow: inset -1px 0 0 rgba(16, 30, 35, .55); }
   .pk-ge-maj { position: absolute; top: 0; bottom: -6px; width: 0; border-left: 2px dashed var(--ink); }
   .pk-ge-maj span {
     position: absolute; top: 0; left: 8px; white-space: nowrap;
@@ -1164,6 +1371,59 @@ _CSS = """
   .pk-ge-legend li b { color: var(--ink); font-variant-numeric: tabular-nums; }
   .pk-ge-sw { width: 10px; height: 10px; border-radius: 2px; }
   .pk-ge-caveat { margin: 26px 0 8px; font-size: 14px; line-height: 1.55; color: var(--muted); max-width: 70ch; }
+
+  /* ── The result, and how close we were ─────────────────────────────── */
+  .pk-ge-chip-result { border-color: var(--positive-border); color: var(--accent); }
+  .pk-ge-chip-result .pk-ge-dot { background: var(--accent); }
+  .pk-ge-result-big { display: flex; flex-direction: column; gap: 6px; }
+  .pk-ge-result-n { display: flex; align-items: baseline; gap: 14px; margin: 0; }
+  .pk-ge-result-n b {
+    font-family: var(--font-display); font-weight: 700; color: var(--accent);
+    font-size: clamp(88px, 16vw, 168px); line-height: .9; letter-spacing: -.05em;
+    font-variant-numeric: tabular-nums;
+  }
+  .pk-ge-result-n span {
+    font-family: var(--font-display); font-weight: 600; font-size: clamp(24px, 3.4vw, 36px);
+    color: var(--ink);
+  }
+  .pk-ge-result-who {
+    margin: 0; font-family: var(--mono); font-size: 15px; letter-spacing: .06em;
+    color: var(--ink-secondary);
+  }
+  /* Both bars share one scale and one Majority line, so the eye does the
+     comparing before the table explains it. */
+  .pk-ge-cmp-bars { display: flex; flex-direction: column; gap: 4px; margin-bottom: 34px; }
+  .pk-ge-cmp-label {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+    margin: 14px 0 0; font-family: var(--mono); font-size: 12px; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .pk-ge-cmp-maj { color: var(--ink-secondary); }
+  .pk-ge-cmp-bars .pk-ge-bar-wrap { padding-top: 6px; }
+  .pk-ge-cmp-scroll { overflow-x: auto; }
+  .pk-ge-cmp-table { border-collapse: collapse; width: 100%; min-width: 320px; font-size: 15px; }
+  .pk-ge-cmp-table th {
+    text-align: left; padding: 0 12px 10px 0; font-family: var(--mono); font-size: 12px;
+    font-weight: 500; letter-spacing: .07em; text-transform: uppercase; color: var(--muted);
+  }
+  .pk-ge-cmp-table th:not(:first-child), .pk-ge-cmp-table td:not(:first-child) { text-align: right; }
+  .pk-ge-cmp-table td {
+    padding: 12px 12px 12px 0; border-top: 1px solid var(--line-soft);
+    color: var(--ink-secondary); font-variant-numeric: tabular-nums;
+  }
+  .pk-ge-cmp-table td b { color: var(--ink); }
+  .pk-ge-cmp-table td:first-child { display: flex; align-items: center; gap: 9px; color: var(--ink); }
+  .pk-ge-delta {
+    display: inline-block; min-width: 46px; padding: 3px 9px; border-radius: 999px;
+    font-family: var(--mono); font-size: 13px; text-align: center;
+  }
+  /* Over and under get the same weight. The sign already says which way the
+     Projection missed, and tinting one of them with the accent colour would
+     read as "good", which a miss never is. */
+  .pk-ge-delta.is-over, .pk-ge-delta.is-under {
+    background: rgba(255, 255, 255, .08); color: var(--ink);
+  }
+  .pk-ge-delta.is-exact { background: transparent; color: var(--muted); }
   .pk-ge-link {
     display: inline-flex; align-items: center; gap: 6px; min-height: 44px;
     color: var(--accent); font-weight: 600; text-decoration: none; overflow-wrap: anywhere;
@@ -1254,7 +1514,9 @@ def render_pru16_body(model: Pru16Model, language: Language = Language.EN) -> st
         f"<style>{_CSS}</style>"
         f"{_hero(model, language)}"
         f"{_dates(model, language)}"
-        f"{_projection(model, language)}"
+        # Once the Seats are in, "where the Projection stands" is the wrong
+        # question; the comparison answers the one people actually have.
+        f"{_comparison(model, language) if model.results else _projection(model, language)}"
         f"{_lookup(language)}"
         f"{_follow(language)}"
         f"{_sources(model, language)}"
@@ -1289,6 +1551,37 @@ def render_pru16_page(model: Pru16Model, language: Language = Language.EN) -> st
     )
 
 
+def _demo_result() -> tuple[tuple[CoalitionRow, ...], ElectionStatus]:
+    """Invented Seat totals for reviewing the post-election layout.
+
+    Nothing here is a forecast and none of it may ever reach the published
+    page: the numbers exist only so the comparison section has something to
+    draw before a real election gives it real ones. They are deliberately
+    untidy — one bloc missed badly, one called exactly — because a mock where
+    every number is close would flatter a layout whose whole job is to show
+    the misses.
+    """
+    from lpa.config import load_election_status
+
+    base = load_election_status()
+    status = ElectionStatus(
+        constitutional_deadline=base.constitutional_deadline,
+        source=base.source,
+        dissolved_on=date(2026, 10, 1),
+        nomination_date=date(2026, 10, 20),
+        polling_date=date(2026, 11, 3),
+    )
+    results = (
+        CoalitionRow("PH", 68, "#e31b23", True),
+        CoalitionRow("BN", 24, "#0b3d91", True),
+        CoalitionRow("GPS", 23, "#c8102e", True),
+        CoalitionRow("GRS", 12, "#f6a800", True),
+        CoalitionRow("PN", 88, "#00a651", False),
+        CoalitionRow("Other", 7, "#8a9a95", False),
+    )
+    return results, status
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Render the GE16 page")
     parser.add_argument("--output-dir", type=Path, default=Path("public"))
@@ -1303,9 +1596,21 @@ def main() -> None:
         default="pru16",
         help="Folder name under the output directory, so variants can sit side by side.",
     )
+    parser.add_argument(
+        "--demo-results",
+        action="store_true",
+        help=(
+            "Render the page as if GE16 were over, using made-up Seat totals. "
+            "For reviewing the layout only — never for the published page."
+        ),
+    )
     args = parser.parse_args()
 
-    model = pru16_model(art=args.art)
+    results: Sequence[CoalitionRow] = ()
+    status: ElectionStatus | None = None
+    if args.demo_results:
+        results, status = _demo_result()
+    model = pru16_model(art=args.art, status=status, results=results)
     for language in Language:
         base = args.output_dir if language is Language.EN else args.output_dir / "ms"
         target = base / args.page_dir / "index.html"
