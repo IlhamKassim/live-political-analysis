@@ -35,7 +35,7 @@ from sqlalchemy import (
 from sqlalchemy.engine import Engine
 
 from lpa.aggregate import AggregatedSentiment
-from lpa.domain import Coalition, ElectionStatus, Projection, SeatBaseline, SeatCall
+from lpa.domain import Article, Coalition, ElectionStatus, Projection, SeatBaseline, SeatCall
 from lpa.poll_calibration import LeaderRating, PollCalibration
 from lpa.return_trigger import PreviousWatch
 
@@ -147,6 +147,21 @@ sentiment_snapshot = Table(
     Column("total_articles", Integer, nullable=False),
     Column("sources", JSON, nullable=False),
 )
+
+scored_article = Table(
+    "scored_article",
+    metadata,
+    # Article-level evidence for Analyst drill-down. Rolling window only —
+    # matches sentiment_export HISTORY_LIMIT (14 days).
+    Column("computed_at", Date, primary_key=True),
+    Column("url", String, primary_key=True),
+    Column("title", String, nullable=False),
+    Column("source", String, nullable=False),
+    Column("text", String, nullable=False),
+    Column("coalition_scores", JSON, nullable=False),
+)
+
+SCORED_ARTICLE_RETENTION_DAYS = 14
 
 state_swing_snapshot = Table(
     "state_swing_snapshot",
@@ -288,6 +303,44 @@ def load_seat_baselines(engine: Engine) -> Sequence[SeatBaseline]:
         ]
 
 
+def save_scored_articles(
+    engine: Engine,
+    computed_at: date,
+    scored: Iterable[tuple[Article, Mapping[Coalition, float] | None]],
+) -> None:
+    """Persist scored Articles for one day, replacing that day's rows."""
+    from datetime import timedelta
+
+    cutoff = computed_at - timedelta(days=SCORED_ARTICLE_RETENTION_DAYS)
+    with engine.begin() as connection:
+        connection.execute(delete(scored_article).where(scored_article.c.computed_at == computed_at))
+        rows = [
+            {
+                "computed_at": computed_at,
+                "url": article.url,
+                "title": article.title,
+                "source": article.source,
+                "text": article.text,
+                "coalition_scores": dict(scores) if scores else {},
+            }
+            for article, scores in scored
+        ]
+        if rows:
+            connection.execute(scored_article.insert(), rows)
+        connection.execute(delete(scored_article).where(scored_article.c.computed_at < cutoff))
+
+
+def load_scored_articles(engine: Engine, *, computed_at: date) -> Sequence[Mapping[str, object]]:
+    """Scored Articles for one day, sorted by source then title."""
+    with engine.connect() as connection:
+        rows = connection.execute(
+            select(scored_article)
+            .where(scored_article.c.computed_at == computed_at)
+            .order_by(scored_article.c.source, scored_article.c.title)
+        ).mappings()
+        return [dict(row) for row in rows]
+
+
 def save_snapshot(
     engine: Engine,
     projection: Projection,
@@ -295,6 +348,7 @@ def save_snapshot(
     state_swing: Mapping[str, Mapping[Coalition, float]],
     *,
     status: ElectionStatus | None = None,
+    scored_articles: Iterable[tuple[Article, Mapping[Coalition, float] | None]] | None = None,
 ) -> None:
     """Record one day's Projection, Sentiment, and per-state Swing (#53a),
     replacing that day if present.
@@ -423,6 +477,9 @@ def save_snapshot(
                         for call in projection.seat_calls
                     ],
                 )
+
+    if scored_articles is not None:
+        save_scored_articles(engine, projection.computed_at, scored_articles)
 
 
 def _load_projections(

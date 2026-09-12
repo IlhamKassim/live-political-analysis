@@ -34,6 +34,9 @@ def test_exports_identical_copies_and_detects_later_changes(tmp_path, monkeypatc
         "lpa.release_data.projection_export", lambda _: (json.dumps(projection), "fixture csv")
     )
     monkeypatch.setattr("lpa.release_data.sentiment_export", lambda _: json.dumps(sentiment))
+    monkeypatch.setattr("lpa.release_data.articles_export", lambda _: '{"articles": []}')
+    monkeypatch.setattr("lpa.release_data.build_analyst_bundle", lambda *a, **k: None)
+    monkeypatch.setattr("lpa.release_data._copy_analyst_frontend", lambda _: None)
     export_release(None, tmp_path)
     check_release(tmp_path)
     app = tmp_path / "app/data/projection.json"

@@ -1,0 +1,61 @@
+{
+  "description": "IDEAS think-tank research themes for Analyst export sorting.",
+  "topics": {
+    "economy": {
+      "label": "Economy",
+      "keywords": [
+        "ekonomi",
+        "economy",
+        "inflation",
+        "gdp",
+        "cost of living",
+        "harga",
+        "belanjawan",
+        "budget",
+        "subsidi",
+        "wage",
+        "gaji",
+        "employment",
+        "pekerjaan"
+      ]
+    },
+    "trust_in_institutions": {
+      "label": "Trust in institutions",
+      "keywords": [
+        "spr",
+        "judiciary",
+        "mahkamah",
+        "macc",
+        "sprm",
+        "parliament",
+        "parlimen",
+        "integrity",
+        "rasuah",
+        "corruption",
+        "institution",
+        "institusi",
+        "electoral",
+        "pilihan raya"
+      ]
+    },
+    "inclusion": {
+      "label": "Inclusion",
+      "keywords": [
+        "b40",
+        "minority",
+        "women",
+        "wanita",
+        "disability",
+        "oku",
+        "rural",
+        "luar bandar",
+        "sabah",
+        "sarawak",
+        "inclusion",
+        "inklusif",
+        "indigenous",
+        "orang asli"
+      ]
+    }
+  }
+}

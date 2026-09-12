@@ -44,6 +44,7 @@ class PipelineResult:
     projection: Projection
     sentiment: AggregatedSentiment
     state_swing: Mapping[str, Mapping[Coalition, float]]
+    scored_articles: tuple[tuple[Article, Mapping[Coalition, float] | None], ...] = ()
     """The Swing actually applied in each state (#53a) — `swing_model` used
     this to call every Seat, but discards it once it has. Kept here so a
     per-state rollup (#53) can publish the real figure rather than
@@ -81,7 +82,12 @@ def run_pipeline(
         computed_at,
     )
     swing_by_state = state_swing(baseline, sentiment.scores, state_election_signals, config)
-    return PipelineResult(projection=projection, sentiment=sentiment, state_swing=swing_by_state)
+    return PipelineResult(
+        projection=projection,
+        sentiment=sentiment,
+        state_swing=swing_by_state,
+        scored_articles=tuple(scored),
+    )
 
 
 def main() -> None:
@@ -123,7 +129,14 @@ def main() -> None:
             "replace today's real snapshot with an empty one built from the "
             "State Election Signal alone."
         )
-    save_snapshot(engine, projection, sentiment, result.state_swing, status=load_election_status())
+    save_snapshot(
+        engine,
+        projection,
+        sentiment,
+        result.state_swing,
+        status=load_election_status(),
+        scored_articles=result.scored_articles,
+    )
 
     print(f"Read {sentiment.total_articles} Articles from {', '.join(sentiment.sources)}")
     print("\nSentiment per Coalition:")

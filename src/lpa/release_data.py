@@ -5,13 +5,25 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import shutil
 from collections import Counter
 from pathlib import Path
 
 from sqlalchemy.engine import Engine
 
+from lpa.analyst_export import build_analyst_bundle
+from lpa.articles_export import build_export as articles_export
 from lpa.public_export import build_export as projection_export
 from lpa.sentiment_export import build_export as sentiment_export
+
+
+def _copy_analyst_frontend(output: Path) -> None:
+    """Copy Analyst workbench JS modules next to the static site root."""
+    frontend = Path(__file__).resolve().parents[2] / "frontend" / "public"
+    for name in ("lib-swing.js", "analyst-tools.js", "styles.css"):
+        src = frontend / name
+        if src.is_file():
+            shutil.copy2(src, output / name)
 
 
 def validate_payloads(projection: dict, sentiment: dict) -> None:
@@ -44,6 +56,15 @@ def export_release(engine: Engine, output: Path) -> None:
         path = output / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(body, encoding="utf-8")
+    articles = articles_export(engine)
+    build_analyst_bundle(
+        engine,
+        output,
+        projection_json=projection,
+        sentiment_json=sentiment,
+        articles_json=articles,
+    )
+    _copy_analyst_frontend(output)
     manifest = {
         "computed_at": json.loads(projection)["computed_at"],
         "sha256": {
