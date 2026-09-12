@@ -109,7 +109,18 @@ def test_observatory_links_into_the_current_platform():
     assert f'href="{APP_URL}"' in page
     assert 'href="/bills/"' in page
     assert 'href="/methodology.html"' in page
+    assert 'href="/dewan/"' in page
+    assert 'href="/politicians/"' in page
+    assert 'href="/projection/"' in page
+    assert 'href="/learn/glossary.html"' in page
     assert "Explore Suara" not in page
+
+
+def test_observatory_landing_page_has_social_and_structured_metadata():
+    page = render_landing_page(model())
+    assert 'property="og:image" content="https://politikku.my/og-image.png"' in page
+    assert 'name="twitter:card" content="summary_large_image"' in page
+    assert '"@type": "WebSite"' in page
 
 
 def test_observatory_has_bilingual_root_documents():
