@@ -193,6 +193,17 @@ NAV_LINKS: tuple[NavLink, ...] = (
         ),
     ),
     NavLink(
+        "GE16",
+        "PRU16",
+        "pru16/",
+        "pru16",
+        icon_svg=(
+            '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+            'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+            '<circle cx="12" cy="12" r="9"/><path d="M12 7v5.4l3.4 2"/></svg>'
+        ),
+    ),
+    NavLink(
         "GE16 Process",
         "Proses PRU16",
         "learn/ge16-process.html",

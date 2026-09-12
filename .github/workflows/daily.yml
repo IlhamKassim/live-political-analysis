@@ -112,6 +112,20 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m lpa.pipeline
 
+      # A private heads-up to whoever maintains election_status.json when the
+      # day's coverage says the Dewan Rakyat has been dissolved, or that the
+      # dates are set. It publishes nothing and touches no page: a human
+      # checks the source and edits the file. `continue-on-error` because a
+      # Telegram outage must never fail the run that keeps the site current —
+      # and if TELEGRAM_ALERT_CHAT_ID is unset the step just prints the
+      # message it would have sent, so the alert shows up in the run log.
+      - name: Alert us if the coverage says GE16 has been called
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_ALERT_CHAT_ID: ${{ secrets.TELEGRAM_ALERT_CHAT_ID }}
+        run: python -m lpa.dissolution_watch
+
       # The old chamber dashboard's own render step (`python -m
       # lpa.public_page`, which wrote public/index.html and its dated
       # permalinks) was retired here by #104's cutover. Its successor,
@@ -163,6 +177,11 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m lpa.politikku_learn
+
+      - name: Render the PolitikKu GE16 page
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m lpa.politikku_pru16
 
       # No "Render the PolitikKu Analyst page" step here on purpose: unlike
       # Learn (which gained a live dependency — today's date and election

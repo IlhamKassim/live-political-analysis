@@ -38,6 +38,7 @@ from lpa.config import load_election_status
 from lpa.politikku_analyst import build_and_write_analyst_page
 from lpa.politikku_landing import build_and_write_landing_pages
 from lpa.politikku_learn import build_process_page
+from lpa.politikku_pru16 import pru16_model, render_pru16_page
 from lpa.politikku_shell import Language
 
 playwright = pytest.importorskip("playwright.sync_api")
@@ -45,9 +46,9 @@ playwright = pytest.importorskip("playwright.sync_api")
 # The narrowest phone still in real use, the two common iPhone widths, and a
 # large phone.
 VIEWPORTS = ((320, 700), (375, 667), (390, 844), (430, 932))
-PAGES = ("/", "/analyst/", "/learn/ge16-process.html")
+PAGES = ("/", "/analyst/", "/learn/ge16-process.html", "/pru16/")
 # The pages whose text sizes are clean today — see the module docstring.
-FONT_CHECKED_PAGES = ("/", "/learn/ge16-process.html")
+FONT_CHECKED_PAGES = ("/", "/learn/ge16-process.html", "/pru16/")
 # Same, for the size of the things you tap. Analyst qualifies here even though
 # its text sizes do not, so it is checked for one and not the other.
 TARGET_CHECKED_PAGES = PAGES
@@ -92,6 +93,12 @@ def mobile_site(tmp_path_factory: pytest.TempPathFactory) -> Iterator[str]:
     learn.mkdir(parents=True, exist_ok=True)
     process = build_process_page(Language.EN, date.today(), load_election_status())  # noqa: DTZ011
     (learn / "ge16-process.html").write_text(process, encoding="utf-8")
+
+    pru16 = root / "pru16"
+    pru16.mkdir(parents=True, exist_ok=True)
+    (pru16 / "index.html").write_text(
+        render_pru16_page(pru16_model(), Language.EN), encoding="utf-8"
+    )
 
     # The lookup script is fetched by the landing page and lives outside the
     # renderers; an empty file keeps the request from 404ing mid-measurement.

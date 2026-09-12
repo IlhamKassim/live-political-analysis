@@ -315,6 +315,16 @@ design against, not a vague "keep it clean" note:
   update!") — this site has no scarcity and manufacturing any is
   dishonest to what it actually is (CONTEXT.md's own `Return Trigger`
   entry explicitly rejects "habit loop" framing).
+
+  This rule is about the landing page and still holds there. The GE16
+  page (`/pru16/`) does run a live count, and that is a deliberate
+  exception rather than a drift: it counts to a date fixed by Article
+  55 of the Federal Constitution, or to a polling day the Election
+  Commission has gazetted. Neither is a deadline this project invented
+  to make anyone hurry, which is what the rule above is protecting
+  against. The page carries no urgency language, and while GE16 has not
+  been called it says in the same breath that the date it is counting to
+  is the legal limit and not a forecast.
 - **No testimonials, no "as seen in" logo strip, no fake social proof.**
   Nothing here has been said about this project by anyone whose quote
   would belong on a landing page, and inventing the feeling of that is

@@ -142,3 +142,7 @@ public/ms/sentiment.html
 
 # Manifest generated alongside the release exports.
 public/release.json
+
+# What the pipeline found in the day's coverage, for the alert step to read.
+# A working file passed between two steps of one run, never committed.
+dissolution-signals.json

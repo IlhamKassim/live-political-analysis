@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 
 from lpa.aggregate import AggregatedSentiment, aggregate_sentiment
 from lpa.domain import (
@@ -32,6 +33,11 @@ would file the day's coverage under the wrong date and put two Malaysian days
 into one row of the dashboard's trend line.
 """
 
+DISSOLUTION_SIGNALS = Path("dissolution-signals.json")
+"""Where this run writes what the coverage claimed, for the alert step to
+read. Deliberately not under `public/`: it is a note to the people who
+maintain the data, not something the site publishes."""
+
 
 def today_in_malaysia(now: Callable[[timezone], datetime] = datetime.now) -> date:
     return now(MALAYSIA_TIME).date()
@@ -44,11 +50,17 @@ class PipelineResult:
     projection: Projection
     sentiment: AggregatedSentiment
     state_swing: Mapping[str, Mapping[Coalition, float]]
-    scored_articles: tuple[tuple[Article, Mapping[Coalition, float] | None], ...] = ()
     """The Swing actually applied in each state (#53a) — `swing_model` used
     this to call every Seat, but discards it once it has. Kept here so a
     per-state rollup (#53) can publish the real figure rather than
     reconstructing an approximation of it from the Seat Calls."""
+    scored_articles: tuple[tuple[Article, Mapping[Coalition, float] | None], ...] = ()
+    """Article scores kept so the Analyst workbench can drill down by source."""
+    articles: tuple[Article, ...] = ()
+    """The coverage this run read, kept so `dissolution_watch` can look for a
+    dissolution in it. Fetching is rate-limited and robots-checked, so a
+    second pass over the outlets to ask a different question of the same
+    stories would be both slower and ruder than carrying them out of here."""
 
 
 def run_pipeline(
@@ -87,6 +99,7 @@ def run_pipeline(
         sentiment=sentiment,
         state_swing=swing_by_state,
         scored_articles=tuple(scored),
+        articles=tuple(articles),
     )
 
 
@@ -129,14 +142,25 @@ def main() -> None:
             "replace today's real snapshot with an empty one built from the "
             "State Election Signal alone."
         )
+    status = load_election_status()
     save_snapshot(
         engine,
         projection,
         sentiment,
         result.state_swing,
-        status=load_election_status(),
+        status=status,
         scored_articles=result.scored_articles,
     )
+
+    # Detection here, delivery in its own step: this writes down what the
+    # coverage claims and sends nothing. Nothing reaches the site from it
+    # either — a human reads the alert and edits election_status.json.
+    from lpa.dissolution_watch import scan, write_signals
+
+    signals = scan(result.articles, status)
+    write_signals(signals, DISSOLUTION_SIGNALS)
+    if signals:
+        print(f"\n{len(signals)} Article(s) claim a status change — see {DISSOLUTION_SIGNALS}")
 
     print(f"Read {sentiment.total_articles} Articles from {', '.join(sentiment.sources)}")
     print("\nSentiment per Coalition:")
