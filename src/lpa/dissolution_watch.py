@@ -102,6 +102,29 @@ _HEDGES: tuple[str, ...] = (
     "if parliament",
     "if the dewan",
     "should parliament",
+    # Conditional and temporal framing. The first live run matched "formal
+    # negotiations ... would only be held after Parliament was dissolved" —
+    # a sentence about a future dissolution, in a story about coalition talks.
+    # Naming the chamber is not enough on its own; "after X was dissolved" is
+    # a clause about when something else will happen, not a report that it
+    # has. "would" is safe to hedge on because these are checked per
+    # sentence: the sentence announcing a real dissolution is not the same
+    # sentence as the one predicting what follows it.
+    "would ",
+    "yet to",
+    "after parliament",
+    "after the dewan",
+    "once parliament",
+    "once the dewan",
+    "when parliament",
+    "when the dewan",
+    "before parliament",
+    "before the dewan",
+    "ahead of the dissolution",
+    "selepas parlimen",
+    "setelah parlimen",
+    "apabila parlimen",
+    "sebelum parlimen",
     # Every inflection spelled out. Stemming these to "call" or "urg" would
     # be worse, not better: "called an election" is the real event, and
     # "urgent" would suppress a genuine report that happened to use the word.

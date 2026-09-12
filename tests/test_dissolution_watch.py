@@ -71,6 +71,16 @@ def test_a_dissolution_that_happened_is_reported(text: str) -> None:
         "The opposition leader called for the dissolution of Parliament.",
         "Civil society groups are calling for the dissolution of Parliament.",
         "The opposition urges the immediate dissolution of Parliament.",
+        # Verbatim from the first live run, in a story about coalition talks.
+        # A clause about when something else will happen, not a report that
+        # the dissolution has.
+        (
+            "He said formal negotiations had yet to begin and would only be held "
+            "after Parliament was dissolved."
+        ),
+        "Seat talks will start once Parliament is dissolved.",
+        "Nominations close a week after the Dewan Rakyat is dissolved.",
+        "Rundingan kerusi bermula selepas Parlimen dibubarkan.",
     ],
 )
 def test_speculation_is_not_reported(text: str) -> None:
