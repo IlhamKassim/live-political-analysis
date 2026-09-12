@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "kind": "MODEL",
+  "computed_at": "2026-09-11",
+  "description": "Article-level News Sentiment scores for the latest pipeline run.",
+  "coalition_deltas": {
+    "BN": 0.018387113089923426,
+    "GPS": 0.007249716720941227,
+    "GRS": 0.017177237445555688,
+    "PH": -0.01094449456104141,
+    "PN": 0.013970021661124814
+  },
+  "coalition_names": {
+    "PH": "Pakatan Harapan",
+    "BN": "Barisan Nasional",
+    "PN": "Perikatan Nasional",
+    "GPS": "Gabungan Parti Sarawak",
+    "GRS": "Gabungan Rakyat Sabah",
+    "WARISAN": "Parti Warisan",
+    "MUDA": "Parti Muda",
+    "PBM": "Parti Bangsa Malaysia",
+    "KDM": "Parti Kesejahteraan Demokratik Masyarakat",
+    "BEBAS": "Independents"
+  },
+  "articles": [
+    {
+      "url": "https://example.test/inclusion-1",
+      "title": "B40 and rural Sabah inclusion programmes",
+      "source": "Bernama",
+      "scores": {
+        "PH": 0.35,
+        "BN": 0.1
+      },
+      "dominant_coalition": "PH",
+      "topics": [
+        "inclusion"
+      ]
+    },
+    {
+      "url": "https://example.test/economy-1",
+      "title": "Inflation and cost of living dominate belanjawan debate",
+      "source": "FMT",
+      "scores": {
+        "PH": 0.2,
+        "PN": -0.1
+      },
+      "dominant_coalition": "PH",
+      "topics": [
+        "economy",
+        "trust_in_institutions"
+      ]
+    },
+    {
+      "url": "https://example.test/trust-1",
+      "title": "SPR and MACC integrity under scrutiny",
+      "source": "The Star",
+      "scores": {
+        "PH": -0.15,
+        "PN": 0.25
+      },
+      "dominant_coalition": "PN",
+      "topics": [
+        "trust_in_institutions"
+      ]
+    }
+  ]
+}

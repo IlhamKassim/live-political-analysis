@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "kind": "META",
+  "methodology_url": "https://politikku.my/methodology.html",
+  "labels": {
+    "FACT": "Historical record (GE15 Baseline, state election results).",
+    "MODEL": "Modelled estimate \u2014 provisional constants, not a forecast.",
+    "META": "Documentation and export metadata."
+  },
+  "caveat": "Two constants in the Swing Model were set by judgement, not fitted to data. Treat every figure here as a direction, not a forecast. Every Seat's call is arithmetic against its GE15 result under a state-uniform swing, never a bespoke judgement about that constituency."
+}

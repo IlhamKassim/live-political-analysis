@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "kind": "MODEL",
+  "description": "Swing Model tunables and Government Coalition membership. Constants are provisional and uncalibrated (ADR 0003).",
+  "government_coalitions": [
+    "BN",
+    "GPS",
+    "GRS",
+    "PH"
+  ],
+  "government_coalition_names": {
+    "BN": "Barisan Nasional",
+    "GPS": "Gabungan Parti Sarawak",
+    "GRS": "Gabungan Rakyat Sabah",
+    "PH": "Pakatan Harapan"
+  },
+  "majority_threshold": 112,
+  "sentiment_sensitivity": 0.1,
+  "state_signal_weight": 0.5,
+  "caveat": "Two constants in the Swing Model were set by judgement, not fitted to data. Treat every figure here as a direction, not a forecast. Every Seat's call is arithmetic against its GE15 result under a state-uniform swing, never a bespoke judgement about that constituency."
+}

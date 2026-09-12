@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "kind": "FACT",
+  "description": "State Election Signals blended into the Swing Model per state.",
+  "signals": [
+    {
+      "state": "Johor",
+      "held_on": "2026-07-11",
+      "vote_share": {
+        "BN": 0.5966,
+        "PH": 0.3264,
+        "PN": 0.0545
+      }
+    }
+  ]
+}

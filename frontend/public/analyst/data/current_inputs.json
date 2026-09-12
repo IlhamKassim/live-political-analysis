@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "kind": "MODEL",
+  "description": "Latest aggregated News Sentiment scores fed into the Swing Model.",
+  "computed_at": "2026-09-11",
+  "scores": {
+    "BN": 0.041938534695262104,
+    "GPS": -0.01987039564600527,
+    "GRS": 0.23606548735649602,
+    "PH": -0.004948513452139532,
+    "PN": -0.0430663132598494
+  },
+  "article_counts": {
+    "BN": 5,
+    "GPS": 5,
+    "GRS": 5,
+    "PH": 5,
+    "PN": 5
+  },
+  "total_articles": 25,
+  "sources": [
+    "Berita Harian",
+    "Bernama",
+    "Free Malaysia Today",
+    "Malay Mail",
+    "New Straits Times",
+    "The Vibes",
+    "Utusan Malaysia"
+  ]
+}

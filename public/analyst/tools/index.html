@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101e23">
+<meta name="description" content="PolitikKu Analyst workbench — Swing Model sandbox, sentiment drill-down, and data export. Pilot for professional researchers.">
+<title>PolitikKu Analyst · Workbench</title>
+<link rel="icon" href="/analyst/assets/mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/analyst/tools/workbench.css">
+</head>
+<body class="analyst-workbench">
+<a class="skip" href="#main">Skip to content</a>
+<div class="pol-dir">
+<header class="pol-dir-head opening">
+<a class="pol-back" href="/analyst/">← Analyst</a>
+<p class="pk-eyebrow">POLITIKKU ANALYST / IN PILOT</p>
+<h1>Instrument workbench</h1>
+<p class="pol-dir-sub">Live Swing Model sandbox, source-level sentiment, and export hub. Run date: <strong id="run-date">—</strong>. All modelled figures carry <span class="pill pill-model">NOT CALIBRATED</span>.</p>
+</header>
+<main id="main" class="analyst-grid">
+<p id="workbench-error" class="module-empty" hidden></p>
+
+<section class="analyst-panel" aria-labelledby="sandbox-title">
+<h2 id="sandbox-title">01 · Swing-model sandbox</h2>
+<div class="analyst-controls">
+<label>Sensitivity <output id="sensitivity-value">0.10</output>
+<input id="sensitivity" type="range" min="0.05" max="0.20" step="0.01" value="0.10"></label>
+<label>State signal weight <output id="signal-weight-value">0.50</output>
+<input id="signal-weight" type="range" min="0" max="1" step="0.05" value="0.5"></label>
+<div class="sentiment-sliders">
+<div id="sentiment-wrap-PH" hidden><label>PH offset from <span id="sentiment-PH-base">0</span> <output id="sentiment-PH-value">0</output><input id="sentiment-PH" type="range" min="-0.5" max="0.5" step="0.05" value="0"></label></div>
+<div id="sentiment-wrap-BN" hidden><label>BN offset <output id="sentiment-BN-value">0</output><input id="sentiment-BN" type="range" min="-0.5" max="0.5" step="0.05" value="0"></label></div>
+<div id="sentiment-wrap-PN" hidden><label>PN offset <output id="sentiment-PN-value">0</output><input id="sentiment-PN" type="range" min="-0.5" max="0.5" step="0.05" value="0"></label></div>
+<div id="sentiment-wrap-GPS" hidden><label>GPS offset <output id="sentiment-GPS-value">0</output><input id="sentiment-GPS" type="range" min="-0.5" max="0.5" step="0.05" value="0"></label></div>
+<div id="sentiment-wrap-GRS" hidden><label>GRS offset <output id="sentiment-GRS-value">0</output><input id="sentiment-GRS" type="range" min="-0.5" max="0.5" step="0.05" value="0"></label></div>
+</div>
+</div>
+<div id="sandbox-totals" class="dewan-tiles"></div>
+<div id="sandbox-hemicycle" class="hemicycle-wrap"></div>
+<p id="sandbox-narrative" class="analyst-narrative"></p>
+<div class="dewan-table-wrap"><table class="dewan-table"><thead><tr><th>Seat</th><th>State</th><th>Baseline</th><th>Projected</th><th>Margin</th></tr></thead><tbody id="sandbox-seats"></tbody></table></div>
+</section>
+
+<section class="analyst-panel" aria-labelledby="trace-title">
+<h2 id="trace-title">02 · Source-level sentiment</h2>
+<div id="trace-coalitions" class="pol-dir-controls"></div>
+<p id="trace-summary" class="analyst-narrative"></p>
+<div class="dewan-table-wrap"><table class="dewan-table"><thead><tr><th>Article</th><th>Outlet</th><th>Score</th><th>Topics</th></tr></thead><tbody id="trace-articles"></tbody></table></div>
+</section>
+
+<section class="analyst-panel" aria-labelledby="export-title">
+<h2 id="export-title">03 · Full data export</h2>
+<p class="lede">Download the full analyst bundle: Baseline (FACT), model inputs (MODEL), projection, sentiment, and articles sorted into IDEAS research themes (economy, trust in institutions, inclusion).</p>
+<ul class="export-list">
+<li>baseline.json · GE15 Baseline per Seat</li>
+<li>model_config.json · Swing Model constants</li>
+<li>current_inputs.json · Latest News Sentiment</li>
+<li>articles.json · Article-level scores</li>
+<li>projection.json · Seat-Level Projection</li>
+<li>IDEAS topic folders · filtered article CSVs</li>
+</ul>
+<button type="button" class="pill" id="download-bundle">Download analyst bundle (.zip)</button>
+<p class="muted">Sandbox adjustments stay in your browser. They do not change production model settings.</p>
+</section>
+</main>
+<footer class="analyst-foot"><a href="/methodology.html">Read the public methodology</a> · <a href="/">PolitikKu home</a></footer>
+</div>
+<script type="module" src="/analyst-tools.js"></script>
+</body>
+</html>
