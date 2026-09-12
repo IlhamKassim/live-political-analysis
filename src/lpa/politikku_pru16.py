@@ -11,10 +11,10 @@ Election Status entry gives. The Projection comes from
 `public/projection.json`, the file the landing page also reads, so the two
 pages cannot disagree about the Seat totals.
 
-The day count is written at build time and recounted in the browser, in
-Malaysia's time zone, so a page built yesterday still shows today's number.
-A day count, never a ticking clock: the page reports a date, it does not
-manufacture urgency.
+The count is written at build time and then run live in the browser against
+midnight in Malaysia on the target date, so a page built yesterday is never
+out of date. The wording around it stays plain — the numbers move, the page
+does not tell anyone to hurry.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ import argparse
 import html
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, time
 from pathlib import Path
 
 from lpa.domain import ElectionStatus
@@ -61,6 +61,7 @@ class Pru16Model:
 
     status: ElectionStatus
     today: date
+    now: datetime
     coalitions: tuple[CoalitionRow, ...]
     computed_at: date | None
     majority_threshold: int
@@ -71,7 +72,7 @@ class Pru16Model:
 def pru16_model(
     *,
     status: ElectionStatus | None = None,
-    today: date | None = None,
+    now: datetime | None = None,
     coalitions: Sequence[CoalitionRow] | None = None,
     computed_at: date | None = None,
     projection_path: Path = PROJECTION_JSON,
@@ -80,12 +81,13 @@ def pru16_model(
     pass them all and touch no file."""
     from lpa.config import load_coalition_config, load_election_status
     from lpa.domain import TOTAL_SEATS
-    from lpa.pipeline import today_in_malaysia
+    from lpa.pipeline import MALAYSIA_TIME
 
     if status is None:
         status = load_election_status()
-    if today is None:
-        today = today_in_malaysia()
+    if now is None:
+        now = datetime.now(MALAYSIA_TIME)
+    today = now.astimezone(MALAYSIA_TIME).date()
     if coalitions is None:
         _, totals, read_computed_at = _read_projection(projection_path)
         coalitions = _coalition_rows(totals)
@@ -98,6 +100,7 @@ def pru16_model(
     return Pru16Model(
         status=status,
         today=today,
+        now=now,
         coalitions=tuple(coalitions),
         computed_at=computed_at,
         majority_threshold=threshold,
@@ -143,15 +146,44 @@ _ICON_SEARCH = (
 # ── Sections ──────────────────────────────────────────────────────────────
 
 
-def _count_block(target: date, today: date, caption: str, language: Language) -> str:
-    """The big number, with what the browser needs to recount it."""
-    shown = max(days_until(target, today), 0)
+def time_left(target: date, now: datetime) -> tuple[int, int, int, int]:
+    """Days, hours, minutes and seconds from `now` to midnight on `target` in
+    Malaysia, never below zero.
+
+    The target is a date, and a Malaysian polling day starts at midnight local
+    time, so the clock runs to `00:00` MYT on that date — not to whatever hour
+    the page happened to be built at.
+    """
+    from lpa.pipeline import MALAYSIA_TIME
+
+    deadline = datetime.combine(target, time.min, tzinfo=MALAYSIA_TIME)
+    remaining = int((deadline - now.astimezone(MALAYSIA_TIME)).total_seconds())
+    if remaining < 0:
+        return 0, 0, 0, 0
+    return remaining // 86400, remaining % 86400 // 3600, remaining % 3600 // 60, remaining % 60
+
+
+def _count_block(target: date, now: datetime, caption: str, language: Language) -> str:
+    """The big day count, the running hours/minutes/seconds under it, and what
+    the browser needs to keep them moving."""
+    days, hours, minutes, seconds = time_left(target, now)
+    units = (
+        (hours, t(language, "hours", "jam"), "h"),
+        (minutes, t(language, "minutes", "minit"), "m"),
+        (seconds, t(language, "seconds", "saat"), "s"),
+    )
+    clock = "".join(
+        f'<span class="pk-ge-unit"><b data-pk-count-{key}>{value:02d}</b>'
+        f"<small>{label}</small></span>"
+        for value, label, key in units
+    )
     return (
         f'<div class="pk-ge-count" data-pk-countdown data-target="{target.isoformat()}" '
         f'data-word-one="{t(language, "day", "hari")}" '
         f'data-word-many="{t(language, "days", "hari")}">'
-        f'<span class="pk-ge-count-n" data-pk-count-n>{shown}</span>'
-        f'<span class="pk-ge-count-unit" data-pk-count-unit>{_days_word(shown, language)}</span>'
+        f'<span class="pk-ge-count-n" data-pk-count-n>{days}</span>'
+        f'<span class="pk-ge-count-unit" data-pk-count-unit>{_days_word(days, language)}</span>'
+        f'<div class="pk-ge-clock" role="timer" aria-live="off">{clock}</div>'
         f'<p class="pk-ge-count-cap">{caption}</p></div>'
     )
 
@@ -167,7 +199,7 @@ def _hero(model: Pru16Model, language: Language) -> str:
         deadline = html.escape(_long_date(status.constitutional_deadline, language))
         count = _count_block(
             status.constitutional_deadline,
-            model.today,
+            model.now,
             t(
                 language,
                 f"until the latest possible polling date, <b>{deadline}</b>.",
@@ -216,7 +248,7 @@ def _hero(model: Pru16Model, language: Language) -> str:
             )
         count = _count_block(
             status.polling_date,
-            model.today,
+            model.now,
             t(
                 language,
                 f"to polling day, <b>{polling}</b>.",
@@ -487,24 +519,31 @@ _SCRIPT = """
 (function () {
   var el = document.querySelector('[data-pk-countdown]');
   if (!el) return;
-  try {
-    var today = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'Asia/Kuala_Lumpur', year: 'numeric', month: '2-digit', day: '2-digit'
-    }).format(new Date());
-    var a = today.split('-'), b = el.getAttribute('data-target').split('-');
-    var n = Math.round((Date.UTC(+b[0], b[1] - 1, +b[2]) - Date.UTC(+a[0], a[1] - 1, +a[2])) / 864e5);
-    if (isNaN(n)) return;
-    n = Math.max(n, 0);
-    el.querySelector('[data-pk-count-n]').textContent = n;
-    el.querySelector('[data-pk-count-unit]').textContent =
-      el.getAttribute(n === 1 ? 'data-word-one' : 'data-word-many');
-  } catch (e) {}
+  var target = Date.parse(el.getAttribute('data-target') + 'T00:00:00+08:00');
+  if (isNaN(target)) return;
+  var n = el.querySelector('[data-pk-count-n]');
+  var unit = el.querySelector('[data-pk-count-unit]');
+  var h = el.querySelector('[data-pk-count-h]');
+  var m = el.querySelector('[data-pk-count-m]');
+  var s = el.querySelector('[data-pk-count-s]');
+  var pad = function (v) { return v < 10 ? '0' + v : '' + v; };
+  function tick() {
+    var left = Math.max(Math.floor((target - Date.now()) / 1000), 0);
+    var days = Math.floor(left / 86400);
+    n.textContent = days;
+    unit.textContent = el.getAttribute(days === 1 ? 'data-word-one' : 'data-word-many');
+    h.textContent = pad(Math.floor(left % 86400 / 3600));
+    m.textContent = pad(Math.floor(left % 3600 / 60));
+    s.textContent = pad(left % 60);
+  }
+  tick();
+  setInterval(tick, 1000);
 })();
 </script>
 """
-"""Recounts the day count from today's date in Malaysia, so a page built
-yesterday is not a day out. The number written at build time stays if this
-fails."""
+"""Runs the count from the reader's own clock, against midnight in Malaysia
+on the target date, so a page built yesterday is never out of date. The
+values written at build time stay if this fails."""
 
 
 _CSS = """
@@ -543,8 +582,18 @@ _CSS = """
     font-family: var(--font-display); font-weight: 600; font-size: clamp(24px, 3.4vw, 36px);
     color: var(--ink);
   }
+  .pk-ge-clock { flex-basis: 100%; display: flex; gap: 26px; margin: 14px 0 0; }
+  .pk-ge-unit { display: flex; flex-direction: column; gap: 2px; }
+  .pk-ge-unit b {
+    font-family: var(--mono); font-size: 28px; font-weight: 500; line-height: 1;
+    color: var(--ink); font-variant-numeric: tabular-nums;
+  }
+  .pk-ge-unit small {
+    font-family: var(--mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--muted);
+  }
   .pk-ge-count-cap {
-    flex-basis: 100%; margin: 14px 0 0; font-size: 18px; line-height: 1.45; color: var(--ink-secondary);
+    flex-basis: 100%; margin: 18px 0 0; font-size: 18px; line-height: 1.45; color: var(--ink-secondary);
   }
   .pk-ge-count-cap b { color: var(--ink); font-weight: 600; }
   .pk-ge-waiting-big {
@@ -657,6 +706,8 @@ _CSS = """
     .pk-ge-hero { padding: 40px 0; }
     .pk-ge-hero h1 { font-size: var(--text-h1-mobile, 34px); margin-bottom: 20px; }
     .pk-ge-count-cap { font-size: 16px; }
+    .pk-ge-clock { gap: 18px; }
+    .pk-ge-unit b { font-size: 24px; }
     .pk-ge-band { padding: 40px 0; }
     .pk-ge-band h2 { font-size: 24px; }
     .pk-ge-lede { font-size: 17px; }

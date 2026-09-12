@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import date
+from datetime import UTC, date, datetime, timedelta, timezone
 
 from lpa.domain import ElectionStatus
 from lpa.politikku_landing import CoalitionRow
@@ -12,10 +12,13 @@ from lpa.politikku_pru16 import (
     days_until,
     render_pru16_body,
     render_pru16_page,
+    time_left,
 )
 from lpa.politikku_shell import Language
 
+MYT = timezone(timedelta(hours=8))
 TODAY = date(2026, 9, 12)
+NOW = datetime(2026, 9, 12, 9, 30, 15, tzinfo=MYT)
 DEADLINE = date(2028, 2, 17)
 SOURCE = "https://www.parlimen.gov.my/"
 
@@ -42,6 +45,7 @@ def _model(status: ElectionStatus, coalitions: tuple[CoalitionRow, ...] = ROWS) 
     return Pru16Model(
         status=status,
         today=TODAY,
+        now=NOW,
         coalitions=coalitions,
         computed_at=date(2026, 8, 23),
         majority_threshold=112,
@@ -55,6 +59,22 @@ def _count(body: str) -> str | None:
     return match.group(1) if match else None
 
 
+def test_time_left_counts_to_midnight_in_malaysia() -> None:
+    # 09:30:15 on 12 Sep to midnight on 13 Sep is 14h 29m 45s.
+    assert time_left(date(2026, 9, 13), NOW) == (0, 14, 29, 45)
+    # The same instant read from a UTC clock is the same moment, so the same count.
+    assert time_left(date(2026, 9, 13), NOW.astimezone(UTC)) == (0, 14, 29, 45)
+    # Never negative once the date has passed.
+    assert time_left(date(2026, 9, 1), NOW) == (0, 0, 0, 0)
+
+
+def test_clock_units_are_rendered_two_digits() -> None:
+    body = render_pru16_body(_model(NOT_CALLED))
+    assert "data-pk-count-h>14<" in body
+    assert "data-pk-count-m>29<" in body
+    assert "data-pk-count-s>45<" in body
+
+
 def test_days_until() -> None:
     assert days_until(DEADLINE, TODAY) == 523
     assert days_until(TODAY, TODAY) == 0
@@ -64,7 +84,9 @@ def test_days_until() -> None:
 def test_not_called_counts_to_the_deadline() -> None:
     body = render_pru16_body(_model(NOT_CALLED))
     assert "GE16 has not been called." in body
-    assert _count(body) == "523"
+    # 522 whole days plus the 14h 29m 45s left of today: 523 calendar days away.
+    assert days_until(DEADLINE, TODAY) == 523
+    assert _count(body) == "522"
     assert 'data-target="2028-02-17"' in body
     assert "latest possible polling date" in body
     assert "17 February 2028" in body
@@ -82,7 +104,7 @@ def test_called_without_polling_day_shows_no_number() -> None:
 def test_polling_day_set_counts_to_polling() -> None:
     body = render_pru16_body(_model(POLLING))
     assert "GE16 polling day is set." in body
-    assert _count(body) == "52"
+    assert _count(body) == "51"
     assert 'data-target="2026-11-03"' in body
     assert "3 November 2026" in body
     assert "20 October 2026" in body
