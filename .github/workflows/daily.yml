@@ -355,6 +355,41 @@ jobs:
         id: deploy-pages
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e
 
+  # Cloudflare sits in front of GitHub Pages for politikku.my (orange-cloud
+  # proxy). A successful Pages deploy is not enough on its own: visitors can
+  # still be served yesterday's HTML from Cloudflare's cache until it expires.
+  # Purge after deploy so the next request pulls the artifact that just went
+  # live. The zone id is not secret. The token is: create a Cloudflare API
+  # token with Zone / Cache Purge / Purge, scoped to politikku.my, and store
+  # it as the repo secret CLOUDFLARE_API_TOKEN. Missing token skips this job
+  # with a warning rather than failing the daily publish.
+  purge-cloudflare:
+    needs: deploy
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Purge the Cloudflare cache
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ZONE_ID: 71dfc80c0b57debc0a8807056131d1a8
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::warning::CLOUDFLARE_API_TOKEN is not set; skipping Cloudflare cache purge."
+            exit 0
+          fi
+          # deploy-pages has already reported success, but GitHub's own
+          # edge can lag a few seconds. A short wait avoids Cloudflare
+          # recaching the previous artifact.
+          sleep 20
+          response="$(curl -sS -X POST \
+            "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/purge_cache" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data '{"purge_everything":true}')"
+          echo "$response"
+          echo "$response" | python3 -c "import json,sys; data=json.load(sys.stdin); sys.exit(0 if data.get('success') else 1)"
+
   notify:
     needs: deploy
     runs-on: ubuntu-latest
