@@ -243,7 +243,12 @@ def build_analyst_bundle(
                 zf.write(path, arcname=str(path.relative_to(bundle_dir)))
 
 
-def _csv_escape(value: str) -> str:
+def _csv_escape(value: str | None) -> str:
+    """An article with no coalition scores has no dominant coalition
+    (`articles_export.dominant_coalition` returns None for it), and that is an
+    empty cell, not a crash."""
+    if value is None:
+        return ""
     if any(ch in value for ch in (",", '"', "\n")):
         return '"' + value.replace('"', '""') + '"'
     return value

@@ -7,6 +7,7 @@ from fixtures import PH, PN, government_config, two_coalition_seats
 from lpa.aggregate import AggregatedSentiment
 from lpa.analyst_export import (
     SCHEMA_VERSION,
+    _csv_escape,
     export_baseline,
     export_current_inputs,
     export_methodology,
@@ -106,3 +107,13 @@ def test_current_inputs_reads_latest_snapshot(tmp_path):
 
 def test_to_json_is_newline_terminated():
     assert to_json({"a": 1}).endswith("\n")
+
+
+def test_the_articles_csv_leaves_an_unscored_article_cell_empty():
+    """The nightly bundle crashed on an article with no coalition scores:
+    `articles_export.dominant_coalition` returns None for it, and the CSV
+    writer tried to search that None for a comma. An empty cell is the answer.
+    """
+    assert _csv_escape(None) == ""
+    assert _csv_escape("PH") == "PH"
+    assert _csv_escape('a,b"c') == '"a,b""c"'
