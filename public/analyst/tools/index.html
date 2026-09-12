@@ -17,30 +17,53 @@
 <a class="pol-back" href="/analyst/">← Analyst</a>
 <p class="pk-eyebrow">POLITIKKU ANALYST / IN PILOT</p>
 <h1>Instrument workbench</h1>
-<p class="pol-dir-sub">Live Swing Model sandbox, source-level sentiment, and export hub. Run date: <strong id="run-date">—</strong>. All modelled figures carry <span class="pill pill-model">NOT CALIBRATED</span>.</p>
+<p class="pol-dir-sub">Change an assumption. See which Seats move. Take the run with you. Run date: <strong id="run-date">—</strong>. All modelled figures carry <span class="pill pill-model">NOT CALIBRATED</span>.</p>
 </header>
 <main id="main" class="analyst-grid">
 <p id="workbench-error" class="module-empty" hidden></p>
 
-<section class="analyst-panel" aria-labelledby="sandbox-title">
+<section class="analyst-panel sandbox-panel" aria-labelledby="sandbox-title">
+<div class="sandbox-head">
 <h2 id="sandbox-title">01 · Swing-model sandbox</h2>
-<div class="analyst-controls">
-<label>Sensitivity <output id="sensitivity-value">0.10</output>
-<input id="sensitivity" type="range" min="0.05" max="0.20" step="0.01" value="0.10"></label>
-<label>State signal weight <output id="signal-weight-value">0.50</output>
-<input id="signal-weight" type="range" min="0" max="1" step="0.05" value="0.5"></label>
+<p class="pilot-note"><span class="dot"></span> In pilot <span class="separator">/</span> NOT CALIBRATED · GE15 Baseline is FACT (ElectionData.MY / MECo)</p>
+</div>
+<div class="sandbox-layout">
+<div class="sandbox-controls">
+<div class="control-block">
+<label for="sensitivity">How much news mood moves vote share <output id="sensitivity-value">10%</output></label>
+<p class="control-help">Default is 10%: a sentiment of 1.0 is worth ten percentage points of vote share.</p>
+<input id="sensitivity" type="range" min="0.05" max="0.20" step="0.01" value="0.10">
+<div class="range-ends"><span>5%</span><span>Today’s setting</span><span>20%</span></div>
+</div>
+<div class="control-block">
+<label for="signal-weight">How much a state’s own election counts vs national news <output id="signal-weight-value">50%</output></label>
+<p class="control-help">Johor’s 2026 result is blended in for Johor Seats only. Other states stay on news mood.</p>
+<input id="signal-weight" type="range" min="0" max="1" step="0.05" value="0.5">
+<div class="range-ends"><span>News only</span><span>Half and half</span><span>State result only</span></div>
+</div>
 <div class="sentiment-sliders">
-<div id="sentiment-wrap-PH" hidden><label>PH offset from <span id="sentiment-PH-base">0</span> <output id="sentiment-PH-value">0</output><input id="sentiment-PH" type="range" min="-0.5" max="0.5" step="0.05" value="0"></label></div>
-<div id="sentiment-wrap-BN" hidden><label>BN offset <output id="sentiment-BN-value">0</output><input id="sentiment-BN" type="range" min="-0.5" max="0.5" step="0.05" value="0"></label></div>
-<div id="sentiment-wrap-PN" hidden><label>PN offset <output id="sentiment-PN-value">0</output><input id="sentiment-PN" type="range" min="-0.5" max="0.5" step="0.05" value="0"></label></div>
-<div id="sentiment-wrap-GPS" hidden><label>GPS offset <output id="sentiment-GPS-value">0</output><input id="sentiment-GPS" type="range" min="-0.5" max="0.5" step="0.05" value="0"></label></div>
-<div id="sentiment-wrap-GRS" hidden><label>GRS offset <output id="sentiment-GRS-value">0</output><input id="sentiment-GRS" type="range" min="-0.5" max="0.5" step="0.05" value="0"></label></div>
+<p class="control-kicker">News mood vs today</p>
+<div id="sentiment-wrap-PH" hidden><label>PH <small>today <span id="sentiment-PH-base">0</span></small> <output id="sentiment-PH-value">0</output><input id="sentiment-PH" type="range" min="-0.5" max="0.5" step="0.05" value="0"></label></div>
+<div id="sentiment-wrap-BN" hidden><label>BN <small>today <span id="sentiment-BN-base">0</span></small> <output id="sentiment-BN-value">0</output><input id="sentiment-BN" type="range" min="-0.5" max="0.5" step="0.05" value="0"></label></div>
+<div id="sentiment-wrap-PN" hidden><label>PN <small>today <span id="sentiment-PN-base">0</span></small> <output id="sentiment-PN-value">0</output><input id="sentiment-PN" type="range" min="-0.5" max="0.5" step="0.05" value="0"></label></div>
+<div id="sentiment-wrap-GPS" hidden><label>GPS <small>today <span id="sentiment-GPS-base">0</span></small> <output id="sentiment-GPS-value">0</output><input id="sentiment-GPS" type="range" min="-0.5" max="0.5" step="0.05" value="0"></label></div>
+<div id="sentiment-wrap-GRS" hidden><label>GRS <small>today <span id="sentiment-GRS-base">0</span></small> <output id="sentiment-GRS-value">0</output><input id="sentiment-GRS" type="range" min="-0.5" max="0.5" step="0.05" value="0"></label></div>
 </div>
+<div class="compare-strip" id="sandbox-compare"></div>
+<p id="sandbox-narrative" class="sandbox-sentence"></p>
+<button type="button" class="pill" id="download-run">Download this run</button>
+<p class="muted">Saves the sliders, flipped Seats, and caveat as JSON and CSV. Does not change production settings.</p>
 </div>
-<div id="sandbox-totals" class="dewan-tiles"></div>
+<div class="sandbox-stage">
 <div id="sandbox-hemicycle" class="hemicycle-wrap"></div>
-<p id="sandbox-narrative" class="analyst-narrative"></p>
-<div class="dewan-table-wrap"><table class="dewan-table"><thead><tr><th>Seat</th><th>State</th><th>Baseline</th><th>Projected</th><th>Margin</th></tr></thead><tbody id="sandbox-seats"></tbody></table></div>
+</div>
+</div>
+<div class="sandbox-table-bar">
+<label class="toggle"><input type="checkbox" id="show-all-seats"> Show all 222 Seats</label>
+<label>State <select id="state-filter"><option value="">All states</option></select></label>
+<p id="flip-count" class="muted"></p>
+</div>
+<div class="sandbox-table-wrap"><table class="sandbox-table"><thead><tr><th>Seat</th><th>State</th><th>GE15 <span class="kind-fact">FACT</span></th><th>Bumi <span class="kind-fact">FACT</span></th><th>Today <span class="kind-model">MODEL</span></th><th>This run <span class="kind-model">MODEL</span></th><th>Margin <span class="kind-model">MODEL</span></th></tr></thead><tbody id="sandbox-seats"></tbody></table></div>
 </section>
 
 <section class="analyst-panel" aria-labelledby="trace-title">
@@ -52,7 +75,7 @@
 
 <section class="analyst-panel" aria-labelledby="export-title">
 <h2 id="export-title">03 · Full data export</h2>
-<p class="lede">Download the full analyst bundle: Baseline (FACT), model inputs (MODEL), projection, sentiment, and articles sorted into IDEAS research themes (economy, trust in institutions, inclusion).</p>
+<p class="lede">Download the official daily bundle: Baseline (FACT, ElectionData.MY / MECo), model inputs (MODEL), projection, sentiment, and articles sorted into IDEAS research themes.</p>
 <ul class="export-list">
 <li>baseline.json · GE15 Baseline per Seat</li>
 <li>model_config.json · Swing Model constants</li>
@@ -62,10 +85,10 @@
 <li>IDEAS topic folders · filtered article CSVs</li>
 </ul>
 <button type="button" class="pill" id="download-bundle">Download analyst bundle (.zip)</button>
-<p class="muted">Sandbox adjustments stay in your browser. They do not change production model settings.</p>
+<p class="muted">The sandbox run download above is the file to cite for a what-if. This ZIP is today’s official snapshot.</p>
 </section>
 </main>
-<footer class="analyst-foot"><a href="/methodology.html">Read the public methodology</a> · <a href="/">PolitikKu home</a></footer>
+<footer class="analyst-foot"><a href="/methodology.html">Read the public methodology</a> · <a href="https://electiondata.my/">ElectionData.MY</a> · <a href="/">PolitikKu home</a></footer>
 </div>
 <script type="module" src="/analyst-tools.js"></script>
 </body>

@@ -35,6 +35,16 @@ def export_baseline(baseline: Sequence[SeatBaseline]) -> dict[str, Any]:
         "schema_version": SCHEMA_VERSION,
         "kind": "FACT",
         "description": "GE15 Baseline per Seat — fixed record, not a Projection.",
+        "source": {
+            "name": "Malaysian Election Corpus (MECo)",
+            "publisher": "ElectionData.MY / Thevesh Thevananthan",
+            "url": "https://electiondata.my/",
+            "citation": (
+                "Thevananthan, T. (2025). The Malaysian Election Corpus (MECo): "
+                "Federal and State-Level Election Results from 1955 to 2025. "
+                "Scientific Data. https://doi.org/10.1038/s41597-025-06502-7"
+            ),
+        },
         "seats": [
             {
                 "code": seat.code,
@@ -43,6 +53,7 @@ def export_baseline(baseline: Sequence[SeatBaseline]) -> dict[str, Any]:
                 "vote_share": dict(seat.vote_share),
                 "margin": seat.margin,
                 "winner": seat.winner,
+                "demographics": dict(seat.demographics),
             }
             for seat in baseline
         ],
@@ -112,6 +123,23 @@ def export_methodology() -> dict[str, Any]:
             "FACT": "Historical record (GE15 Baseline, state election results).",
             "MODEL": "Modelled estimate — provisional constants, not a forecast.",
             "META": "Documentation and export metadata.",
+        },
+        "sources": {
+            "baseline": {
+                "kind": "FACT",
+                "name": "Malaysian Election Corpus (MECo)",
+                "url": "https://electiondata.my/",
+                "citation": (
+                    "Thevananthan, T. (2025). The Malaysian Election Corpus (MECo): "
+                    "Federal and State-Level Election Results from 1955 to 2025. "
+                    "Scientific Data. https://doi.org/10.1038/s41597-025-06502-7"
+                ),
+            },
+            "state_elections": {
+                "kind": "FACT",
+                "name": "ElectionData.MY state results",
+                "url": "https://electiondata.my/",
+            },
         },
         "caveat": PROJECTION_CAVEAT,
     }

@@ -1,10 +1,16 @@
 import {
   buildHemicycleSVG,
-  COALITION_COLORS,
   partyColor,
   trustTagHTML,
 } from "./lib.js";
-import { buildNarrative, swingModel } from "./lib-swing.js";
+import {
+  buildNarrative,
+  flippedSeats,
+  formatPercentShare,
+  sandboxRunCsv,
+  sandboxRunExport,
+  swingModel,
+} from "./lib-swing.js";
 
 const DATA_BASE = "/analyst/data/";
 
@@ -14,6 +20,9 @@ let stateSignals = [];
 let currentInputs = null;
 let articlesPayload = null;
 let baselineProjection = null;
+let lastRun = null;
+let showAllSeats = false;
+let stateFilter = "";
 
 const coalitionOrder = ["PH", "BN", "PN", "GPS", "GRS"];
 
@@ -35,16 +44,23 @@ function fmtDelta(value) {
   return `${sign}${Math.abs(value).toFixed(2)}`;
 }
 
+function fmtPp(share) {
+  if (share === null || share === undefined || Number.isNaN(Number(share))) return "—";
+  return `${(Number(share) * 100).toFixed(1)}pp`;
+}
+
+function fmtPct(share) {
+  return formatPercentShare(share);
+}
+
 function readSliders() {
   const sensitivity = Number(document.getElementById("sensitivity").value);
   const signalWeight = Number(document.getElementById("signal-weight").value);
   const sentiment = {};
   for (const coalition of coalitionOrder) {
     const el = document.getElementById(`sentiment-${coalition}`);
-    if (!el || !currentInputs?.scores?.[coalition]) continue;
-    const base = currentInputs.scores[coalition];
-    const offset = Number(el.value);
-    sentiment[coalition] = base + offset;
+    if (!el || currentInputs?.scores?.[coalition] === undefined) continue;
+    sentiment[coalition] = currentInputs.scores[coalition] + Number(el.value);
   }
   for (const [coalition, score] of Object.entries(currentInputs?.scores || {})) {
     if (sentiment[coalition] === undefined) sentiment[coalition] = score;
@@ -56,35 +72,103 @@ function readSliders() {
   };
 }
 
-function renderSandbox(projection, narrative) {
-  const totalsEl = document.getElementById("sandbox-totals");
-  const hemicycleEl = document.getElementById("sandbox-hemicycle");
-  const tableEl = document.getElementById("sandbox-seats");
-  const narrativeEl = document.getElementById("sandbox-narrative");
-
-  const totals = projection.coalition_seat_totals;
-  const rows = coalitionOrder
+function coalitionLine(totals) {
+  return coalitionOrder
     .filter((c) => totals[c] !== undefined)
-    .map(
-      (c) =>
-        `<div class="dewan-tile"><span>${c}</span><strong>${trustTagHTML("MODEL", totals[c] || 0)}</strong></div>`,
-    )
-    .join("");
-  const govTotal = (modelConfig.government_coalitions || []).reduce(
-    (sum, c) => sum + (totals[c] || 0),
+    .map((c) => `${c} ${totals[c] || 0}`)
+    .join(" · ");
+}
+
+function renderCompare(official, adjusted, config) {
+  const el = document.getElementById("sandbox-compare");
+  const govOfficial = (config.government_coalitions || []).reduce(
+    (sum, c) => sum + (official.coalition_seat_totals[c] || 0),
     0,
   );
-  totalsEl.innerHTML =
-    rows +
-    `<div class="dewan-tile"><span>Government</span><strong>${trustTagHTML("MODEL", `${govTotal} / ${modelConfig.majority_threshold}+`)}</strong></div>`;
+  const govAdjusted = (config.government_coalitions || []).reduce(
+    (sum, c) => sum + (adjusted.coalition_seat_totals[c] || 0),
+    0,
+  );
+  el.innerHTML = `
+    <div class="compare-card"><span>Today (official)</span><strong>${trustTagHTML("MODEL", `${govOfficial} / ${config.majority_threshold}+`)}</strong><p>${coalitionLine(official.coalition_seat_totals)}</p></div>
+    <div class="compare-card"><span>This what-if</span><strong>${trustTagHTML("MODEL", `${govAdjusted} / ${config.majority_threshold}+`)}</strong><p>${coalitionLine(adjusted.coalition_seat_totals)}</p></div>
+  `;
+}
 
-  const seatRows = projection.seat_calls.map((call) => {
-    const seat = baseline.find((s) => s.code === call.code) || {};
-    const baseCall = baselineProjection.seat_calls.find((c) => c.code === call.code);
-    const flipped = baseCall && baseCall.coalition !== call.coalition;
-    return `<tr class="dewan-tr${flipped ? " row-changed" : ""}"><td>${call.code}</td><td>${seat.state || ""}</td><td>${baseCall?.coalition || ""}</td><td style="color:${partyColor(call.coalition)}">${call.coalition}</td><td>${(call.margin * 100).toFixed(1)}pp</td></tr>`;
+function renderSeatTable(projection) {
+  const tableEl = document.getElementById("sandbox-seats");
+  const countEl = document.getElementById("flip-count");
+  const flips = flippedSeats(baselineProjection, projection, baseline);
+  const officialByCode = Object.fromEntries(
+    baselineProjection.seat_calls.map((call) => [call.code, call]),
+  );
+
+  let rows = showAllSeats
+    ? projection.seat_calls.map((call) => {
+        const seat = baseline.find((s) => s.code === call.code) || {};
+        const today = officialByCode[call.code];
+        const flipped = today && today.coalition !== call.coalition;
+        return {
+          call,
+          seat,
+          today,
+          flipped,
+          sortMargin: call.margin,
+        };
+      })
+    : flips.map((flip) => ({
+        call: { code: flip.code, coalition: flip.to, margin: flip.to_margin },
+        seat: baseline.find((s) => s.code === flip.code) || {},
+        today: { coalition: flip.from, margin: flip.from_margin },
+        flipped: true,
+        sortMargin: flip.to_margin,
+      }));
+
+  if (stateFilter) {
+    rows = rows.filter((row) => row.seat.state === stateFilter);
+  }
+  rows.sort((a, b) => Math.abs(a.sortMargin) - Math.abs(b.sortMargin));
+
+  countEl.textContent = showAllSeats
+    ? `${rows.length} Seats shown · ${flips.length} flipped vs today`
+    : flips.length
+      ? `${rows.length} flipped Seat${rows.length === 1 ? "" : "s"} (closest first)`
+      : "No Seats change under these assumptions";
+
+  tableEl.innerHTML = rows
+    .map((row) => {
+      const bumi = row.seat.demographics?.ethnicity_proportion_bumi;
+      return `<tr class="${row.flipped ? "row-changed" : ""}">
+        <td><span class="seat-code">${row.call.code}</span><span class="seat-name">${row.seat.name || ""}</span></td>
+        <td>${row.seat.state || ""}</td>
+        <td>${row.seat.winner || ""} ${fmtPp(row.seat.margin)}</td>
+        <td>${fmtPct(bumi)}</td>
+        <td style="color:${partyColor(row.today?.coalition)}">${row.today?.coalition || ""}</td>
+        <td style="color:${partyColor(row.call.coalition)}">${row.call.coalition}</td>
+        <td>${fmtPp(row.call.margin)}</td>
+      </tr>`;
+    })
+    .join("");
+}
+
+function fillStateFilter() {
+  const select = document.getElementById("state-filter");
+  const states = [...new Set(baseline.map((seat) => seat.state))].sort();
+  select.innerHTML =
+    `<option value="">All states</option>` +
+    states.map((state) => `<option value="${state}">${state}</option>`).join("");
+}
+
+function renderSandbox(projection, narrative, sliders) {
+  const hemicycleEl = document.getElementById("sandbox-hemicycle");
+  const narrativeEl = document.getElementById("sandbox-narrative");
+  renderCompare(baselineProjection, projection, {
+    ...modelConfig,
+    sentiment_sensitivity: sliders.sentiment_sensitivity,
+    state_signal_weight: sliders.state_signal_weight,
   });
-  tableEl.innerHTML = seatRows.join("");
+  narrativeEl.textContent = narrative;
+  renderSeatTable(projection);
 
   const hemSeats = projection.seat_calls.map((call) => {
     const seat = baseline.find((s) => s.code === call.code) || {};
@@ -93,7 +177,12 @@ function renderSandbox(projection, narrative) {
   hemicycleEl.innerHTML = buildHemicycleSVG(hemSeats, {
     governmentCoalitions: modelConfig.government_coalitions,
   });
-  narrativeEl.textContent = narrative;
+
+  lastRun = {
+    projection,
+    narrative,
+    sliders,
+  };
 }
 
 function updateSandbox() {
@@ -111,7 +200,11 @@ function updateSandbox() {
     currentInputs.computed_at,
   );
   const narrative = buildNarrative(baselineProjection, projection, baseline, config);
-  renderSandbox(projection, narrative);
+  renderSandbox(projection, narrative, {
+    sentiment_sensitivity,
+    state_signal_weight,
+    sentiment,
+  });
 }
 
 function renderCoalitionPicker() {
@@ -166,17 +259,62 @@ function wireSliders() {
       el.addEventListener("input", () => {
         const out = document.getElementById(`${id}-value`);
         if (out) {
-          if (id.startsWith("sentiment-")) {
+          if (id === "sensitivity") {
+            out.textContent = `${Math.round(Number(el.value) * 100)}%`;
+          } else if (id === "signal-weight") {
+            out.textContent = `${Math.round(Number(el.value) * 100)}%`;
+          } else {
             const base = currentInputs.scores[id.replace("sentiment-", "")] || 0;
             out.textContent = fmtScore(base + Number(el.value));
-          } else {
-            out.textContent = Number(el.value).toFixed(2);
           }
         }
         updateSandbox();
       });
     },
   );
+  document.getElementById("show-all-seats")?.addEventListener("change", (event) => {
+    showAllSeats = event.target.checked;
+    if (lastRun) renderSeatTable(lastRun.projection);
+  });
+  document.getElementById("state-filter")?.addEventListener("change", (event) => {
+    stateFilter = event.target.value;
+    if (lastRun) renderSeatTable(lastRun.projection);
+  });
+}
+
+function downloadText(filename, body, type) {
+  const blob = new Blob([body], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadThisRun() {
+  if (!lastRun) return;
+  const payload = sandboxRunExport({
+    officialProjection: baselineProjection,
+    adjustedProjection: lastRun.projection,
+    baseline,
+    config: {
+      ...modelConfig,
+      sentiment_sensitivity: lastRun.sliders.sentiment_sensitivity,
+      state_signal_weight: lastRun.sliders.state_signal_weight,
+    },
+    sliders: {
+      sentiment_sensitivity: lastRun.sliders.sentiment_sensitivity,
+      state_signal_weight: lastRun.sliders.state_signal_weight,
+    },
+    todaySentiment: currentInputs.scores,
+    adjustedSentiment: lastRun.sliders.sentiment,
+    computedAt: currentInputs.computed_at,
+    narrative: lastRun.narrative,
+  });
+  const stamp = currentInputs.computed_at || "run";
+  downloadText(`politikku-sandbox-${stamp}.json`, JSON.stringify(payload, null, 2) + "\n", "application/json");
+  downloadText(`politikku-sandbox-${stamp}.csv`, sandboxRunCsv(payload), "text/csv");
 }
 
 async function downloadBundle() {
@@ -213,9 +351,9 @@ export async function initAnalystWorkbench() {
     document.getElementById("sensitivity").value = configData.sentiment_sensitivity;
     document.getElementById("signal-weight").value = configData.state_signal_weight;
     document.getElementById("sensitivity-value").textContent =
-      Number(configData.sentiment_sensitivity).toFixed(2);
+      `${Math.round(Number(configData.sentiment_sensitivity) * 100)}%`;
     document.getElementById("signal-weight-value").textContent =
-      Number(configData.state_signal_weight).toFixed(2);
+      `${Math.round(Number(configData.state_signal_weight) * 100)}%`;
 
     for (const coalition of coalitionOrder) {
       const wrap = document.getElementById(`sentiment-wrap-${coalition}`);
@@ -225,13 +363,9 @@ export async function initAnalystWorkbench() {
       }
       wrap.hidden = false;
       const baseEl = document.getElementById(`sentiment-${coalition}-base`);
-      if (baseEl) {
-        baseEl.textContent = fmtScore(inputsData.scores[coalition]);
-      }
+      if (baseEl) baseEl.textContent = fmtScore(inputsData.scores[coalition]);
       const valueEl = document.getElementById(`sentiment-${coalition}-value`);
-      if (valueEl) {
-        valueEl.textContent = fmtScore(inputsData.scores[coalition]);
-      }
+      if (valueEl) valueEl.textContent = fmtScore(inputsData.scores[coalition]);
     }
 
     baselineProjection = swingModel(
@@ -242,10 +376,12 @@ export async function initAnalystWorkbench() {
       inputsData.computed_at,
     );
 
+    fillStateFilter();
     wireSliders();
     updateSandbox();
     renderCoalitionPicker();
     document.getElementById("download-bundle")?.addEventListener("click", downloadBundle);
+    document.getElementById("download-run")?.addEventListener("click", downloadThisRun);
   } catch (err) {
     document.getElementById("workbench-error").hidden = false;
     document.getElementById("workbench-error").textContent =

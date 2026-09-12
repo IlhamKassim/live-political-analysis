@@ -37,4 +37,8 @@ Daily release (`lpa.release_data`) writes:
 - `articles.json` — article-level sentiment
 - `analyst-bundle.zip` — full bundle with IDEAS topic CSV folders
 
-Topics are defined in `data/ideas_topics.json` (economy, trust_in_institutions, inclusion).
+## Sandbox run export
+
+The workbench **Download this run** button writes JSON + CSV of the current what-if: slider values, flipped Seats, narrative, and the MECo / ElectionData.MY Baseline citation. That file is what to cite. The daily ZIP remains today’s official snapshot.
+
+GE15 Baseline demographics (ethnicity, income) appear in the sandbox table as FACT. They are display-only and do not enter the Swing Model.

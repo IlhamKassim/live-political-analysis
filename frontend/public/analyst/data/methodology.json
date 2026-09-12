@@ -7,5 +7,18 @@
     "MODEL": "Modelled estimate \u2014 provisional constants, not a forecast.",
     "META": "Documentation and export metadata."
   },
+  "sources": {
+    "baseline": {
+      "kind": "FACT",
+      "name": "Malaysian Election Corpus (MECo)",
+      "url": "https://electiondata.my/",
+      "citation": "Thevananthan, T. (2025). The Malaysian Election Corpus (MECo): Federal and State-Level Election Results from 1955 to 2025. Scientific Data. https://doi.org/10.1038/s41597-025-06502-7"
+    },
+    "state_elections": {
+      "kind": "FACT",
+      "name": "ElectionData.MY state results",
+      "url": "https://electiondata.my/"
+    }
+  },
   "caveat": "Two constants in the Swing Model were set by judgement, not fitted to data. Treat every figure here as a direction, not a forecast. Every Seat's call is arithmetic against its GE15 result under a state-uniform swing, never a bespoke judgement about that constituency."
 }

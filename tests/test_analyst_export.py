@@ -14,6 +14,7 @@ from lpa.analyst_export import (
     export_state_signals,
     to_json,
 )
+from lpa.domain import SeatBaseline
 from lpa.storage import connect, save_snapshot
 from lpa.swing_model import state_swing, swing_model
 
@@ -26,6 +27,28 @@ def test_baseline_export_carries_every_seat():
     assert len(payload["seats"]) == 6
     assert payload["seats"][0]["code"] == "P001"
     assert "vote_share" in payload["seats"][0]
+    assert "demographics" in payload["seats"][0]
+    assert payload["source"]["url"] == "https://electiondata.my/"
+
+
+def test_baseline_export_keeps_census_demographics():
+    seat = SeatBaseline(
+        code="P001",
+        name="Test",
+        state="Selangor",
+        vote_share={PH: 0.6, PN: 0.4},
+        margin=0.2,
+        demographics={"ethnicity_proportion_bumi": 89.8, "income_median": 4075.0},
+    )
+    payload = export_baseline([seat])
+    assert payload["seats"][0]["demographics"]["ethnicity_proportion_bumi"] == 89.8
+    assert payload["seats"][0]["winner"] == PH
+
+
+def test_methodology_export_cites_meco():
+    payload = export_methodology()
+    assert payload["sources"]["baseline"]["name"] == "Malaysian Election Corpus (MECo)"
+    assert "Scientific Data" in payload["sources"]["baseline"]["citation"]
 
 
 def test_model_config_export_carries_tunables():
