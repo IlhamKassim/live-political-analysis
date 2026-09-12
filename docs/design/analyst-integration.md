@@ -35,6 +35,20 @@ The request's Learn comparison is out of date: `.github/workflows/daily.yml` now
 
 The shared files remain untouched pending the requested review. After applying the reviewed patch, rerun the adapter so the copied header includes the new navigation entry, then run the route sweep and full checks.
 
+## Pilot workbench (2026-09)
+
+Functional analyst tools live at **`/analyst/tools/`** — a dense workbench (not the scroll concept page):
+
+1. **Swing-model sandbox** — client-side replay of `swing_model.py` against exported Baseline + inputs.
+2. **Source-level sentiment drill-down** — article-level scores from `scored_article` Storage.
+3. **Full data export** — `analyst-bundle.zip` with IDEAS topic folders.
+
+Data is written by `lpa.release_data` into `public/analyst/data/`. See [analyst-pilot.md](analyst-pilot.md).
+
+### Model governance
+
+Sandbox slider changes are local what-if only in the browser. Changing production Swing Model constants requires a recorded edit in `data/` and an ADR note. This pilot does not expose a production settings editor.
+
 ## Verification of prepared files
 
 647 tests passed, 9 deselected. Ruff and mypy passed. The new tests check source immutability, identical main content and assets, all local resource paths, notices, English-only navigation, repeatable preparation, and a missing-source failure.

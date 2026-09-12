@@ -31,6 +31,7 @@ figures.
 from __future__ import annotations
 
 import re
+import shutil
 from datetime import date
 from pathlib import Path
 
@@ -125,6 +126,14 @@ def rendered_site(tmp_path_factory) -> Path:
     root = tmp_path_factory.mktemp("public")
     _copy_observatory_assets(root)
     build_and_write_analyst_page(root)
+    tools_dir = REPO_ROOT / "public" / "analyst" / "tools"
+    if tools_dir.is_dir():
+        shutil.copytree(tools_dir, root / "analyst" / "tools")
+    frontend_public = REPO_ROOT / "frontend" / "public"
+    for name in ("styles.css", "lib.js", "lib-swing.js", "analyst-tools.js"):
+        src = frontend_public / name
+        if src.is_file():
+            shutil.copy2(src, root / name)
     # The committed, non-generated part of `public/`: the self-hosted fonts
     # the shell preloads (mirrored by name — symlinking is not portable
     # here), and `learn/`'s hand-authored civic-education pages, copied in
@@ -336,6 +345,9 @@ def test_the_language_toggle_on_every_page_reaches_the_other_language(rendered_s
             assert set(toggles) == {"/analyst/", "/ms/analyst/"}, page_path
             for link in toggles:
                 assert _resolve(rendered_site, link).is_file(), (page_path, link)
+            continue
+        if "tools" in page_path.parts and "analyst" in page_path.parts:
+            # Workbench uses minimal chrome — no language toggle.
             continue
         bare = 'class="pk-bare"' in page
         assert len(toggles) == (2 if bare else 4), page_path
