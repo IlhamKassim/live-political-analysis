@@ -994,7 +994,7 @@ _CSS_TEMPLATE = """
     #topbar { left: 0; }
   }
   .brand-home {
-    display: flex; align-items: center;
+    display: flex; align-items: center; min-height: 44px;
     text-decoration: none; color: var(--ink);
   }
   .brand-home .mark { font-family: var(--sans); font-size: 18px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
@@ -1027,6 +1027,8 @@ _CSS_TEMPLATE = """
     border-radius: var(--radius-md); overflow: hidden;
   }
   .topbar-lang a, .topbar-lang button {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 44px; min-height: 44px;
     font-family: var(--mono); font-size: 11px; font-weight: 600; padding: 5px 10px;
     color: var(--ink-secondary); text-decoration: none; background: transparent; border: 0; cursor: pointer;
   }
@@ -1952,16 +1954,30 @@ button.dewan-tr:hover {
   }
   .pk-footer-statement p { margin: 0; font-size: 12.5px; line-height: 1.6; }
   .pk-not-calibrated { color: var(--caution); }
+  /* The link box has to be tall enough to hit with a thumb, so padding
+     carries the height rather than the line box. The negative left margin
+     keeps the first link flush with the column above it despite that
+     padding, and the underline moves to a pseudo-element so it stays on the
+     text instead of dropping to the bottom of the taller box. */
   .pk-footer-link {
-    display: inline-block;
-    margin-top: 12px;
-    margin-right: 18px;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 10px;
+    margin-right: 8px;
+    margin-left: -10px;
     font-size: 12.5px;
     color: var(--accent);
+  }
+  .pk-footer-link::after {
+    content: "";
+    position: absolute;
+    left: 10px; right: 10px; top: calc(50% + .72em);
     border-bottom: 1px solid rgba(77, 214, 193, .4);
     transition: border-bottom-color .15s ease;
   }
-  .pk-footer-link:hover { border-bottom-color: var(--accent); }
+  .pk-footer-link:hover::after { border-bottom-color: var(--accent); }
   .pk-footer-label {
     font-family: var(--mono);
     font-size: 11px;

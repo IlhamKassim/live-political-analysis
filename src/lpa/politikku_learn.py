@@ -47,7 +47,9 @@ _LEARN_BASE_CSS = """
   }
   .toc li { margin: 0; }
   .toc a {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
     font-family: var(--mono);
     font-size: 11px;
     letter-spacing: .04em;
@@ -55,7 +57,7 @@ _LEARN_BASE_CSS = """
     text-decoration: none;
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
-    padding: 4px 10px;
+    padding: 4px 12px;
   }
   .toc a:hover {
     color: var(--ink);

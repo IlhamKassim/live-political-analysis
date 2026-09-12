@@ -17,7 +17,7 @@
 @media(max-width:1100px){.site-header .brand-small{display:none}}
 @media(max-width:900px){
  .site-header .obs-lang{margin-left:auto;margin-right:10px}
- .site-header .obs-lang a{min-width:40px;min-height:44px}
+ .site-header .obs-lang a{min-width:44px;min-height:44px}
  .site-header .brand{min-height:44px}
  .site-header .menu-toggle{display:block}
  .site-header .nav-links{display:none}

@@ -48,6 +48,9 @@ VIEWPORTS = ((320, 700), (375, 667), (390, 844), (430, 932))
 PAGES = ("/", "/analyst/", "/learn/ge16-process.html")
 # The pages whose text sizes are clean today — see the module docstring.
 FONT_CHECKED_PAGES = ("/", "/learn/ge16-process.html")
+# Same, for the size of the things you tap. Analyst qualifies here even though
+# its text sizes do not, so it is checked for one and not the other.
+TARGET_CHECKED_PAGES = PAGES
 
 # Apple and Google both put the minimum comfortable tap target at 44px, and
 # text below 11px is where phone browsers start offering to zoom.
@@ -127,8 +130,6 @@ def small_targets(page: object, minimum: int) -> list[dict[str, str | float]]:
 
     Links sitting inline in a sentence are skipped: WCAG 2.5.8 exempts them,
     and sizing them to 44px would wreck the line spacing of running text.
-
-    Not asserted yet — see the module docstring.
     """
     return page.evaluate(  # type: ignore[attr-defined]
         """minimum => [...document.querySelectorAll('a[href], button, input, summary')]
@@ -188,6 +189,21 @@ def test_mobile_pages_keep_their_text_readable(
         page.goto(mobile_site + path, wait_until="networkidle")
 
         assert visible_text_below(page, MIN_FONT_SIZE) == []
+        browser.close()
+
+
+@pytest.mark.browser
+@pytest.mark.parametrize(("width", "height"), VIEWPORTS)
+@pytest.mark.parametrize("path", TARGET_CHECKED_PAGES)
+def test_mobile_pages_keep_their_controls_big_enough_to_tap(
+    mobile_site: str, path: str, width: int, height: int
+) -> None:
+    with playwright.sync_playwright() as manager:
+        browser = manager.chromium.launch()
+        page = browser.new_page(viewport={"width": width, "height": height})
+        page.goto(mobile_site + path, wait_until="networkidle")
+
+        assert small_targets(page, MIN_TAP_TARGET) == []
         browser.close()
 
 
