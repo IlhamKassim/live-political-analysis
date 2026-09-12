@@ -302,6 +302,25 @@ term and the file records only its end.
 """
 
 
+_ART_DEFS = (
+    "<defs>"
+    # the light that passes up the tower
+    '<linearGradient id="pk-sweep-grad" x1="0" y1="1" x2="0.6" y2="0">'
+    '<stop offset="0%" stop-color="#d6ed9a" stop-opacity="0"/>'
+    '<stop offset="55%" stop-color="#d6ed9a" stop-opacity=".22"/>'
+    '<stop offset="100%" stop-color="#d6ed9a" stop-opacity="0"/>'
+    "</linearGradient>"
+    # the pulse the clock sends up on every tick
+    '<linearGradient id="pk-pulse-grad" x1="0" y1="1" x2="0" y2="0">'
+    '<stop offset="0%" stop-color="#d6ed9a" stop-opacity="0"/>'
+    '<stop offset="50%" stop-color="#eaf7c4" stop-opacity=".55"/>'
+    '<stop offset="100%" stop-color="#d6ed9a" stop-opacity="0"/>'
+    "</linearGradient>"
+    "</defs>"
+)
+"""Gradients the artwork's animations move through."""
+
+
 def _art_tower() -> str:
     """Merdeka 118: a tapering, faceted tower with a spire, in line art.
 
@@ -310,29 +329,30 @@ def _art_tower() -> str:
     """
     facets = "".join(
         f'<path class="pk-facet" style="animation-delay:{i * 0.55:.2f}s" '
-        f'd="M{124 - i * 1.9},{176 + i * 34} L138,{160 + i * 34} '
-        f'L{152 + i * 1.9},{176 + i * 34} L138,{192 + i * 34} Z"/>'
+        f'd="M{144 - i * 1.9},{176 + i * 34} L158,{160 + i * 34} '
+        f'L{172 + i * 1.9},{176 + i * 34} L158,{192 + i * 34} Z"/>'
         for i in range(9)
     )
     windows = "".join(
         f'<rect class="pk-win" style="animation-delay:{(i % 7) * 0.9 + 0.3:.2f}s" '
-        f'x="{118 + (i % 3) * 14}" y="{200 + (i // 3) * 46}" width="6" height="3"/>'
+        f'x="{138 + (i % 3) * 14}" y="{206 + (i // 3) * 44}" width="6" height="3"/>'
         for i in range(18)
     )
     return (
         '<g class="pk-tower">'
-        # the neighbours, low and quiet
-        '<path class="pk-city" d="M18,470 L18,392 L56,392 L56,470 Z"/>'
-        '<path class="pk-city" d="M62,470 L62,352 L92,352 L92,470 Z"/>'
-        '<path class="pk-city" d="M186,470 L186,366 L214,366 L214,470 Z"/>'
-        '<path class="pk-city" d="M220,470 L220,406 L262,406 L262,470 Z"/>'
-        # the shaft and the spire
-        '<path class="pk-shaft" d="M108,470 L120,150 L156,150 L168,470 Z"/>'
-        '<path class="pk-spire" d="M138,26 L142,150 L134,150 Z"/>'
-        '<path class="pk-shaft-edge" d="M138,150 L138,470"/>'
+        '<path class="pk-city" d="M28,470 L28,392 L66,392 L66,470 Z"/>'
+        '<path class="pk-city" d="M72,470 L72,352 L102,352 L102,470 Z"/>'
+        '<path class="pk-city" d="M206,470 L206,366 L234,366 L234,470 Z"/>'
+        '<path class="pk-city" d="M240,470 L240,406 L282,406 L282,470 Z"/>'
+        '<path class="pk-shaft" d="M128,470 L140,150 L176,150 L188,470 Z"/>'
+        '<path class="pk-spire" d="M158,26 L162,150 L154,150 Z"/>'
+        '<path class="pk-shaft-edge" d="M158,150 L158,470"/>'
         f"{facets}{windows}"
-        '<path class="pk-sweep" d="M108,470 L120,150 L156,150 L168,470 Z"/>'
-        '<line class="pk-ground" x1="0" y1="470" x2="280" y2="470"/>'
+        '<path class="pk-sweep" d="M128,470 L140,150 L176,150 L188,470 Z"/>'
+        '<path class="pk-pulse" data-pk-pulse d="M128,470 L140,150 L176,150 L188,470 Z"/>'
+        '<circle class="pk-beacon-glow" cx="158" cy="24" r="7"/>'
+        '<circle class="pk-beacon" cx="158" cy="24" r="2.6"/>'
+        '<line class="pk-ground" x1="0" y1="470" x2="320" y2="470"/>'
         "</g>"
     )
 
@@ -349,57 +369,78 @@ def _term_elapsed(model: Pru16Model, language: Language) -> str:
     )
 
 
-def _art_arc(model: Pru16Model, language: Language, *, with_caption: bool = True) -> str:
-    """The five-year term as an arc: how much has run, how much is left."""
+def _art_arc(model: Pru16Model, language: Language, *, horizon: bool = False) -> str:
+    """The five-year term as an arc: how much has run, how much is left.
+
+    `horizon=True` is the version that sits behind the tower — larger, fainter
+    and unlabelled, so it reads as a ring of light rather than a chart set
+    beside one.
+    """
     start, end = TERM_FIRST_SITTING, model.status.constitutional_deadline
     span = (end - start).days or 1
     gone = min(max((model.today - start).days, 0), span)
     # A 240° arc, drawn as a dashed circle so one number sets how far it fills.
-    radius = 118
+    radius = 150 if horizon else 118
     circumference = 2 * 3.14159 * radius
     sweep = circumference * (240 / 360)
     filled = sweep * gone / span
+    # `--pk-arc-len` is what the draw-in animates from, so the arc sweeps to
+    # today's share once, on load.
+    body = (
+        f'<circle class="pk-arc-track" r="{radius}" '
+        f'stroke-dasharray="{sweep:.1f} {circumference:.1f}" transform="rotate(150)"/>'
+        f'<circle class="pk-arc-run" r="{radius}" style="--pk-arc-len:{filled:.1f}px" '
+        f'stroke-dasharray="{filled:.1f} {circumference:.1f}" transform="rotate(150)"/>'
+    )
+    if horizon:
+        return f'<g class="pk-arc is-horizon" transform="translate(158,300)">{body}</g>'
+
     label_start = t(language, "TERM BEGAN", "PENGGAL BERMULA")
     label_end = t(language, "LATEST POSSIBLE", "PALING LEWAT")
     pct = _term_elapsed(model, language)
     return (
-        '<g class="pk-arc" transform="translate(140,250)">'
-        f'<circle class="pk-arc-track" r="{radius}" '
-        f'stroke-dasharray="{sweep:.1f} {circumference:.1f}" transform="rotate(150)"/>'
-        f'<circle class="pk-arc-run" r="{radius}" '
-        f'stroke-dasharray="{filled:.1f} {circumference:.1f}" transform="rotate(150)"/>'
-        + (
-            f'<text class="pk-arc-pct" x="0" y="150" text-anchor="middle">{html.escape(pct)}</text>'
-            if with_caption
-            else ""
-        )
-        + f'<text class="pk-arc-k" x="-104" y="86" text-anchor="middle">{html.escape(label_start)}</text>'
-        f'<text class="pk-arc-v" x="-104" y="102" text-anchor="middle">'
-        f"{html.escape(_long_date(start, language))}</text>"
-        f'<text class="pk-arc-k" x="104" y="86" text-anchor="middle">{html.escape(label_end)}</text>'
-        f'<text class="pk-arc-v" x="104" y="102" text-anchor="middle">'
-        f"{html.escape(_long_date(end, language))}</text></g>"
+        '<g class="pk-arc" transform="translate(158,250)">'
+        + body
+        + f'<text class="pk-arc-pct" x="0" y="150" text-anchor="middle">{html.escape(pct)}</text>'
+        + '<text class="pk-arc-k" x="-104" y="86" text-anchor="middle">'
+        + f"{html.escape(label_start)}</text>"
+        + '<text class="pk-arc-v" x="-104" y="102" text-anchor="middle">'
+        + f"{html.escape(_long_date(start, language))}</text>"
+        + '<text class="pk-arc-k" x="104" y="86" text-anchor="middle">'
+        + f"{html.escape(label_end)}</text>"
+        + '<text class="pk-arc-v" x="104" y="102" text-anchor="middle">'
+        + f"{html.escape(_long_date(end, language))}</text></g>"
     )
 
 
 def _art(model: Pru16Model, language: Language) -> str:
+    """The hero artwork, with the state and the time of day it reacts to.
+
+    `data-state` is what the scene reads on dissolution day: the arc turns to
+    the caution colour and the beacon quickens, so the page looks different
+    the moment GE16 is actually called. `data-tod` is set by the browser from
+    the hour in Malaysia; it starts at "night", which is when the drawing
+    looks its best, so a reader with no JavaScript still gets a lit tower.
+    """
     if model.art == "none":
         return ""
     decorative = t(language, "Decorative artwork", "Karya hiasan")
+    state = "called" if model.status.called else "not-called"
     if model.art == "arc":
         inner = _art_arc(model, language)
         caption = t(language, "This Parliament's five-year term", "Penggal lima tahun Parlimen ini")
     elif model.art == "both":
-        # The percentage moves into the caption: inside the arc it would sit
-        # behind the tower.
-        inner = _art_arc(model, language, with_caption=False) + _art_tower()
+        # The percentage moves into the caption: behind the tower there is no
+        # room to read it.
+        inner = _art_arc(model, language, horizon=True) + _art_tower()
         caption = f"{_term_elapsed(model, language)} · Merdeka 118, {decorative.lower()}"
     else:
         inner = _art_tower()
         caption = f"Merdeka 118 · {decorative.lower()}"
     return (
-        f'<div class="pk-ge-art pk-art-{model.art}" aria-hidden="true">'
-        f'<svg viewBox="0 0 280 500" preserveAspectRatio="xMidYMax meet">{inner}</svg>'
+        f'<div class="pk-ge-art pk-art-{model.art}" data-pk-art data-state="{state}" '
+        'data-tod="night" aria-hidden="true">'
+        f'<svg viewBox="0 0 320 500" preserveAspectRatio="xMidYMax meet">{_ART_DEFS}{inner}</svg>'
         f'<p class="pk-art-cap">{html.escape(caption)}</p></div>'
     )
 
@@ -823,6 +864,9 @@ _SCRIPT = """
   var h = el.querySelector('[data-pk-count-h]');
   var m = el.querySelector('[data-pk-count-m]');
   var s = el.querySelector('[data-pk-count-s]');
+  var art = document.querySelector('[data-pk-art]');
+  var pulse = document.querySelector('[data-pk-pulse]');
+  var calm = window.matchMedia('(prefers-reduced-motion: reduce)');
   var pad = function (v) { return v < 10 ? '0' + v : '' + v; };
   function tick() {
     var left = Math.max(Math.floor((target - Date.now()) / 1000), 0);
@@ -832,9 +876,31 @@ _SCRIPT = """
     h.textContent = pad(Math.floor(left % 86400 / 3600));
     m.textContent = pad(Math.floor(left % 3600 / 60));
     s.textContent = pad(left % 60);
+    if (pulse && !calm.matches) {
+      pulse.classList.remove('is-tick');
+      void pulse.getBoundingClientRect();
+      pulse.classList.add('is-tick');
+    }
   }
   tick();
   setInterval(tick, 1000);
+
+  // The scene follows the hour in Malaysia, not the reader's own time zone:
+  // the tower is in Kuala Lumpur, whoever is looking at it.
+  if (art) {
+    var setHour = function () {
+      try {
+        var hour = +new Intl.DateTimeFormat('en-GB', {
+          timeZone: 'Asia/Kuala_Lumpur', hour: '2-digit', hour12: false
+        }).format(new Date());
+        art.setAttribute(
+          'data-tod', hour >= 7 && hour < 18 ? 'day' : (hour < 20 && hour >= 18 ? 'dusk' : 'night')
+        );
+      } catch (e) {}
+    };
+    setHour();
+    setInterval(setHour, 600000);
+  }
 })();
 </script>
 """
@@ -902,18 +968,30 @@ _CSS = """
     font-size: 15px; line-height: 1.6; color: var(--muted);
   }
   /* Hero artwork (experiment): Merdeka 118 in line art, the term as an arc,
-     or both. Decoration only — it never encodes a number. */
-  .pk-ge-hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 40px; align-items: end; }
+     or both. Decoration, labelled as such; it never encodes a number. The
+     scene follows the hour in Malaysia (data-tod) and the Election Status
+     (data-state), and every animation stops under prefers-reduced-motion. */
+  .pk-ge-hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 40px; align-items: end; }
   .pk-ge-hero-copy { min-width: 0; }
-  .pk-ge-art { position: relative; align-self: end; }
-  .pk-ge-art svg { display: block; width: 100%; height: auto; max-height: 440px; overflow: visible; }
+  .pk-ge-art {
+    position: relative; align-self: end; border-radius: 18px; overflow: hidden;
+    transition: background 1.2s ease;
+    background: radial-gradient(ellipse 90% 70% at 50% 100%, #16303a 0%, #0d1b21 55%, #0b171c 100%);
+  }
+  .pk-ge-art[data-tod="day"] {
+    background: radial-gradient(ellipse 90% 70% at 50% 100%, #24424a 0%, #162c33 55%, #101e23 100%);
+  }
+  .pk-ge-art[data-tod="dusk"] {
+    background: radial-gradient(ellipse 90% 70% at 50% 100%, #3a3529 0%, #1c2a2c 55%, #101e23 100%);
+  }
+  .pk-ge-art svg { display: block; width: 100%; height: auto; max-height: 460px; overflow: visible; }
   .pk-art-cap {
     margin: 10px 0 0; text-align: center;
     font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
     color: var(--muted); opacity: .55;
   }
-  .pk-shaft, .pk-city { fill: #16282d; stroke: var(--line-strong); stroke-width: 1; }
-  .pk-city { fill: #13232800; stroke: var(--line); }
+  .pk-shaft { fill: #16282d; stroke: var(--line-strong); stroke-width: 1; }
+  .pk-city { fill: none; stroke: var(--line); stroke-width: 1; }
   .pk-spire { fill: var(--line-strong); stroke: none; }
   .pk-shaft-edge { stroke: var(--line); stroke-width: .8; }
   .pk-ground { stroke: var(--line); stroke-width: 1; }
@@ -924,22 +1002,56 @@ _CSS = """
   @keyframes pk-facet { 0%, 100% { opacity: .12 } 45% { opacity: .5 } }
   .pk-win { fill: var(--accent); opacity: .25; animation: pk-win 5.5s ease-in-out infinite; }
   @keyframes pk-win { 0%, 100% { opacity: .12 } 40% { opacity: .75 } }
+  /* Fewer lights burn in daylight. */
+  .pk-ge-art[data-tod="day"] .pk-win { animation-duration: 9s; opacity: .08; }
+  .pk-ge-art[data-tod="day"] .pk-facet { opacity: .1; }
   .pk-sweep {
-    fill: url(#pk-sweep-grad); stroke: none; opacity: .55;
+    fill: url(#pk-sweep-grad); stroke: none; opacity: 0;
     animation: pk-sweep 9s ease-in-out infinite;
   }
   @keyframes pk-sweep { 0%, 100% { opacity: 0 } 40% { opacity: .5 } 60% { opacity: .35 } }
+  /* The spire beacon, as a real tower carries. */
+  .pk-beacon { fill: #ff6b5e; animation: pk-beacon 2.6s ease-in-out infinite; }
+  .pk-beacon-glow { fill: #ff6b5e; opacity: .12; animation: pk-beacon-glow 2.6s ease-in-out infinite; }
+  @keyframes pk-beacon { 0%, 62%, 100% { opacity: .22 } 72% { opacity: 1 } }
+  @keyframes pk-beacon-glow { 0%, 62%, 100% { opacity: 0 } 72% { opacity: .3 } }
+  .pk-ge-art[data-tod="day"] .pk-beacon-glow { opacity: 0; }
+  /* One pulse up the shaft per tick of the clock: the class is re-added by
+     the countdown script, which restarts the animation. */
+  .pk-pulse { fill: url(#pk-pulse-grad); stroke: none; opacity: 0; }
+  .pk-pulse.is-tick { animation: pk-tick .9s ease-out 1; }
+  @keyframes pk-tick {
+    from { opacity: .5; transform: translateY(70px) }
+    to { opacity: 0; transform: translateY(-30px) }
+  }
   .pk-arc-track, .pk-arc-run { fill: none; stroke-linecap: round; }
   .pk-arc-track { stroke: var(--line); stroke-width: 6; }
-  .pk-arc-run { stroke: var(--accent); stroke-width: 6; opacity: .85; }
+  .pk-arc-run {
+    stroke: var(--accent); stroke-width: 6; opacity: .85;
+    animation: pk-arc-draw 1.4s cubic-bezier(.22, .8, .28, 1) 1 both;
+  }
+  @keyframes pk-arc-draw {
+    from { stroke-dashoffset: var(--pk-arc-len) }
+    to { stroke-dashoffset: 0 }
+  }
+  .pk-arc.is-horizon .pk-arc-track { stroke-width: 2; opacity: .5; }
+  .pk-arc.is-horizon .pk-arc-run { stroke-width: 2.5; opacity: .4; }
   .pk-arc-pct, .pk-arc-k, .pk-arc-v { font-family: var(--mono); }
   .pk-arc-pct { font-size: 12px; fill: var(--ink-secondary); letter-spacing: .04em; }
   .pk-arc-k { font-size: 8px; fill: var(--muted); letter-spacing: .1em; }
   .pk-arc-v { font-size: 10px; fill: var(--ink-secondary); }
-  .pk-art-both .pk-arc { opacity: .5; }
+  /* Dissolution day: the scene changes with the Election Status. */
+  .pk-ge-art[data-state="called"] .pk-arc-run { stroke: var(--caution); }
+  .pk-ge-art[data-state="called"] .pk-facet,
+  .pk-ge-art[data-state="called"] .pk-win { stroke: var(--caution); fill: var(--caution); }
+  .pk-ge-art[data-state="called"] .pk-beacon,
+  .pk-ge-art[data-state="called"] .pk-beacon-glow { animation-duration: 1.3s; }
   @media (prefers-reduced-motion: reduce) {
-    .pk-facet, .pk-win, .pk-sweep { animation: none; }
-    .pk-sweep { opacity: 0; }
+    .pk-facet, .pk-win, .pk-sweep, .pk-beacon, .pk-beacon-glow, .pk-arc-run, .pk-pulse.is-tick {
+      animation: none;
+    }
+    .pk-sweep, .pk-pulse { opacity: 0; }
+    .pk-beacon { opacity: .6; }
   }
   .pk-ge-band { padding: 52px 0; border-bottom: 1px solid var(--line-soft); }
   .pk-ge-band-alt { background: var(--paper-alt); }
