@@ -67,6 +67,9 @@ class Pru16Model:
     majority_threshold: int
     total_seats: int
     sources_count: int
+    art: str = "skyline"
+    """Which hero artwork to draw: "skyline", "arc", "both" or "none".
+    An experiment switch, not a setting we mean to keep forever."""
 
 
 def pru16_model(
@@ -76,6 +79,7 @@ def pru16_model(
     coalitions: Sequence[CoalitionRow] | None = None,
     computed_at: date | None = None,
     projection_path: Path = PROJECTION_JSON,
+    art: str = "skyline",
 ) -> Pru16Model:
     """Build the model. Every argument defaults to a real read, so a test can
     pass them all and touch no file."""
@@ -106,6 +110,7 @@ def pru16_model(
         majority_threshold=threshold,
         total_seats=TOTAL_SEATS,
         sources_count=_outlets_count(),
+        art=art,
     )
 
 
@@ -264,14 +269,138 @@ def _hero(model: Pru16Model, language: Language) -> str:
 
     return (
         f'<section class="pk-ge-hero" data-state="{state}" aria-labelledby="pk-ge-h1">'
-        '<div class="pk-ge-wrap">'
+        '<div class="pk-ge-wrap pk-ge-hero-grid">'
+        '<div class="pk-ge-hero-copy">'
         f'<p class="pk-ge-eyebrow">{eyebrow}</p>'
         f'<p class="pk-ge-chip pk-ge-chip-{state}">'
         f'<span class="pk-ge-dot" aria-hidden="true"></span>{chip}</p>'
         f'<h1 id="pk-ge-h1">{heading}</h1>'
         f"{count}"
-        f'<p class="pk-ge-note">{note}</p>'
+        f'<p class="pk-ge-note">{note}</p></div>'
+        f"{_art(model, language)}"
         "</div></section>"
+    )
+
+
+# ── The hero artwork ──────────────────────────────────────────────────────
+#
+# Three experiments, chosen by `Pru16Model.art`:
+#   "skyline" — Merdeka 118 drawn in line art, lit slowly.
+#   "arc"     — this Parliament's five-year term as an arc, which is data.
+#   "both"    — the arc behind the tower.
+# All of it is drawn here in SVG rather than photographed: a photograph of
+# Merdeka 118 belongs to whoever took it, and a flat drawing is what the rest
+# of the site looks like. It is decoration, labelled as such, and it never
+# encodes a number the reader could misread as a Seat count.
+
+TERM_FIRST_SITTING = date(2022, 12, 19)
+"""When this Dewan Rakyat first sat, which starts its five-year term.
+
+The same date `data/election_status.json`'s notes give when they derive the
+constitutional deadline, restated here because the arc needs the start of the
+term and the file records only its end.
+"""
+
+
+def _art_tower() -> str:
+    """Merdeka 118: a tapering, faceted tower with a spire, in line art.
+
+    Drawn from its published proportions — a slim, stepped, diamond-faceted
+    shaft under a long spire — not traced from a photograph.
+    """
+    facets = "".join(
+        f'<path class="pk-facet" style="animation-delay:{i * 0.55:.2f}s" '
+        f'd="M{124 - i * 1.9},{176 + i * 34} L138,{160 + i * 34} '
+        f'L{152 + i * 1.9},{176 + i * 34} L138,{192 + i * 34} Z"/>'
+        for i in range(9)
+    )
+    windows = "".join(
+        f'<rect class="pk-win" style="animation-delay:{(i % 7) * 0.9 + 0.3:.2f}s" '
+        f'x="{118 + (i % 3) * 14}" y="{200 + (i // 3) * 46}" width="6" height="3"/>'
+        for i in range(18)
+    )
+    return (
+        '<g class="pk-tower">'
+        # the neighbours, low and quiet
+        '<path class="pk-city" d="M18,470 L18,392 L56,392 L56,470 Z"/>'
+        '<path class="pk-city" d="M62,470 L62,352 L92,352 L92,470 Z"/>'
+        '<path class="pk-city" d="M186,470 L186,366 L214,366 L214,470 Z"/>'
+        '<path class="pk-city" d="M220,470 L220,406 L262,406 L262,470 Z"/>'
+        # the shaft and the spire
+        '<path class="pk-shaft" d="M108,470 L120,150 L156,150 L168,470 Z"/>'
+        '<path class="pk-spire" d="M138,26 L142,150 L134,150 Z"/>'
+        '<path class="pk-shaft-edge" d="M138,150 L138,470"/>'
+        f"{facets}{windows}"
+        '<path class="pk-sweep" d="M108,470 L120,150 L156,150 L168,470 Z"/>'
+        '<line class="pk-ground" x1="0" y1="470" x2="280" y2="470"/>'
+        "</g>"
+    )
+
+
+def _term_elapsed(model: Pru16Model, language: Language) -> str:
+    """How much of this Parliament's five-year term has run, as a percentage."""
+    start, end = TERM_FIRST_SITTING, model.status.constitutional_deadline
+    span = (end - start).days or 1
+    gone = min(max((model.today - start).days, 0), span)
+    return t(
+        language,
+        f"{gone * 100 // span}% of the term elapsed",
+        f"{gone * 100 // span}% penggal berlalu",
+    )
+
+
+def _art_arc(model: Pru16Model, language: Language, *, with_caption: bool = True) -> str:
+    """The five-year term as an arc: how much has run, how much is left."""
+    start, end = TERM_FIRST_SITTING, model.status.constitutional_deadline
+    span = (end - start).days or 1
+    gone = min(max((model.today - start).days, 0), span)
+    # A 240° arc, drawn as a dashed circle so one number sets how far it fills.
+    radius = 118
+    circumference = 2 * 3.14159 * radius
+    sweep = circumference * (240 / 360)
+    filled = sweep * gone / span
+    label_start = t(language, "TERM BEGAN", "PENGGAL BERMULA")
+    label_end = t(language, "LATEST POSSIBLE", "PALING LEWAT")
+    pct = _term_elapsed(model, language)
+    return (
+        '<g class="pk-arc" transform="translate(140,250)">'
+        f'<circle class="pk-arc-track" r="{radius}" '
+        f'stroke-dasharray="{sweep:.1f} {circumference:.1f}" transform="rotate(150)"/>'
+        f'<circle class="pk-arc-run" r="{radius}" '
+        f'stroke-dasharray="{filled:.1f} {circumference:.1f}" transform="rotate(150)"/>'
+        + (
+            f'<text class="pk-arc-pct" x="0" y="150" text-anchor="middle">{html.escape(pct)}</text>'
+            if with_caption
+            else ""
+        )
+        + f'<text class="pk-arc-k" x="-104" y="86" text-anchor="middle">{html.escape(label_start)}</text>'
+        f'<text class="pk-arc-v" x="-104" y="102" text-anchor="middle">'
+        f"{html.escape(_long_date(start, language))}</text>"
+        f'<text class="pk-arc-k" x="104" y="86" text-anchor="middle">{html.escape(label_end)}</text>'
+        f'<text class="pk-arc-v" x="104" y="102" text-anchor="middle">'
+        f"{html.escape(_long_date(end, language))}</text></g>"
+    )
+
+
+def _art(model: Pru16Model, language: Language) -> str:
+    if model.art == "none":
+        return ""
+    decorative = t(language, "Decorative artwork", "Karya hiasan")
+    if model.art == "arc":
+        inner = _art_arc(model, language)
+        caption = t(language, "This Parliament's five-year term", "Penggal lima tahun Parlimen ini")
+    elif model.art == "both":
+        # The percentage moves into the caption: inside the arc it would sit
+        # behind the tower.
+        inner = _art_arc(model, language, with_caption=False) + _art_tower()
+        caption = f"{_term_elapsed(model, language)} · Merdeka 118, {decorative.lower()}"
+    else:
+        inner = _art_tower()
+        caption = f"Merdeka 118 · {decorative.lower()}"
+    return (
+        f'<div class="pk-ge-art pk-art-{model.art}" aria-hidden="true">'
+        f'<svg viewBox="0 0 280 500" preserveAspectRatio="xMidYMax meet">{inner}</svg>'
+        f'<p class="pk-art-cap">{html.escape(caption)}</p></div>'
     )
 
 
@@ -772,6 +901,46 @@ _CSS = """
     max-width: 62ch; margin: 24px 0 0; padding-left: 14px; border-left: 2px solid var(--line-strong);
     font-size: 15px; line-height: 1.6; color: var(--muted);
   }
+  /* Hero artwork (experiment): Merdeka 118 in line art, the term as an arc,
+     or both. Decoration only — it never encodes a number. */
+  .pk-ge-hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 40px; align-items: end; }
+  .pk-ge-hero-copy { min-width: 0; }
+  .pk-ge-art { position: relative; align-self: end; }
+  .pk-ge-art svg { display: block; width: 100%; height: auto; max-height: 440px; overflow: visible; }
+  .pk-art-cap {
+    margin: 10px 0 0; text-align: center;
+    font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--muted); opacity: .55;
+  }
+  .pk-shaft, .pk-city { fill: #16282d; stroke: var(--line-strong); stroke-width: 1; }
+  .pk-city { fill: #13232800; stroke: var(--line); }
+  .pk-spire { fill: var(--line-strong); stroke: none; }
+  .pk-shaft-edge { stroke: var(--line); stroke-width: .8; }
+  .pk-ground { stroke: var(--line); stroke-width: 1; }
+  .pk-facet {
+    fill: none; stroke: var(--accent); stroke-width: .9; opacity: .18;
+    animation: pk-facet 7s ease-in-out infinite;
+  }
+  @keyframes pk-facet { 0%, 100% { opacity: .12 } 45% { opacity: .5 } }
+  .pk-win { fill: var(--accent); opacity: .25; animation: pk-win 5.5s ease-in-out infinite; }
+  @keyframes pk-win { 0%, 100% { opacity: .12 } 40% { opacity: .75 } }
+  .pk-sweep {
+    fill: url(#pk-sweep-grad); stroke: none; opacity: .55;
+    animation: pk-sweep 9s ease-in-out infinite;
+  }
+  @keyframes pk-sweep { 0%, 100% { opacity: 0 } 40% { opacity: .5 } 60% { opacity: .35 } }
+  .pk-arc-track, .pk-arc-run { fill: none; stroke-linecap: round; }
+  .pk-arc-track { stroke: var(--line); stroke-width: 6; }
+  .pk-arc-run { stroke: var(--accent); stroke-width: 6; opacity: .85; }
+  .pk-arc-pct, .pk-arc-k, .pk-arc-v { font-family: var(--mono); }
+  .pk-arc-pct { font-size: 12px; fill: var(--ink-secondary); letter-spacing: .04em; }
+  .pk-arc-k { font-size: 8px; fill: var(--muted); letter-spacing: .1em; }
+  .pk-arc-v { font-size: 10px; fill: var(--ink-secondary); }
+  .pk-art-both .pk-arc { opacity: .5; }
+  @media (prefers-reduced-motion: reduce) {
+    .pk-facet, .pk-win, .pk-sweep { animation: none; }
+    .pk-sweep { opacity: 0; }
+  }
   .pk-ge-band { padding: 52px 0; border-bottom: 1px solid var(--line-soft); }
   .pk-ge-band-alt { background: var(--paper-alt); }
   .pk-ge-band h2 { font-size: 28px; line-height: 1.15; letter-spacing: -.015em; margin: 0 0 8px; color: var(--ink); }
@@ -934,7 +1103,7 @@ _CSS = """
   .pk-ge-foot p.pk-ge-eyebrow { margin-bottom: 8px; font-size: 12px; color: var(--muted); }
   /* Below 1001px the card's own labels would scale under 9px, so the plain
      list takes over there and the card takes over above it. */
-  @media (max-width: 1000px) { .pk-pipe { display: none; } }
+  @media (max-width: 1000px) { .pk-pipe, .pk-ge-art { display: none; } .pk-ge-hero-grid { grid-template-columns: minmax(0, 1fr); } }
   @media (min-width: 1001px) { .pk-ge-steps { display: none; } }
   @media (max-width: 760px) {
     .pk-ge-wrap { padding: 0 var(--gutter-mobile, 18px); }
@@ -1003,12 +1172,23 @@ def render_pru16_page(model: Pru16Model, language: Language = Language.EN) -> st
 def main() -> None:
     parser = argparse.ArgumentParser(description="Render the GE16 page")
     parser.add_argument("--output-dir", type=Path, default=Path("public"))
+    parser.add_argument(
+        "--art",
+        choices=("skyline", "arc", "both", "none"),
+        default="skyline",
+        help="Which hero artwork to draw (an experiment switch).",
+    )
+    parser.add_argument(
+        "--page-dir",
+        default="pru16",
+        help="Folder name under the output directory, so variants can sit side by side.",
+    )
     args = parser.parse_args()
 
-    model = pru16_model()
+    model = pru16_model(art=args.art)
     for language in Language:
         base = args.output_dir if language is Language.EN else args.output_dir / "ms"
-        target = base / "pru16" / "index.html"
+        target = base / args.page_dir / "index.html"
         target.parent.mkdir(parents=True, exist_ok=True)
         content = render_pru16_page(model, language)
         target.write_text(content, encoding="utf-8")
