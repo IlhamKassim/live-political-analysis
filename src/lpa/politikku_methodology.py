@@ -140,11 +140,11 @@ def _cite_this(
 
 _CSS = """
   .pk-eyebrow {
-    font-family: var(--font-mono, monospace);
+    font-family: var(--mono, monospace);
     font-size: 0.72rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--muted, #64748b);
+    color: var(--muted, #94aaa2);
     margin-bottom: 0.4rem;
   }
   .pk-proj-methodology-hero {
@@ -153,7 +153,7 @@ _CSS = """
     padding: 3rem 1.5rem 2rem;
   }
   .pk-proj-methodology-hero h1 {
-    font-family: var(--font-display, serif);
+    font-family: var(--font-display, var(--sans));
     font-size: clamp(1.75rem, 3.5vw, 2.5rem);
     font-weight: 700;
     line-height: 1.15;
@@ -163,13 +163,13 @@ _CSS = """
   .pk-proj-methodology-hero p {
     font-size: 1.05rem;
     line-height: 1.6;
-    color: var(--muted, #475569);
+    color: var(--muted, #94aaa2);
     max-width: 68ch;
     margin-bottom: 1.5rem;
   }
   .pk-proj-methodology-link {
     font-weight: 600;
-    color: var(--accent, #0284c7);
+    color: var(--accent, #d6ed9a);
     text-decoration: none;
   }
   .pk-proj-methodology-link:hover {
@@ -184,9 +184,9 @@ _CSS = """
     padding: 1.5rem;
   }
   .pk-proj-card {
-    background: var(--white, #ffffff);
-    border: 1px solid var(--line, #e2e8f0);
-    border-radius: var(--radius-lg, 0.75rem);
+    background: var(--white, #16272c);
+    border: 1px solid var(--line, #33464a);
+    border-radius: var(--radius-lg, 5px);
     padding: 1.25rem 1.5rem;
   }
   .pk-proj-card h2 {
@@ -197,11 +197,11 @@ _CSS = """
   .pk-proj-card p {
     font-size: 0.92rem;
     line-height: 1.5;
-    color: var(--muted, #475569);
+    color: var(--muted, #94aaa2);
     margin: 0;
   }
   .pk-proj-caution {
-    border-left: 3px solid var(--caution, #eab308);
+    border-left: 3px solid var(--caution, #ffd166);
   }
   .pk-proj-provenance {
     max-width: 860px;

@@ -4,7 +4,7 @@ from pathlib import Path
 
 from lpa.config import load_election_status
 from lpa.domain import ElectionStatus
-from lpa.politikku_shell import Language, render_shell
+from lpa.politikku_shell import Language, render_shell, t
 
 _LEARN_BASE_CSS = """
   .pk-learn-container { max-width: 720px; margin: 0 auto; padding: 2rem var(--gutter-mobile); }
@@ -124,7 +124,7 @@ _GLOSSARY_CSS = f"""{_LEARN_BASE_CSS}
   }}
 """.strip()
 
-_GLOSSARY_BODY = """
+_GLOSSARY_BODY_EN = """
 <div class="pk-learn-container">
 <section class="opening">
     <div class="pk-eyebrow">What the projection assumes you know</div>
@@ -298,7 +298,189 @@ _GLOSSARY_BODY = """
     </p>
   </section>
 </div>
-<script>
+""".strip()
+
+
+_GLOSSARY_BODY_MS = """
+<div class="pk-learn-container">
+<section class="opening">
+    <div class="pk-eyebrow">Apa yang unjuran ini andaikan anda tahu</div>
+    <h1>Istilah teras</h1>
+    <p class="lede">
+      Halaman ini menerangkan, dalam bahasa yang mudah, istilah yang
+      digunakan oleh unjuran PRU16 dari hujung ke hujung: apa itu Kerusi
+      dan Majoriti, dari mana Sentimen datang, bagaimana Peralihan bertukar
+      menjadi Unjuran, dan apa maksud Status Pilihan Raya. Setiap takrif di
+      sini ialah penyataan semula dalam bahasa mudah bagi glosari projek ini
+      sendiri dalam <code>CONTEXT.md</code>, bukan dakwaan baharu tentang
+      politik Malaysia.
+    </p>
+    <ul class="toc">
+      <li><a href="#term-coalition">Gabungan</a></li>
+      <li><a href="#term-seat">Kerusi</a></li>
+      <li><a href="#term-majority">Majoriti &amp; kerajaan</a></li>
+      <li><a href="#term-baseline">Asas</a></li>
+      <li><a href="#term-sentiment">Sentimen</a></li>
+      <li><a href="#term-swing">Peralihan</a></li>
+      <li><a href="#term-projection">Unjuran</a></li>
+      <li><a href="#term-election-status">Status Pilihan Raya</a></li>
+    </ul>
+  </section>
+
+  <section class="prose term-entry" id="term-coalition">
+    <h2>Gabungan</h2>
+    <p class="gloss"><span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">sekumpulan parti yang bertanding dan memerintah bersama</span></p>
+    <p>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Gabungan ialah sekumpulan parti yang bertanding dan memerintah bersama.</span>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Lima Gabungan yang dijejaki laman ini ialah PH, BN, PN, GPS dan GRS.</span>
+      Untuk melihat bagaimana setiap satu daripada lima itu terbentuk,
+      termasuk tarikh penubuhan, parti komponen, serta perpecahan dan
+      percantuman di sebaliknya, lihat
+      <a href="coalitions.html">halaman Gabungan</a>.
+    </p>
+  </section>
+
+  <section class="prose term-entry" id="term-seat">
+    <h2>Kerusi</h2>
+    <p class="gloss"><span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">unit yang menentukan menang atau kalah dalam pilihan raya</span></p>
+    <p>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Dewan Rakyat mempunyai 222 Kerusi. "Kerusi" ialah istilah yang digunakan laman ini bagi apa yang biasanya disebut kawasan pilihan raya parlimen.</span>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Kerusi ialah unit yang sebenarnya menentukan sesuatu pilihan raya dimenangi atau ditewaskan.</span>
+    </p>
+  </section>
+
+  <section class="prose term-entry" id="term-majority">
+    <h2>Majoriti, Kerajaan dan Bukan Kerajaan</h2>
+    <p class="gloss"><span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">ambang yang diperlukan sesebuah Gabungan untuk membentuk kerajaan bersendirian</span></p>
+    <p>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Majoriti bermaksud memegang lebih daripada separuh daripada 222 Kerusi Dewan Rakyat, iaitu 112 atau lebih.</span><span data-live-majority></span>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Majoriti ialah ambang yang diperlukan sesebuah Gabungan untuk membentuk kerajaan bersendirian.</span>
+    </p>
+
+    <div class="sub-term">
+      <h3>Gabungan Kerajaan</h3>
+      <p>
+        <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Gabungan Kerajaan, blok pemerintah semasa, terdiri daripada PH, BN, GPS dan GRS bersama parti-parti kecil.</span>
+        <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Gabungan Kerajaan memegang Majoriti, setakat kiraan terkini dalam Dewan Rakyat.</span>
+      </p>
+    </div>
+
+    <div class="sub-term">
+      <h3>Bukan Kerajaan</h3>
+      <p>
+        <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Bukan Kerajaan bermaksud setiap Kerusi atau Gabungan di luar Gabungan Kerajaan.</span>
+        <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">PN ialah pembangkang, tetapi WARISAN, KDM, PBM dan calon bebas bukan sebahagian daripada Gabungan Kerajaan dan bukan juga pembangkang kepadanya.</span>
+        <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Menyebut parti-parti itu sebagai "pembangkang" bermakna mengandaikan satu pendirian politik yang tidak pernah mereka isytiharkan.</span>
+        <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Dewan Kerusi di laman ini disusun pada satu paksi tunggal, daripada Kerusi Kerajaan paling selamat hingga ke Kerusi Bukan Kerajaan paling selamat.</span>
+      </p>
+    </div>
+  </section>
+
+  <section class="prose term-entry" id="term-baseline">
+    <h2>Asas</h2>
+    <p class="gloss"><span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">titik permulaan tetap yang menjadi kiraan setiap Unjuran</span></p>
+    <p>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Asas sesuatu Kerusi ialah keputusan PRU15 (2022) dan profil demografinya: peratusan undi, jidar kemenangan, serta pecahan etnik dan umur pengundinya.</span>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Asas ialah titik permulaan tetap yang menjadi kiraan setiap Unjuran.</span>
+    </p>
+  </section>
+
+  <section class="prose term-entry" id="term-sentiment">
+    <h2>Sentimen</h2>
+    <p class="gloss"><span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">suasana politik awam yang diukur, diambil daripada dua sumber</span></p>
+    <p>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Sentimen merakam suasana politik awam yang diukur, ditandakan mengikut Gabungan atau parti.</span>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Sentimen bersandarkan dua sumber: Sentimen Berita yang berterusan dan Penentukuran Tinjauan yang berkala.</span>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Sentimen ialah isyarat input yang digunakan oleh Model Peralihan.</span>
+    </p>
+
+    <div class="sub-term">
+      <h3>Sentimen Berita</h3>
+      <p>
+        <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Sentimen Berita dikira menggunakan model sentimen berbilang bahasa yang bersumber terbuka dan dihoskan sendiri, dijalankan sebagai inferens CPU setempat, tanpa sebarang API luaran.</span>
+        <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Sentimen Berita bersandarkan tajuk berita dan artikel yang dikutip daripada portal berita utama Malaysia, dalam bahasa Inggeris dan Bahasa Malaysia: FMT, Malay Mail, NST, The Star, The Vibes, Sinar Daily, Bernama, Berita Harian dan Utusan Malaysia.</span>
+        <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Sentimen Berita ialah komponen Sentimen yang berterusan dari hari ke hari.</span>
+        <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md" id="claim-26">Sentimen Berita tidak berkos secara lalai, bukan sebagai syarat.</span>
+      </p>
+    </div>
+
+    <div class="sub-term">
+      <h3>Penentukuran Tinjauan</h3>
+      <p>
+        <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Penentukuran Tinjauan datang daripada keputusan tinjauan yang diterbitkan secara berkala oleh Merdeka Center, seperti penarafan penerimaan.</span>
+        <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Apabila laporan baharu keluar, Penentukuran Tinjauan diambil masuk untuk menyemak kewarasan Sentimen Berita berbanding data tinjauan sebenar.</span>
+        <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Penentukuran Tinjauan tidak berterusan, dan kerana tiada API untuknya, laporan hanya muncul setiap beberapa bulan.</span>
+      </p>
+    </div>
+  </section>
+
+  <section class="prose term-entry" id="term-swing">
+    <h2>Peralihan</h2>
+    <p class="gloss"><span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">diterbitkan daripada Sentimen, dikenakan terhadap Asas</span></p>
+    <p>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Peralihan mengukur anggaran anjakan dalam peratusan undi atau kerusi bagi sesebuah Gabungan.</span>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Diterbitkan daripada Sentimen, Peralihan dikenakan terhadap Asas.</span>
+    </p>
+
+    <div class="sub-term">
+      <h3>Isyarat Pilihan Raya Negeri</h3>
+      <p>
+        <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Isyarat Pilihan Raya Negeri datang daripada keputusan pilihan raya negeri yang diadakan sebelum PRU16, seperti pilihan raya Johor dan Melaka 2026.</span>
+        <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Isyarat Pilihan Raya Negeri ialah input penunjuk awal kepada Model Peralihan.</span>
+        <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Isyarat Pilihan Raya Negeri berbeza daripada Asas, yang kekal tetap pada keputusan persekutuan PRU15.</span>
+      </p>
+    </div>
+
+    <div class="sub-term">
+      <h3>Model Peralihan</h3>
+      <p>
+        <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Model Peralihan ialah kaedah untuk menukarkan Sentimen menjadi Peralihan bagi setiap Kerusi atau setiap Gabungan.</span>
+        <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Model Peralihan mengenakan Peralihan yang seragam dalam setiap negeri, dengan Isyarat Pilihan Raya Negeri digabungkan bagi negeri yang telah mengundi.</span>
+        <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Model Peralihan ialah bahagian projek ini yang sukar dan bertaraf penyelidikan, berbeza daripada Asas, yang hanyalah fakta sejarah.</span>
+      </p>
+    </div>
+  </section>
+
+  <section class="prose term-entry" id="term-projection">
+    <h2>Unjuran</h2>
+    <p class="gloss"><span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">hasil alat ini: anggaran jumlah kerusi bagi setiap Gabungan</span></p>
+    <p>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Unjuran ialah hasil alat ini: anggaran jumlah kerusi bagi setiap Gabungan untuk PRU16.</span>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Unjuran menyatakan sama ada Gabungan Kerajaan diunjurkan mengekalkan Majoritinya.</span>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Unjuran merangkumi Unjuran Peringkat Kerusi di sebalik kedua-dua angka itu.</span>
+    </p>
+
+    <div class="sub-term">
+      <h3>Unjuran Peringkat Kerusi</h3>
+      <p>
+        <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Unjuran Peringkat Kerusi ialah Gabungan yang diunjurkan memenangi setiap satu daripada 222 Kerusi, berserta jidar yang diunjurkan, di samping jumlah keseluruhan.</span>
+        <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Oleh sebab Model Peralihan adalah seragam dalam sesebuah negeri dan tidak membawa isyarat khusus bagi sesuatu Kerusi, keputusan sesuatu Kerusi ialah pengiraan berbanding jidar PRU15-nya; ia sama sekali bukan pertimbangan khusus tentang kawasan itu, dan ia tidak boleh dipersembahkan sebagai pertimbangan sedemikian.</span>
+      </p>
+    </div>
+
+    <div class="sub-term">
+      <h3>Seat Call</h3>
+      <p>
+        <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Seat Call ialah catatan satu Kerusi dalam Unjuran Peringkat Kerusi: Gabungan yang diunjurkan memenanginya dan jidar yang diunjurkan mengatasi pesaing terdekat.</span>
+      </p>
+    </div>
+  </section>
+
+  <section class="prose term-entry" id="term-election-status">
+    <h2>Status Pilihan Raya</h2>
+    <p class="gloss"><span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">konteks untuk membaca sesuatu Unjuran, bukan input kepadanya</span></p>
+    <p>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Status Pilihan Raya menjejaki sama ada PRU16 sudah diisytiharkan, dan tarikh mengundi setelah satu ditetapkan.</span>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">"Diisytiharkan" bermaksud Dewan Rakyat telah dibubarkan, iaitu tindakan yang memulakan pilihan raya umum Malaysia.</span>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Suruhanjaya Pilihan Raya mengumumkan tarikh mengundi selepas pembubaran, jadi sesuatu pilihan raya umum boleh diisytiharkan tanpa tarikh mengundi ditetapkan lagi, dan itu keadaan yang sebenar, bukan maklumat yang hilang.</span>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Status Pilihan Raya ialah konteks untuk membaca sesuatu Unjuran, bukan input yang menyuap kepadanya.</span>
+    </p>
+  </section>
+</div>
+""".strip()
+
+
+_LIVE_MAJORITY_SCRIPT = """<script>
 /* Live figures: enriches /learn definitions with today's projected numbers,
    read client-side from /projection.json (public_export.py, #46). Vanilla
    JS, no build step — the same pattern as register-a.js's initThemeToggle,
@@ -315,6 +497,8 @@ _GLOSSARY_BODY = """
    this everywhere and every term reads as a dashboard mirror instead of a
    glossary; Majority is the one case the issue names as genuinely live. */
 
+var LIVE_MAJORITY_PREFIX = "{prefix}";
+var LIVE_MAJORITY_SUFFIX = "{suffix}";
 var GOVERNMENT_COALITIONS = ["PH", "BN", "GPS", "GRS"];
 var MAJORITY_THRESHOLD = 112;
 
@@ -322,7 +506,14 @@ function initLiveMajority() {
   var el = document.querySelector("[data-live-majority]");
   if (!el) return;
 
-  fetch("../projection.json")
+  /* Root-absolute, not "../projection.json": this page is built at both
+     /learn/glossary.html and /ms/learn/glossary.html, and the relative form
+     resolves to /ms/projection.json on the BM copy, which does not exist.
+     The export is written once, at the root (public_export.py, #46). The
+     site is served from its own apex via public/CNAME, so a leading slash
+     is the site root — the same reasoning as the root-relative /learn/
+     links in public_page.py. */
+  fetch("/projection.json")
     .then(function (res) {
       if (!res.ok) throw new Error("projection.json: " + res.status);
       return res.json();
@@ -353,10 +544,7 @@ function initLiveMajority() {
          Government Coalition is projected ... seats ..." — arithmetic
          framing, never "will win" or "wins". A sentence, not a dash
          fragment glued onto the claim span's own full stop. */
-      el.textContent =
-        " Today, the Government Coalition is projected at " +
-        seats +
-        " seats.";
+      el.textContent = LIVE_MAJORITY_PREFIX + seats + LIVE_MAJORITY_SUFFIX;
     })
     .catch(function () {
       /* Leave the hook empty. No error UI: a reader with JS on but a
@@ -366,21 +554,47 @@ function initLiveMajority() {
 }
 
 initLiveMajority();
-</script>
-""".strip()
+</script>"""
+
+
+def _live_majority_script(language: Language) -> str:
+    """`_LIVE_MAJORITY_SCRIPT` with its one reader-facing sentence localised.
+
+    The sentence is split into a prefix and suffix around the seat count
+    because BM puts the number in a different place than English does:
+    "projected at 148 seats" against "diunjurkan pada 148 kerusi". Braces are
+    substituted rather than `str.format`ed — the script is full of JS blocks,
+    and every `function () {` would have to be doubled otherwise.
+    """
+    prefix = t(
+        language,
+        " Today, the Government Coalition is projected at ",
+        " Hari ini, Gabungan Kerajaan diunjurkan pada ",
+    )
+    suffix = t(language, " seats.", " kerusi.")
+    return _LIVE_MAJORITY_SCRIPT.replace("{prefix}", prefix).replace("{suffix}", suffix)
 
 
 def build_glossary_page(language: Language, updated_at: date, status: ElectionStatus) -> str:
+    body = t(language, _GLOSSARY_BODY_EN, _GLOSSARY_BODY_MS)
     return render_shell(
-        title="Core terms: reading this site | PolitikKu",
-        description="A glossary of the terms this site's GE16 projection uses: Seat, Majority, Government, Sentiment, Swing, Projection and more, explained in plain prose for a reader with no prior background.",
+        title=t(
+            language,
+            "Core terms: reading this site | PolitikKu",
+            "Istilah teras: membaca laman ini | PolitikKu",
+        ),
+        description=t(
+            language,
+            "A glossary of the terms this site's GE16 projection uses: Seat, Majority, Government, Sentiment, Swing, Projection and more, explained in plain prose for a reader with no prior background.",
+            "Glosari istilah yang digunakan unjuran PRU16 laman ini: Kerusi, Majoriti, Kerajaan, Sentimen, Peralihan, Unjuran dan lain-lain, diterangkan dalam bahasa mudah untuk pembaca tanpa latar belakang terdahulu.",
+        ),
         active_nav="glossary",
         language=language,
         page_path="learn/glossary.html",
         updated_at=updated_at,
         sources_count=0,
         status=status,
-        body_html=f"<style>{_GLOSSARY_CSS}</style>\n{_GLOSSARY_BODY}",
+        body_html=f"<style>{_GLOSSARY_CSS}</style>\n{body}\n{_live_majority_script(language)}",
         prefix="/",
     )
 
@@ -460,7 +674,7 @@ _COALITIONS_CSS = f"""{_LEARN_BASE_CSS}
   }}
 """.strip()
 
-_COALITIONS_BODY = """
+_COALITIONS_BODY_EN = """
 <div class="pk-learn-container">
 <section class="opening">
     <div class="pk-eyebrow">Who the projection is projecting</div>
@@ -659,17 +873,230 @@ _COALITIONS_BODY = """
 """.strip()
 
 
+_COALITIONS_BODY_MS = """
+<div class="pk-learn-container">
+<section class="opening">
+    <div class="pk-eyebrow">Siapa yang diunjurkan</div>
+    <h1>Lima Gabungan</h1>
+    <p class="lede">
+      Setiap jumlah kerusi di laman ini dilaporkan mengikut Gabungan.
+      Halaman ini menyatakan apa itu setiap satu daripada lima Gabungan
+      tersebut dan bagaimana ia terbentuk: tarikh penubuhan, parti di
+      dalamnya, serta perpecahan dan percantuman yang menghasilkannya. Ia
+      catatan struktur semata-mata: ia merakam apa yang dibentuk, bila, dan
+      daripada parti yang mana, dan ia menyerahkan persoalan
+      <em>mengapa</em> kepada sumber yang dipetiknya.
+    </p>
+    <ul class="toc">
+      <li><a href="#what-is-a-coalition">Apa itu Gabungan</a></li>
+      <li><a href="#ph">PH</a></li>
+      <li><a href="#bn">BN</a></li>
+      <li><a href="#pn">PN</a></li>
+      <li><a href="#gps">GPS</a></li>
+      <li><a href="#grs">GRS</a></li>
+      <li><a href="#why-five">Mengapa lima</a></li>
+    </ul>
+  </section>
+
+  <section class="prose coalition" id="what-is-a-coalition">
+    <h2>Apa itu Gabungan</h2>
+    <p class="gloss">unit yang menjadi kiraan Kerusi di laman ini</p>
+    <p>
+      <span data-claim id="coalition-definition" data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Di laman ini, Gabungan bermaksud sekumpulan parti yang bertanding dan memerintah bersama.</span>
+      <span data-claim id="coalition-five" data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Lima Gabungan yang dijejaki laman ini ialah PH, BN, PN, GPS dan GRS.</span>
+      Gabungan bukan satu parti tunggal. Setiap satu daripada lima di bawah
+      ialah persetujuan antara parti yang mengekalkan nama, keahlian dan
+      pegawai masing-masing, dan profil di halaman ini menerangkan parti
+      tersebut serta persetujuan yang mengikat mereka, bukan apa yang
+      dipercayai atau dikehendaki oleh mana-mana daripadanya.
+    </p>
+    <p>
+      Mengapa jumlahnya lima dan bukan tiga, dan apa yang memisahkan dua
+      daripadanya daripada tiga yang lain, dihuraikan di bawah
+      <a href="#why-five">Mengapa lima</a> di bawah.
+    </p>
+  </section>
+
+  <section class="prose coalition" id="ph">
+    <h2>Pakatan Harapan <span class="abbr">PH</span></h2>
+    <p class="gloss">dibentuk 2015, bagi menggantikan gabungan terdahulu</p>
+    <dl class="facts">
+      <dt>Ditubuhkan</dt>
+      <dd data-claim id="ph-founded" data-cite="https://en.wikipedia.org/wiki/Pakatan_Harapan?action=raw">Pakatan Harapan ditubuhkan pada 22 September 2015.</dd>
+      <dt>Didaftarkan</dt>
+      <dd data-claim id="ph-legalised" data-cite="https://en.wikipedia.org/wiki/Pakatan_Harapan?action=raw">Pakatan Harapan disahkan dari segi undang-undang pada 16 Mei 2018.</dd>
+      <dt>Terbentuk daripada</dt>
+      <dd data-claim id="ph-predecessor" data-cite="https://en.wikipedia.org/wiki/Pakatan_Harapan?action=raw">Pendahulu Pakatan Harapan ialah gabungan Pakatan Rakyat, yang ia dibentuk untuk menggantikannya.</dd>
+      <dt>Parti komponen</dt>
+      <dd data-claim id="ph-members" data-cite="https://en.wikipedia.org/wiki/Pakatan_Harapan?action=raw">Parti anggota Pakatan Harapan ialah PKR, DAP dan AMANAH.</dd>
+    </dl>
+    <p>
+      <span data-claim id="ph-succession" data-cite="https://en.wikipedia.org/wiki/Pakatan_Harapan?action=raw">Pakatan Harapan ialah gabungan politik Malaysia yang dibentuk pada 2015 bagi menggantikan gabungan Pakatan Rakyat.</span>
+      <span data-claim id="ph-gov-2018" data-cite="https://en.wikipedia.org/wiki/Pakatan_Harapan?action=raw">Pakatan Harapan mengetuai kerajaan gabungan tunggal dari Mei 2018 hingga Februari 2020.</span>
+      <span data-claim id="ph-gov-2022" data-cite="https://en.wikipedia.org/wiki/Pakatan_Harapan?action=raw">Pakatan Harapan mengetuai kerajaan gabungan besar sejak November 2022.</span>
+    </p>
+  </section>
+
+  <section class="prose coalition" id="bn">
+    <h2>Barisan Nasional <span class="abbr">BN</span></h2>
+    <p class="gloss">dibentuk 1974, daripada gabungan dua dekad lebih tua</p>
+    <dl class="facts">
+      <dt>Ditubuhkan</dt>
+      <dd data-claim id="bn-founded" data-cite="https://en.wikipedia.org/wiki/Barisan_Nasional?action=raw">Barisan Nasional ditubuhkan pada 1 Jun 1974.</dd>
+      <dt>Terbentuk daripada</dt>
+      <dd data-claim id="bn-predecessor" data-cite="https://en.wikipedia.org/wiki/Barisan_Nasional?action=raw">Pendahulu Barisan Nasional ialah Parti Perikatan (Alliance Party), bukan Perikatan Nasional.</dd>
+      <dt>Parti komponen</dt>
+      <dd data-claim id="bn-members" data-cite="https://en.wikipedia.org/wiki/Barisan_Nasional?action=raw">Parti anggota Barisan Nasional ialah UMNO, MCA, MIC, PBRS dan PPP.</dd>
+      <dt>Perpecahan kemudian</dt>
+      <dd data-claim id="bn-successor" data-cite="https://en.wikipedia.org/wiki/Barisan_Nasional?action=raw">Pengganti Barisan Nasional di Sarawak, mulai 2018, ialah Gabungan Parti Sarawak.</dd>
+    </dl>
+    <p>
+      <span data-claim id="bn-founding" data-cite="https://en.wikipedia.org/wiki/Barisan_Nasional?action=raw">Barisan Nasional ditubuhkan pada 1974 bagi menggantikan Parti Perikatan (Alliance Party), dan mula bertanding dalam pilihan raya umum pada tahun itu juga.</span>
+      Tidak seperti empat Gabungan lain di halaman ini, sumber bagi Barisan
+      Nasional tidak memberikan tarikh pendaftaran yang berasingan daripada
+      tarikh penubuhannya. Ia meneruskan pendaftaran Parti Perikatan itu
+      sendiri dan tidak mendaftar semula, sebagaimana yang dilakukan oleh
+      GPS, PN dan GRS. Itulah sebabnya jadual fakta di atas tiada baris
+      Didaftarkan.
+    </p>
+
+    <div class="sub-term">
+      <h3>Parti Perikatan (Alliance Party), 1952–1974</h3>
+      <p>
+        <span data-claim id="alliance-members" data-cite="https://en.wikipedia.org/wiki/Alliance_Party_(Malaysia)?action=raw">Keahlian Parti Perikatan (Alliance Party) terdiri daripada UMNO, MCA dan MIC.</span>
+        <span data-claim id="alliance-origin" data-cite="https://en.wikipedia.org/wiki/Alliance_Party_(Malaysia)?action=raw">Parti Perikatan berasal daripada satu pengaturan pilihan raya sementara antara cawangan tempatan UMNO dan MCA untuk bertanding dalam pilihan raya perbandaran Kuala Lumpur pada 1952.</span>
+        <span data-claim id="alliance-mic" data-cite="https://en.wikipedia.org/wiki/Alliance_Party_(Malaysia)?action=raw">MIC menyertai perikatan UMNO dan MCA pada 1954.</span>
+        <span data-claim id="alliance-registered" data-cite="https://en.wikipedia.org/wiki/Alliance_Party_(Malaysia)?action=raw">Parti Perikatan ditubuhkan secara tidak rasmi pada 1952 dan didaftarkan secara rasmi sebagai pertubuhan politik pada 30 Oktober 1957.</span>
+      </p>
+      <p>
+        <span data-claim id="alliance-1971" data-cite="https://en.wikipedia.org/wiki/Alliance_Party_(Malaysia)?action=raw">Rundingan dengan bekas parti pembangkang bermula selepas Parlimen Malaysia bersidang semula pada 1971.</span>
+        <span data-claim id="alliance-expansion" data-cite="https://en.wikipedia.org/wiki/Alliance_Party_(Malaysia)?action=raw">Gerakan dan Parti Progresif Rakyat kedua-duanya menyertai Parti Perikatan pada 1972, diikuti tidak lama kemudian oleh PMIP.</span>
+        <span data-claim id="alliance-to-bn" data-cite="https://en.wikipedia.org/wiki/Alliance_Party_(Malaysia)?action=raw">Parti Perikatan (Alliance Party) ialah gabungan pemerintah Malaya dari 1957 hingga 1963 dan Malaysia dari 1963 hingga 1974, dan dikenali sebagai Barisan Nasional pada 1974.</span>
+      </p>
+    </div>
+  </section>
+
+  <section class="prose coalition" id="pn">
+    <h2>Perikatan Nasional <span class="abbr">PN</span></h2>
+    <p class="gloss">dibentuk Februari 2020, didaftarkan Ogos tahun itu</p>
+    <dl class="facts">
+      <dt>Ditubuhkan</dt>
+      <dd data-claim id="pn-founded" data-cite="https://en.wikipedia.org/wiki/Perikatan_Nasional?action=raw">Perikatan Nasional ditubuhkan pada 29 Februari 2020.</dd>
+      <dt>Didaftarkan</dt>
+      <dd data-claim id="pn-registered" data-cite="https://en.wikipedia.org/wiki/Perikatan_Nasional?action=raw">Perikatan Nasional didaftarkan pada 7 Ogos 2020.</dd>
+      <dt>Berpecah daripada</dt>
+      <dd data-claim id="pn-split" data-cite="https://en.wikipedia.org/wiki/Perikatan_Nasional?action=raw">Perikatan Nasional berpecah daripada Pakatan Harapan dan Gagasan Sejahtera.</dd>
+      <dt>Ketika pendaftaran</dt>
+      <dd data-claim id="pn-at-registration" data-cite="https://en.wikipedia.org/wiki/Perikatan_Nasional?action=raw">Sebagai gabungan rasmi, Perikatan Nasional terdiri daripada BERSATU, PAS dan STAR pada waktu pendaftarannya pada Ogos 2020.</dd>
+    </dl>
+    <p>
+      <span data-claim id="pn-informal" data-cite="https://en.wikipedia.org/wiki/Perikatan_Nasional?action=raw">Menurut catatan Wikipedia, dan sebagai gabungan tidak rasmi, Perikatan Nasional dibentuk oleh BERSATU, PAS, Barisan Nasional, Gabungan Parti Sarawak dan STAR pada permulaan krisis politik Malaysia 2020–2022.</span>
+      <span data-claim id="pn-muhyiddin" data-cite="https://en.wikipedia.org/wiki/Perikatan_Nasional?action=raw">Pemimpin de facto Perikatan Nasional, Muhyiddin Yassin, mengangkat sumpah sebagai Perdana Menteri Malaysia ke-8 pada 1 Mac 2020.</span>
+      <span data-claim id="pn-govt" data-cite="https://en.wikipedia.org/wiki/Perikatan_Nasional?action=raw">Perikatan Nasional membentuk kerajaan gabungan bersama Barisan Nasional, Gabungan Parti Sarawak, Gabungan Rakyat Sabah dan parti politik lain, yang memerintah dari 2020 hingga 2022.</span>
+    </p>
+    <p>
+      <span data-claim id="pn-accessions" data-cite="https://en.wikipedia.org/wiki/Perikatan_Nasional?action=raw">Perikatan Nasional diperluas untuk memasukkan SAPP pada Ogos 2020, GERAKAN pada Februari 2021, dan Parti Rakyat India Malaysia pada April 2024.</span>
+      Penyertaan itu ialah yang dirakam oleh sumber yang dipetik; keahlian
+      rasmi PN terus berubah sejak itu. Pembaca yang ingin menyemak parti
+      mana yang berada dalam PN hari ini patut membaca sumber yang dipetik
+      itu secara terus dan tidak menganggap halaman ini terkini pada perkara
+      tersebut.
+    </p>
+  </section>
+
+  <section class="prose coalition" id="gps">
+    <h2>Gabungan Parti Sarawak <span class="abbr">GPS</span></h2>
+    <p class="gloss">dibentuk 2018, apabila empat parti meninggalkan BN</p>
+    <dl class="facts">
+      <dt>Ditubuhkan</dt>
+      <dd data-claim id="gps-founded" data-cite="https://en.wikipedia.org/wiki/Gabungan_Parti_Sarawak?action=raw">Gabungan Parti Sarawak ditubuhkan pada 12 Jun 2018.</dd>
+      <dt>Didaftarkan</dt>
+      <dd data-claim id="gps-legalised" data-cite="https://en.wikipedia.org/wiki/Gabungan_Parti_Sarawak?action=raw">Gabungan Parti Sarawak disahkan dari segi undang-undang pada 19 November 2018.</dd>
+      <dt>Berpecah daripada</dt>
+      <dd data-claim id="gps-split" data-cite="https://en.wikipedia.org/wiki/Gabungan_Parti_Sarawak?action=raw">Gabungan Parti Sarawak berpecah daripada Barisan Nasional.</dd>
+      <dt>Parti komponen</dt>
+      <dd data-claim id="gps-members" data-cite="https://en.wikipedia.org/wiki/Gabungan_Parti_Sarawak?action=raw">Parti anggota Gabungan Parti Sarawak ialah PBB, PDP, SUPP dan PRS.</dd>
+    </dl>
+    <p>
+      <span data-claim id="gps-formation" data-cite="https://en.wikipedia.org/wiki/Gabungan_Parti_Sarawak?action=raw">GPS dibentuk pada 12 Jun 2018, terdiri daripada Parti Pesaka Bumiputera Bersatu, Parti Demokratik Progresif, Parti Rakyat Bersatu Sarawak dan Parti Rakyat Sarawak.</span>
+      <span data-claim id="gps-from-bn" data-cite="https://en.wikipedia.org/wiki/Gabungan_Parti_Sarawak?action=raw">Menurut catatan Wikipedia, Gabungan Parti Sarawak ditubuhkan pada 2018 oleh empat bekas parti komponen Barisan Nasional yang beroperasi semata-mata di Sarawak, berikutan kekalahan gabungan persekutuan itu dalam pilihan raya umum Malaysia 2018.</span>
+      <span data-claim id="gps-sarawak-govt" data-cite="https://en.wikipedia.org/wiki/Gabungan_Parti_Sarawak?action=raw">Gabungan Parti Sarawak membentuk kerajaan di negeri Sarawak.</span>
+    </p>
+  </section>
+
+  <section class="prose coalition" id="grs">
+    <h2>Gabungan Rakyat Sabah <span class="abbr">GRS</span></h2>
+    <p class="gloss">dibentuk 2020 sebagai perikatan, didaftarkan sebagai gabungan pada 2022</p>
+    <dl class="facts">
+      <dt>Ditubuhkan</dt>
+      <dd data-claim id="grs-founded" data-cite="https://en.wikipedia.org/wiki/Gabungan_Rakyat_Sabah?action=raw">Gabungan Rakyat Sabah ditubuhkan pada September 2020, apabila Hajiji Noor membentuk satu perikatan tidak rasmi dengan nama tersebut.</dd>
+      <dt>Didaftarkan</dt>
+      <dd data-claim id="grs-legalised" data-cite="https://en.wikipedia.org/wiki/Gabungan_Rakyat_Sabah?action=raw">Gabungan Rakyat Sabah disahkan dari segi undang-undang pada 11 Mac 2022.</dd>
+      <dt>Terbentuk daripada</dt>
+      <dd data-claim id="grs-predecessor" data-cite="https://en.wikipedia.org/wiki/Gabungan_Rakyat_Sabah?action=raw">Pendahulu Gabungan Rakyat Sabah ialah Gabungan Bersatu Sabah, iaitu United Alliance of Sabah.</dd>
+      <dt>Parti komponen</dt>
+      <dd data-claim id="grs-members" data-cite="https://en.wikipedia.org/wiki/Gabungan_Rakyat_Sabah?action=raw">Parti anggota Gabungan Rakyat Sabah ialah GAGASAN, PBS, UPKO, PHRS, LDP dan PCS.</dd>
+    </dl>
+    <p>
+      <span data-claim id="grs-sabah-based" data-cite="https://en.wikipedia.org/wiki/Gabungan_Rakyat_Sabah?action=raw">Gabungan Rakyat Sabah ialah gabungan Malaysia yang terdiri daripada parti berpangkalan di Sabah.</span>
+      <span data-claim id="grs-established" data-cite="https://en.wikipedia.org/wiki/Gabungan_Rakyat_Sabah?action=raw">Gabungan Rakyat Sabah ditubuhkan pada 2020 dan kemudian didaftarkan pada 2022 oleh bekas parti komponen Gabungan Bersatu Sabah dan United Borneo Alliance, yang beroperasi semata-mata di Sabah.</span>
+      <span data-claim id="grs-gps-formula" data-cite="https://en.wikipedia.org/wiki/Gabungan_Rakyat_Sabah?action=raw">Menurut catatan Wikipedia, Gabungan Rakyat Sabah dibentuk dengan mengambil inspirasi daripada formula gabungan berpangkalan di Sarawak, Gabungan Parti Sarawak.</span>
+    </p>
+    <p>
+      <span data-claim id="grs-upko" data-cite="https://www.malaymail.com/news/malaysia/2026/06/18/upko-joins-grs-expanding-sabah-ruling-coalition-to-six-parties/224325">Malay Mail melaporkan bahawa pada 18 Jun 2026 Gabungan Rakyat Sabah secara rasmi menerima Pertubuhan Kinabalu Progresif Bersatu sebagai parti komponen terbarunya, memperluas gabungan pemerintah Sabah itu kepada enam parti.</span>
+      Penyertaan itulah sebabnya senarai parti komponen di atas berjumlah
+      enam.
+    </p>
+  </section>
+
+  <section class="prose coalition" id="why-five">
+    <h2>Mengapa lima</h2>
+    <p class="gloss">tiga Gabungan persekutuan, dua Gabungan Borneo</p>
+    <p>
+      Jumlahnya lima kerana dua daripada Gabungan itu dibentuk khusus bagi
+      satu negeri setiap satu.
+      <span data-claim id="why-gps-sarawak" data-cite="https://en.wikipedia.org/wiki/Gabungan_Parti_Sarawak?action=raw">Gabungan Parti Sarawak ialah perikatan politik berpangkalan di Sarawak yang empat parti pengasasnya beroperasi semata-mata di Sarawak.</span>
+      <span data-claim id="why-grs-sabah" data-cite="https://en.wikipedia.org/wiki/Gabungan_Rakyat_Sabah?action=raw">Gabungan Rakyat Sabah ialah gabungan Malaysia yang terdiri daripada parti berpangkalan di Sabah.</span>
+      Setiap satu dirakam di atas berserta tarikh pembentukannya dan parti
+      yang membentuknya.
+    </p>
+    <p>
+      Itu perbezaan struktur, bukan dakwaan tentang apa yang dikehendaki
+      mana-mana parti ini. GPS dibentuk khusus bagi Sarawak dan GRS bagi
+      Sabah; tiga yang lain tidak dibentuk khusus bagi satu negeri.
+      <span data-claim id="why-222-seats" data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md">Dewan Rakyat mempunyai 222 Kerusi.</span>
+      Sarawak dan Sabah masing-masing menyumbang bahagian mereka sendiri
+      daripada 222 itu. Unjuran yang mengabaikan dua Gabungan Borneo itu
+      bermakna mengunjurkan sebuah dewan yang tidak wujud, dan itulah
+      sebabnya laman ini mengira lima dan bukan tiga.
+    </p>
+  </section>
+</div>
+""".strip()
+
+
 def build_coalitions_page(language: Language, updated_at: date, status: ElectionStatus) -> str:
     return render_shell(
-        title="The five Coalitions: reading this site | PolitikKu",
-        description="What a Coalition is in Malaysian politics, and how each of the five this site tracks, PH, BN, PN, GPS and GRS, was formed: founding dates, component parties, and the splits and mergers behind them, each traced to a cited source.",
+        title=t(
+            language,
+            "The five Coalitions: reading this site | PolitikKu",
+            "Lima Gabungan: membaca laman ini | PolitikKu",
+        ),
+        description=t(
+            language,
+            "What a Coalition is in Malaysian politics, and how each of the five this site tracks, PH, BN, PN, GPS and GRS, was formed: founding dates, component parties, and the splits and mergers behind them, each traced to a cited source.",
+            "Apa itu Gabungan dalam politik Malaysia, dan bagaimana setiap satu daripada lima yang dijejaki laman ini, iaitu PH, BN, PN, GPS dan GRS, terbentuk: tarikh penubuhan, parti komponen, serta perpecahan dan percantuman di sebaliknya, setiap satu dijejaki kepada sumber yang dipetik.",
+        ),
         active_nav="coalitions",
         language=language,
         page_path="learn/coalitions.html",
         updated_at=updated_at,
         sources_count=0,
         status=status,
-        body_html=f"<style>{_COALITIONS_CSS}</style>\n{_COALITIONS_BODY}",
+        body_html=(
+            f"<style>{_COALITIONS_CSS}</style>\n"
+            f"{t(language, _COALITIONS_BODY_EN, _COALITIONS_BODY_MS)}"
+        ),
         prefix="/",
     )
 
@@ -749,7 +1176,7 @@ _PROCESS_CSS = f"""{_LEARN_BASE_CSS}
   }}
 """.strip()
 
-_PROCESS_BODY = """
+_PROCESS_BODY_EN = """
 <div class="pk-learn-container">
 <section class="opening">
     <div class="pk-eyebrow">How the election actually unfolds</div>
@@ -856,17 +1283,137 @@ _PROCESS_BODY = """
 """.strip()
 
 
+_PROCESS_BODY_MS = """
+<div class="pk-learn-container">
+<section class="opening">
+    <div class="pk-eyebrow">Bagaimana pilihan raya sebenarnya berlangsung</div>
+    <h1>Proses PRU16</h1>
+    <p class="lede">
+      Papan pemuka ini menjejaki tiga keadaan bagi PRU16: belum
+      diisytiharkan, diisytiharkan tanpa tarikh mengundi lagi, dan
+      diisytiharkan dengan tarikh mengundi ditetapkan. Halaman ini
+      menerangkan urutan di sebalik keadaan tersebut, daripada pembubaran
+      kepada penamaan calon kepada pengundian, dan mengapa keadaan
+      pertengahan itu, iaitu diisytiharkan tetapi tanpa tarikh, ialah
+      peringkat sebenar dalam proses dan bukan lompang dalam rekod.
+    </p>
+    <p class="pk-learn-callout">
+      Untuk kedudukan PRU16 pada masa ini — sama ada ia telah
+      diisytiharkan, tarikh yang telah ditetapkan, dan berapa lama lagi
+      yang tinggal — lihat
+      <a href="/ms/pru16/">halaman PRU16</a>.
+    </p>
+    <ul class="toc">
+      <li><a href="#step-dissolution">Pembubaran</a></li>
+      <li><a href="#step-nomination">Penamaan calon</a></li>
+      <li><a href="#step-polling">Pengundian</a></li>
+      <li><a href="#the-three-states">Tiga keadaan</a></li>
+    </ul>
+  </section>
+
+  <section class="prose step" id="step-dissolution">
+    <span class="step-index">01</span>
+    <h2>Pembubaran</h2>
+    <p class="gloss">tindakan yang memulakan pilihan raya umum Malaysia</p>
+    <p>
+      <span data-claim data-cite="https://www.malaysianbar.org.my/legal/general_news/royal_powers_after_dissolution.html" id="dissolution-starts-it">Pilihan raya umum Malaysia bermula dengan pembubaran Dewan Rakyat, iaitu dewan rendah Parlimen yang dipilih, peristiwa yang membuka tempoh interim sehingga pelantikan kerajaan pilihan yang seterusnya.</span>
+      <span data-claim data-cite="https://www.malaysianbar.org.my/legal/general_news/royal_powers_after_dissolution.html" id="dissolution-two-routes">Melainkan pilihan raya diadakan lebih awal, penggal lima tahun Dewan Rakyat akan berjalan sehingga tamat dan pembubaran menyusul.</span>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="dissolution-early-is-ordinary">Pembubaran awal ialah kes biasa yang digambarkan oleh nota data projek ini sendiri, bukan pengecualian.</span>
+    </p>
+    <p>
+      <span data-claim data-cite="https://www.malaysianbar.org.my/legal/general_news/royal_powers_after_dissolution.html" id="deadline-60-days">Perkara 55(4) Perlembagaan Persekutuan menghendaki pilihan raya umum diadakan dalam tempoh 60 hari dari pembubaran Dewan Rakyat.</span>
+      <span data-claim data-cite="https://www.malaysianbar.org.my/legal/general_news/by_elections_and_the_constitution.html" id="art-55-3">Mandat lima tahun Dewan Rakyat tamat di bawah Perkara 55(3) Perlembagaan Persekutuan.</span>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="deadline-worked-example">Digabungkan, kedua-dua peruntukan itu menetapkan tarikh akhir PRU16 itu sendiri: persidangan pertama Dewan Rakyat semasa ialah pada 19 Disember 2022, jadi ia terbubar secara automatik lima tahun kemudian, pada 19 Disember 2027, jika tidak dibubarkan lebih awal, menjadikan tarikh terakhir yang mungkin bagi PRU16 ialah 17 Februari 2028.</span>
+    </p>
+  </section>
+
+  <section class="prose step" id="step-nomination">
+    <span class="step-index">02</span>
+    <h2>Penamaan calon</h2>
+    <p class="gloss">di mana Suruhanjaya Pilihan Raya menetapkan tarikh yang tidak ditetapkan oleh pembubaran</p>
+    <p>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="dissolution-doesnt-set-dates">Pembubaran itu sendiri tidak menetapkan bila hari penamaan calon atau hari mengundi akan jatuh. Suruhanjaya Pilihan Raya Malaysia menetapkan dan mengumumkan tarikh tersebut secara berasingan, selepas pembubaran berlaku.</span>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="gap-is-typical">Nota data projek ini sendiri merakam jurang itu sebagai lazimnya mengambil masa seminggu atau dua.</span>
+    </p>
+    <p>
+      <span data-claim data-cite="https://www.malaysianbar.org.my/article/news/legal-and-general-news/members-opinions/ge13-abiding-by-the-nomination-process" id="nomination-centres">Pada hari penamaan calon, para calon mengemukakan kertas penamaan mereka kepada pegawai pengurus bagi kawasan pilihan raya masing-masing, dan kertas tersebut boleh ditolak jika ia tidak mematuhi Peraturan-Peraturan Pilihan Raya (Perjalanan Pilihan Raya).</span>
+    </p>
+  </section>
+
+  <section class="prose step" id="step-polling">
+    <span class="step-index">03</span>
+    <h2>Pengundian</h2>
+    <p class="gloss">di mana pengundi memutuskan, dalam tempoh yang dibuka oleh pembubaran</p>
+    <p>
+      Hari mengundi itu sendiri jatuh dalam tempoh 60 hari yang sama yang
+      ditetapkan oleh Perkara 55(4) bermula dari pembubaran (lihat
+      <a href="#step-dissolution">Pembubaran</a> di atas). Penamaan calon,
+      kempen yang menyusul selepasnya, dan pengundian semuanya mesti jatuh
+      dalam satu tarikh akhir perlembagaan itu. Untuk memahami apa itu
+      Kerusi dan berapa banyak yang ada dalam Dewan Rakyat, lihat
+      <a href="glossary.html#term-seat">glosari</a>.
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/CONTEXT.md" id="polling-not-model-input">Setelah tarikh mengundi ditetapkan, ia menjadi konteks untuk membaca Unjuran laman ini, bukan input yang digunakan oleh Model Peralihan.</span>
+    </p>
+  </section>
+
+  <section class="prose step" id="the-three-states">
+    <div class="pk-eyebrow">Apa yang sebenarnya dipaparkan papan pemuka</div>
+    <h2>Tiga keadaan</h2>
+    <p>
+      <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="three-states-summary">Status Pilihan Raya papan pemuka ini dipacu oleh tiga tarikh, iaitu bila Dewan Rakyat dibubarkan, bila penamaan calon berlaku, dan bila pengundian ditetapkan, dan ia menentukan apa yang dipaparkan berdasarkan tarikh yang mana antara ketiga-tiga itu yang ada.</span>
+    </p>
+
+    <div class="states">
+      <div class="state-block">
+        <span class="state-tag">Belum diisytiharkan</span>
+        <h3>Tiada tarikh pembubaran</h3>
+        <p>
+          <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="state-not-called">Sebelum Dewan Rakyat dibubarkan, PRU16 belum diisytiharkan, dan papan pemuka ini tidak merakam tarikh pembubaran mahupun tarikh mengundi.</span>
+          <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="state-not-called-deadline">Dewan Rakyat terus bersidang, terikat hanya kepada tarikh akhir perlembagaan yang ditetapkan bersama oleh penggal lima tahun dan peraturan 60 hari itu.</span>
+        </p>
+      </div>
+      <div class="state-block">
+        <span class="state-tag">Diisytiharkan, tiada tarikh mengundi</span>
+        <h3>Dibubarkan, tarikh belum diumumkan</h3>
+        <p>
+          <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="state-called-no-polling">Antara pembubaran dan pengumuman jadual oleh Suruhanjaya Pilihan Raya, papan pemuka ini merakam tarikh pembubaran dan tiada tarikh mengundi.</span>
+          <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="state-called-no-polling-no-guess">Papan pemuka ini membiarkan medan pengundian kosong bagi tempoh itu dan tidak mengisinya dengan tekaan.</span>
+        </p>
+      </div>
+      <div class="state-block">
+        <span class="state-tag">Diisytiharkan, tarikh mengundi ditetapkan</span>
+        <h3>Kedua-dua tarikh dalam rekod</h3>
+        <p>
+          <span data-claim data-cite="https://raw.githubusercontent.com/IlhamKassim/live-political-analysis/main/data/election_status.json" id="state-called-with-polling">Setelah Suruhanjaya Pilihan Raya mengumumkan jadual, rekod papan pemuka ini mempunyai kedua-dua tarikh: tarikh pembubaran yang ditetapkan lebih awal, dan tarikh mengundi yang kini diumumkan oleh Suruhanjaya.</span>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+""".strip()
+
+
 def build_process_page(language: Language, updated_at: date, status: ElectionStatus) -> str:
     return render_shell(
-        title="The GE16 process: reading this site | PolitikKu",
-        description="How GE16 actually unfolds, from dissolution to nomination to polling, and why 'called, no polling date yet' is a real, distinct state this dashboard tracks, not a half-filled record.",
+        title=t(
+            language,
+            "The GE16 process: reading this site | PolitikKu",
+            "Proses PRU16: membaca laman ini | PolitikKu",
+        ),
+        description=t(
+            language,
+            "How GE16 actually unfolds, from dissolution to nomination to polling, and why 'called, no polling date yet' is a real, distinct state this dashboard tracks, not a half-filled record.",
+            "Bagaimana PRU16 sebenarnya berlangsung, daripada pembubaran kepada penamaan calon kepada pengundian, dan mengapa 'diisytiharkan, tiada tarikh mengundi lagi' ialah keadaan sebenar yang tersendiri yang dijejaki papan pemuka ini, bukan rekod yang terisi separuh.",
+        ),
         active_nav="process",
         language=language,
         page_path="learn/ge16-process.html",
         updated_at=updated_at,
         sources_count=0,
         status=status,
-        body_html=f"<style>{_PROCESS_CSS}</style>\n{_PROCESS_BODY}",
+        body_html=(
+            f"<style>{_PROCESS_CSS}</style>\n{t(language, _PROCESS_BODY_EN, _PROCESS_BODY_MS)}"
+        ),
         prefix="/",
     )
 

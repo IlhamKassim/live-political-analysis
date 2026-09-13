@@ -158,11 +158,14 @@ def test_politikku_is_served_from_the_site_root():
     # is what moved off the root before that (#104) and was retired outright
     # by ADR 0014 — kept only as `politikku_redirects.py`'s old-path key.
     #
-    # `landing_url` ignores its `language` argument (#149 Wave 3): the root
-    # is a single static file with no /ms/ twin, so a Malay reader is routed
-    # to the same `/` an English reader gets, not to a dead `/ms/`.
+    # `landing_url` honours its `language` argument. It ignored it under #149
+    # Wave 3, when the root was a single static file with no /ms/ twin and a
+    # Malay reader sent to `/ms/` would have hit a dead page. That twin now
+    # exists and is live — `/ms/` is a fully translated landing with its own
+    # canonical — so collapsing BM to `/` was sending Malay readers to the
+    # English root instead.
     assert landing_url() == "/"
-    assert landing_url(Language.MS) == "/"
+    assert landing_url(Language.MS) == "/ms/"
     assert LANDING_URL == "/"
     assert HOMEPAGE_PAGE == "home.html"
     assert route(Language.EN, f"{MP_PROFILE_DIR}/P.102.html") == "/mp/P.102.html"

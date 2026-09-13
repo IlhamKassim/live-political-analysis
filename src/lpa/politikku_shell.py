@@ -173,7 +173,6 @@ NAV_LINKS: tuple[NavLink, ...] = (
         "Glosari",
         "learn/glossary.html",
         "glossary",
-        en_only=True,
         icon_svg=(
             '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
             'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
@@ -185,7 +184,6 @@ NAV_LINKS: tuple[NavLink, ...] = (
         "Gabungan",
         "learn/coalitions.html",
         "coalitions",
-        en_only=True,
         icon_svg=(
             '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
             'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
@@ -208,7 +206,6 @@ NAV_LINKS: tuple[NavLink, ...] = (
         "Proses PRU16",
         "learn/ge16-process.html",
         "process",
-        en_only=True,
         icon_svg=(
             '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
             'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
@@ -245,8 +242,15 @@ def projection_url(language: Language = Language.EN) -> str:
 
 
 def landing_url(language: Language = Language.EN) -> str:
-    """Where 'What is PolitikKu?' points: the shared site root."""
-    return route(Language.EN, LANDING_PAGE)
+    """Where 'What is PolitikKu?' points: the site root, in the page's own language.
+
+    This ignored its `language` argument until now (#149 Wave 3), on the premise
+    that the root had no `/ms/` twin and a Malay reader would land on a dead
+    page. That twin exists and is live — `/ms/` is a fully translated landing
+    with its own canonical — so a BM page linking `/` sent Malay readers to the
+    English root.
+    """
+    return route(language, LANDING_PAGE)
 
 
 _MONTHS_EN: tuple[str, ...] = (
@@ -669,14 +673,17 @@ def render_methodology_footer(
     read_methodology = t(language, "Read the full methodology →", "Baca metodologi penuh →")
     what_is_politikku = t(language, "What is PolitikKu? →", "Apakah itu PolitikKu? →")
 
-    if language is Language.EN:
-        learn_links = (
-            '\n    <a class="pk-footer-link" href="/learn/glossary.html">Glossary →</a>'
-            '\n    <a class="pk-footer-link" href="/learn/coalitions.html">Coalitions →</a>'
-            '\n    <a class="pk-footer-link" href="/learn/ge16-process.html">GE16 Process →</a>'
+    # These three were EN-only while their prose was still untranslated. The BM
+    # prose has landed, so both languages get all three, each pointing at its
+    # own route rather than BM borrowing the English page.
+    learn_links = "".join(
+        f'\n    <a class="pk-footer-link" href="{html.escape(route(language, page))}">{label} →</a>'
+        for page, label in (
+            ("learn/glossary.html", t(language, "Glossary", "Glosari")),
+            ("learn/coalitions.html", t(language, "Coalitions", "Gabungan")),
+            ("learn/ge16-process.html", t(language, "GE16 Process", "Proses PRU16")),
         )
-    else:
-        learn_links = ""
+    )
 
     factual_heading = html.escape(t(language, factual.heading, factual.heading_ms))
     modelled_heading = html.escape(t(language, modelled.heading, modelled.heading_ms))
@@ -996,7 +1003,7 @@ _CSS_TEMPLATE = """
     position: fixed; top: 0; right: 0; z-index: 50;
     display: flex; align-items: center; gap: 12px;
     padding: 8px 18px;
-    background: rgba(9, 11, 15, .94);
+    background: rgba(25, 43, 48, .94);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--line);
     min-height: 56px;
@@ -1949,7 +1956,7 @@ button.dewan-tr:hover {
 
   /* Methodology footer & legacy components */
   .pk-footer {
-    background: var(--paper-alt);
+    background: var(--paper);
     color: var(--on-dark-body);
     padding: var(--gutter-desktop);
     display: grid;
